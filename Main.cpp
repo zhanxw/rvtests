@@ -28,44 +28,126 @@ void FATAL(const char* x) {
     REPORT(x);
     abort();
 };
-typedef enum {VCF_CHROM= 0,
-              VCF_POS  = 1,
-              VCF_ID   = 2,
-              VCF_REF  = 3,
-              VCF_ALT  = 4,
-              VCF_QUAL = 5,
-              VCF_FILTER = 6,
-              VCF_INFO   = 7,
-              VCF_FORMAT = 8,
-              VCF_UNDEF = -1} 
-    VCF_SITE_t;
 
 typedef std::vector<std::string> VCFHeader;
 
+#define MISSING_GENOTYPE -1
+/**
+ * the versatile format to store value for VCF file.
+ */
 class VCFValue{
 public:
-    int beg;
-    int end;
+    int beg; // inclusive
+    int end; // exclusive, and beg <= end
     const char* line;
 public:
-    int toInt();
-    void toInt(int* i);
-    double toDouble();
-    void toDouble(double* d);
-    std::string toStr();
-    void toStr(std::string* s) {};
+    int toInt() const{ 
+
+    };
+    void toInt(int* i) const {
+        *i = atoi(line+beg);
+    };
+    double toDouble() const {
+        return atoi(line+beg);        
+    };
+    void toDouble(double* d) const {
+        *d = strtod(line+beg, 0);
+    };
+    std::string toStr() const { 
+        std::string s;
+        for (int i = beg; i < end; i++){
+            s.push_back(line[i]);
+        }
+    };
+    void toStr(std::string* s) const { 
+        s->clear();
+        for (int i = beg; i < end; i++){
+            s->push_back(line[i]);
+        }
+    };
 public:
     int getGenotype(){
+        int g = 0;
+        int p = beg;
+        if (line[p] == '.') 
+            return MISSING_GENOTYPE;
+        if (line[p] < '0') 
+            REPORT("Wrong genotype detected. [1]");
+        else 
+            g += line[p] - '0';
+        
+        p ++ ;
+        if (p == end) 
+            return g;
+        
+        p ++;
+        if (p == end)
+            REPORT("Wrong genotype length = 2");
+        if (line[p] == '.')
+            return MISSING_GENOTYPE;
+        if (line[p] < '0')
+            REPORT("Wrong genotype detected. [1]");
+        else 
+            g += line[p] - '0';
+        
+        return g;
     };
     int getAllele1(){
+        int g = 0;
+        int p = beg;
+        if (line[p] == '.') 
+            return MISSING_GENOTYPE;
+        if (line[p] < '0') 
+            REPORT("Wrong genotype detected. [1]");
+        else 
+            g += line[p] - '0';
+        return g;
     };
     int getAllele2(){
+        int g = 0;
+        int p = beg + 2;
+        if (p >= end) 
+            return MISSING_GENOTYPE; 
+        if (line[p] == '.') 
+            return MISSING_GENOTYPE;
+        if (line[p] < '0') 
+            REPORT("Wrong genotype detected. [1]");
+        else 
+            g += line[p] - '0';
+        return g;
     };
     bool isPhased(){
+        if (end - beg != 3) return false;
+        int p = beg + 1;
+        if (line[p] == '/') return false;
+        if (line[p] == '|') return true;
+        return false;
     };
 };
 
-#define MISSING_GENOTYPE -1
+int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret) {
+    assert(ret);
+    ret->line = line;
+    ret->beg = beg;
+    ret->end = ret->beg;
+    while(line[ret->end] != c && line[ret->end] != '\0') {
+        ret->end++;
+    }
+    return ret->end;
+}
+
+int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret) {
+    assert(ret);
+    ret->line = line;
+    ret->beg = beg;
+    ret->end = ret->beg;
+    int cLen = strlen(c);
+    while(index(c, line[beg])){
+        ret->end++;
+    }
+    return ret->end;
+}
+
 typedef int(*PARSE_FUNCTION)(const char* s, int beg, int end);
 int parseGenotype(const char* line, int beg, int end){
     if (line[beg] == '.') return  MISSING_GENOTYPE;
@@ -91,30 +173,6 @@ int parseGenotype(const char* line, int beg, int end){
     return -1;
 };
 
-int parseDepth(const char* line, int beg, int end){
-    char s[32];
-    int p = beg;
-    while (isdigit(line[p]) && p <= end){
-        p++;
-    }
-    if (p == end)
-        FATAL("Wrong depth format");
-    strncpy(s, &line[beg], p - beg + 1);
-    return atoi(s);
-};
-
-int parseGenotypeQuality(const char* line, int beg, int end){
-    char s[32];
-    int p = beg;
-    while (isdigit(line[p]) && p <= end){
-        p++;
-    }
-    if (p == end)
-        FATAL("Wrong genotype quality format");
-    strncpy(s, &line[beg], p - beg + 1);
-    return atoi(s);
-};
-
 // we assume format are always  GT:DP:GQ:GL
 class VCFIndividual{
 public:
@@ -123,8 +181,8 @@ public:
     VCFIndividual():
         isMasked(true)  // by default, enable every one
         {
-            this->parseFunction[0] = parseGenotype; //parseGenotype;
-            this->parseFunction[1] = parseDepth; // TODO: change to other function
+            // this->parseFunction[0] = parseGenotype; //parseGenotype;
+            // this->parseFunction[1] = parseDepth; // TODO: change to other function
             // this->parseFunction[2] = parseGenotype;
             // this->parseFunction[3] = parseGenotype;
         };
@@ -134,56 +192,43 @@ public:
      *     A B C \t
      * beg = 0, end = 3 (line[end] = '\t' or line[end] = '\0')
      */
-    bool parse(const char* line, int beg, int end) {
+    int parse(const char* line, int beg) {
         // need to consider missing genotype
         // need to consider missing field
-        if (this->isMasked) return true;
-
-        this->beg = beg;
-        this->end = end;
-        int pt = beg;
-        int parseFunctionIdx = 0;
-        while(line[pt] != ':' && pt <= end){
-            pt ++;
-            if (line[pt] == ':' || pt == end){
-                switch (parseFunctionIdx){
-                case 0:
-                    this->gt = (*(parseFunction[parseFunctionIdx]))(line, beg, end);
-                    break;
-                case 1:
-                    this->dp = (*(parseFunction[parseFunctionIdx]))(line, beg, end);
-                    break;
-                case 2:
-                    this->gq = (*(parseFunction[parseFunctionIdx]))(line, beg, end);
-                    break;
-                default:
-                    break;
-                }
-                parseFunctionIdx ++;
-            }
+        
+        // skip to next 
+        if (this->isMasked) {
+            return parseTillChar('\t', line, beg, & this->data);
         }
-        return true;
+        
+        this->data.line = line;
+        this->data.beg = beg;
+        
+        this->fd.clear();
+        VCFValue v;
+        while (true) {
+            v.end = parseTillChar(":\t", line, beg, &v);
+            if (line[v.end] == '\t' || line[v.end] == '\0')
+                break;
+            fd.push_back(v);
+        }
+        this->data.end = v.end;
+        return this->data.end;
     };
+
     const std::string& getName() const {return this->name;};
     void setName(std::string& s) {this->name = s;};
     void addMask() {this->isMasked = true;};
     void delMask() {this->isMasked = false;};
-    void resetContent() { gt = -1; dp = -1; gq = -1; };
-    int getGenotype() const {return this->gt;};
+    const VCFValue& operator [] (const unsigned int i) const {
+        return (this->fd[i]);
+    };
 private:
     bool isMasked;
     std::string name;
-    int beg;
-    int end;
-    PARSE_FUNCTION parseFunction[4];
-    int gt;
-    int dp;
-    int gq;
-    
-    // int getTagStr(const char* tag, char* value, int len);
-    // int getTagInt(const char* tag, int* value);
-    // int getTagDouble(const char* tag, double* value);
-    // int getGenotype(const char* tag, int* geno);
+
+    VCFValue data;            // whole field for the individual
+    std::vector<VCFValue> fd; // each field separated by ':'
 };
 
 typedef OrderedMap<int, VCFIndividual*> VCFPeople;
@@ -192,89 +237,41 @@ class VCFRecord{
 public:
     int parse(const char* line){
         this->line = line;
-        // go through each character
+        // go through VCF sites (first 9 columns)
         int beg = 0;
         int end = 0;
-        VCF_SITE_t state = VCF_CHROM;
-        while (line[end] != '\0'){
-            end ++ ;
-            if (line[end] == '\t'){
-                // update states accordingly
-                std::string s;
-                switch (state){
-                case VCF_CHROM:
-                    this->chrom.assign(& line[beg], &line[end]);
-                    state = VCF_POS;
-                    break;
-                case VCF_POS:
-                    s.assign(& line[beg], &line[end]);
-                    if (!str2int(s.c_str(), &this->pos)) {
-                        FATAL("Position error!");
-                    }
-                    state = VCF_ID;
-                    break;
-                case VCF_ID:
-                    this->id.assign(& line[beg], &line[end]);
-                    state = VCF_REF;
-                    break;
-                case VCF_REF:
-                    this->ref.assign(& line[beg], &line[end]);
-                    state = VCF_ALT;
-                    break;
-                case VCF_ALT:
-                    this->alt.assign(& line[beg], &line[end]);
-                    state = VCF_QUAL;
-                    break;
-                case VCF_QUAL:
-                    this->qual.assign(& line[beg], &line[end]);
-                    state = VCF_FILTER;
-                    break;
-                case VCF_FILTER:
-                    this->filt.assign(& line[beg], &line[end]);
-                    state = VCF_INFO;
-                    break;
-                case VCF_INFO:
-                    this->info.assign(& line[beg], &line[end]);
-                    state = VCF_FORMAT;
-                    break;
-                case VCF_FORMAT:
-                    this->format.assign(& line[beg], &line[end]);
-                    state = VCF_UNDEF;
-                    break;
-                default:
-                    REPORT("Should not reach here!");
-                    break;
-                };
-                
-                beg = end + 1;
-                end = beg;
-                if (state == VCF_UNDEF) 
-                    break;
-            }
-        }
+        end = parseTillChar('\t', line, beg, &this->chrom);
+        beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->pos);
+        beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->id);
+        beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->ref);
+        beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->alt);
+        beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->qual);
+        beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->info);
+        beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->filt);
+        beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->format);
+        
         // now comes each individual genotype
         int idx = 0; // peopleIdx
         VCFIndividual* p = this->indv[idx]; 
-        p->resetContent();
-
-        while (line[end] != '\0') {
-            end ++ ;
-            if (line[end] == '\t' || line[end] == '\0') {
-                if (!p->parse(line, beg, end)){
-                    REPORT("Parse indv failed!");
-                    abort();
-                }
-                if (line[end] == '\0') 
-                    break;
-                beg = end + 1;
-                end = beg;
-                idx ++ ;
-                if (idx >= this->indv.size()){
-                    FATAL("VCF header and VCF content do not match!");
-                }
-                p = this->indv[idx];
-                p->resetContent();
+        
+        while (true) {
+            beg = end + 1;
+            end = p->parse(line, beg);
+            if (line[end] == '\0') 
+                break;
+            idx ++ ;
+            if (idx >= this->indv.size()){
+                FATAL("VCF header and VCF content do not match!");
             }
+            p = this->indv[idx];
         }
     };
     void createIndividual(const std::string& line){
@@ -321,29 +318,29 @@ public:
         }
     };
 public:
-    const std::string& getChrom() const { return this->chrom; };
-    const int getPos() const { return this->pos; };
-    const std::string& getID() const { return this->id; };
-    const std::string& getRef() const { return this->ref; };
-    const std::string& getAlt() const { return this->alt; };
-    const std::string& getQual() const { return this->qual; };
-    const std::string& getFilt() const { return this->filt; };
-    const std::string& getInfo() const { return this->info; };
-    const std::string& getFormat() const { return this->format; };
+    const std::string getChrom() const { return this->chrom.toStr(); };
+    const int getPos() const { return this->pos.toInt(); };
+    const std::string getID() const { return this->id.toStr(); };
+    const std::string getRef() const { return this->ref.toStr(); };
+    const std::string getAlt() const { return this->alt.toStr(); };
+    const std::string getQual() const { return this->qual.toStr(); };
+    const std::string getFilt() const { return this->filt.toStr(); };
+    const std::string getInfo() const { return this->info.toStr(); };
+    const std::string getFormat() const { return this->format.toStr(); };
     const char* getLine() const {return this->line;};
     const VCFPeople& getIndv() const { return this->indv;};
 private:
     VCFPeople indv; // each individual
-    std::string chrom;
-    int pos;
-    std::string id;
-    std::string ref;
-    std::string alt;
-    std::string qual;
-    std::string filt;
-    std::string info;
-    std::string format;
-    const char* line;
+    VCFValue chrom;
+    VCFValue pos;
+    VCFValue id;
+    VCFValue ref;
+    VCFValue alt;
+    VCFValue qual;
+    VCFValue filt;
+    VCFValue info;
+    VCFValue format;
+    const char* line; // points to data line
 };
 
 class VCFInputFile{
@@ -412,7 +409,7 @@ public:
         //     }
         // } else{
         // load contents 
-        if (this->range) {
+        if (this->range->size() > 0) {
             if (this->hasIndex) {                 // there is index
                 static int rangeIdx = 0;
                 // unsigned int numRange = this->range->size();
@@ -548,7 +545,7 @@ int main(int argc, char** argv){
             printf("%s:%d\t", r.getChrom().c_str(), r.getPos());
             for (int i = 0; i < indv.size(); i++) {
                 people = indv[i];
-                printf("%d ", people->getGenotype());
+                printf("%d ", (*people)[0].toInt());
             }
             printf("\n");
         };
@@ -559,523 +556,3 @@ int main(int argc, char** argv){
     }
     return 0;
 };
-
-// struct VCFFilter {
-//     // PeopleIndex* peopleIndex;
-//     // RangeList* rangeList;
-//     int siteDepthMin;
-//     int siteDepthMax;
-//     int indvDepthMin;
-//     int indvDepthMax;
-//     int indvQualMin;
-//     InfoGrepper* infoGrepper;
-//     VCFFilterArgument():
-//         peopleIndex(0),
-//         rangeList(0),
-//         siteDepthMin(0),
-//         siteDepthMax(0),
-//         indvDepthMin(0),
-//         indvDepthMax(0),
-//         indvQualMin(0),
-//         infoGrepper(0)
-//         {};
-// };
-
-// class VCFFile{
-// public:
-//     int  open(const char* fileName);
-//     void output012File(const std::string argOutputPrefix, const VCFFilterArgument& filterArgument);
-//     void close();
-// private:
-//     void vcfLineTo012(const char* s, const VCFFilterArgument& filterArgument, std::vector<short int>* geno, FILE* genoFile, FILE* posFile, FILE* frqFile);
-//     int  loopEachLine(const VCFFilterArgument& filterArgument, FILE* genoFile, FILE* posFile, FILE* frqFile);
-//     void filterByPeople(PeopleIndex& pi) {
-//         pi.readVCFheader(this->vcfHeader[this->vcfHeader.size()-1].c_str());
-//         pi.setFilteredID(& this->inclusionColumn);
-//         // debug code
-//         // printf("filtered result: \n");
-//         // for (unsigned int i = 0; i < inclusionColumn.size(); i++) {
-//         //     printf("index[%d], col = %d\n", i, inclusionColumn[i]);
-//         // }
-//     };
-//     bool indexFileExist() { return true;};
-//     // open sub-indexed files
-//     // .people  format: col peopleID
-//     // .af      format: TODO(zhanxw)
-//     int createIndexFiles(const char* fileName);
-//     int openIndexFiles(const char* fileName);
-
-// private:
-//     IFILE vcfHandle;
-//     tabix_t * tabixHandle;
-//     // std::vector<bool>    inclusionColumn; // every column in the VCF corresponds to a bool value, only col > 9 has meanings.
-//     VCFHeader* header;
-//     // IFILE vcfGTHandle;  // store GT
-//     // IFILE vcfGQHandle;  // store GP
-//     // IFILE vcfDPHandle;  // store DP
-// };
-
-// void VCFFile::output012File(const std::string argOutputPrefix, const VCFFilterArgument& filterArgument){
-//     // dump indv file
-//     filterByPeople(*filterArgument.peopleIndex);
-//     std::string fn = argOutputPrefix + ".012.indv";
-//     FILE* indvFile = fopen(fn.c_str(), "w");
-//     filterArgument.peopleIndex->dumpIndvFile(this->vcfHeader[this->vcfHeader.size()-1].c_str(), indvFile);
-//     fclose(indvFile);
-
-//     // open freq, pos file
-//     fn = argOutputPrefix + ".012.frq";
-//     FILE* freqFile = fopen(fn.c_str(), "w");
-//     fn = argOutputPrefix + ".012.pos";
-//     FILE* posFile = fopen(fn.c_str(), "w");
-//     fn = argOutputPrefix + ".012";
-//     FILE* genoFile = fopen(fn.c_str(), "w");
-
-//     loopEachLine(filterArgument, genoFile, posFile, freqFile);
-
-//     fclose(freqFile);
-//     fclose(posFile);
-//     fclose(genoFile);
-// }
-
-// int  VCFFile::loopEachLine(const VCFFilterArgument& filterArgument, FILE* genoFile, FILE* posFile, FILE* frqFile){
-//     // parse vcf file content
-//     //#CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  ID1 ...
-//     //
-//     int tid, beg, end;
-//     //TODO: make this flexible
-//     unsigned int numRange = filterArgument.rangeList->size();
-//     std::string range;
-
-//     const char *s;
-//     int len;
-//     std::vector<short int> g; // a very large 1-d array store genotype
-
-//     if (numRange == 0) {
-//         range = ".";
-//         ti_iter_t iter;
-//         iter = ti_query(tabixHandle, 0, 0, 0);
-//         while ((s = ti_read(tabixHandle, iter, &len)) != 0) {
-//             // s is the string we will work on
-//             // fputs(s, stdout); fputc('\n', stdout);
-//             if ( s[0] == '#') continue;
-//             vcfLineTo012(s, filterArgument, &g, genoFile, posFile, frqFile);
-//         }
-//         ti_iter_destroy(iter);
-
-//     } else {
-//         for (unsigned int i = 0; i < numRange; i++) {
-//             filterArgument.rangeList->obtainRange(i, &range);
-//             if (ti_parse_region(tabixHandle->idx, range.c_str(), &tid, &beg, &end) == 0) {
-//                 ti_iter_t iter;
-//                 // const char *s;
-//                 // int len;
-//                 iter = ti_queryi(tabixHandle, tid, beg, end);
-//                 while ((s = ti_read(tabixHandle, iter, &len)) != 0) {
-//                     // s is the string we will work on
-//                     // fputs(s, stdout); fputc('\n', stdout);
-//                     vcfLineTo012(s, filterArgument, &g, genoFile, posFile, frqFile);
-//                 }
-//                 ti_iter_destroy(iter);
-//             }
-//             else fprintf(stderr, "[main] invalid region: unknown target name or minus interval.\n");
-//         }
-//     }
-//     // transpose genotype matrix
-//     long int n = g.size();
-//     if (n == 0)
-//         return 0;
-//     long int nc = 0;
-//     //printf("people num (unfilt) = %d\n", this->inclusionColumn.size());
-//     for (unsigned int i = 0; i< this->inclusionColumn.size(); i++) {
-//         if (this->inclusionColumn[i])
-//             ++nc;
-//     }
-//     long int nr = n / nc;
-//     assert( nr * nc == n);
-
-//     if (nc != 1) {
-//         transposeMatrix(&g, nr, nc);
-//     }
-    
-//     // output to 012 file
-//     std::swap(nr, nc);
-//     for (long int i = 0 ; i < nr; i++) {
-//         for (long int j = 0; j < nc; j++ ){
-//             if (j) fputc('\t', genoFile);
-//             if (g[i*nc+j]>=0)
-//                 fputc('0' + g[i*nc+j], genoFile);
-//             else 
-//                 fputs("-1", genoFile);
-//         }
-//         fputc('\n', genoFile);
-//     }
-//     return 0;
-// }
-
-// void VCFFile::vcfLineTo012(const char* s, const VCFFilterArgument& filterArgument, std::vector<short int>* geno, FILE* genoFile, FILE* posFile, FILE* frqFile){
-//     unsigned int state = 0;
-//     unsigned int i = 0;
-//     unsigned int begin = 0;
-//     unsigned int end = 0;
-
-//     int siteDepth = 0;
-
-//     int chrBegin = 0;
-//     int posEnd = 0;
-//     int idBegin, idEnd;
-//     int refBegin, refEnd;
-//     int altBegin, altEnd;
-//     int freq[2] ={0,0};
-//     int all;
-//     double f0, f1;
-//     int indvQual;
-//     int indvDepth;
-//     while (s[i++]) {
-//         if (s[i] == '\t' || s[i] == '\0') {
-//             end = i - 1;
-//             // deal with the value
-//             switch(state){
-//             case VCF_CHROM:
-//                 chrBegin = begin;
-//                 break;
-//             case VCF_POS:
-//                 posEnd = end;
-//                 break;
-//             case VCF_ID:
-//                 idBegin = begin;
-//                 idEnd = end;
-//                 break;
-//             case VCF_REF:
-//                 refBegin = begin;
-//                 refEnd = end;
-//                 break;
-//             case VCF_ALT:
-//                 altBegin = begin;
-//                 altEnd = end;
-//                 break;
-//             case VCF_QUAL:
-//                 break;
-//             case VCF_FILTER:
-//                 break;
-//             case VCF_INFO:
-//                 siteDepth = obtainDepth(s, begin, end);
-//                 if (filterArgument.siteDepthMin != 0 && siteDepth < filterArgument.siteDepthMin){
-//                     //printf("depth %d < %d failed\n", depth, argDepth);
-//                     goto NEXT_LINE;
-//                 }
-//                 if (filterArgument.siteDepthMax != 0 && siteDepth > filterArgument.siteDepthMax){
-//                     goto NEXT_LINE;
-//                 }
-//                 if (!filterArgument.infoGrepper->match(s, begin, end)){
-//                     //printf("depth %d pass\n", depth);
-//                     goto NEXT_LINE;
-//                 }
-//                 if (!filterArgument.infoGrepper->match(s, begin, end)) {
-//                     goto NEXT_LINE;
-//                 }
-//                 break;
-//             case VCF_FORMAT:
-//                 break;
-//             default:
-//                 // check people filter
-//                 //printf("column %d is %s", state-9, (this->inclusionColumn[state-9] ? "true": "false"));
-//                 if (!this->inclusionColumn[state-9]){
-//                     goto NEXT_FIELD;
-//                 }
-
-//                 // deal with filtered individuals
-//                 //NOTE: only work with GT:DP:GQ:GL format
-                
-//                 // check GT
-//                 //also GT should be X/X format
-// #define MISSING_GT_VALUE -1
-//                 int gt = 0; // 0, 1, or 2
-//                 int g;
-//                 if (s[begin] == '.') {
-//                     gt = -1;
-//                     //fputs(MISSING_GT_VALUE, stdout);
-//                     //geno->push_back(-1);
-//                 } else {
-//                     int temp = s[begin] - '0';
-//                     if (temp < 0 || temp > 2) {
-//                         REPORT("Genotype out of bound") ;
-//                     } else {
-//                         g = s[begin] - '0';
-//                         gt += g;
-//                         freq[g] ++;
-//                         // check if it's sex chrom
-//                         if (s[begin+1] != ':') {
-//                             g = s[begin+2] - '0';
-//                             gt += g;
-//                             freq[g] ++;
-//                         }
-//                     }
-//                     //fputc('0' + gt, stdout);
-//                     // geno->push_back(gt);
-//                     //printf("%d", gt);
-//                 }
-                
-//                 // check DP
-//                 int innerPos;
-//                 if (s[begin+1] != ':') {
-//                     innerPos = begin + 3; // innerPos used for position within this field
-//                 } else {
-//                     innerPos = begin + 1; // innerPos used for position within this field
-//                 }
-//                 if (s[innerPos] != ':') {
-//                     REPORT( "We cannot handle this format");
-//                     goto NEXT_LINE;
-//                 } else{
-//                     int indvDepth = 0;
-//                     int depthPos = begin+4;
-//                     while (s[depthPos] != ':') {
-//                         indvDepth *= 10;
-//                         indvDepth += (s[depthPos] - '0');
-//                         depthPos++;
-//                     }
-//                     innerPos = depthPos;
-//                     // fprintf(stdout, "indv depth = %d\n", indvDepth);
-//                     // filter on indvDepth
-//                     if (filterArgument.indvDepthMin != 0 && indvDepth < filterArgument.indvDepthMin){
-//                         gt = MISSING_GT_VALUE;
-//                     }
-//                     if (filterArgument.indvDepthMax != 0 && indvDepth > filterArgument.indvDepthMax){
-//                         gt = MISSING_GT_VALUE;
-//                     }
-//                 }
-
-//                 // check GQ
-//                 if (s[innerPos] != ':') {
-//                     REPORT( "We cannot handle this format");
-//                     goto NEXT_LINE;
-//                 } else {                    
-//                     int indvQual = 0;
-//                     int qualPos = innerPos + 1;
-//                     while (s[qualPos] != ':') {
-//                         indvQual *= 10;
-//                         indvQual += (s[qualPos] - '0');
-//                         qualPos++;
-//                     }
-//                     innerPos = qualPos;
-//                     // fprintf(stdout, "indv depth = %d\n", indvDepth);
-//                     // filter on indvDepth
-//                     if (filterArgument.indvQualMin != 0 && indvQual < filterArgument.indvQualMin){
-//                         gt = MISSING_GT_VALUE;
-//                     }
-//                 }
-//                 geno->push_back(gt);
-//                 break;
-//             } // end switch
-
-//             // finish dealing with the line
-//           NEXT_FIELD:
-//             ++ state;
-//             begin = i+1;
-//         }
-//     }
-//     //fputs("\n", stdout);
-
-// // this macro will print s[b..e] to file f. (boundary inclusive)
-// #define FIELD_PRINT(s, b, e, f)                 \
-//     do {                                        \
-//         for (unsigned int i = b; i <= e; i++)   \
-//             fputc(s[i], f);                     \
-//     }while(0);                                  \
-
-//     // output pos file
-//     FIELD_PRINT(s, chrBegin, posEnd, posFile);
-//     fputc('\n', posFile);
-
-//     // output freq file
-//     all = freq[0] + freq[1];
-//     f0 = 0.0;
-//     f1 = 0.0;
-//     if (all != 0) {
-//         f0 = (double)(freq[0]) / double(all);
-//         f1 = 1 - f0;
-//     }
-//     FIELD_PRINT(s, chrBegin, posEnd, frqFile);
-//     fputc('\t', frqFile);
-//     FIELD_PRINT(s, idBegin, idEnd, frqFile);
-//     fputc('\t', frqFile);
-//     FIELD_PRINT(s, refBegin, refEnd, frqFile);
-//     fputc(':', frqFile);
-//     fprintf(frqFile, "%lf", f0);
-//     fputc('\t', frqFile);
-//     FIELD_PRINT(s, altBegin, altEnd, frqFile);
-//     fputc(':', frqFile);
-//     fprintf(frqFile, "%lf", f1);
-//     fputc('\n', frqFile);
-//   NEXT_LINE:
-//     return;
-// };
-
-// // return 0 for success
-// int VCFFile::open(const char* fileName) {
-//     this->vcfHandle = ifopen(fileName, "r");
-//     if (!this->vcfHandle) return -1;
-//     // read header
-//     String line;
-//     uint32_t numField = 0;
-//     uint32_t numLine = 0;
-//     while (line.ReadLine(this->vcfHandle) >= 0) {
-//         ++ numLine ;
-//         // vcf header part
-//         if (line[0] == '#') {
-//             this->vcfHeader.push_back(line.c_str());
-//         } else {
-//             break;
-//         }
-//     }
-
-//     // check whether indexing files exist
-//     if (!indexFileExist()) {
-//         // build index
-//     }
-
-//     // open index
-//     if (( this->tabixHandle = ti_open(fileName, 0)) == 0 ) {
-//         fprintf(stderr, "Cannot open use tabix to open: %s\n", fileName);        
-//         exit(1);
-//     }
-//     if (ti_lazy_index_load(tabixHandle)){
-//         fprintf(stderr, "Cannot open tabix index file\n");
-//         fprintf(stderr, "Use this command to create the tabix index file:\n");
-//         fprintf(stderr, "Use this command to create the tabix index file:\n");
-//         fprintf(stderr, "(grep ^\"#\" %s; grep -v ^\"#\" %s | sort -k1,1 -k2,2n) | bgzip > sorted.%s.gz;\n", fileName, fileName, fileName);
-//         fprintf(stderr, "tabix -p vcf sorted.%s.gz;\n", fileName);
-//         exit(1);
-//     };
-
-//     //openIndexFiles(fileName);
-//     return 0;
-// }
-
-// void VCFFile::close() {
-//     if (this->vcfHandle)
-//         ifclose(this->vcfHandle);
-
-//     // close index
-//     ti_close(this->tabixHandle);
-// }
-
-// int main(int argc, char *argv[])
-// {
-//     // parse argumetn
-//     // --peopleIncludeID
-//     // --peopleIncludeFile
-//     // --peopleExcludeID
-//     // --peopleExcludeFile
-//     // --outputPrefix
-//     // --outputFormat [plink, 012]
-//     // --geneIncludeName
-//     // --geneIncludeFile
-//     // --geneExcludeName
-//     // --geneExcludeFile
-//     // to add
-//     // filter by AF,
-//     // filter by QUAL
-//     // filter by Flanking sequences?
-
-//     String argInputVCFFileName;
-//     String argOutputPrefix;
-
-//     String argPeopleIncludeID;
-//     String argPeopleIncludeFile;
-//     String argPeopleExcludeID;
-//     String argPeopleExcludeFile;
-
-//     String argGeneListFile;
-//     String argGeneIncludeName;
-//     String argRangeList;
-//     String argRangeFile;
-//     String argSiteDepthMin;
-//     String argSiteDepthMax;
-
-//     String argIndvDepthMin;
-//     String argIndvDepthMax;
-//     String argIndvQualMin;
-
-//     String argInfoGrep;
-
-//     ParameterList pl;
-//     BEGIN_LONG_PARAMETERS(longParameters)
-//         LONG_PARAMETER_GROUP("Input/Output")
-//         LONG_STRINGPARAMETER("input",&argInputVCFFileName)
-//         LONG_STRINGPARAMETER("outputPrefix",&argOutputPrefix)
-
-//         LONG_PARAMETER_GROUP("People Filter")
-//         LONG_STRINGPARAMETER("peopleIncludeID",&argPeopleIncludeID)
-//         LONG_STRINGPARAMETER("peopleIncludeFile",&argPeopleIncludeFile)
-//         LONG_STRINGPARAMETER("peopleExcludeID",&argPeopleExcludeID)
-//         LONG_STRINGPARAMETER("peopleExcludeFile",&argPeopleExcludeFile)
-
-//         LONG_PARAMETER_GROUP("Site Filter")
-//         LONG_STRINGPARAMETER("geneListFile", &argGeneListFile)
-//         LONG_STRINGPARAMETER("geneIncludeName", &argGeneIncludeName)
-//         LONG_STRINGPARAMETER("rangeList", &argRangeList)
-//         LONG_STRINGPARAMETER("rangeFile", &argRangeFile)
-//         LONG_STRINGPARAMETER("siteDepthMin", &argSiteDepthMin)
-//         LONG_STRINGPARAMETER("siteDepthMax", &argSiteDepthMax)
-
-//         LONG_PARAMETER_GROUP("Individual Filter")
-//         LONG_STRINGPARAMETER("indvDepthMin", &argIndvDepthMin)
-//         LONG_STRINGPARAMETER("indvDepthMax", &argIndvDepthMax)
-//         LONG_STRINGPARAMETER("indvQualMin", &argIndvQualMin)
-
-//         LONG_PARAMETER_GROUP("INFO field Grepper")
-//         LONG_STRINGPARAMETER("infoGrep", &argInfoGrep)
-//         END_LONG_PARAMETERS();
-
-//     pl.Add(new LongParameters("Available Options", longParameters));
-//     pl.Read(argc, argv);
-//     pl.Status();
-
-//     if (argInputVCFFileName.Length() == 0) {
-//         fprintf(stderr, "Please specify --input\n");
-//         exit(1);
-//     }
-//     if (argOutputPrefix.Length() == 0) {
-//         fprintf(stderr, "Please specify --outputPrefix\n");
-//         exit(1);
-//     }
-
-//     PeopleIndex pi;
-//     pi.includeID(argPeopleIncludeID);
-//     pi.includeFile(argPeopleIncludeFile);
-//     pi.excludeID(argPeopleExcludeID);
-//     pi.excludeFile(argPeopleExcludeFile);
-
-//     RangeList rl;
-//     if (argGeneIncludeName.Length() !=0 && argGeneListFile.Length() == 0){
-//         fprintf(stderr, "Please specify geneListFile, or we don't know where a gene starts and ends. \n");
-//     }
-//     rl.filterGeneName(argGeneIncludeName, argGeneListFile);
-//     if (argRangeList.Length() != 0)
-//         rl.addRangeList(argRangeList);
-//     if (argRangeFile.Length() != 0)
-//         rl.addRangeFile(argRangeFile);
-
-//     InfoGrepper ig;
-//     if (argInfoGrep.Length() > 0)
-//         ig.readPatter(argInfoGrep);
-
-//     VCFFilterArgument filterArgument;
-//     filterArgument.peopleIndex= &pi;
-//     filterArgument.rangeList = &rl;
-//     filterArgument.siteDepthMin = (int)argSiteDepthMin.AsInteger();
-//     filterArgument.siteDepthMax = (int)argSiteDepthMax.AsInteger();
-//     filterArgument.indvDepthMin = (int)argIndvDepthMin.AsInteger();
-//     filterArgument.indvDepthMax = (int)argIndvDepthMax.AsInteger();
-//     filterArgument.indvQualMin = (int)argIndvQualMin.AsInteger();
-//     filterArgument.infoGrepper = &ig;
-
-//     VCFFile vcfFile;
-//     vcfFile.open(argInputVCFFileName.c_str());
-//     vcfFile.output012File(argOutputPrefix.c_str(), filterArgument);
-//     vcfFile.close();
-
-//     return 0;
-// }
-

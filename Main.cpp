@@ -14,7 +14,6 @@
 #include <vector>
 #include <algorithm>
 
-#include "InfoGrepper.h"
 #include "PeopleSet.h"
 #include "RangeList.h"
 #include "Utils.h"
@@ -594,7 +593,7 @@ int main(int argc, char** argv){
     REQUIRE_STRING_PARAMETER(FLAG_input, "Please provide input file using: --input");
     REQUIRE_STRING_PARAMETER(FLAG_output, "Please provide output prefix using: --output");
 
-    const char* fn = "test.vcf";
+    const char* fn = FLAG_input.c_str(); //"test.vcf";
     VCFInputFile vin(fn);
 
     // set range filters here
@@ -615,12 +614,12 @@ int main(int argc, char** argv){
         VCFPeople& people = r.getPeople();
         const VCFIndividual* indv;
         vout.writeRecord(& r);
-        printf("%s:%d\t", r.getChrom().c_str(), r.getPos());
-        for (int i = 0; i < people.size(); i++) {
-            indv = people[i];
-            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual
-        }
-        printf("\n");
+//        printf("%s:%d\t", r.getChrom().c_str(), r.getPos());
+//        for (int i = 0; i < people.size(); i++) {
+//            indv = people[i];
+//            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual
+//        }
+//        printf("\n");
     };
     return 0;
 };

@@ -504,7 +504,7 @@ private:
 class VCFOutputFile{
 public:
     VCFOutputFile(const char* fn) {
-        this->fp = fopen(fn, "wt");
+        this->fp = new FileWriter(fn);
         if (!this->fp){
             REPORT("Cannot create VCF file!");
             abort();
@@ -512,34 +512,34 @@ public:
     };
     void writeHeader(const VCFHeader* h){
         for (int i = 0; i < h->size(); i++){
-            fprintf(this->fp, "%s\n", h->at(i).c_str());
+            this->fp->write(h->at(i).c_str());
         }
     };
     void writeRecord(VCFRecord* r){
-        fprintf(this->fp, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
-                r->getChrom().c_str(),
-                r->getPos(),
-                r->getID().c_str(),
-                r->getRef().c_str(),
-                r->getAlt().c_str(),
-                r->getQual().c_str(),
-                r->getInfo().c_str(),
-                r->getFilt().c_str(),
-                r->getFormat().c_str());
+        this->fp->printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
+                         r->getChrom().c_str(),
+                         r->getPos(),
+                         r->getID().c_str(),
+                         r->getRef().c_str(),
+                         r->getAlt().c_str(),
+                         r->getQual().c_str(),
+                         r->getInfo().c_str(),
+                         r->getFilt().c_str(),
+                         r->getFormat().c_str());
         VCFPeople& p = r->getPeople();
         for (int i = 0; i < p.size() ; i ++ ) {
             VCFIndividual* indv = p[i];
-            fprintf(this->fp, "\t%s", indv->getData().toStr().c_str());
+            this->fp->printf("\t%s", indv->getData().toStr().c_str());
         }
-        fprintf(this->fp, "\n");
+        this->fp->printf("\n");
     };
     ~VCFOutputFile(){
         if (this->fp){
-            fclose(this->fp);
+            delete this->fp;
         }
     };
 private:
-    FILE* fp;
+    FileWriter* fp;
 };
 
 /****************************/
@@ -578,6 +578,10 @@ private:
 };
 
 int main(int argc, char** argv){
+    time_t currentTime = time(0);
+    fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
+
+    ////////////////////////////////////////////////
     BEGIN_PARAMETER_LIST(pl)
         ADD_PARAMETER_GROUP(pl, "Input/Output")
         ADD_STRING_PARAMETER(pl, input, "--input", "input VCF File")
@@ -622,5 +626,9 @@ int main(int argc, char** argv){
         }
         printf("\n");
     };
+
+    currentTime = time(0);
+    fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));
+
     return 0;
 };

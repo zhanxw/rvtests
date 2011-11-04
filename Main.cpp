@@ -1,5 +1,8 @@
 /**
-   TODO:
+   immediately tODO:
+   1. suppport PLINK output
+   2. support access INFO tag
+   futher TODO:
    1. handle different format GT:GD:DP ...
    2. easy argument processing: clean the argument processing codes.
 */

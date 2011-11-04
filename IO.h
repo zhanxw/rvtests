@@ -252,13 +252,13 @@ FileReader::FileType FileReader::checkFileType(const char* fileName){
     FILE* fp = fopen(fileName, "r");
     if (!fp) return UNKNOWN;
     unsigned char header[2]={0,0};
-    fread(header, sizeof(char), 2, fp);
+    int n = fread(header, sizeof(char), 2, fp);
     fclose(fp);
     // check file types
-    if ( header[0] == gz_magic[0] && header[1] == gz_magic[1]) {
+    if ( n >= 2 && header[0] == gz_magic[0] && header[1] == gz_magic[1]) {
         return GZIP;
     }
-    if ( header[0] == bzip2_magic[0] && header[1] == bzip2_magic[1]) {
+    if ( n >= 2 && header[0] == bzip2_magic[0] && header[1] == bzip2_magic[1]) {
         return BZIP2;
     }
     return PLAIN;
@@ -593,7 +593,7 @@ class BufferFileWriter: public AbstractFileWriter{
     int writeLine(const char* s){
         int ret = this->write(s);
         this->write("\n");
-        return (ret ++) ; 
+        return (ret + 1) ; 
     };
     int flush() {
         this->buf[this->bufPtr] = '\0';
@@ -639,7 +639,9 @@ class FileWriter{
         return this->fp->write(s);
     };
     int writeLine(const char* s){
-        return this->fp->write(s);
+        int ret = this->fp->write(s);
+        this->fp->write("\n");
+        return (ret + 1);
     };
     // if @param fileName ends with @param suffix, then return true;
     bool checkSuffix(const char* fileName, const char* suffix){

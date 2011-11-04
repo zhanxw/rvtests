@@ -123,7 +123,10 @@ class ParameterParser{
         int len;
         bool isCommentLine = true;
         while (isCommentLine){
-            fscanf(fp, "%s", line);
+            int n = fscanf(fp, "%s", line);
+            if ( n = EOF ) {
+                fprintf(stderr, "%s is empty\n.", fileName);
+            };
             len = strlen(line);
             if (!len) continue;
             for (index = 0; index < len; index++) {

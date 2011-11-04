@@ -511,7 +511,7 @@ public:
     };
     void writeHeader(const VCFHeader* h){
         for (int i = 0; i < h->size(); i++){
-            this->fp->write(h->at(i).c_str());
+            this->fp->writeLine(h->at(i).c_str());
         }
     };
     void writeRecord(VCFRecord* r){

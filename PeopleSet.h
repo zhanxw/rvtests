@@ -26,6 +26,8 @@ private:
 
 // class PeopleSet
 void PeopleSet::readID(const char* allPeopleID){
+    if (!strlen(allPeopleID)) return;
+
     std::vector<std::string> sa;
     stringTokenize(allPeopleID, ",", &sa);
     for (int i = 0; i< sa.size(); i++){
@@ -34,6 +36,8 @@ void PeopleSet::readID(const char* allPeopleID){
 }
 
 void PeopleSet::readIDfromFile(const char* fileName) {
+    if (!strlen(fileName)) return;
+
     std::vector <std::string> id;
     this->obtainIDfromFile(fileName, &id);
     for (uint32_t i = 0; i < id.size(); i++) {

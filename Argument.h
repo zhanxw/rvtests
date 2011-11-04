@@ -312,7 +312,7 @@ class ParameterParser{
                 return;
             }
             
-            // check if variable flag is a predefined flag or not
+            // check if variable flag is a predefined in flagVec or not
             std::vector<std::string>::iterator it;
             for (it = flagVec.begin(); it != flagVec.end(); it++) {
                 if (*it == flag){

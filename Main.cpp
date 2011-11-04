@@ -28,6 +28,13 @@ void FATAL(const char* x) {
     abort();
 };
 
+void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
+    if (flag.size() == 0){
+        fprintf(stderr, "%s\n", msg);
+        abort();
+    }
+};
+
 typedef std::vector<std::string> VCFHeader;
 
 #define MISSING_GENOTYPE -1
@@ -329,7 +336,7 @@ public:
     const std::string getInfo() const { return this->info.toStr(); };
     const std::string getFormat() const { return this->format.toStr(); };
     const char* getLine() const {return this->line;};
-    VCFPeople& getIndv(){
+    VCFPeople& getPeople(){
         static bool hasAccess = false;
         if (!hasAccess) {
             for (int i = 0; i < this->allIndv.size(); i++){
@@ -354,7 +361,7 @@ private:
     VCFValue info;
     VCFValue format;
     const char* line; // points to data line
-};
+}; // VCFRecord
 
 class VCFInputFile{
 public:
@@ -387,7 +394,19 @@ public:
         if (this->fp) delete this->fp;
     };
 
-    VCFHeader* getHeader() {return &this->header;};
+    void rewriteVCFHeader() {
+        std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+        VCFPeople& people = this->record.getPeople();
+        for (int i = 0; i <people.size(); i++ ){
+            s += '\t';
+            s += people[i]->getName();
+        }
+        this->header[this->header.size()-1] = s;
+    };
+    VCFHeader* getVCFHeader() {
+        this->rewriteVCFHeader();
+        return &this->header;
+    };
     bool openIndex() {
         return this->openIndex( (fileName + ".tbi").c_str());
     };
@@ -410,17 +429,6 @@ public:
     };
     bool readRecord(){
         assert(this->headerLoaded);
-        // if (!this->headerLoaded) {
-        //     // load header
-        //     this->fp->readByLine(&this->line);
-            
-        //     if (this->range) {
-        //         // check if there is index
-        //         if (!this->hasIndex){
-        //             fprintf(stderr, "creating index is recommended\n");
-        //         }
-        //     }
-        // } else{
         // load contents 
         if (this->range && this->range->size() > 0) {
             if (this->hasIndex) {                 // there is index
@@ -531,41 +539,39 @@ int main(int argc, char** argv){
 
     pl.Read(argc, argv);
     pl.Status();
-    
-    if (FLAG_input.size() == 0) {
-        fprintf(stderr, "use debug parameters\n");
-        const char* fn = "test.vcf";
-        VCFInputFile vin(fn);
-        const char* fout = "test.out.vcf";
-        VCFOutputFile vout(fout);
-        vout.writeHeader(vin.getHeader());
-        
-        RangeList rl;
-        PeopleSet peopleInclude;
-        PeopleSet peopleExclude;
-        if (FLAG_peopleIncludeID.size() > 0) {
-            peopleInclude.readID(FLAG_peopleIncludeID.c_str());
-        }
-        
-        vin.setPeople(&peopleInclude, &peopleExclude);
 
-        while (vin.readRecord()){
-            VCFRecord& r = vin.getVCFRecord(); 
-            VCFPeople& indv = r.getIndv();
-            int idx;
-            const VCFIndividual* people;
-            vout.writeRecord(& r);
-            printf("%s:%d\t", r.getChrom().c_str(), r.getPos());
-            for (int i = 0; i < indv.size(); i++) {
-                people = indv[i];
-                printf("%d ", (*people)[0].toInt());
-            }
-            printf("\n");
-        };
-    } else{
-        if (FLAG_output.size() == 0){
-            fprintf(stderr, "Please provide output prefix\n");
+    REQUIRE_STRING_PARAMETER(FLAG_input, "Please provide input file using: --input");
+    REQUIRE_STRING_PARAMETER(FLAG_output, "Please provide output prefix using: --output");
+
+    fprintf(stderr, "use debug parameters\n");
+    const char* fn = "test.vcf";
+    VCFInputFile vin(fn);
+
+    // set range filters here
+    RangeList rl;
+
+    // set people filters here
+    PeopleSet peopleInclude;
+    PeopleSet peopleExclude;
+    peopleInclude.readID(FLAG_peopleIncludeID.c_str());
+    vin.setPeople(&peopleInclude, &peopleExclude);
+
+    // let's write it out.
+    const char* fout = "test.out.vcf";
+    VCFOutputFile vout(fout);
+    vout.writeHeader(vin.getVCFHeader());
+    while (vin.readRecord()){
+        VCFRecord& r = vin.getVCFRecord(); 
+        VCFPeople& indv = r.getPeople();
+        int idx;
+        const VCFIndividual* people;
+        vout.writeRecord(& r);
+        printf("%s:%d\t", r.getChrom().c_str(), r.getPos());
+        for (int i = 0; i < indv.size(); i++) {
+            people = indv[i];
+            printf("%d ", (*people)[0].toInt());
         }
-    }
+        printf("\n");
+    };
     return 0;
 };

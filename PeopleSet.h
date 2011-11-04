@@ -45,13 +45,21 @@ void PeopleSet::readIDfromFile(const char* fileName) {
     }
 }
 
+/**
+ * File content should be:
+ * ID1
+ * ID2
+ * ID3
+ * ...
+ * (only the first column will be used)
+ */
 int  PeopleSet::obtainIDfromFile(const char* fileName, std::vector<std::string>* allID) {
     assert(allID);
     allID->clear();
-    std::string ln;
+    std::vector<std::string> fd;
     LineReader lr(fileName);
-    while (lr.readLine(&ln)) {
-        (*allID).push_back( ln.c_str());
+    while (lr.readLineBySep(&fd, " \t")) {
+        (*allID).push_back( fd[0].c_str());
     }
     return 0;
 }

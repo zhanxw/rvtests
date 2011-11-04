@@ -231,6 +231,7 @@ public:
     const VCFValue& operator [] (const unsigned int i) const {
         return (this->fd[i]);
     };
+    VCFValue& getData() {return this->data;};
 private:
     bool isMasked;
     std::string name;
@@ -514,12 +515,62 @@ public:
             fprintf(this->fp, "%s\n", h->at(i).c_str());
         }
     };
-    void writeRecord(const VCFRecord* r){
-        fprintf(this->fp, "%s\n", r->getLine());
+    void writeRecord(VCFRecord* r){
+        fprintf(this->fp, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
+                r->getChrom().c_str(),
+                r->getPos(),
+                r->getID().c_str(),
+                r->getRef().c_str(),
+                r->getAlt().c_str(),
+                r->getQual().c_str(),
+                r->getInfo().c_str(),
+                r->getFilt().c_str(),
+                r->getFormat().c_str());
+        VCFPeople& p = r->getPeople();
+        for (int i = 0; i < p.size() ; i ++ ) {
+            VCFIndividual* indv = p[i];
+            fprintf(this->fp, "\t%s", indv->getData().toStr().c_str());
+        }
+        fprintf(this->fp, "\n");
     };
     ~VCFOutputFile(){
         if (this->fp){
             fclose(this->fp);
+        }
+    };
+private:
+    FILE* fp;
+};
+
+/****************************/
+/*    Binary PLINK format   */
+/****************************/
+/*
+ * Documentation 
+ * http://pngu.mgh.harvard.edu/~purcell/plink/binary.shtml 
+ * BED (binary PED):
+ * BIM (extended MAP file): chromosome, SNP, cM, base-position, allele 1, allele 2
+ *    e.g.
+ *    1       snp1    0       1       G       A
+ * FAM (first 6 columns of PED file)
+ *      Family ID
+        Individual ID
+        Paternal ID
+        Maternal ID
+        Sex (1=male; 2=female; other=unknown)
+        Phenotype
+ *    e.g.
+ *    1 1 0 0 1 0
+ *    
+
+ */
+class PlinkOutputFile{
+public:
+    PlinkOutputFile(const char* fn) {
+        this->fp = fopen(fn, "wt");
+        if (!this->fp){
+            REPORT("Cannot create VCF file!");
+            abort();
         }
     };
 private:
@@ -543,7 +594,6 @@ int main(int argc, char** argv){
     REQUIRE_STRING_PARAMETER(FLAG_input, "Please provide input file using: --input");
     REQUIRE_STRING_PARAMETER(FLAG_output, "Please provide output prefix using: --output");
 
-    fprintf(stderr, "use debug parameters\n");
     const char* fn = "test.vcf";
     VCFInputFile vin(fn);
 
@@ -562,14 +612,13 @@ int main(int argc, char** argv){
     vout.writeHeader(vin.getVCFHeader());
     while (vin.readRecord()){
         VCFRecord& r = vin.getVCFRecord(); 
-        VCFPeople& indv = r.getPeople();
-        int idx;
-        const VCFIndividual* people;
+        VCFPeople& people = r.getPeople();
+        const VCFIndividual* indv;
         vout.writeRecord(& r);
         printf("%s:%d\t", r.getChrom().c_str(), r.getPos());
-        for (int i = 0; i < indv.size(); i++) {
-            people = indv[i];
-            printf("%d ", (*people)[0].toInt());
+        for (int i = 0; i < people.size(); i++) {
+            indv = people[i];
+            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual
         }
         printf("\n");
     };

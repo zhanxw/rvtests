@@ -3,7 +3,6 @@
    1. handle different format GT:GD:DP ...
    2. easy argument processing: clean the argument processing codes.
 */
-
 #include "Argument.h"
 #include "IO.h"
 #include "./tabix-0.2.2/tabix.h"
@@ -42,7 +41,7 @@ public:
     const char* line;
 public:
     int toInt() const{ 
-
+        return atoi(line+beg);
     };
     void toInt(int* i) const {
         *i = atoi(line+beg);
@@ -58,6 +57,7 @@ public:
         for (int i = beg; i < end; i++){
             s.push_back(line[i]);
         }
+        return s;
     };
     void toStr(std::string* s) const { 
         s->clear();
@@ -142,7 +142,7 @@ int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret)
     ret->beg = beg;
     ret->end = ret->beg;
     int cLen = strlen(c);
-    while(index(c, line[beg])){
+    while(!index(c, line[ret->end])){ // line[beg] is not a separator
         ret->end++;
     }
     return ret->end;
@@ -181,10 +181,6 @@ public:
     VCFIndividual():
         isMasked(true)  // by default, enable every one
         {
-            // this->parseFunction[0] = parseGenotype; //parseGenotype;
-            // this->parseFunction[1] = parseDepth; // TODO: change to other function
-            // this->parseFunction[2] = parseGenotype;
-            // this->parseFunction[3] = parseGenotype;
         };
     /**
      * 0-base index for beg and end, e.g.
@@ -192,7 +188,7 @@ public:
      *     A B C \t
      * beg = 0, end = 3 (line[end] = '\t' or line[end] = '\0')
      */
-    int parse(const char* line, int beg) {
+    int parse(const char* line, const int beg) {
         // need to consider missing genotype
         // need to consider missing field
         
@@ -206,11 +202,15 @@ public:
         
         this->fd.clear();
         VCFValue v;
-        while (true) {
-            v.end = parseTillChar(":\t", line, beg, &v);
+        v.line = line;
+        v.beg = beg;
+        v.end = beg;
+        while (line[v.end] != '\0') { // parse individual values
+            v.end = parseTillChar(":\t\0", line, v.beg, &v);
             if (line[v.end] == '\t' || line[v.end] == '\0')
                 break;
             fd.push_back(v);
+            v.beg = v.end + 1;
         }
         this->data.end = v.end;
         return this->data.end;
@@ -220,6 +220,7 @@ public:
     void setName(std::string& s) {this->name = s;};
     void addMask() {this->isMasked = true;};
     void delMask() {this->isMasked = false;};
+    bool hasMask() {return this->isMasked;};
     const VCFValue& operator [] (const unsigned int i) const {
         return (this->fd[i]);
     };
@@ -260,18 +261,18 @@ public:
         
         // now comes each individual genotype
         int idx = 0; // peopleIdx
-        VCFIndividual* p = this->indv[idx]; 
+        VCFIndividual* p = this->allIndv[idx]; 
         
-        while (true) {
+        while (line[end] != '\0') {
             beg = end + 1;
             end = p->parse(line, beg);
             if (line[end] == '\0') 
                 break;
             idx ++ ;
-            if (idx >= this->indv.size()){
+            if (idx >= this->allIndv.size()){
                 FATAL("VCF header and VCF content do not match!");
             }
-            p = this->indv[idx];
+            p = this->allIndv[idx];
         }
     };
     void createIndividual(const std::string& line){
@@ -283,21 +284,21 @@ public:
         for (int i = 9; i < sa.size(); i++ ) {
             int idx = i - 9;
             VCFIndividual* p = new VCFIndividual;
-            this->indv[idx] = p;
+            this->allIndv[idx] = p;
             p->setName(sa[i]);
         }
     };
     void deleteIndividual(){
-        for (int i = 0; i < this->indv.size(); i++) {
-            delete this->indv[i];
-            this->indv[i] = NULL;
+        for (int i = 0; i < this->allIndv.size(); i++) {
+            delete this->allIndv[i];
+            this->allIndv[i] = NULL;
         }
     };
     void setPeople(PeopleSet* pInclude, PeopleSet* pExclude) {
         if (pInclude && pInclude->size() > 0) {
             // by default set the mask, unless the people is in pInclude and not in pExclude
-            for (unsigned int i = 0; i != this->indv.size(); i++){
-                VCFIndividual* p = this->indv[i];
+            for (unsigned int i = 0; i != this->allIndv.size(); i++){
+                VCFIndividual* p = this->allIndv[i];
                 p->addMask();
                 if (pInclude->contain(p->getName())) {
                     if (!pExclude)
@@ -309,8 +310,8 @@ public:
             }
         } else {
             // by default clear the mask, unless the people is in pExclude
-            for (unsigned int i = 0; i != this->indv.size(); i++){
-                VCFIndividual* p = this->indv[i];
+            for (unsigned int i = 0; i != this->allIndv.size(); i++){
+                VCFIndividual* p = this->allIndv[i];
                 p->delMask();
                 if (!pExclude && pExclude->contain(p->getName()))
                     p->addMask();
@@ -328,9 +329,21 @@ public:
     const std::string getInfo() const { return this->info.toStr(); };
     const std::string getFormat() const { return this->format.toStr(); };
     const char* getLine() const {return this->line;};
-    const VCFPeople& getIndv() const { return this->indv;};
+    VCFPeople& getIndv(){
+        static bool hasAccess = false;
+        if (!hasAccess) {
+            for (int i = 0; i < this->allIndv.size(); i++){
+                if (!allIndv[i]->hasMask()) {
+                    this->selectedIndv[this->selectedIndv.size()] = allIndv[i];
+                }
+            }
+            hasAccess = true;
+        }
+        return this->selectedIndv;
+    };
 private:
-    VCFPeople indv; // each individual
+    VCFPeople allIndv;      // all individual
+    VCFPeople selectedIndv; // user-selected individual
     VCFValue chrom;
     VCFValue pos;
     VCFValue id;
@@ -409,7 +422,7 @@ public:
         //     }
         // } else{
         // load contents 
-        if (this->range->size() > 0) {
+        if (this->range && this->range->size() > 0) {
             if (this->hasIndex) {                 // there is index
                 static int rangeIdx = 0;
                 // unsigned int numRange = this->range->size();
@@ -462,7 +475,7 @@ public:
             }
         }
     };
-    const VCFRecord& getVCFRecord() const {return this->record;};
+    VCFRecord& getVCFRecord() {return this->record;};
     const std::string& getLine() const {return this->line;};
 private:
     VCFHeader header;
@@ -537,8 +550,8 @@ int main(int argc, char** argv){
         vin.setPeople(&peopleInclude, &peopleExclude);
 
         while (vin.readRecord()){
-            const VCFRecord& r = vin.getVCFRecord(); 
-            const VCFPeople& indv = r.getIndv();
+            VCFRecord& r = vin.getVCFRecord(); 
+            VCFPeople& indv = r.getIndv();
             int idx;
             const VCFIndividual* people;
             vout.writeRecord(& r);

@@ -12,7 +12,7 @@ release: $(EXEC)
 debug: CXXFLAGS = -g $(DEFAULT_CXXFLAGS)
 debug: $(EXEC)
 
-rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h
+rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h IO.h
 	g++ -c $(CXXFLAGS) Main.cpp  -I. -D__ZLIB_AVAILABLE__ -lz -lbz2
 	g++ -o $@ Main.o $(TABIX_LIB)  -lz -lbz2 -lm -lpcre -lpcreposix
 clean: 

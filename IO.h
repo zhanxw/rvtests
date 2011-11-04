@@ -5,6 +5,7 @@
 #include <stdlib.h> //malloc
 #include <string.h> //strchr
 #include <assert.h> //assert
+#include <stdarg.h> // va_list
 
 #include <string>
 #include <vector>
@@ -462,4 +463,222 @@ class LineReader{
     FileReader* fp;
 };
 
+class AbstractFileWriter{
+  public:
+    /// when open is successful, return 0; else: return non-zero
+    virtual int open(const char* fn, bool append = false) = 0;
+    virtual void close() = 0;
+    virtual int write(const char* s) = 0;
+    virtual int writeLine(const char* s) = 0;
+};
+
+class TextFileWriter:public AbstractFileWriter{
+  public:    
+    TextFileWriter(const char* fn, bool append = false){
+        if (this->open(fn, append)){
+            fprintf(stderr, "Cannot create text file %s\n", fn);
+        }
+    }
+    ~TextFileWriter(){
+        fclose(this->fp);
+    }
+    int open(const char* fn, bool append = false){
+        if (append) 
+            this->fp = fopen(fn, "a");
+        else 
+            this->fp = fopen(fn, "w");
+        if (!this->fp) {
+            fprintf(stderr, "ERROR: Cannot open %s for write\n", fn);
+            return -1;
+        }
+        return 0;
+    }
+    void close(){
+        if (this->fp) fclose(fp);
+    };
+    int write(const char* s) {
+        return fputs(s, this->fp);
+    };
+    int writeLine(const char* s) {
+        int ret = fputs(s, this->fp);
+        fputc('\n', this->fp);
+        return (ret + 1);
+    };
+    int printf(const char *fmt, ...){
+        va_list args;
+        va_start(args,fmt);
+        int ret = vfprintf(fp, fmt, args);
+        va_end(args);
+        return ret;
+    };
+  private:
+    FILE* fp;
+};
+
+class GzipFileWriter:public AbstractFileWriter{
+  public:    
+    GzipFileWriter(const char* fn, bool append = false){
+        if (this->open(fn, append)){
+            fprintf(stderr, "Cannot create text file %s\n", fn);
+        }
+    }
+    ~GzipFileWriter(){
+        gzclose(this->fp);
+    };
+    int open(const char* fn, bool append = false){
+        if (append) 
+            fprintf(stderr, "Gzip does not support appending.\n");
+        this->fp = gzopen(fn, "wb");
+        if (!this->fp) {
+            fprintf(stderr, "ERROR: Cannot open %s for write\n", fn);
+            return -1;
+        }
+        return 0;
+    }
+    void close(){
+        if (this->fp) gzclose(fp);
+    };
+    int write(const char* s) {
+        return gzputs(this->fp, s);
+    };
+    int writeLine(const char* s) {
+        int ret = gzputs(this->fp, s);
+        gzputc(this->fp, '\n');
+        return (ret + 1);
+    };
+  private:
+    gzFile fp;
+}; // end GzipFileWriter
+
+#define DEFAULT_WRITER_BUFFER 4096
+class BufferFileWriter: public AbstractFileWriter{
+  public:
+    BufferFileWriter(AbstractFileWriter* f, unsigned int bufLen = DEFAULT_WRITER_BUFFER){
+        this->bufLen = DEFAULT_WRITER_BUFFER;
+        this->buf = new char[bufLen + 1]; // last char in the buffer is always '\0'
+                                          // that help to use fputs()
+        this->buf[bufLen] = '\0';
+        this->bufPtr = 0;
+
+        if (!this->buf) {
+            fprintf(stderr, "Buffer allocation failed!\n");
+        }
+        this->f = f;
+    }
+    ~BufferFileWriter(){
+        if (this->f) {
+            delete f;
+        }
+    };
+    int open(const char* fn, bool append = false){
+        return f->open(fn, append);
+    };
+    void close() {
+        this->flush();
+        this->f->close();
+    };
+    int write(const char* s){
+        int nbyte = 0;
+        int i = 0;
+        while (s[i] != '\0'){
+            this->buf[this->bufPtr++] = s[i++];
+            nbyte ++ ;
+            if (this->bufPtr == this->bufLen) {
+                this->f->write(this->buf);
+                this->bufPtr = 0;
+            }
+        }
+        return nbyte;
+    };
+    int writeLine(const char* s){
+        int ret = this->write(s);
+        this->write("\n");
+        return (ret ++) ; 
+    };
+    int flush() {
+        this->buf[this->bufPtr] = '\0';
+        this->f->write(this->buf);
+        this->bufPtr = 0;
+    };
+  private:
+    char* buf;
+    unsigned int bufLen;
+    unsigned int bufPtr;
+    AbstractFileWriter* f;
+}; // end BufferFileWriter
+
+
+/**
+ * usage:
+ * FileWriter* fout = new FileWriter("a.txt", "w");
+ * fout->write("abc");
+ * fout->writeLn("abc");
+ * fout->close();
+ */
+class FileWriter{
+  public:
+    FileWriter(const char* fileName, bool append = false){
+        int l = strlen(fileName);
+        if (this->checkSuffix(fileName, ".gz")) {
+            this->fp = new BufferFileWriter(new GzipFileWriter(fileName, append));
+        } else {
+            this->fp = new BufferFileWriter(new TextFileWriter(fileName, append));
+        }
+
+        // create buffer for formatted string
+        this->bufLen = 1024;
+        this->buf = new char[this->bufLen];
+        if (!this->buf){
+            fprintf(stderr, "Cannot allocate printf buffer for FileWriter.\n");
+        };
+    }
+    ~FileWriter(){
+        this->fp->close();
+    }
+    int write(const char* s){
+        return this->fp->write(s);
+    };
+    int writeLine(const char* s){
+        return this->fp->write(s);
+    };
+    // if @param fileName ends with @param suffix, then return true;
+    bool checkSuffix(const char* fileName, const char* suffix){
+        int lf = strlen(fileName);
+        int ls = strlen(suffix);
+        if (lf < ls) return false;
+        for (int i = lf - ls, j = 0; j < ls;){
+            if (fileName[i++] != suffix[j++]) return false;
+        }
+        return true;
+    };
+
+    int printf(const char *fmt, ...){
+        // we'll put the formatted string  to internal buffer
+        va_list args;
+        va_start(args,fmt);
+        int ret;
+        while (( ret = vsnprintf(this->buf, this->bufLen, fmt, args)) < 0){
+            this->doubleBuffer();
+        };
+        va_end(args);
+        return this->write(this->buf);
+    };
+
+  private:
+    void doubleBuffer(){
+        delete [] this->buf;
+
+        this->bufLen *= 2;
+        this->buf = new char[bufLen];
+        if (!this->buf) {
+            fprintf(stderr, "Cannot reallocate printf buffer for FileWriter.\n");
+            abort();
+        }
+    };
+    AbstractFileWriter* fp;
+    char* buf;
+    unsigned int bufLen;
+};
+
 #endif /* _IO_H_ */
+

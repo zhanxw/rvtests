@@ -612,8 +612,8 @@ public:
         };
     };
     // @pos is from 0 to 3
-    void setGenotype(char* c, int pos, int geno){
-        (*c) |= (geno << (pos<1));
+    void setGenotype(unsigned char* c, const int pos, const int geno){
+        (*c) |= (geno << (pos<<1));
     }
 
     void writeRecord(VCFRecord* r){
@@ -635,7 +635,8 @@ public:
         if (id != ".")
             fprintf(this->fpBim, "%s\t", r->getID().c_str());
         else
-            fprintf(this->fpBim, "%s:%d", chrom.c_str(), r->getPos());
+            fprintf(this->fpBim, "%s:%d\t", chrom.c_str(), r->getPos());
+
         fprintf(this->fpBim, "0\t");
         fprintf(this->fpBim, "%d\t", r->getPos());
         fprintf(this->fpBim, "%s\t", r->getRef().c_str());
@@ -650,10 +651,12 @@ public:
         const static int MISSING = 0b01;
 
         VCFPeople& people = r->getPeople();
-        char c = 0;
+        unsigned char c = 0;
+        VCFIndividual* indv;
+        int offset;
         for (int i = 0; i < people.size() ; i ++) {
-            VCFIndividual* indv = people[i];
-            int offset = i % 4;
+            indv = people[i];
+            offset = i & (4 - 1);
             if ((*indv)[0].isHaploid()) {
                 int a1 = (*indv)[0].getAllele1();
                 if (a1 == 0) 
@@ -683,12 +686,13 @@ public:
                     }
                 }
             }
-            if (offset == 0) {
+            if ( offset == 3) { // 3: 4 - 1, so every 4 genotype we will flush 
                 fwrite(&c, sizeof(char), 1, this->fpBed);
                 c = 0;
             }
         };
-        fwrite(&c, sizeof(char), 1, this->fpBed);
+        if (offset)
+            fwrite(&c, sizeof(char), 1, this->fpBed);
     }
 private:
     FILE* fpBed;

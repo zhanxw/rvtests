@@ -2,6 +2,7 @@
    immediately TODO:
    1. suppport PLINK output
    2. support access INFO tag
+   3. support tri-allelic (getAlt())
    futher TODO:
    1. handle different format GT:GD:DP ...
    2. easy argument processing: clean the argument processing codes.
@@ -132,6 +133,9 @@ public:
         if (line[p] == '|') return true;
         return false;
     };
+    bool isHaploid(){
+        return (end - beg == 1);
+    };
 };
 
 int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret) {
@@ -231,6 +235,9 @@ public:
     void delMask() {this->isMasked = false;};
     bool hasMask() {return this->isMasked;};
     const VCFValue& operator [] (const unsigned int i) const {
+        return (this->fd[i]);
+    };
+    VCFValue& operator [] (const unsigned int i) {
         return (this->fd[i]);
     };
     VCFValue& getData() {return this->data;};
@@ -577,6 +584,16 @@ public:
             REPORT("Cannot create binary PLINK file!");
             abort();
         }
+        // write Bed header
+        char c;
+        // magic number
+        c = 0b01101100;
+        fwrite(&c, sizeof(char), 1, this->fpBed);
+        c = 0b00011011;
+        fwrite(&c, sizeof(char), 1, this->fpBed);
+        // snp major mode
+        c = 0b00000001;
+        fwrite(&c, sizeof(char), 1, this->fpBed);
     };
     ~PlinkOutputFile() {
         fclose(this->fpBed);
@@ -591,10 +608,88 @@ public:
             fprintf(stderr, "Wrong VCF Header line: %s\n", lastLine.c_str());
         };
         for (int i = 9; i < people.size(); i++) {
-            fprintf(this->fpFam, "%s\t\"");
+            fprintf(this->fpFam, "%s\t%s\t0\t0\t0\t-9\n", people[i].c_str(), people[i].c_str());
         };
     };
+    // @pos is from 0 to 3
+    void setGenotype(char* c, int pos, int geno){
+        (*c) |= (geno << (pos<1));
+    }
+
     void writeRecord(VCFRecord* r){
+        // write BIM
+        std::string chrom = r->getChrom();
+        if (atoi(chrom.c_str()) > 0) {
+            fprintf(this->fpBim, "%s\t", chrom.c_str());
+        } else if (chrom == "X")
+            fprintf(this->fpBim, "23\t");
+        else if (chrom == "Y")
+            fprintf(this->fpBim, "24\t");
+        else if (chrom == "MT")
+            fprintf(this->fpBim, "25\t");
+        else {
+            fprintf(stdout, "skip chrom %s\n", chrom.c_str());
+            return;
+        }
+        std::string id = r->getID();
+        if (id != ".")
+            fprintf(this->fpBim, "%s\t", r->getID().c_str());
+        else
+            fprintf(this->fpBim, "%s:%d", chrom.c_str(), r->getPos());
+        fprintf(this->fpBim, "0\t");
+        fprintf(this->fpBim, "%d\t", r->getPos());
+        fprintf(this->fpBim, "%s\t", r->getRef().c_str());
+        fprintf(this->fpBim, "%s\n", r->getAlt().c_str());
+
+        // write BED
+        // we reverse the two bits as defined in PLINK format, 
+        // so we can process 2-bit at a time.
+        const static int HOM_REF = 0b00;
+        const static int HET = 0b10;
+        const static int HOM_ALT = 0b11;
+        const static int MISSING = 0b01;
+
+        VCFPeople& people = r->getPeople();
+        char c = 0;
+        for (int i = 0; i < people.size() ; i ++) {
+            VCFIndividual* indv = people[i];
+            int offset = i % 4;
+            if ((*indv)[0].isHaploid()) {
+                int a1 = (*indv)[0].getAllele1();
+                if (a1 == 0) 
+                    setGenotype(&c, offset, HOM_REF);
+                else if (a1 == 1)
+                    setGenotype(&c, offset, HET);
+                else
+                    setGenotype(&c, offset, MISSING);
+            } else {
+                int a1 = (*indv)[0].getAllele1();
+                int a2 = (*indv)[0].getAllele2();
+                if (a1 == 0) {
+                    if (a2 == 0) {
+                        //homo ref: 0b00
+                    } else if (a2 == 1) {
+                        setGenotype(&c, offset, HET); // het: 0b01
+                    } else {
+                        setGenotype(&c, offset, MISSING); // missing 0b10
+                    }
+                } else if (a1 == 1) {
+                    if (a2 == 0) {
+                        setGenotype(&c, offset, HET); // het: 0b01
+                    } else if (a2 == 1) {
+                        setGenotype(&c, offset, HOM_ALT); // hom alt: 0b11
+                    } else {
+                        setGenotype(&c, offset, MISSING); // missing
+                    }
+                }
+            }
+            if (offset == 0) {
+                fwrite(&c, sizeof(char), 1, this->fpBed);
+                c = 0;
+            }
+        };
+        fwrite(&c, sizeof(char), 1, this->fpBed);
+    }
 private:
     FILE* fpBed;
     FILE* fpBim;
@@ -608,8 +703,9 @@ int main(int argc, char** argv){
     ////////////////////////////////////////////////
     BEGIN_PARAMETER_LIST(pl)
         ADD_PARAMETER_GROUP(pl, "Input/Output")
-        ADD_STRING_PARAMETER(pl, input, "--input", "input VCF File")
-        ADD_STRING_PARAMETER(pl, output, "--output", "output prefix")
+        ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
+        ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
+        ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -619,10 +715,10 @@ int main(int argc, char** argv){
     pl.Read(argc, argv);
     pl.Status();
 
-    REQUIRE_STRING_PARAMETER(FLAG_input, "Please provide input file using: --input");
-    REQUIRE_STRING_PARAMETER(FLAG_output, "Please provide output prefix using: --output");
+    REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --input");
+    // REQUIRE_STRING_PARAMETER(FLAG_output, "Please provide output prefix using: --output");
 
-    const char* fn = FLAG_input.c_str(); //"test.vcf";
+    const char* fn = FLAG_inVcf.c_str(); 
     VCFInputFile vin(fn);
 
     // set range filters here
@@ -635,14 +731,26 @@ int main(int argc, char** argv){
     vin.setPeople(&peopleInclude, &peopleExclude);
 
     // let's write it out.
-    const char* fout = "test.out.vcf";
-    VCFOutputFile vout(fout);
-    vout.writeHeader(vin.getVCFHeader());
+    VCFOutputFile* vout = NULL;
+    PlinkOutputFile* pout = NULL;
+    if (FLAG_outVcf.size() > 0) {
+        vout = new VCFOutputFile(FLAG_outVcf.c_str());
+    };
+    if (FLAG_outPlink.size() > 0) {
+        pout = new PlinkOutputFile(FLAG_outPlink.c_str());
+    };
+    if (!vout && !pout) {
+        vout = new VCFOutputFile("temp.vcf");
+    }
+
+    if (vout) vout->writeHeader(vin.getVCFHeader());
+    if (pout) pout->writeHeader(vin.getVCFHeader());
     while (vin.readRecord()){
         VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
         const VCFIndividual* indv;
-        vout.writeRecord(& r);
+        if (vout) vout->writeRecord(& r);
+        if (pout) pout ->writeRecord(& r);
 //        printf("%s:%d\t", r.getChrom().c_str(), r.getPos());
 //        for (int i = 0; i < people.size(); i++) {
 //            indv = people[i];
@@ -650,6 +758,9 @@ int main(int argc, char** argv){
 //        }
 //        printf("\n");
     };
+
+    if (vout) delete vout;
+    if (pout) delete pout;
 
     currentTime = time(0);
     fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));

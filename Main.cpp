@@ -1,5 +1,5 @@
 /**
-   immediately tODO:
+   immediately TODO:
    1. suppport PLINK output
    2. support access INFO tag
    futher TODO:
@@ -568,15 +568,37 @@ private:
  */
 class PlinkOutputFile{
 public:
-    PlinkOutputFile(const char* fn) {
-        this->fp = fopen(fn, "wt");
-        if (!this->fp){
-            REPORT("Cannot create VCF file!");
+    PlinkOutputFile(const char* fnPrefix) {
+        std::string prefix = fnPrefix;
+        this->fpBed = fopen( (prefix + ".bed").c_str(), "wb");
+        this->fpBim = fopen( (prefix + ".bim").c_str(), "wt");
+        this->fpFam = fopen( (prefix + ".fam").c_str(), "wt");
+        if (!this->fpBed || !this->fpBim || !this->fpFam){
+            REPORT("Cannot create binary PLINK file!");
             abort();
         }
     };
+    ~PlinkOutputFile() {
+        fclose(this->fpBed);
+        fclose(this->fpBim);
+        fclose(this->fpFam);
+    };
+    void writeHeader(const VCFHeader* h){
+        std::string lastLine = h->at(h->size() - 1);
+        std::vector<std::string> people; 
+        stringTokenize(lastLine, "\t", &people);
+        if (people.size() < 9) {
+            fprintf(stderr, "Wrong VCF Header line: %s\n", lastLine.c_str());
+        };
+        for (int i = 9; i < people.size(); i++) {
+            fprintf(this->fpFam, "%s\t\"");
+        };
+    };
+    void writeRecord(VCFRecord* r){
 private:
-    FILE* fp;
+    FILE* fpBed;
+    FILE* fpBim;
+    FILE* fpFam;
 };
 
 int main(int argc, char** argv){

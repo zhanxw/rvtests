@@ -9,6 +9,7 @@
 
    DONE:
    1. suppport PLINK output
+   
 */
 #include "Argument.h"
 #include "IO.h"
@@ -164,6 +165,87 @@ int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret)
     return ret->end;
 }
 
+
+class VCFInfoValue{
+  public:
+    int fingerMark; 
+    VCFValue* value;
+    VCFInfoValue(){
+        this->value = new VCFValue;
+    }
+    ~VCFInfoValue(){
+        delete this->value;
+        this->value = NULL;
+    }
+};
+
+class VCFInfo{
+public:
+    const char* getTag(const char* tag) {
+        if (!tag || tag[0] == '\0') 
+            return NULL;
+
+        std::string s = tag;
+        if (!hasParsed){
+            this->parseActual();
+        }
+        this->tableIter = this->table.find(s);
+        if (this->tableIter != this->table.end()){
+            return this->tableIter->second->value->toStr().c_str();
+        } else {
+            return NULL;
+        }
+    } ;
+    ~VCFInfo(){
+        for (this->tableIter = this->table.begin(); 
+             this->tableIter != this->table.end(); 
+             this->tableIter ++){
+            if (this->tableIter->second != NULL){
+                delete this->tableIter->second;
+            }
+        }
+    };
+    void reset() { this-> hasParsed = false;};
+    void parse(VCFValue* v) {
+        this->value = v;
+        this->hasParsed = false;
+        this->fingerMark ++ ;
+    };
+    void parseActual(){
+        this->hasParsed = true;
+        const char* line = this->value->line;
+        int b = this->value->beg;
+        int e = this->value->end;
+        static std::string key;
+
+        while (line[e] != this->value->end){
+            key.clear();
+            // find tag name;
+            while(line[e] != '='){
+                key.push_back(this->value->line[e++]);
+            }
+            b = e + 1; // skip '='
+        
+            this->tableIter = this->table.find(key);
+            if ( this->tableIter == this->table.end()){
+                VCFInfoValue* f = new VCFInfoValue;
+                this->table[key] = f;
+                e = parseTillChar(";\t", line, b, f->value);
+                f->fingerMark = this->fingerMark;
+            } else {
+                e = parseTillChar(";\t", line, b, this->tableIter->second->value);
+                this->tableIter->second->fingerMark = this->fingerMark;
+            };
+        }
+    };
+private:
+    bool hasParsed;
+    VCFValue* value;
+    int fingerMark;
+    std::map<std::string, VCFInfoValue*> table;
+    std::map<std::string, VCFInfoValue*>::iterator tableIter;
+};
+
 typedef int(*PARSE_FUNCTION)(const char* s, int beg, int end);
 int parseGenotype(const char* line, int beg, int end){
     if (line[beg] == '.') return  MISSING_GENOTYPE;
@@ -274,6 +356,7 @@ public:
         end = parseTillChar('\t', line, beg, &this->qual);
         beg = end + 1;
         end = parseTillChar('\t', line, beg, &this->info);
+        this->vcfInfo.parse(&this->info); // lazy parse inside VCFInfo
         beg = end + 1;
         end = parseTillChar('\t', line, beg, &this->filt);
         beg = end + 1;
@@ -339,6 +422,9 @@ public:
             }
         }
     };
+    const char* getInfoTag(const char* tag) {
+        return this->vcfInfo.getTag(tag);
+    };
 public:
     const std::string getChrom() const { return this->chrom.toStr(); };
     const int getPos() const { return this->pos.toInt(); };
@@ -375,6 +461,7 @@ private:
     VCFValue info;
     VCFValue format;
     const char* line; // points to data line
+    VCFInfo vcfInfo;
 }; // VCFRecord
 
 class VCFInputFile{
@@ -725,8 +812,7 @@ int main(int argc, char** argv){
     pl.Read(argc, argv);
     pl.Status();
 
-    REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --input");
-    // REQUIRE_STRING_PARAMETER(FLAG_output, "Please provide output prefix using: --output");
+    REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
 
     const char* fn = FLAG_inVcf.c_str(); 
     VCFInputFile vin(fn);
@@ -767,6 +853,7 @@ int main(int argc, char** argv){
 //            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual
 //        }
 //        printf("\n");
+        fprintf(stderr, "%s\n", r.getInfoTag("DP"));
     };
 
     if (vout) delete vout;

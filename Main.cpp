@@ -516,9 +516,11 @@ public:
     };
     bool openIndex(const char* fn) {
         if (( this->tabixHandle = ti_open(this->fileName.c_str(), 0)) == 0 ) {
+            // failed to open tabix index
             this->hasIndex = false;
             return false;
         } else{
+			ti_lazy_index_load(this->tabixHandle);
             this->hasIndex = true;
             return true;
         }
@@ -558,6 +560,7 @@ public:
                             this->record.parse(this->line.c_str());
                             return true;
                         } else{
+                            rangeIdx ++;
                             continue;
                         }
                     } else {  // last time read a valid line
@@ -565,10 +568,14 @@ public:
                         if (!s) {
                             rangeIdx ++;
                             continue;
+                        } else {
+                            this->line = s;
+                            this->record.parse(line.c_str());
+                            return true;
                         }
                     }
                 } // end while 
-                return true;
+                return false;
             } // end hasIndex
             else { // no index
                 while(this->fp->readLine(&this->line)){
@@ -808,6 +815,8 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
+        ADD_PARAMETER_GROUP(pl, "Site Filter")
+        ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, you must use chr:begin-end format.")
         END_PARAMETER_LIST(pl)
         ;    
 
@@ -821,7 +830,9 @@ int main(int argc, char** argv){
 
     // set range filters here
     RangeList rl;
-
+    rl.addRangeList(FLAG_rangeList.c_str());
+    vin.setRange(&rl);
+    
     // set people filters here
     PeopleSet peopleInclude;
     PeopleSet peopleExclude;
@@ -849,7 +860,7 @@ int main(int argc, char** argv){
         const VCFIndividual* indv;
         if (vout) vout->writeRecord(& r);
         if (pout) pout ->writeRecord(& r);
-//        printf("%s:%d\t", r.getChrom().c_str(), r.getPos());
+        printf("%s:%d\n", r.getChrom().c_str(), r.getPos());
 //        for (int i = 0; i < people.size(); i++) {
 //            indv = people[i];
 //            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual

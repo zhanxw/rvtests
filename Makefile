@@ -29,7 +29,7 @@ test3: rvtest
 	./rvtest --inVcf 100.vcf.gz --outVcf test3.vcf --peopleIncludeID 1160
 
 # automated tests
-auto: autoTest1 autoTest2
+autoTest: autoTest1 autoTest2
 autoTest1: rvtest
 	./rvtest --inVcf test.vcf.gz --outVcf test/try.test.vcf
 	diff test/try.test.vcf test/correct.test.vcf

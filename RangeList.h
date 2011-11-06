@@ -225,18 +225,45 @@ void RangeList::filterGeneName(const char* inclusionGeneFileName, const char* ge
 
 // verify if s is of the format: chr:begin-end format
 // @return true: valid format
-bool verifyRangeFormat(const std::string& s, char* chr, unsigned int* begin, unsigned int* end) {
-    char c[128]; 
-    char b[128];
-    char e[128];
-        
-    int n = sscanf(s.c_str(), "%s:%s-%s", c, b, e);
-    if ( n != 3 ) return false;
-    int temp;
-    if (!str2int(b, &temp) || temp <0) return false;
-    int temp2;
-    if (!str2int(e, &temp2) || temp2 <0) return false;
-    if (temp > temp2) return false;
+bool verifyRangeFormat(const std::string& s, std::string* chr, unsigned int* begin, unsigned int* end) {
+    int i = 0; 
+    chr->clear();
+    while (i < s.size()){
+        if (s[i]!=':'){
+            chr->push_back(s[i]);
+        } else{
+            break;
+        }
+        i++;
+    }
+    i ++; //skip ':'
+    
+    std::string t;
+    while (i < s.size()){
+       if (s[i] !='-') {
+            t.push_back(s[i]);
+       } else{
+           break;
+       }
+        i++;
+    }
+    int b;
+    if (!str2int(t.c_str(), &b) || b < 0) return false;
+    *begin = b;
+
+    if (s[i] == '\0'){ // 1:100 meaning a single point
+        *end = b;
+        return true;
+    }
+    
+    i ++ ; // skip '-'
+    int e;
+    if (s[i] == '\0'){ //format like: 1:100-
+        *end = 1<<29;  // that's the constant used in tabix
+    } else{
+        if (!str2int(s.c_str() + i, &e) || e < 0 || b > e) return false;
+    }
+    *end = e;
     return true;
 }
 
@@ -244,14 +271,14 @@ bool verifyRangeFormat(const std::string& s, char* chr, unsigned int* begin, uns
 void RangeList::addRangeList(const char* argRangeList) {
     if (!strlen(argRangeList)) return;
 
-    std::string rangeList;
+    std::string rangeList = argRangeList;
     std::vector<std::string> col;
     //col.AddTokens(arg, ',');
     stringTokenize(rangeList, ',', &col);
     for (int i = 0; i < col.size(); i++){
-        char c[64];
+        std::string c;
         unsigned int b,e;
-        if (!verifyRangeFormat(col[i], c, &b, &e)) {
+        if (!verifyRangeFormat(col[i], &c, &b, &e)) {
             fprintf(stdout, "This range does not conform 1:100-200 format -- %s\n", col[i].c_str());
         } else {
             this->rangeCollection.addRange(c, b, e);

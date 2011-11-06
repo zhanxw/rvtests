@@ -28,6 +28,17 @@ test2: rvtest
 test3: rvtest
 	./rvtest --inVcf 100.vcf.gz --outVcf test3.vcf --peopleIncludeID 1160
 
+# automated tests
+auto: autoTest1 autoTest2
+autoTest1: rvtest
+	./rvtest --inVcf test.vcf.gz --outVcf test/try.test.vcf
+	diff test/try.test.vcf test/correct.test.vcf
+
+autoTest2: rvtest
+	./rvtest --inVcf test.vcf.gz --make-bed test/try.test
+	diff test/try.test.bim test/correct.test.bim
+	diff test/try.test.fam test/correct.test.fam
+	diff test/try.test.bed test/correct.test.bed
 
 # arg: Argument.h Argument.cpp
 # 	g++ -g -o Argument Argument.cpp

@@ -22,11 +22,11 @@ doc: README
 
 test: test1
 test1: rvtest
-	./rvtest --input test.vcf --output test1.out.vcf 
+	./rvtest --inVcf test.vcf --outVcf test1.out.vcf 
 test2: rvtest
-	./rvtest --input test.vcf --output test2.out.vcf --peopleIncludeID 1232,1455,1232 
+	./rvtest --inVcf test.vcf --outVcf test2.out.vcf --peopleIncludeID 1232,1455,1232 
 test3: rvtest
-	./rvtest --input 100.vcf.gz --output test3.vcf --peopleIncludeID 1160
+	./rvtest --inVcf 100.vcf.gz --outVcf test3.vcf --peopleIncludeID 1160
 
 
 # arg: Argument.h Argument.cpp

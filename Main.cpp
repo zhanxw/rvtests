@@ -1,11 +1,14 @@
 /**
    immediately TODO:
-   1. suppport PLINK output
    2. support access INFO tag
    3. support tri-allelic (getAlt())
+
    futher TODO:
    1. handle different format GT:GD:DP ...
    2. easy argument processing: clean the argument processing codes.
+
+   DONE:
+   1. suppport PLINK output
 */
 #include "Argument.h"
 #include "IO.h"
@@ -307,7 +310,8 @@ public:
     };
     void deleteIndividual(){
         for (int i = 0; i < this->allIndv.size(); i++) {
-            delete this->allIndv[i];
+            if (this->allIndv[i])
+                delete this->allIndv[i];
             this->allIndv[i] = NULL;
         }
     };
@@ -401,6 +405,7 @@ public:
     };
     ~VCFInputFile(){
         closeIndex();
+        this->record.deleteIndividual();
         if (this->fp) delete this->fp;
     };
 
@@ -519,6 +524,12 @@ public:
             abort();
         }
     };
+    ~VCFOutputFile(){
+        if (this->fp){
+            delete this->fp;
+            this->fp = NULL;
+        }
+    };
     void writeHeader(const VCFHeader* h){
         for (int i = 0; i < h->size(); i++){
             this->fp->writeLine(h->at(i).c_str());
@@ -541,11 +552,6 @@ public:
             this->fp->printf("\t%s", indv->getData().toStr().c_str());
         }
         this->fp->printf("\n");
-    };
-    ~VCFOutputFile(){
-        if (this->fp){
-            delete this->fp;
-        }
     };
 private:
     FileWriter* fp;

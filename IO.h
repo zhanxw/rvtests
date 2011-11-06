@@ -397,6 +397,8 @@ class LineReader{
     virtual ~LineReader(){
         if (this->fp){
             fp->close();
+            delete this->fp;
+            this->fp = NULL;
         }
 #ifdef IO_DEBUG
         fprintf(stderr, "LineReader close\n");
@@ -463,6 +465,7 @@ class LineReader{
     FileReader* fp;
 };
 
+// FileWriter related classes
 class AbstractFileWriter{
   public:
     /// when open is successful, return 0; else: return non-zero
@@ -470,6 +473,12 @@ class AbstractFileWriter{
     virtual void close() = 0;
     virtual int write(const char* s) = 0;
     virtual int writeLine(const char* s) = 0;
+    virtual ~AbstractFileWriter() = 0;
+};
+AbstractFileWriter::~AbstractFileWriter() {
+#ifdef IO_DEBUG
+    fprintf(stderr, "AbstractFileWriter desc()\n");
+#endif
 };
 
 class TextFileWriter:public AbstractFileWriter{
@@ -479,8 +488,11 @@ class TextFileWriter:public AbstractFileWriter{
             fprintf(stderr, "Cannot create text file %s\n", fn);
         }
     }
-    ~TextFileWriter(){
-        fclose(this->fp);
+    virtual ~TextFileWriter(){
+#ifdef IO_DEBUG
+        fprintf(stderr, "TextFileWriter desc()\n");
+#endif
+        this->close();
     }
     int open(const char* fn, bool append = false){
         if (append) 
@@ -494,7 +506,10 @@ class TextFileWriter:public AbstractFileWriter{
         return 0;
     }
     void close(){
-        if (this->fp) fclose(fp);
+        if (this->fp) {
+            fclose(this->fp);
+            this->fp = NULL;
+        }
     };
     int write(const char* s) {
         return fputs(s, this->fp);
@@ -513,7 +528,7 @@ class TextFileWriter:public AbstractFileWriter{
     };
   private:
     FILE* fp;
-};
+}; // end TextFileWriter
 
 class GzipFileWriter:public AbstractFileWriter{
   public:    
@@ -522,8 +537,11 @@ class GzipFileWriter:public AbstractFileWriter{
             fprintf(stderr, "Cannot create text file %s\n", fn);
         }
     }
-    ~GzipFileWriter(){
-        gzclose(this->fp);
+    virtual ~GzipFileWriter(){
+        this->close();
+#ifdef IO_DEBUG
+        fprintf(stderr, "GzipFileWriter desc()\n");
+#endif
     };
     int open(const char* fn, bool append = false){
         if (append) 
@@ -551,12 +569,16 @@ class GzipFileWriter:public AbstractFileWriter{
 }; // end GzipFileWriter
 
 #define DEFAULT_WRITER_BUFFER 4096
-class BufferFileWriter: public AbstractFileWriter{
+class BufferedFileWriter: public AbstractFileWriter{
   public:
-    BufferFileWriter(AbstractFileWriter* f, unsigned int bufLen = DEFAULT_WRITER_BUFFER){
+    BufferedFileWriter(AbstractFileWriter* f, unsigned int bufLen = DEFAULT_WRITER_BUFFER){
         this->bufLen = DEFAULT_WRITER_BUFFER;
         this->buf = new char[bufLen + 1]; // last char in the buffer is always '\0'
                                           // that help to use fputs()
+        if (!this->buf) {
+            fprintf(stderr, "Cannot create BufferedFileWriter\n");
+            abort();
+        }
         this->buf[bufLen] = '\0';
         this->bufPtr = 0;
 
@@ -565,13 +587,17 @@ class BufferFileWriter: public AbstractFileWriter{
         }
         this->f = f;
     }
-    ~BufferFileWriter(){
-        if (this->f) {
-            delete f;
+    ~BufferedFileWriter(){
+        if (this->buf) {
+            delete [] this->buf;
+            this->buf = NULL;
         }
+#ifdef IO_DEBUG
+        fprintf(stderr, "BufferedFileWriter desc()\n");
+#endif
     };
     int open(const char* fn, bool append = false){
-        return f->open(fn, append);
+        return this->f->open(fn, append);
     };
     void close() {
         this->flush();
@@ -605,7 +631,7 @@ class BufferFileWriter: public AbstractFileWriter{
     unsigned int bufLen;
     unsigned int bufPtr;
     AbstractFileWriter* f;
-}; // end BufferFileWriter
+}; // end BufferedFileWriter
 
 
 /**
@@ -614,15 +640,21 @@ class BufferFileWriter: public AbstractFileWriter{
  * fout->write("abc");
  * fout->writeLn("abc");
  * fout->close();
+ * delete fout->write;
  */
 class FileWriter{
   public:
     FileWriter(const char* fileName, bool append = false){
         int l = strlen(fileName);
         if (this->checkSuffix(fileName, ".gz")) {
-            this->fp = new BufferFileWriter(new GzipFileWriter(fileName, append));
+            this->fpRaw = new GzipFileWriter(fileName, append);
         } else {
-            this->fp = new BufferFileWriter(new TextFileWriter(fileName, append));
+            this->fpRaw = new TextFileWriter(fileName, append);
+        }
+        this->fp = new BufferedFileWriter(this->fpRaw);
+        if (!this->fpRaw || !this->fp){
+            fprintf(stderr, "Cannot create file\n");
+            abort();
         }
 
         // create buffer for formatted string
@@ -633,8 +665,23 @@ class FileWriter{
         };
     }
     ~FileWriter(){
-        this->fp->close();
-    }
+        if (this->fp){
+            this->fp->close();
+            delete this->fp;
+            this->fp = NULL;
+        }
+        if (this->fpRaw){
+            delete this->fpRaw;
+            this->fpRaw = NULL;
+        }
+        if (this->buf){
+            delete [] this->buf;
+            this->buf = NULL;
+        }
+#ifdef IO_DEBUG
+        fprintf(stderr, "FileWriter desc()\n");
+#endif
+    };
     int write(const char* s){
         return this->fp->write(s);
     };
@@ -669,6 +716,7 @@ class FileWriter{
   private:
     void doubleBuffer(){
         delete [] this->buf;
+        this->buf = NULL;
 
         this->bufLen *= 2;
         this->buf = new char[bufLen];
@@ -678,6 +726,7 @@ class FileWriter{
         }
     };
     AbstractFileWriter* fp;
+    AbstractFileWriter* fpRaw;
     char* buf;
     unsigned int bufLen;
 };

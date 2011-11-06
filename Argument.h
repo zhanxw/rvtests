@@ -355,7 +355,13 @@ class ParameterParser{
                 ++i;
                 break;
             case STRING_TYPE:
+                if (argv[i+1] == '\0') {
+                    fprintf(stderr, "WARNING: arg \"%s\" does not have value value\n", argv[i]);
+                } else if (argv[i+1][0] == '-' && argv[i+1][1] != '\0') {
+                    fprintf(stderr, "WARNING: arg \"%s %s\" does not seem take valid value\n", argv[i], argv[i+1]);
+                }
                 *(std::string*)data = argv[++i];
+                
                 break;
             default:
                 fprintf(stderr, "ERROR: Unrecognized parameter type for flag %s\n", argv[i]);

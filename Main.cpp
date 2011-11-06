@@ -5,11 +5,12 @@
 
    futher TODO:
    1. handle different format GT:GD:DP ...
-   2. easy argument processing: clean the argument processing codes.
 
    DONE:
    1. suppport PLINK output
    2. support access INFO tag
+   5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
+
 */
 #include "Argument.h"
 #include "IO.h"
@@ -278,7 +279,7 @@ public:
 
     // FUNC parseFunction[4];
     VCFIndividual():
-        isMasked(true)  // by default, enable every one
+        isMasked(true)  // by default, enable everyone
         {
         };
     /**
@@ -333,7 +334,7 @@ private:
 
     VCFValue data;            // whole field for the individual
     std::vector<VCFValue> fd; // each field separated by ':'
-};
+}; // end VCFIndividual
 
 typedef OrderedMap<int, VCFIndividual*> VCFPeople;
 

@@ -1,7 +1,7 @@
 /**
    immediately TODO:
-   2. support access INFO tag
    3. support tri-allelic (getAlt())
+   4. speed up VCF parsing. (make a separate line buffer).
 
    futher TODO:
    1. handle different format GT:GD:DP ...
@@ -9,7 +9,7 @@
 
    DONE:
    1. suppport PLINK output
-   
+   2. support access INFO tag
 */
 #include "Argument.h"
 #include "IO.h"
@@ -215,10 +215,10 @@ public:
         this->hasParsed = true;
         const char* line = this->value->line;
         int b = this->value->beg;
-        int e = this->value->end;
+        int e = this->value->beg;
         static std::string key;
 
-        while (line[e] != this->value->end){
+        while ( e < this->value->end){
             key.clear();
             // find tag name;
             while(line[e] != '='){
@@ -236,6 +236,7 @@ public:
                 e = parseTillChar(";\t", line, b, this->tableIter->second->value);
                 this->tableIter->second->fingerMark = this->fingerMark;
             };
+            e ++ ;
         }
     };
 private:
@@ -355,10 +356,10 @@ public:
         beg = end + 1;
         end = parseTillChar('\t', line, beg, &this->qual);
         beg = end + 1;
+        end = parseTillChar('\t', line, beg, &this->filt);
+        beg = end + 1;
         end = parseTillChar('\t', line, beg, &this->info);
         this->vcfInfo.parse(&this->info); // lazy parse inside VCFInfo
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->filt);
         beg = end + 1;
         end = parseTillChar('\t', line, beg, &this->format);
         
@@ -853,7 +854,7 @@ int main(int argc, char** argv){
 //            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual
 //        }
 //        printf("\n");
-        fprintf(stderr, "%s\n", r.getInfoTag("DP"));
+//        fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
     };
 
     if (vout) delete vout;

@@ -38,6 +38,57 @@ void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
     }
 };
 
+// take X, Y, Cov and fit model
+class ModelFitter{
+    virtual fit(String
+};
+//internal data using:
+// row for individuals
+// cols for markers or individual
+class Analysis{
+public:
+    Analysis(ModelFitter* m){
+    };
+    // load data from plink format
+    void loadPlink(const char* prefix){
+
+    };
+
+    void loadPhenotype(const char* fn, int col = 3) { // by default PLINK use 3rd column as phenotype
+        
+    };
+    void loadCovariate(){
+        
+    };
+    void collapseMarker(const char* setFileName){
+        
+    };
+    void writeCollapsedInPlink(const char* prefix) {
+        
+    };
+private:
+    void addPeopleName(const std::vector<std::string>& name){
+        this->peopleNum == 0;
+        for (int i = 0; i < name.size(); i++) {
+            if (this->people2Idx.count(name[i]) == 0) {
+                this->people2Idx[name[i]] = people
+    };
+    void addMarkerName(const std::vector<std::string>& name){
+    };
+    void removeMissing(); 
+private:
+    std::map<std::string, int> people2Idx;
+    std::map<std::string, int> marker2Idx;
+    int peopleNum;
+    int markerNum;
+
+    char** peopleName;
+    char** markerName;
+    double** genotype;
+    double* phenotype;
+    double** covariate;
+};
+
 int main(int argc, char** argv){
     time_t currentTime = time(0);
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
@@ -107,6 +158,8 @@ int main(int argc, char** argv){
 
     if (vout) delete vout;
     if (pout) delete pout;
+
+
 
     currentTime = time(0);
     fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));

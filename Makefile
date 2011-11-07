@@ -17,7 +17,7 @@ $(TABIX_LIB): tabix-0.2.5.tar.bz2
 	tar jvxf $<
 	-(cd tabix-0.2.5; make;)
 
-rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h IO.h Argument.h $(TABIX_LIB)
+rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h IO.h Argument.h VCFUtil.h $(TABIX_LIB)
 	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -D__ZLIB_AVAILABLE__ -lz -lbz2
 	g++ -o $@ Main.o $(TABIX_LIB)  -lz -lbz2 -lm -lpcre -lpcreposix
 clean: 

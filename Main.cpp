@@ -25,7 +25,6 @@
 #include <vector>
 #include <algorithm>
 
-#include "Error.h"
 #include "PeopleSet.h"
 #include "RangeList.h"
 #include "Utils.h"
@@ -40,7 +39,7 @@ void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
 
 // take X, Y, Cov and fit model
 class ModelFitter{
-    virtual fit(String
+//    virtual fit(String
 };
 //internal data using:
 // row for individuals
@@ -69,9 +68,9 @@ public:
 private:
     void addPeopleName(const std::vector<std::string>& name){
         this->peopleNum == 0;
-        for (int i = 0; i < name.size(); i++) {
-            if (this->people2Idx.count(name[i]) == 0) {
-                this->people2Idx[name[i]] = people
+        // for (int i = 0; i < name.size(); i++) {
+        //     if (this->people2Idx.count(name[i]) == 0) {
+        //         this->people2Idx[name[i]] = people
     };
     void addMarkerName(const std::vector<std::string>& name){
     };

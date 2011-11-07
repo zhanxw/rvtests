@@ -1,7 +1,10 @@
 #ifndef _VCFUTIL_H_
 #define _VCFUTIL_H_
 
-#include "Error.h"
+#include "Exception.h"
+#include "PeopleSet.h"
+#include "RangeList.h"
+#include "Utils.h"
 
 typedef std::vector<std::string> VCFHeader;
 

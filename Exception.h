@@ -1,5 +1,5 @@
-#ifndef _ERROR_H_
-#define _ERROR_H_
+#ifndef _EXCEPTION_H_
+#define _EXCEPTION_H_
 
 void REPORT(const char* x) { 
     fprintf(stderr, "Report '%s' to zhanxw@umich.edu\n", x ); 
@@ -10,5 +10,4 @@ void FATAL(const char* x) {
     abort();
 };
 
-
-#endif /* _ERROR_H_ */
+#endif /* _EXCEPTION_H_ */

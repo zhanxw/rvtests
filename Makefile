@@ -1,7 +1,8 @@
 EXEC = rvtest
 
 #STATGEN_LIB = ../statgen/lib/libStatGen.a ../statgen//lib/samtools-0.1.7a-hybrid/libbam.a
-TABIX_LIB = ./tabix-0.2.2/libtabix.a
+TABIX_INC = ./tabix-0.2.5
+TABIX_LIB = ./tabix-0.2.5/libtabix.a
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS
 
@@ -12,8 +13,12 @@ release: $(EXEC)
 debug: CXXFLAGS = -g $(DEFAULT_CXXFLAGS)
 debug: $(EXEC)
 
-rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h IO.h Argument.h
-	g++ -c $(CXXFLAGS) Main.cpp  -I. -D__ZLIB_AVAILABLE__ -lz -lbz2
+$(TABIX_LIB): tabix-0.2.5.tar.bz2
+	tar jvxf $<
+	-(cd tabix-0.2.5; make;)
+
+rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h IO.h Argument.h $(TABIX_LIB)
+	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -D__ZLIB_AVAILABLE__ -lz -lbz2
 	g++ -o $@ Main.o $(TABIX_LIB)  -lz -lbz2 -lm -lpcre -lpcreposix
 clean: 
 	rm -rf *.o $(EXEC)

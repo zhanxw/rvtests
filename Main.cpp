@@ -40,52 +40,66 @@ void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
     }
 };
 
-// take X, Y, Cov and fit model
-class ModelFitter{
-    int fit(Matrix* cov, Matrix* geno, Matrix* phenoe, const char* fout){
-        fprintf(stdout, "Model Fitting started\n");
-        fprintf(stdout, "Model Fitting ended\n");
-        return 0;
-    };
-};
-//internal data using:
-// row for individuals
-// cols for markers or individual
-class Analysis{
+class VCFData{
 public:
-    Analysis(ModelFitter* m){
+    VCFData(){
+        this->genotype = new Matrix;
+        this->phenotype = new Matrix;
+        this->covariate = new Matrix;        
+        assert(this->genotype && this->phenotype && this->covariate);
+    }
+    ~VCFData(){
+        if (this->genotype ) delete this->genotype ;
+        if (this->phenotype) delete this->phenotype;
+        if (this->covariate) delete this->covariate;
+    }
+    
+    // col: 1-based column 
+    void overwritePhenotype(const char* fn, int col) { // by default PLINK use 3rd column as phenotype
+        if (col) {
+            fprintf(stderr, "col should be larger than 0.\n");
+            return;
+        }
+
+        col --; // get 0-based column
+        LineReader lr(fn);
+        std::vector<std::string> fd;
+        while(lr.readLineBySep(&fd, "\t ")){
+            if (fd.size() < 3 || fd.size() < col + 1) {
+                fprintf(stderr, "Insufficient columns in %s.\n", fn);
+                continue;
+            }
+            const std::string& pname = fd[1];
+            if (this->people2Idx.count(pname) == 0) {
+                fprintf(stderr, "%s does not exist yet.\n", pname.c_str());
+                continue;
+            }
+            int idx = this->people2Idx[pname];
+            (*this->phenotype)[idx][0] = atof(fd[col].c_str());
+        };
     };
+
     // load data from plink format
     void loadPlink(const char* prefix){
+        std::string p = prefix;
         // load marker (BIM)
-        
+        this->loadMarkerFromBim( (p + ".bim").c_str());
+
         // load people (FAM)
-        // lazy-load bed (BED)
-    };
-    void writePlink(const char* prefix){
-
-    };
-    void loadPhenotype(const char* fn, int col = 3) { // by default PLINK use 3rd column as phenotype
+        this->loadPeopleFromFam( (p + ".fam").c_str());
         
-    };
-    void loadCovariate(){
-        
-    };
-    /// 
-    /// Handling missing genotypes should be provided by inherit this class
-    void collapseMarker(const char* setFileName){
-        // check if there is marker not in current 
+        // load bed (BED) into memory (may use mmap() to shrink memory usage)
+        // check magic word and snp major
+        // read all rests into memory
         
         
     };
-
-    void writeCollapsedInPlink(const char* prefix) {
+    void loadCovariate(const char* fn){
         
     };
-private:
     void loadMarkerFromBim(const char* fn){
         std::vector<std::string> fd;
-        FileRead f(fn);
+        LineReader f(fn);
         int lineNo = 0;
         while(f.readLineBySep(&fd, "\t ")){
             if (fd.size() != 6){
@@ -94,32 +108,179 @@ private:
             }
             this->marker2Idx[fd[1]] = lineNo++;
         };
+        
+        if (this->marker2Idx.size() != lineNo) {
+            fprintf(stderr, "Dupliate markers in %s.\n", fn );
+        }
+        this->numMarker = marker2Idx.size();
+        
     }
     void loadPeopleFromFam(const char* fn){
         std::vector<std::string> fd;
-        FileRead f(fn);
+        LineReader f(fn);
         int lineNo = 0;
+        Vector pheno;
         while(f.readLineBySep(&fd, "\t ")){
             if (fd.size() != 6){
                 fprintf(stderr, "FAM file %s corrupted.\n", fn);
                 return;
             }
-            this->peopleIdx[fd[1]] = lineNo++;
+            this->people2Idx[fd[1]] = lineNo++;
+            pheno.Push(atoi(fd[5]));
         };
+        if (this->people2Idx.size() != lineNo){
+            fprintf(stderr, "Dupliate people name in %s.\n", fn);
+        };
+        this->numPeople = this->people2Idx.size();
+        (*this->phenotype).Dimension(numPeople, 1);
+        
+        for (int i = 0; i < pheno.Length(); i++){
+            (*this->phenotype)[i][0] = pheno[i];
+        }
     }
 
-
+    Matrix* getGeno() {return this->genotype;};
+    Matrix* getPheno() {return this->phenotype;};
+    Matrix* getCov() {return this->covariate;};
+    std::map<std::string, int>* getPeople2Idx() {return &this->people2Idx;};
+    std::map<std::string, int>* getMarker2Idx() {return &this->marker2Idx;};
 private:
     std::map<std::string, int> people2Idx;
     std::map<std::string, int> marker2Idx;
-    int peopleNum;
-    int markerNum;
+    int numPeople;
+    int numMarker;
 
-    char** peopleName;
-    char** markerName;
-    double** genotype;
-    double* phenotype;
-    double** covariate;
+    Matrix* genotype; // marker x people
+    Matrix* covariate; // people x cov
+    Matrix* phenotype; // people x phenotypes
+};
+
+//internal data using:
+// row for individuals
+// cols for markers or individual
+class Collapsor{
+public:
+    Collapsor(VCFData* data){
+        this->collapsedGeno = NULL;
+        if (!data) {
+            FATAL("Cannot using NULL to collapse data!");
+        };
+        this->vcfData = data;
+        this->geno = data->getGeno();
+        this->pheno = data->getPheno();
+        this->cov = data->getCov();
+        this->numMarker = (*this->geno).rows;
+        this->numPeople = (*this->geno).cols;
+    };
+    virtual ~Collapsor() {
+        if (this->collapsedGeno) delete this->collapsedGeno;
+    };
+    /// 
+    /// Handling missing genotypes should be provided by inherit this class
+    void collapseMarker(const char* setFileName){
+        // load set file
+        this->loadSetFile(setFileName);
+
+        // check if there is marker not in current
+        unsigned int numSet = this->markerSet.size();
+        this->collapsedGeno = new Matrix; // this is the collapsed result
+        assert(this->collapsedGeno);
+        (*collapsedGeno).Dimension(this->numPeople, numSet);
+        (*collapsedGeno).Zero();
+
+        int setIdx = 0;
+        for (int p = 0; p < this->numPeople; p++) {
+            (*collapsedGeno)[p][setIdx] == 0;
+            setIdx = 0;
+            for (unsigned int m = 0; m < this->markerSetIdx.size(); m++){
+                int mIdx = markerSetIdx[m];
+                if ( mIdx == 0) {
+                    setIdx ++;
+                    continue;
+                }
+                (*collapsedGeno)[p][setIdx] += (*this->geno)[mIdx][p];
+            }
+        }                
+    };
+
+    void writeCollapsedInPlink(const char* prefix) {
+        
+    };
+private:
+    void loadSetFile(const char* fileName) {
+        std::set<std::string> processMarker;
+        bool newSet = false; // when to load a new set of marker
+        int numDup = 0; // record number of duplicates
+        std::string setName;
+
+        LineReader lr(fileName);
+        std::vector< std::string> fd;
+        while(lr.readLineBySep(&fd, "\t ")){
+            for (int i = 0; i < fd.size(); i++) {
+                std::string& s = fd[i];
+                if (s.size() == 0) continue;
+
+                if (s == "END") {
+                    newSet = false;
+                    setName.clear();
+                    this->markerSetIdx.push_back(-1);
+                    continue;
+                } else {
+                    if (setName.size() == 0) {
+                        setName = s;
+                        this->marker2Idx[s] = this->marker2Idx.size();
+                    } else {
+                        if (processMarker.find(s) != processMarker.end()){
+                            numDup ++;
+                        } else{
+                            processMarker.insert(s);
+                        }
+                        if ((*vcfData->getMarker2Idx()).count(s) == 0) {
+                            fprintf(stderr, "Cannot find marker %s from existing markers.\n", fileName);
+                            continue;
+                        }
+                        this->markerSet[setName] = ( (*vcfData->getMarker2Idx())[s]);
+                    }
+                }
+            }
+            if (numDup) {
+                fprintf(stdout, "%d markers have appeared more than once in set file.\n", numDup);
+            };
+        };
+        if (this->markerSetIdx[this->markerSetIdx.size() - 1] != -1) {
+            // in case user forget to put END at last
+            this->markerSetIdx.push_back(-1);
+        }
+        fprintf(stdout, "Total %d sets loaded.\n", (int)(this->marker2Idx.size()));
+    };
+private:
+    // idx:                         0, 1, 2,  3, 4, 5, 6, 7, 
+    // we use "-1" to separate set: 1, 2, 3, -1, 4, 5, 7, -1, ...
+    // then: markerSet["set1"] = 0, markerSet["set2"] = 4
+    // and marker idx 1, 2, 3 belongs to "set1", and marker idx 4, 5, 7 belongs to "set2"
+    std::map<std::string, int> markerSet;
+    std::vector<int> markerSetIdx; 
+
+    Matrix* collapsedGeno;
+
+    Matrix* geno;
+    Matrix* pheno;
+    Matrix* cov;
+    int numMarker;
+    int numPeople;
+    std::map<std::string, int> marker2Idx;
+    std::map<std::string, int> people2Idx;
+
+    VCFData* vcfData;
+};
+
+// take X, Y, Cov and fit model
+class ModelFitter{
+    int fit(Matrix* cov, Matrix* geno, Matrix* phenoe, const char* fout){
+        fprintf(stdout, "Model Fitting started\n");
+        fprintf(stdout, "Model Fitting ended\n");
+        return 0;
+    };
 };
 
 int main(int argc, char** argv){

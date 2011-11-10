@@ -35,7 +35,7 @@ class FileReader{
     // virtual functions
     // each specific file type will need to implement the following function
     //virtual int readLine(std::string* line) = 0;
-    //virtual int readLineBySep(std::vector<std::string>* fields, const char* seq) = 0;
+    //virtual int readLineBySep(std::vector<std::string>* fields, const char* sep) = 0;
     virtual int getc() = 0;
     virtual bool isEof() = 0;
     virtual void close() = 0;
@@ -433,9 +433,10 @@ class LineReader{
     };
     // return number of fields read.
     // when reading an empty line, will return 1, meaning 1 field are read, although its content is empty
+    // consecutive separators, e.g. \t\t, will yield empty field
     // when reading to the EOF, will 0. 
-    int readLineBySep(std::vector<std::string>* fields, const char* seq) {
-        assert(this->fp && fields && seq);
+    int readLineBySep(std::vector<std::string>* fields, const char* sep) {
+        assert(this->fp && fields && sep);
         if (this->fp->isEof()) return 0;
         fields->clear();
         char c;
@@ -451,7 +452,7 @@ class LineReader{
             } else if (c == '\n') {
                 fields->push_back(s);
                 return fields->size();
-            } else if (strchr(seq, c) != NULL) { // separator
+            } else if (strchr(sep, c) != NULL) { // separator
                 fields->push_back(s);
                 s.clear();
             } else { // normal characters

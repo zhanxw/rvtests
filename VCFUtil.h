@@ -30,12 +30,19 @@ public:
     void toDouble(double* d) const {
         *d = strtod(line+beg, 0);
     };
-    std::string toStr() const { 
+    /* std::string toStr() const {  */
+    /*     std::string s; */
+    /*     for (int i = beg; i < end; i++){ */
+    /*         s.push_back(line[i]); */
+    /*     } */
+    /*     return s; */
+    /* }; */
+    const char* toStr() const {
         std::string s;
         for (int i = beg; i < end; i++){
             s.push_back(line[i]);
         }
-        return s;
+        return (s.c_str());
     };
     void toStr(std::string* s) const { 
         s->clear();
@@ -155,7 +162,7 @@ public:
         }
         this->tableIter = this->table.find(s);
         if (this->tableIter != this->table.end()){
-            return this->tableIter->second->value->toStr().c_str();
+            return this->tableIter->second->value->toStr();
         } else {
             return NULL;
         }
@@ -242,7 +249,7 @@ public:
 
     // FUNC parseFunction[4];
     VCFIndividual():
-        isMasked(true)  // by default, enable everyone
+        isMasked(false)  // by default, enable everyone
         {
         };
     /**
@@ -608,7 +615,7 @@ public:
         VCFPeople& p = r->getPeople();
         for (int i = 0; i < p.size() ; i ++ ) {
             VCFIndividual* indv = p[i];
-            this->fp->printf("\t%s", indv->getData().toStr().c_str());
+            this->fp->printf("\t%s", indv->getData().toStr());
         }
         this->fp->printf("\n");
     };

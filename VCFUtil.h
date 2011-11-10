@@ -276,9 +276,9 @@ public:
         v.end = beg;
         while (line[v.end] != '\0') { // parse individual values
             v.end = parseTillChar(":\t\0", line, v.beg, &v);
+            fd.push_back(v);
             if (line[v.end] == '\t' || line[v.end] == '\0')
                 break;
-            fd.push_back(v);
             v.beg = v.end + 1;
         }
         this->data.end = v.end;

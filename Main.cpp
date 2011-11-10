@@ -30,6 +30,9 @@
 #include "Utils.h"
 #include "VCFUtil.h"
 
+#include "MathVector.h"
+#include "MathMatrix.h"
+
 void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
     if (flag.size() == 0){
         fprintf(stderr, "%s\n", msg);
@@ -39,7 +42,11 @@ void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
 
 // take X, Y, Cov and fit model
 class ModelFitter{
-//    virtual fit(String
+    int fit(Matrix* cov, Matrix* geno, Matrix* phenoe, const char* fout){
+        fprintf(stdout, "Model Fitting started\n");
+        fprintf(stdout, "Model Fitting ended\n");
+        return 0;
+    };
 };
 //internal data using:
 // row for individuals
@@ -50,31 +57,58 @@ public:
     };
     // load data from plink format
     void loadPlink(const char* prefix){
+        // load marker (BIM)
+        
+        // load people (FAM)
+        // lazy-load bed (BED)
+    };
+    void writePlink(const char* prefix){
 
     };
-
     void loadPhenotype(const char* fn, int col = 3) { // by default PLINK use 3rd column as phenotype
         
     };
     void loadCovariate(){
         
     };
+    /// 
+    /// Handling missing genotypes should be provided by inherit this class
     void collapseMarker(const char* setFileName){
+        // check if there is marker not in current 
+        
         
     };
+
     void writeCollapsedInPlink(const char* prefix) {
         
     };
 private:
-    void addPeopleName(const std::vector<std::string>& name){
-        this->peopleNum == 0;
-        // for (int i = 0; i < name.size(); i++) {
-        //     if (this->people2Idx.count(name[i]) == 0) {
-        //         this->people2Idx[name[i]] = people
-    };
-    void addMarkerName(const std::vector<std::string>& name){
-    };
-    void removeMissing(); 
+    void loadMarkerFromBim(const char* fn){
+        std::vector<std::string> fd;
+        FileRead f(fn);
+        int lineNo = 0;
+        while(f.readLineBySep(&fd, "\t ")){
+            if (fd.size() != 6){
+                fprintf(stderr, "BIM file %s corrupted.\n", fn);
+                return;
+            }
+            this->marker2Idx[fd[1]] = lineNo++;
+        };
+    }
+    void loadPeopleFromFam(const char* fn){
+        std::vector<std::string> fd;
+        FileRead f(fn);
+        int lineNo = 0;
+        while(f.readLineBySep(&fd, "\t ")){
+            if (fd.size() != 6){
+                fprintf(stderr, "FAM file %s corrupted.\n", fn);
+                return;
+            }
+            this->peopleIdx[fd[1]] = lineNo++;
+        };
+    }
+
+
 private:
     std::map<std::string, int> people2Idx;
     std::map<std::string, int> marker2Idx;
@@ -123,7 +157,7 @@ int main(int argc, char** argv){
     PeopleSet peopleInclude;
     PeopleSet peopleExclude;
     peopleInclude.readID(FLAG_peopleIncludeID.c_str());
-    // vin.setPeople(&peopleInclude, &peopleExclude);
+    vin.setPeople(&peopleInclude, &peopleExclude);
 
     // let's write it out.
     VCFOutputFile* vout = NULL;

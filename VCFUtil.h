@@ -248,10 +248,9 @@ class VCFIndividual{
 public:
 
     // FUNC parseFunction[4];
-    VCFIndividual():
-        isMasked(false)  // by default, enable everyone
-        {
-        };
+    VCFIndividual(){
+        this->delMask();  // by default, removing mask will enable everyone
+    };
     /**
      * 0-base index for beg and end, e.g.
      *     0 1 2  3

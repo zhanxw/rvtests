@@ -71,6 +71,4 @@ int  PeopleSet::obtainIDfromFile(const char* fileName, std::vector<std::string>*
     return 0;
 }
 
-
-
 #endif /* _PEOPLEINDEX_H_ */

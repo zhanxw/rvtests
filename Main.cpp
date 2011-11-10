@@ -4,6 +4,7 @@
    4. speed up VCF parsing. (make a separate line buffer).
    5. loading phenotype and covariate
    6. do analysis.
+   7. VT (combine Collapsor and ModelFitter)
 
    futher TODO:
    1. handle different format GT:GD:DP ...
@@ -134,7 +135,7 @@ public:
                         (*this->genotype)[m][p] = -9;
                         break;
                     default:
-                        fprintf(stderr, "Read PLINK genotype error!\n");
+                        REPORT("Read PLINK genotype error!\n");
                         break;
                     };
                 }
@@ -242,7 +243,7 @@ public:
     };
     /// 
     /// Handling missing genotypes should be provided by inherit this class
-    void collapseMarker(const char* setFileName){
+    void collapseMarker(){
         // load set file
         this->loadSetFile(setFileName);
 
@@ -341,8 +342,9 @@ private:
 
 // take X, Y, Cov and fit model
 class ModelFitter{
-    int fit(Matrix* cov, Matrix* geno, Matrix* phenoe, const char* fout){
+    int fit(Matrix* cov, Matrix* geno, Matrix* pheno, const char* fout){
         fprintf(stdout, "Model Fitting started\n");
+
         fprintf(stdout, "Model Fitting ended\n");
         return 0;
     };
@@ -407,6 +409,7 @@ int main(int argc, char** argv){
         if (vout) vout->writeRecord(& r);
         if (pout) pout ->writeRecord(& r);
         printf("%s:%d\n", r.getChrom().c_str(), r.getPos());
+        printf("%s\n", (*people[0])[4].toStr());
 //        for (int i = 0; i < people.size(); i++) {
 //            indv = people[i];
 //            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual

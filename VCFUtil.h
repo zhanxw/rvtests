@@ -276,9 +276,10 @@ public:
         v.end = beg;
         while (line[v.end] != '\0') { // parse individual values
             v.end = parseTillChar(":\t\0", line, v.beg, &v);
-            if (line[v.end] == '\t' || line[v.end] == '\0')
-                break;
             fd.push_back(v);
+            if (line[v.end] == '\t' || line[v.end] == '\0'){
+                break;
+            }
             v.beg = v.end + 1;
         }
         this->data.end = v.end;
@@ -291,9 +292,15 @@ public:
     void delMask() {this->isMasked = false;};
     bool hasMask() {return this->isMasked;};
     const VCFValue& operator [] (const unsigned int i) const {
-        return (this->fd[i]);
+        if (i >= fd.size()){
+            FATAL("index out of bound!");
+        }
+        return (this->fd[i]);                   
     };
     VCFValue& operator [] (const unsigned int i) {
+        if (i >= fd.size()){
+            FATAL("index out of bound!");
+        }
         return (this->fd[i]);
     };
     VCFValue& getData() {return this->data;};
@@ -340,8 +347,9 @@ public:
         while (line[end] != '\0') {
             beg = end + 1;
             end = p->parse(line, beg);
-            if (line[end] == '\0') 
+            if (line[end] == '\0') {
                 break;
+            }
             idx ++ ;
             if (idx >= this->allIndv.size()){
                 FATAL("VCF header and VCF content do not match!");

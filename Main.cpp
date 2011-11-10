@@ -409,11 +409,14 @@ int main(int argc, char** argv){
         if (vout) vout->writeRecord(& r);
         if (pout) pout ->writeRecord(& r);
         printf("%s:%d\n", r.getChrom().c_str(), r.getPos());
-        printf("%s\n", (*people[0])[4].toStr());
 //        for (int i = 0; i < people.size(); i++) {
 //            indv = people[i];
 //            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual
 //        }
+        for (int i = 0; i < people.size(); i++) {
+            indv = people[i];
+            printf("%s ", (*indv)[4].toStr());  // [0] meaning the first field of each individual
+        }
 //        printf("\n");
 //        fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
     };
@@ -422,9 +425,9 @@ int main(int argc, char** argv){
     if (pout) delete pout;
 
 
-    VCFData vcfData;
-    vcfData.loadPlink("test.plink");
-    vcfData.writeGenotypeToR("test.plink.geno");
+    // VCFData vcfData;
+    // vcfData.loadPlink("test.plink");
+    // vcfData.writeGenotypeToR("test.plink.geno");
 
     currentTime = time(0);
     fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));

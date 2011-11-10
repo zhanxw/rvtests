@@ -10,6 +10,7 @@
 class PeopleSet{
 public:
     void readID(const char* allPeopleID);
+    void readID(const std::vector<std::string> peopleVec);
     void readIDfromFile(const char* fileName);
     int obtainIDfromFile(const char* fileName, std::vector<std::string>* allID);
     bool contain(const char* name) const {
@@ -31,9 +32,15 @@ void PeopleSet::readID(const char* allPeopleID){
     std::vector<std::string> sa;
     stringTokenize(allPeopleID, ",", &sa);
     for (int i = 0; i< sa.size(); i++){
-        people.insert(sa[i]);
+        this->people.insert(sa[i]);
     }
 }
+
+void PeopleSet::readID(const std::vector<std::string> peopleVec){
+    for (unsigned int i = 0; i < peopleVec.size(); i++ ){
+        this->people.insert(peopleVec[i]);        
+    }
+};
 
 void PeopleSet::readIDfromFile(const char* fileName) {
     if (!strlen(fileName)) return;

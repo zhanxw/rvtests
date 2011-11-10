@@ -123,7 +123,7 @@ int main(int argc, char** argv){
     PeopleSet peopleInclude;
     PeopleSet peopleExclude;
     peopleInclude.readID(FLAG_peopleIncludeID.c_str());
-    vin.setPeople(&peopleInclude, &peopleExclude);
+    // vin.setPeople(&peopleInclude, &peopleExclude);
 
     // let's write it out.
     VCFOutputFile* vout = NULL;

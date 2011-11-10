@@ -88,11 +88,65 @@ public:
         // load people (FAM)
         this->loadPeopleFromFam( (p + ".fam").c_str());
         
-        // load bed (BED) into memory (may use mmap() to shrink memory usage)
+        // load bed (BED) into memory (??may use mmap() to shrink memory usage)
         // check magic word and snp major
         // read all rests into memory
-        
-        
+        char magic[2];
+        char mode; 
+        FILE* fBed = fopen( (p + ".bed").c_str(), "rb");
+        fread(magic, sizeof(char), 2, fBed);
+        fread(&mode, sizeof(char), 1, fBed);
+        if (magic[0] != 0x6c || magic[1] != 0x1b) {
+            fprintf(stderr, "Cannot open BED file %s, corrupt magic word.\n", prefix);
+            return;
+        }
+
+        // we reverse the two bits as defined in PLINK format, 
+        // so we can process 2-bit at a time.
+        const static unsigned char HOM_REF = 0x0;     //0b00;
+        const static unsigned char HET = 0x2;         //0b10;
+        const static unsigned char HOM_ALT = 0x3;     //0b11;
+        const static unsigned char MISSING = 0x1;     //0b01;
+
+        if (mode == 0x01) {
+            // snp major mode
+            unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
+            unsigned char c;
+            (*this->genotype).Dimension( numMarker, numPeople);
+            for (int m = 0; m < numMarker; m++){
+                for (int p = 0; p < numPeople; p++) {
+                    int offset = p & (4 - 1);
+                    if (offset == 0) {
+                        fread(&c, sizeof(unsigned char), 1, fBed);
+                    }
+                    unsigned char geno = (c & mask[offset]) >> (offset << 1);
+                    switch (geno){
+                    case HOM_REF:
+                        (*this->genotype)[m][p] = 0;
+                        break;
+                    case HET:
+                        (*this->genotype)[m][p] = 1;
+                        break;
+                    case HOM_ALT:
+                        (*this->genotype)[m][p] = 2;
+                        break;
+                    case MISSING:
+                        (*this->genotype)[m][p] = -9;
+                        break;
+                    default:
+                        fprintf(stderr, "Read PLINK genotype error!\n");
+                        break;
+                    };
+                }
+            }
+        } else if (mode == 0x00) {
+            // people major mode
+            // TODO
+            fprintf(stderr, "Cannot open BED file %s, work to be DONE.\n", prefix);
+        } else {
+            fprintf(stderr, "Cannot open BED file %s, unrecognized major mode.\n", prefix);
+        };
+        fclose(fBed);
     };
     void loadCovariate(const char* fn){
         
@@ -138,7 +192,17 @@ public:
             (*this->phenotype)[i][0] = pheno[i];
         }
     }
-
+    void writeGenotypeToR(const char* fn){
+        FileWriter fw(fn);
+        for (int m = 0; m < this->numMarker; m++) {
+            for (int p = 0; p < this->numPeople; p++ ){
+                if (p) 
+                    fw.write(" ");
+                fw.printf("%d", (int)((*this->genotype)[m][p]));
+            }
+            fw.write("\n");
+        }
+    };
     Matrix* getGeno() {return this->genotype;};
     Matrix* getPheno() {return this->phenotype;};
     Matrix* getCov() {return this->covariate;};
@@ -161,10 +225,11 @@ private:
 class Collapsor{
 public:
     Collapsor(VCFData* data){
-        this->collapsedGeno = NULL;
         if (!data) {
             FATAL("Cannot using NULL to collapse data!");
         };
+
+        this->collapsedGeno = NULL;
         this->vcfData = data;
         this->geno = data->getGeno();
         this->pheno = data->getPheno();
@@ -354,6 +419,9 @@ int main(int argc, char** argv){
     if (pout) delete pout;
 
 
+    VCFData vcfData;
+    vcfData.loadPlink("test.plink");
+    vcfData.writeGenotypeToR("test.plink.geno");
 
     currentTime = time(0);
     fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));

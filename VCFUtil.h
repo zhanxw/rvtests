@@ -716,10 +716,10 @@ public:
         // write BED
         // we reverse the two bits as defined in PLINK format, 
         // so we can process 2-bit at a time.
-        const static int HOM_REF = 0x0;     //0b00;
-        const static int HET = 0x2;         //0b10;
-        const static int HOM_ALT = 0x3;     //0b11;
-        const static int MISSING = 0x1;     //0b01;
+        const static unsigned char HOM_REF = 0x0;     //0b00;
+        const static unsigned char HET = 0x2;         //0b10;
+        const static unsigned char HOM_ALT = 0x3;     //0b11;
+        const static unsigned char MISSING = 0x1;     //0b01;
 
         VCFPeople& people = r->getPeople();
         unsigned char c = 0;

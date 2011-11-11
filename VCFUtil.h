@@ -6,7 +6,7 @@
 #include "RangeList.h"
 #include "Utils.h"
 
-#include "libsrc/MathMatrix.h";
+#include "libsrc/MathMatrix.h"
 
 class VCFHeader{
   public:
@@ -794,13 +794,13 @@ public:
         if (offset)
             fwrite(&c, sizeof(char), 1, this->fpBed);
     }
-    void writeBIM(const char* chr, const char* ids, int mapDist, int pos, const char* ref, const char* alt){
+    void writeBIM(const char* chr, const char* id, int mapDist, int pos, const char* ref, const char* alt){
         if (strlen(ref) > 1 || strlen(alt) > 1) {
             fprintf(stdout, "skip with ref = %s and alt = %s\n", ref, alt);
             return;
         }
         std::string chrom = chr;
-        if (atoi(chrom.c_str()) > 0) {
+        if (atoi(chr) > 0) {
             fputs(chr, this->fpBim);
             fputc('\t', this->fpBim);
         } else if (chrom == "X")
@@ -813,9 +813,8 @@ public:
             fprintf(stdout, "skip chrom %s\n", chr);
             return;
         }
-        std::string id = ids;
-        if (id != ".")
-            fprintf(this->fpBim, "%s\t", ids);
+        if (id && id[0] != '.')
+            fprintf(this->fpBim, "%s\t", id);
         else
             fprintf(this->fpBim, "%s:%d\t", chrom.c_str(), pos);
 

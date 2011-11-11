@@ -5,6 +5,8 @@
    5. loading phenotype and covariate (need tests now).
    6. do analysis. (test CMC for now)
    7. VT (combine Collapsor and ModelFitter)
+   8. Make code easy to use ( hide PeopleSet and RangeList)
+   9. Inclusion/Exclusion set should be considered sequentially.
 
    futher TODO:
    1. handle different format GT:GD:DP ...
@@ -414,7 +416,7 @@ public:
                             processMarker.insert(s);
                         }
                         if ((*this->data->getMarker2Idx()).count(s) == 0) {
-                            fprintf(stderr, "Cannot find marker %s from existing markers.\n", fileName);
+                            fprintf(stderr, "Cannot find marker %s from existing markers.\n", s.c_str());
                             continue;
                         }
                         this->markerSet[setName] = ( (*this->data->getMarker2Idx())[s]);
@@ -628,7 +630,7 @@ int main(int argc, char** argv){
 
     // load data
     VCFData vcfData;
-    vcfData.loadPlink("test.plink");
+    vcfData.loadPlink(FLAG_outPlink.c_str());
     vcfData.writeGenotypeToR("test.plink.geno");
     
     // apply analysis

@@ -11,7 +11,7 @@ class VCFHeader{
     void push_back(const std::string& s){
         this->data.push_back(s);
     }
-    void getPeopleName(std::vector<std::string>* p){
+    void getPeopleName(std::vector<std::string>* p) const{
         if (!p) return;
         if (this->data.size() < 1) return;
         const std::string ln = this->data[this->data.size() - 1];
@@ -704,13 +704,10 @@ public:
         fclose(this->fpFam);
     };
     void writeHeader(const VCFHeader* h){
-        std::string lastLine = h->at(h->size() - 1);
         std::vector<std::string> people; 
-        stringTokenize(lastLine, "\t", &people);
-        if (people.size() < 9) {
-            fprintf(stderr, "Wrong VCF Header line: %s\n", lastLine.c_str());
-        };
-        for (int i = 9; i < people.size(); i++) {
+        h->getPeopleName(&people);
+        //TODO
+        for (int i = 0; i < people.size(); i++) {
             fprintf(this->fpFam, "%s\t%s\t0\t0\t0\t-9\n", people[i].c_str(), people[i].c_str());
         };
     };
@@ -746,13 +743,6 @@ public:
         fprintf(this->fpBim, "%s\n", r->getAlt().c_str());
 
         // write BED
-        // we reverse the two bits as defined in PLINK format, 
-        // so we can process 2-bit at a time.
-        const static unsigned char HOM_REF = 0x0;     //0b00;
-        const static unsigned char HET = 0x2;         //0b10;
-        const static unsigned char HOM_ALT = 0x3;     //0b11;
-        const static unsigned char MISSING = 0x1;     //0b01;
-
         VCFPeople& people = r->getPeople();
         unsigned char c = 0;
         VCFIndividual* indv;
@@ -797,7 +787,22 @@ public:
         if (offset)
             fwrite(&c, sizeof(char), 1, this->fpBed);
     }
+    void writeBIM(std::vector< std::string > & p){
+        
+    };
+    void writeFAM(){
+    };
+    void writeBED(){
+    };
 private:
+    // we reverse the two bits as defined in PLINK format, 
+    // so we can process 2-bit at a time.
+    const static unsigned char HOM_REF = 0x0;     //0b00;
+    const static unsigned char HET = 0x2;         //0b10;
+    const static unsigned char HOM_ALT = 0x3;     //0b11;
+    const static unsigned char MISSING = 0x1;     //0b01;
+
+
     FILE* fpBed;
     FILE* fpBim;
     FILE* fpFam;

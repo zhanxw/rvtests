@@ -247,18 +247,21 @@ public:
 private:
     void loadMarkerFromBim(const char* fn){
         std::vector<std::string> fd;
-        LineReader f(fn);
+        LineReader lr(fn);
         int lineNo = 0;
-        while(f.readLineBySep(&fd, "\t ")){
+        while(lr.readLineBySep(&fd, "\t ")){
             if (fd.size() != 6){
                 fprintf(stderr, "BIM file %s corrupted.\n", fn);
                 return;
+            }
+            for (int i = 0; i < 6; i++){
+                printf("fd[%d] = %s\n", i, fd[i].c_str());
             }
             this->marker2Idx[fd[1]] = lineNo++;
         };
         
         if (this->marker2Idx.size() != lineNo) {
-            fprintf(stderr, "Dupliate markers in %s.\n", fn );
+            fprintf(stderr, "Duplicate markers in %s.\n", fn );
         }
         this->numMarker = marker2Idx.size();
         
@@ -365,7 +368,21 @@ public:
     };
 
     void writeCollapsedInPlink(const char* prefix) {
-        // TODO
+        PlinkOutputFile out(prefix);
+        std::vector< std::string > v;
+        v.resize(this->people2Idx.size());
+        for (std::map<std::string, int>::const_iterator i = this->people2Idx.begin();
+             i != this->people2Idx.end();
+             i++) {
+            v[i->second] = i->first;
+        }
+        out.writeFAM(v);
+
+        // here are FAKE chrom, pos, ref and alt.
+        for (int i = 0 ; i < numMarker; i++){
+            out.writeBIM("1", ".", 0, i, "A", "T");
+        }
+        out.writeBED(this->collapsedGeno);
     };
 
     void loadSetFile(const char* fileName) {
@@ -594,7 +611,7 @@ int main(int argc, char** argv){
         const VCFIndividual* indv;
         if (vout) vout->writeRecord(& r);
         if (pout) pout ->writeRecord(& r);
-        printf("%s:%d\n", r.getChrom().c_str(), r.getPos());
+        printf("%s:%d\n", r.getChrom(), r.getPos());
 
         // e.g.: get TAG from INFO field
         // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));

@@ -249,7 +249,7 @@ FileReader::FileType FileReader::checkFileType(const char* fileName){
     const int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
     const int bzip2_magic[2] = {'B', 'Z'}; /* bzip2 magic header */
     // read file header    
-    FILE* fp = fopen(fileName, "r");
+    FILE* fp = fopen(fileName, "rb");
     if (!fp) return UNKNOWN;
     unsigned char header[2]={0,0};
     int n = fread(header, sizeof(char), 2, fp);

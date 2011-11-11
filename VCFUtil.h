@@ -6,6 +6,8 @@
 #include "RangeList.h"
 #include "Utils.h"
 
+#include "libsrc/MathMatrix.h";
+
 class VCFHeader{
   public:
     void push_back(const std::string& s){
@@ -274,7 +276,7 @@ public:
 
     // FUNC parseFunction[4];
     VCFIndividual(){
-        this->delMask();  // by default, removing mask will enable everyone
+        this->include();  // by default, enable everyone
     };
     /**
      * 0-base index for beg and end, e.g.
@@ -287,7 +289,7 @@ public:
         // need to consider missing field
         
         // skip to next 
-        if (this->isMasked) {
+        if (!this->isInUse()) {
             return parseTillChar('\t', line, beg, & this->data);
         }
         
@@ -312,9 +314,9 @@ public:
 
     const std::string& getName() const {return this->name;};
     void setName(std::string& s) {this->name = s;};
-    void addMask() {this->isMasked = true;};
-    void delMask() {this->isMasked = false;};
-    bool hasMask() {return this->isMasked;};
+    void include() {this->inUse = true;};
+    void exclude() {this->inUse = false;};
+    bool isInUse() {return this->inUse;};
     const VCFValue& operator [] (const unsigned int i) const {
         if (i >= fd.size()){
             FATAL("index out of bound!");
@@ -329,7 +331,7 @@ public:
     };
     VCFValue& getData() {return this->data;};
 private:
-    bool isMasked;
+    bool inUse;
     std::string name;
 
     VCFValue data;            // whole field for the individual
@@ -402,48 +404,78 @@ public:
         }
     };
     void setPeople(PeopleSet* pInclude, PeopleSet* pExclude) {
-        if (pInclude && pInclude->size() > 0) {
+        bool inclusionEmpty = (!pInclude || pInclude->size() == 0);
+        bool exclusionEmpty = (!pExclude || pExclude->size() == 0);
+        if (inclusionEmpty && exclusionEmpty) return;
+
+        // only inclusion set
+        if (inclusionEmpty && !exclusionEmpty) {
             // by default set the mask, unless the people is in pInclude and not in pExclude
             for (unsigned int i = 0; i != this->allIndv.size(); i++){
                 VCFIndividual* p = this->allIndv[i];
-                p->addMask();
+                p->exclude();
                 if (pInclude->contain(p->getName())) {
-                    if (!pExclude)
-                        p->delMask();
-                    else if (!pExclude->contain(p->getName())) {
-                        p->delMask();
-                    }
+                    p->include();
                 }
             }
-        } else {
-            // by default clear the mask, unless the people is in pExclude
+            return;
+        }
+        
+        // only exclusion set
+        if (!inclusionEmpty && exclusionEmpty) {
             for (unsigned int i = 0; i != this->allIndv.size(); i++){
                 VCFIndividual* p = this->allIndv[i];
-                p->delMask();
+                p->include();
                 if (!pExclude && pExclude->contain(p->getName()))
-                    p->addMask();
+                    p->exclude();
+            }
+            return;
+        }
+
+        // both inclusion set and exclusion set.
+        int duplicateNames = 0;
+        // by default set the mask, unless the people is in pInclude and not in pExclude
+        for (unsigned int i = 0; i != this->allIndv.size(); i++){
+            VCFIndividual* p = this->allIndv[i];
+            
+            bool inc = pInclude->contain(p->getName());
+            bool exc = pExclude->contain(p->getName());
+            
+            if (!inc && !exc) {
+                p->exclude();
+            } else if (!inc && exc){
+                p->exclude();
+            } else if (inc && !exc){
+                p->include();
+            } else if (inc && exc){
+                duplicateNames++;
+                p->exclude();
             }
         }
+        if (duplicateNames > 0) {
+            fprintf(stderr, "WARNING: %d people appear in both inclusion set and exclusion set (we will not analyze them).\n", duplicateNames);
+        }
+        return;
     };
     const char* getInfoTag(const char* tag) {
         return this->vcfInfo.getTag(tag);
     };
 public:
-    const std::string getChrom() const { return this->chrom.toStr(); };
+    const char* getChrom() const { return this->chrom.toStr(); };
     const int getPos() const { return this->pos.toInt(); };
-    const std::string getID() const { return this->id.toStr(); };
-    const std::string getRef() const { return this->ref.toStr(); };
-    const std::string getAlt() const { return this->alt.toStr(); };
-    const std::string getQual() const { return this->qual.toStr(); };
-    const std::string getFilt() const { return this->filt.toStr(); };
-    const std::string getInfo() const { return this->info.toStr(); };
-    const std::string getFormat() const { return this->format.toStr(); };
+    const char* getID() const { return this->id.toStr(); };
+    const char* getRef() const { return this->ref.toStr(); };
+    const char* getAlt() const { return this->alt.toStr(); };
+    const char* getQual() const { return this->qual.toStr(); };
+    const char* getFilt() const { return this->filt.toStr(); };
+    const char* getInfo() const { return this->info.toStr(); };
+    const char* getFormat() const { return this->format.toStr(); };
     const char* getLine() const {return this->line;};
     VCFPeople& getPeople(){
         static bool hasAccess = false;
         if (!hasAccess) {
             for (int i = 0; i < this->allIndv.size(); i++){
-                if (!allIndv[i]->hasMask()) {
+                if (allIndv[i]->isInUse()) {
                     this->selectedIndv[this->selectedIndv.size()] = allIndv[i];
                 }
             }
@@ -634,15 +666,15 @@ public:
     };
     void writeRecord(VCFRecord* r){
         this->fp->printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
-                         r->getChrom().c_str(),
+                         r->getChrom(),
                          r->getPos(),
-                         r->getID().c_str(),
-                         r->getRef().c_str(),
-                         r->getAlt().c_str(),
-                         r->getQual().c_str(),
-                         r->getInfo().c_str(),
-                         r->getFilt().c_str(),
-                         r->getFormat().c_str());
+                         r->getID(),
+                         r->getRef(),
+                         r->getAlt(),
+                         r->getQual(),
+                         r->getInfo(),
+                         r->getFilt(),
+                         r->getFormat());
         VCFPeople& p = r->getPeople();
         for (int i = 0; i < p.size() ; i ++ ) {
             VCFIndividual* indv = p[i];
@@ -706,10 +738,7 @@ public:
     void writeHeader(const VCFHeader* h){
         std::vector<std::string> people; 
         h->getPeopleName(&people);
-        //TODO
-        for (int i = 0; i < people.size(); i++) {
-            fprintf(this->fpFam, "%s\t%s\t0\t0\t0\t-9\n", people[i].c_str(), people[i].c_str());
-        };
+        this->writeFAM(people);
     };
     // @pos is from 0 to 3
     void setGenotype(unsigned char* c, const int pos, const int geno){
@@ -718,29 +747,7 @@ public:
 
     void writeRecord(VCFRecord* r){
         // write BIM
-        std::string chrom = r->getChrom();
-        if (atoi(chrom.c_str()) > 0) {
-            fprintf(this->fpBim, "%s\t", chrom.c_str());
-        } else if (chrom == "X")
-            fprintf(this->fpBim, "23\t");
-        else if (chrom == "Y")
-            fprintf(this->fpBim, "24\t");
-        else if (chrom == "MT")
-            fprintf(this->fpBim, "25\t");
-        else {
-            fprintf(stdout, "skip chrom %s\n", chrom.c_str());
-            return;
-        }
-        std::string id = r->getID();
-        if (id != ".")
-            fprintf(this->fpBim, "%s\t", r->getID().c_str());
-        else
-            fprintf(this->fpBim, "%s:%d\t", chrom.c_str(), r->getPos());
-
-        fprintf(this->fpBim, "0\t");
-        fprintf(this->fpBim, "%d\t", r->getPos());
-        fprintf(this->fpBim, "%s\t", r->getRef().c_str());
-        fprintf(this->fpBim, "%s\n", r->getAlt().c_str());
+        this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(), r->getAlt());
 
         // write BED
         VCFPeople& people = r->getPeople();
@@ -787,12 +794,73 @@ public:
         if (offset)
             fwrite(&c, sizeof(char), 1, this->fpBed);
     }
-    void writeBIM(std::vector< std::string > & p){
-        
+    void writeBIM(const char* chr, const char* ids, int mapDist, int pos, const char* ref, const char* alt){
+        if (strlen(ref) > 1 || strlen(alt) > 1) {
+            fprintf(stdout, "skip with ref = %s and alt = %s\n", ref, alt);
+            return;
+        }
+        std::string chrom = chr;
+        if (atoi(chrom.c_str()) > 0) {
+            fputs(chr, this->fpBim);
+            fputc('\t', this->fpBim);
+        } else if (chrom == "X")
+            fputs("23\t", this->fpBim);
+        else if (chrom == "Y")
+            fputs("24\t", this->fpBim);
+        else if (chrom == "MT")
+            fputs("25\t", this->fpBim);
+        else {
+            fprintf(stdout, "skip chrom %s\n", chr);
+            return;
+        }
+        std::string id = ids;
+        if (id != ".")
+            fprintf(this->fpBim, "%s\t", ids);
+        else
+            fprintf(this->fpBim, "%s:%d\t", chrom.c_str(), pos);
+
+        fprintf(this->fpBim, "0\t");
+        fprintf(this->fpBim, "%d\t", pos);
+        fprintf(this->fpBim, "%c\t", ref[0]);
+        fprintf(this->fpBim, "%c\n", alt[0]);
     };
-    void writeFAM(){
+    void writeFAM(std::vector< std::string >& people){
+        for (int i = 0; i < people.size(); i++) {
+            fprintf(this->fpFam, "%s\t%s\t0\t0\t0\t-9\n", people[i].c_str(), people[i].c_str());
+        };
     };
-    void writeBED(){
+    // NOTE: m should be: marker x people
+    void writeBED(Matrix* mat){ 
+        int nPeople = mat->cols;
+        int nMarker = mat->rows;
+        unsigned char c = 0;
+        int offset;
+        for (int m = 0; m < nMarker; m++){
+            for (int i = 0; i < nPeople ; i ++) {
+                offset = i & (4 - 1);
+                int geno = (int)((*mat)[m][i]);
+                switch(geno){
+                case HOM_REF:
+                    setGenotype(&c, offset, HET); // het: 0b01                
+                    break;
+                case HET:
+                    setGenotype(&c, offset, HET); // het: 0b01
+                    break;
+                case HOM_ALT:
+                    setGenotype(&c, offset, HOM_ALT); // hom alt: 0b11
+                    break;
+                default:
+                    setGenotype(&c, offset, MISSING); // missing
+                    break;
+                }
+            }
+            if ( offset == 3) { // 3: 4 - 1, so every 4 genotype we will flush 
+                fwrite(&c, sizeof(char), 1, this->fpBed);
+                c = 0;
+            }
+        };
+        if (offset)
+            fwrite(&c, sizeof(char), 1, this->fpBed);
     };
 private:
     // we reverse the two bits as defined in PLINK format, 

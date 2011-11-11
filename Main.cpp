@@ -2,8 +2,8 @@
    immediately TODO:
    3. support tri-allelic (getAlt())
    4. speed up VCF parsing. (make a separate line buffer).
-   5. loading phenotype and covariate
-   6. do analysis.
+   5. loading phenotype and covariate (need tests now).
+   6. do analysis. (test CMC for now)
    7. VT (combine Collapsor and ModelFitter)
 
    futher TODO:
@@ -357,7 +357,9 @@ public:
                     setIdx ++;
                     continue;
                 }
-                (*collapsedGeno)[p][setIdx] += (*this->data->genotype)[mIdx][p];
+                //TODO: replace with MISSING_GENOTYPE_CODE
+                if ( (*this->data->genotype)[mIdx][p] != -9) // not missing
+                    (*collapsedGeno)[p][setIdx] += (*this->data->genotype)[mIdx][p];
             }
         }                
     };
@@ -447,8 +449,12 @@ public:
                     Matrix* cov, 
                     FILE* fp) = 0;
     // fill in @param v with @param m at column @param col
-    int fillVector(Vector* v, Matrix* m, int col){
-        
+    void fillVector(Vector* v, Matrix* m, int col){
+        if (v->Length() != m->rows) 
+            v->Dimension(m->rows);
+        for (int i = 0; i < m->rows; i++)
+            v[i] = m[i][col];
+        return;
     };
 }; // end ModelFitter
 
@@ -467,6 +473,8 @@ class LogisticModelFitter: public ModelFitter{
         
         LogisticRegressionScoreTest lr;
         for (int i = 0; i < (*geno).cols; i++){
+            lr.FitLogisticModel( (*geno), v, i, 50);
+            fprintf(fp, "%lf\n", lr.getPvalue());
         };
     };
 }; // LogisticModelFitter

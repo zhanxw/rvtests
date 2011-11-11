@@ -27,8 +27,11 @@ $(GONCALO_LIB): lib-goncalo.tgz
 	tar zvxf $<
 	(cd libsrc; ./build.sh)
 
+$(REGRESSION_LIB): 
+	(cd regression; make)
+
 rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h IO.h Argument.h VCFUtil.h \
-	$(TABIX_LIB) $(GONCALO_LIB)
+	$(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB)
 	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -D__ZLIB_AVAILABLE__
 	g++ -o $@ Main.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB)  -lz -lbz2 -lm -lpcre -lpcreposix
 clean: 

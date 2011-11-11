@@ -7,6 +7,9 @@ TABIX_LIB = ./tabix-0.2.5/libtabix.a
 GONCALO_INC = ./libsrc
 GONCALO_LIB = ./libsrc/lib-goncalo.a
 
+REGRESSION_INC = ./regression
+REGRESSION_LIB = ./regression/lib-regression.a
+
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS
 
 .PHONY: release debug
@@ -20,13 +23,14 @@ $(TABIX_LIB): tabix-0.2.5.tar.bz2
 	tar jvxf $<
 	-(cd tabix-0.2.5; make;)
 
-$(GONCALO_LIB):
+$(GONCALO_LIB): lib-goncalo.tgz
+	tar zvxf $<
 	(cd libsrc; ./build.sh)
 
 rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h IO.h Argument.h VCFUtil.h \
 	$(TABIX_LIB) $(GONCALO_LIB)
-	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(GONCALO_INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o $(TABIX_LIB) $(GONCALO_LIB)  -lz -lbz2 -lm -lpcre -lpcreposix
+	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -D__ZLIB_AVAILABLE__
+	g++ -o $@ Main.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB)  -lz -lbz2 -lm -lpcre -lpcreposix
 clean: 
 	rm -rf *.o $(EXEC)
 doc: README
@@ -55,7 +59,7 @@ autoTest2: rvtest
 # archive 
 DATE=$(shell date '+%m%d')
 tar:
-	tar zvchf rvtest.$(DATE).tgz *.h Main.cpp tabix*tar.bz2
+	tar zvchf rvtest.$(DATE).tgz *.h Main.cpp tabix*tar.bz2 
 
 # arg: Argument.h Argument.cpp
 # 	g++ -g -o Argument Argument.cpp

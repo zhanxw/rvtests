@@ -34,6 +34,8 @@
 #include "MathVector.h"
 #include "MathMatrix.h"
 
+#include "regression/LogisticRegression.h"
+
 void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
     if (flag.size() == 0){
         fprintf(stderr, "%s\n", msg);
@@ -41,6 +43,15 @@ void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
     }
 };
 
+/**
+ * Hold genotype, phenotype, covariate data
+ *      markerName (id), markerChrom, markerPos, markerRef, markerAlt, markerFreq
+ *      peopleName
+ *      marker2Idx, people2Idx
+ * Read from VCF file
+ * Read from PLINK format
+ * Read external phenotype, covariate file
+ */
 class VCFData{
 public:
     VCFData(){
@@ -54,32 +65,18 @@ public:
         if (this->phenotype) delete this->phenotype;
         if (this->covariate) delete this->covariate;
     }
-    
-    // col: 1-based column 
-    void overwritePhenotype(const char* fn, int col) { // by default PLINK use 3rd column as phenotype
-        if (col) {
-            fprintf(stderr, "col should be larger than 0.\n");
-            return;
-        }
-
-        col --; // get 0-based column
-        LineReader lr(fn);
-        std::vector<std::string> fd;
-        while(lr.readLineBySep(&fd, "\t ")){
-            if (fd.size() < 3 || fd.size() < col + 1) {
-                fprintf(stderr, "Insufficient columns in %s.\n", fn);
-                continue;
-            }
-            const std::string& pname = fd[1];
-            if (this->people2Idx.count(pname) == 0) {
-                fprintf(stderr, "%s does not exist yet.\n", pname.c_str());
-                continue;
-            }
-            int idx = this->people2Idx[pname];
-            (*this->phenotype)[idx][0] = atof(fd[col].c_str());
+    void loadVCFHeader(VCFHeader* h){
+        std::vector<std::string> p;
+        h->getPeopleName(&p);
+        this->numPeople = p.size();
+        for (int i = 0; i < p.size(); i++){
+            this->people2Idx[p[i]] = i;
         };
     };
-
+    void loadVCFRecord(VCFRecord* r){
+        //add one marker for all people
+        
+    };
     // load data from plink format
     void loadPlink(const char* prefix){
         std::string p = prefix;
@@ -149,9 +146,105 @@ public:
         };
         fclose(fBed);
     };
-    void loadCovariate(const char* fn){
-        
+    // col: 1-based column 
+    // return: num of people whose phenotype that are not set
+    // return 0: success
+    int overwritePhenotype(const char* fn, int col) { // by default PLINK use 3rd column as phenotype
+        if (col <= 0) {
+            fprintf(stderr, "col should be larger than 0.\n");
+            return -1;
+        }
+
+        col --; // get 0-based column
+        LineReader lr(fn);
+        std::vector<std::string> fd;
+        std::set<std::string> processed;
+        while(lr.readLineBySep(&fd, "\t ")){
+            if (fd.size() < 3 || col >= fd.size() ) {
+                fprintf(stderr, "Insufficient columns in %s.\n", fn);
+                continue;
+            }
+            const std::string& pname = fd[1];
+            if (this->people2Idx.count(pname) == 0) {
+                fprintf(stderr, "%s does not exist yet.\n", pname.c_str());
+                continue;
+            }
+            int idx = this->people2Idx[pname];
+            processed.insert(pname);
+            (*this->phenotype)[idx][0] = atof(fd[col].c_str());
+        };
+        return (this->people2Idx.size() - processed.size());
     };
+    // we only load covariate for people that appeared in genotype
+    // please use numeric covariate only
+    // return: num of people whose covariate that are not set
+    // return 0: success
+    int loadCovariate(const char* fn){
+        // we cannot use phenotype->Read(FILE*) ,
+        // since in that case header line is required!
+        LineReader lr(fn);
+        std::vector<std::string> fd;
+        std::set<std::string> processed;
+        int fdLen = -1;
+        while(lr.readLineBySep(&fd, "\t ")){
+            if (fd.size() < 3 ) {
+                fprintf(stderr, "Insufficient columns in %s.\n", fn);
+                continue;
+            }
+            if (fdLen > 0 && fdLen != fd.size()) {
+                fprintf(stderr, "Inconsistent columns in %s.\n", fn);
+                continue;
+            };
+            if (fdLen < 0) {// first line
+                fdLen = fd.size(); 
+                // two leading columns are Family ID (unsed) and Individual ID (used).
+                this->covariate->Dimension(this->people2Idx.size(), fd.size() - 2);
+            }
+            const std::string& pname = fd[1];
+            if (this->people2Idx.count(pname) == 0) {
+                fprintf(stderr, "%s does not exist yet.\n", pname.c_str());
+                continue;
+            }
+            int idx = this->people2Idx[pname];
+            processed.insert(pname);
+            for (int col = 2; col < fd.size(); col ++) 
+                (*this->covariate)[idx][col - 2] = atof(fd[col].c_str());
+        };
+        return (this->people2Idx.size() - processed.size());
+    };
+    void writeGenotypeToR(const char* fn){
+        FileWriter fw(fn);
+        // header
+        for (int i = 0; i < markerName.size(); i++){
+            if (i) fw.write(" ");
+            if (markerName[i].size() == 0){
+                fw.write("\".\"");
+            }else {
+                fw.write("\"");
+                fw.write(markerName[i].c_str());
+                fw.write("\"");
+            }
+        };
+        fw.write("\n");
+
+        // content
+        for (int m = 0; m < this->numMarker; m++) {
+            for (int p = 0; p < this->numPeople; p++ ){
+                fw.printf("%d", m); // line no
+                fw.printf(" %d", (int)((*this->genotype)[m][p]));
+            }
+            fw.write("\n");
+        }
+    };
+
+    // use friend class to save codes...
+    friend class Collapsor;
+    Matrix* getGeno() {return this->genotype;};
+    Matrix* getPheno() {return this->phenotype;};
+    Matrix* getCov() {return this->covariate;};
+    std::map<std::string, int>* getPeople2Idx() {return &this->people2Idx;};
+    std::map<std::string, int>* getMarker2Idx() {return &this->marker2Idx;};
+private:
     void loadMarkerFromBim(const char* fn){
         std::vector<std::string> fd;
         LineReader f(fn);
@@ -193,36 +286,44 @@ public:
             (*this->phenotype)[i][0] = pheno[i];
         }
     }
-    void writeGenotypeToR(const char* fn){
-        FileWriter fw(fn);
-        for (int m = 0; m < this->numMarker; m++) {
-            for (int p = 0; p < this->numPeople; p++ ){
-                if (p) 
-                    fw.write(" ");
-                fw.printf("%d", (int)((*this->genotype)[m][p]));
-            }
-            fw.write("\n");
-        }
-    };
-    Matrix* getGeno() {return this->genotype;};
-    Matrix* getPheno() {return this->phenotype;};
-    Matrix* getCov() {return this->covariate;};
-    std::map<std::string, int>* getPeople2Idx() {return &this->people2Idx;};
-    std::map<std::string, int>* getMarker2Idx() {return &this->marker2Idx;};
-private:
-    std::map<std::string, int> people2Idx;
-    std::map<std::string, int> marker2Idx;
-    int numPeople;
-    int numMarker;
 
+private:
     Matrix* genotype; // marker x people
     Matrix* covariate; // people x cov
     Matrix* phenotype; // people x phenotypes
-};
+    
+    std::vector<std::string> markerName;
+    std::vector<int> markerChrom;
+    std::vector<int> markerPos;
+    std::vector<std::string> markerRef;
+    std::vector<std::string> markerAlt;
+    std::vector<double> markerFreq;
+    std::vector<int> markerCount;
 
-//internal data using:
-// row for individuals
-// cols for markers or individual
+    std::map<std::string, int> people2Idx;
+    int numPeople;
+
+    std::map<std::string, int> marker2Idx;
+    int numMarker;
+}; // end 
+
+/**
+ * Hold: collapsed genotype in this->collapsedGeno
+ *       collapsed set name: OrderedMap<std::string, int> setName2Idx;
+ * It can access all information from VCFData* this->data
+ *
+ * NOTE:
+ *   all sub-classing need to take care of missing genotype!
+ *   
+ * Usage:
+ * For single marker test:
+ *   just make this->collapsedGeno points to this->data->geno
+ * For CMC:
+ *   make the collapsed set equal to (existance of any variant).
+ * For VT:
+ *   sequentially collapse
+ * 
+ */
 class Collapsor{
 public:
     Collapsor(VCFData* data){
@@ -230,23 +331,15 @@ public:
             FATAL("Cannot using NULL to collapse data!");
         };
 
-        this->collapsedGeno = NULL;
-        this->vcfData = data;
-        this->geno = data->getGeno();
-        this->pheno = data->getPheno();
-        this->cov = data->getCov();
-        this->numMarker = (*this->geno).rows;
-        this->numPeople = (*this->geno).cols;
+        this->collapsedGeno = new Matrix;
+        this->data = data;
     };
     virtual ~Collapsor() {
         if (this->collapsedGeno) delete this->collapsedGeno;
     };
-    /// 
-    /// Handling missing genotypes should be provided by inherit this class
-    void collapseMarker(){
-        // load set file
-        this->loadSetFile(setFileName);
 
+    /// Should properly handle missing genotypes
+    void collapseMarker(void* param){
         // check if there is marker not in current
         unsigned int numSet = this->markerSet.size();
         this->collapsedGeno = new Matrix; // this is the collapsed result
@@ -264,15 +357,15 @@ public:
                     setIdx ++;
                     continue;
                 }
-                (*collapsedGeno)[p][setIdx] += (*this->geno)[mIdx][p];
+                (*collapsedGeno)[p][setIdx] += (*this->data->genotype)[mIdx][p];
             }
         }                
     };
 
     void writeCollapsedInPlink(const char* prefix) {
-        
+        // TODO
     };
-private:
+
     void loadSetFile(const char* fileName) {
         std::set<std::string> processMarker;
         bool newSet = false; // when to load a new set of marker
@@ -301,11 +394,11 @@ private:
                         } else{
                             processMarker.insert(s);
                         }
-                        if ((*vcfData->getMarker2Idx()).count(s) == 0) {
+                        if ((*this->data->getMarker2Idx()).count(s) == 0) {
                             fprintf(stderr, "Cannot find marker %s from existing markers.\n", fileName);
                             continue;
                         }
-                        this->markerSet[setName] = ( (*vcfData->getMarker2Idx())[s]);
+                        this->markerSet[setName] = ( (*this->data->getMarker2Idx())[s]);
                     }
                 }
             }
@@ -319,6 +412,9 @@ private:
         }
         fprintf(stdout, "Total %d sets loaded.\n", (int)(this->marker2Idx.size()));
     };
+    Matrix* getGeno() { return this->collapsedGeno;};
+    Matrix* getPheno() { return this->pheno;};
+    Matrix* getCov() { return this->cov;};
 private:
     // idx:                         0, 1, 2,  3, 4, 5, 6, 7, 
     // we use "-1" to separate set: 1, 2, 3, -1, 4, 5, 7, -1, ...
@@ -328,8 +424,6 @@ private:
     std::vector<int> markerSetIdx; 
 
     Matrix* collapsedGeno;
-
-    Matrix* geno;
     Matrix* pheno;
     Matrix* cov;
     int numMarker;
@@ -337,15 +431,96 @@ private:
     std::map<std::string, int> marker2Idx;
     std::map<std::string, int> people2Idx;
 
-    VCFData* vcfData;
-};
+    VCFData* data;
+    // make friend class to save some getter/setter codes
+    friend class ModelFitter;
+}; // end class Collapsor
 
 // take X, Y, Cov and fit model
 class ModelFitter{
-    int fit(Matrix* cov, Matrix* geno, Matrix* pheno, const char* fout){
-        fprintf(stdout, "Model Fitting started\n");
+public:
+    // write result header
+    virtual void writeHeader(FILE* fp) = 0;
+    // fitting model
+    virtual int fit(Matrix* geno, int genoIdx, 
+                    Matrix* pheno, int phenoIdx,
+                    Matrix* cov, 
+                    FILE* fp) = 0;
+    // fill in @param v with @param m at column @param col
+    int fillVector(Vector* v, Matrix* m, int col){
+        
+    };
+}; // end ModelFitter
 
-        fprintf(stdout, "Model Fitting ended\n");
+class LogisticModelFitter: public ModelFitter{
+    // write result header
+    void writeHeader(FILE* fp) {
+        fprintf(fp, "BETA\tPVALUE\n");
+    };
+    // fitting model
+    int fit(Matrix* geno, int genoIdx, 
+            Matrix* pheno, int phenoIdx,
+            Matrix* cov, 
+            FILE* fp) {
+        Vector v;
+        fillVector(&v, pheno, phenoIdx);
+        
+        LogisticRegressionScoreTest lr;
+        for (int i = 0; i < (*geno).cols; i++){
+        };
+    };
+}; // LogisticModelFitter
+
+class Analysis{
+public:
+    /**
+     * set proper(geno, pheno, cov are read) data.
+     */
+    virtual void setData(VCFData* data) = 0;
+    /**
+     * collapsing genotype(given in setData())
+     * to this->collapsor->collapsedGeno
+     */
+    virtual int collapseBySet(const char* fn) = 0;
+    /**
+     * Fitting model, AND writes results.
+     */
+    virtual int fit(const char* fn) = 0;
+    Collapsor* collapsor;
+    ModelFitter* fitter;
+};
+
+class CMCAnalysis:public Analysis{
+public:
+    CMCAnalysis(){
+        this->collapsor = NULL;
+        this->fitter = NULL;
+    };
+    ~CMCAnalysis() {
+        if (this->collapsor) delete this->collapsor;
+        if (this->fitter) delete this->fitter;
+    };
+    void setData(VCFData* data) {
+        this->collapsor = new Collapsor(data);
+        this->fitter = new LogisticModelFitter;
+        if (!this->collapsor) FATAL("Collapsor is NULL.");
+        if (!this->fitter) FATAL("ModelFitter is NULL.");
+    };        
+    int collapseBySet(const char* fn){
+        this->collapsor->loadSetFile(fn);
+        return 0;
+    };
+    int fit(const char* fout) {
+        FILE* fp = fopen(fout, "rt");
+        this->fitter->writeHeader(fp);
+        Matrix* geno = collapsor->getGeno();
+        for (int i = 0; i < (geno->cols); i++) {
+            this->fitter->fit( geno, i,
+                               this->collapsor->getPheno(), 1,
+                               this->collapsor->getCov(),
+                               fp);
+        }
+        fclose(fp);
         return 0;
     };
 };
@@ -363,6 +538,8 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
+        ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
+        ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
         ADD_PARAMETER_GROUP(pl, "Site Filter")
         ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, you must use chr:begin-end format.")
         END_PARAMETER_LIST(pl)
@@ -385,6 +562,7 @@ int main(int argc, char** argv){
     PeopleSet peopleInclude;
     PeopleSet peopleExclude;
     peopleInclude.readID(FLAG_peopleIncludeID.c_str());
+    peopleExclude.readID(FLAG_peopleExcludeID.c_str());
     vin.setPeople(&peopleInclude, &peopleExclude);
 
     // let's write it out.
@@ -409,26 +587,31 @@ int main(int argc, char** argv){
         if (vout) vout->writeRecord(& r);
         if (pout) pout ->writeRecord(& r);
         printf("%s:%d\n", r.getChrom().c_str(), r.getPos());
-//        for (int i = 0; i < people.size(); i++) {
-//            indv = people[i];
-//            printf("%d ", (*indv)[0].toInt());  // [0] meaning the first field of each individual
-//        }
-        for (int i = 0; i < people.size(); i++) {
-            indv = people[i];
-            printf("%s ", (*indv)[4].toStr());  // [0] meaning the first field of each individual
-        }
-//        printf("\n");
-//        fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
+
+        // e.g.: get TAG from INFO field
+        // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
+
+        // e.g.: Loop each (selected) people in the same order as in the VCF 
+        // for (int i = 0; i < people.size(); i++) {
+        //     indv = people[i];
+        //     printf("%s ", (*indv)[0].toStr());  // [0] meaning the first field of each individual
+        // }
     };
 
     if (vout) delete vout;
     if (pout) delete pout;
 
-
-    // VCFData vcfData;
-    // vcfData.loadPlink("test.plink");
-    // vcfData.writeGenotypeToR("test.plink.geno");
-
+    // load data
+    VCFData vcfData;
+    vcfData.loadPlink("test.plink");
+    vcfData.writeGenotypeToR("test.plink.geno");
+    
+    // apply analysis
+    Analysis* ana = new CMCAnalysis;
+    ana->setData(&vcfData);
+    ana->collapseBySet("test.set.txt");
+    ana->fit("cmc.output");
+    
     currentTime = time(0);
     fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));
 

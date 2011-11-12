@@ -7,6 +7,9 @@ TABIX_LIB = ./tabix-0.2.5/libtabix.a
 GONCALO_INC = ./libsrc
 GONCALO_LIB = ./libsrc/lib-goncalo.a
 
+VCF_INC = ./libVcf
+VCF_LIB = ./libVcf/VCFUtil.h
+
 REGRESSION_INC = ./regression
 REGRESSION_LIB = ./regression/lib-regression.a
 
@@ -30,9 +33,9 @@ $(GONCALO_LIB): lib-goncalo.tgz
 $(REGRESSION_LIB): 
 	(cd regression; make)
 
-rvtest: Main.cpp PeopleSet.h Utils.h RangeList.h OrderedMap.h IO.h Argument.h VCFUtil.h \
-	$(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB)
-	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -D__ZLIB_AVAILABLE__
+rvtest: Main.cpp Utils.h OrderedMap.h IO.h Argument.h \
+	$(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB)
+	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -D__ZLIB_AVAILABLE__
 	g++ -o $@ Main.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB)  -lz -lbz2 -lm -lpcre -lpcreposix
 clean: 
 	rm -rf *.o $(EXEC)

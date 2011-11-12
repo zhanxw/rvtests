@@ -64,12 +64,12 @@ public:
     /*     } */
     /*     return s; */
     /* }; */
-    const char* toStr() const {
-        std::string s;
+    const char* toStr() {
+        this->retStr.clear();
         for (int i = beg; i < end; i++){
-            s.push_back(line[i]);
+            this->retStr.push_back(line[i]);
         }
-        return (s.c_str());
+        return (this->retStr.c_str());
     };
     void toStr(std::string* s) const { 
         s->clear();
@@ -138,6 +138,8 @@ public:
     bool isHaploid(){
         return (end - beg == 1);
     };
+  private:
+    std::string retStr; // this held for the return value;
 };
 
 int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret) {
@@ -461,16 +463,16 @@ public:
         return this->vcfInfo.getTag(tag);
     };
 public:
-    const char* getChrom() const { return this->chrom.toStr(); };
-    const int getPos() const { return this->pos.toInt(); };
-    const char* getID() const { return this->id.toStr(); };
-    const char* getRef() const { return this->ref.toStr(); };
-    const char* getAlt() const { return this->alt.toStr(); };
-    const char* getQual() const { return this->qual.toStr(); };
-    const char* getFilt() const { return this->filt.toStr(); };
-    const char* getInfo() const { return this->info.toStr(); };
-    const char* getFormat() const { return this->format.toStr(); };
-    const char* getLine() const {return this->line;};
+    const char* getChrom() { return this->chrom.toStr(); };
+    const int getPos()  { return this->pos.toInt(); };
+    const char* getID() { return this->id.toStr(); };
+    const char* getRef() { return this->ref.toStr(); };
+    const char* getAlt() { return this->alt.toStr(); };
+    const char* getQual() { return this->qual.toStr(); };
+    const char* getFilt() { return this->filt.toStr(); };
+    const char* getInfo() { return this->info.toStr(); };
+    const char* getFormat() { return this->format.toStr(); };
+    const char* getLine() {return this->line;};
     VCFPeople& getPeople(){
         static bool hasAccess = false;
         if (!hasAccess) {
@@ -747,7 +749,9 @@ public:
 
     void writeRecord(VCFRecord* r){
         // write BIM
+        printf("id= %s and its address id = %p\n", r->getID(), r->getID());
         this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(), r->getAlt());
+        printf("id= %s and its address id = %p\n", r->getID(), r->getID());
 
         // write BED
         VCFPeople& people = r->getPeople();
@@ -795,6 +799,7 @@ public:
             fwrite(&c, sizeof(char), 1, this->fpBed);
     }
     void writeBIM(const char* chr, const char* id, int mapDist, int pos, const char* ref, const char* alt){
+        printf("In writeBIM(), id = %s and its address is id = %p \n", id, id);
         if (strlen(ref) > 1 || strlen(alt) > 1) {
             fprintf(stdout, "skip with ref = %s and alt = %s\n", ref, alt);
             return;

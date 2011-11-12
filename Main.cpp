@@ -538,7 +538,10 @@ public:
         return 0;
     };
     int fit(const char* fout) {
-        FILE* fp = fopen(fout, "rt");
+        FILE* fp = fopen(fout, "wt");
+        if (!fp) {
+            FATAL("Cannot open output files in fit()");
+        }
         this->fitter->writeHeader(fp);
         Matrix* geno = collapsor->getGeno();
         for (int i = 0; i < (geno->cols); i++) {

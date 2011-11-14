@@ -75,11 +75,15 @@ public:
     };
     void loadVCFRecord(VCFRecord* r){
         //add one marker for all people
-        
+        FATAL("Not ready at this moment. Will provide soon.\n");
     };
     // load data from plink format
     void loadPlink(const char* prefix){
         std::string p = prefix;
+        if (p.size() == 0){
+            fprintf(stderr, "Cannot open PLINK file %s.\n", prefix);
+            return;
+        }
         // load marker (BIM)
         this->loadMarkerFromBim( (p + ".bim").c_str());
 
@@ -129,7 +133,7 @@ public:
                         (*this->genotype)[m][p] = 2;
                         break;
                     case MISSING:
-                        (*this->genotype)[m][p] = -9;
+                        (*this->genotype)[m][p] = MISSING_GENOTYPE;
                         break;
                     default:
                         REPORT("Read PLINK genotype error!\n");
@@ -225,12 +229,12 @@ public:
                 fw.write("\"");
             }
         };
-        fw.write("\n");
+        if (markerName.size()) fw.write("\n");
 
         // content
         for (int m = 0; m < this->numMarker; m++) {
+            fw.printf("%d", m); // line no
             for (int p = 0; p < this->numPeople; p++ ){
-                fw.printf("%d", m); // line no
                 fw.printf(" %d", (int)((*this->genotype)[m][p]));
             }
             fw.write("\n");
@@ -253,9 +257,6 @@ private:
             if (fd.size() != 6){
                 fprintf(stderr, "BIM file %s corrupted.\n", fn);
                 return;
-            }
-            for (int i = 0; i < 6; i++){
-                printf("fd[%d] = %s\n", i, fd[i].c_str());
             }
             this->marker2Idx[fd[1]] = lineNo++;
         };
@@ -334,7 +335,10 @@ public:
             FATAL("Cannot using NULL to collapse data!");
         };
 
-        this->collapsedGeno = new Matrix;
+        this->collapsedGeno = data->genotype;
+        this->pheno = data->phenotype;
+        this->cov = data->covariate;
+        this->numPeople = data->numPeople;
         this->data = data;
     };
     virtual ~Collapsor() {
@@ -350,19 +354,25 @@ public:
         (*collapsedGeno).Dimension(this->numPeople, numSet);
         (*collapsedGeno).Zero();
 
-        int setIdx = 0;
+
+        double g;
+        int setIdx;
         for (int p = 0; p < this->numPeople; p++) {
-            (*collapsedGeno)[p][setIdx] == 0;
             setIdx = 0;
+            g = 0.0;
+            // (*collapsedGeno)[p][setIdx] == 0;
+            // setIdx = 0;
             for (unsigned int m = 0; m < this->markerSetIdx.size(); m++){
                 int mIdx = markerSetIdx[m];
-                if ( mIdx == 0) {
-                    setIdx ++;
+                // printf("%d %d %d\n", mIdx, p, setIdx);
+                if ( mIdx == -1) {
+                    (*collapsedGeno)[p][setIdx++] = g;
+                    g = 0.0;
                     continue;
                 }
-                //TODO: replace with MISSING_GENOTYPE_CODE
-                if ( (*this->data->genotype)[mIdx][p] != -9) // not missing
-                    (*collapsedGeno)[p][setIdx] += (*this->data->genotype)[mIdx][p];
+
+                if ( (*this->data->genotype)[mIdx][p] != MISSING_GENOTYPE) // skip missing genotypes
+                    g += (*this->data->genotype)[mIdx][p];
             }
         }                
     };
@@ -401,13 +411,14 @@ public:
                 if (s == "END") {
                     newSet = false;
                     setName.clear();
-                    this->markerSetIdx.push_back(-1);
+                    this->markerSetIdx.push_back(-1); // -1: see definition of markerSet
                     continue;
                 } else {
-                    if (setName.size() == 0) {
+                    if (setName.size() == 0) { // begin a new set
                         setName = s;
-                        this->marker2Idx[s] = this->marker2Idx.size();
-                    } else {
+                        this->markerSet[s] = this->markerSetIdx.size();
+                        this->marker2Idx[s] = this->markerSetIdx.size();
+                    } else { // add more marker to the set
                         if (processMarker.find(s) != processMarker.end()){
                             numDup ++;
                         } else{
@@ -417,7 +428,7 @@ public:
                             fprintf(stderr, "Cannot find marker %s from existing markers.\n", s.c_str());
                             continue;
                         }
-                        this->markerSet[setName] = ( (*this->data->getMarker2Idx())[s]);
+                        this->markerSetIdx.push_back( (*this->data->getMarker2Idx())[s]);
                     }
                 }
             }
@@ -429,7 +440,14 @@ public:
             // in case user forget to put END at last
             this->markerSetIdx.push_back(-1);
         }
+        //debug code
+        for (unsigned int i = 0; i < this->markerSetIdx.size(); i++){
+            printf("%d ", markerSetIdx[i]);
+        }
+        printf("\n");
         fprintf(stdout, "Total %d sets loaded.\n", (int)(this->marker2Idx.size()));
+
+
     };
     Matrix* getGeno() { return this->collapsedGeno;};
     Matrix* getPheno() { return this->pheno;};
@@ -465,12 +483,12 @@ public:
                     Matrix* pheno, int phenoIdx,
                     Matrix* cov, 
                     FILE* fp) = 0;
-    // fill in @param v with @param m at column @param col
+    // fill in @param v with @param m at column @param col (0-based)
     void fillVector(Vector* v, Matrix* m, int col){
         if (v->Length() != m->rows) 
-            v->Dimension(m->rows);
+            v->GrowTo(m->rows);
         for (int i = 0; i < m->rows; i++)
-            v[i] = m[i][col];
+            (*v)[i] = (*m)[i][col];
         return;
     };
 }; // end ModelFitter
@@ -489,10 +507,8 @@ class LogisticModelFitter: public ModelFitter{
         fillVector(&v, pheno, phenoIdx);
         
         LogisticRegressionScoreTest lr;
-        for (int i = 0; i < (*geno).cols; i++){
-            lr.FitLogisticModel( (*geno), v, i, 50);
-            fprintf(fp, "%lf\n", lr.getPvalue());
-        };
+        lr.FitLogisticModel( (*geno), v, genoIdx, 50);
+        fprintf(fp, "%lf\n", lr.getPvalue());
     };
 }; // LogisticModelFitter
 
@@ -533,6 +549,7 @@ public:
     };        
     int collapseBySet(const char* fn){
         this->collapsor->loadSetFile(fn);
+        this->collapsor->collapseMarker(0);
         return 0;
     };
     int fit(const char* fout) {
@@ -540,18 +557,22 @@ public:
         if (!fp) {
             FATAL("Cannot open output files in fit()");
         }
+
+        // write header
         this->fitter->writeHeader(fp);
+
+        // write model fitting results
         Matrix* geno = collapsor->getGeno();
         for (int i = 0; i < (geno->cols); i++) {
             this->fitter->fit( geno, i,
-                               this->collapsor->getPheno(), 1,
+                               this->collapsor->getPheno(), 0, // test first column of phenotype
                                this->collapsor->getCov(),
                                fp);
         }
         fclose(fp);
         return 0;
     };
-};
+}; // end class CMCAnalysis
 
 int main(int argc, char** argv){
     time_t currentTime = time(0);

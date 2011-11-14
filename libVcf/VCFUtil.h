@@ -739,9 +739,9 @@ public:
 
     void writeRecord(VCFRecord* r){
         // write BIM
-        printf("id= %s and its address id = %p\n", r->getID(), r->getID());
+        // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
         this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(), r->getAlt());
-        printf("id= %s and its address id = %p\n", r->getID(), r->getID());
+        // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
 
         // write BED
         VCFPeople& people = r->getPeople();
@@ -789,7 +789,7 @@ public:
             fwrite(&c, sizeof(char), 1, this->fpBed);
     }
     void writeBIM(const char* chr, const char* id, int mapDist, int pos, const char* ref, const char* alt){
-        printf("In writeBIM(), id = %s and its address is id = %p \n", id, id);
+        // printf("In writeBIM(), id = %s and its address is id = %p \n", id, id);
         if (strlen(ref) > 1 || strlen(alt) > 1) {
             fprintf(stdout, "skip with ref = %s and alt = %s\n", ref, alt);
             return;

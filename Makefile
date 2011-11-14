@@ -19,7 +19,7 @@ DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 all: debug
 release: CXXFLAGS = -O2 $(DEFAULT_CXXFLAGS)
 release: $(EXEC)
-debug: CXXFLAGS = -g $(DEFAULT_CXXFLAGS)
+debug: CXXFLAGS = -g -O0 $(DEFAULT_CXXFLAGS)
 debug: $(EXEC)
 
 $(TABIX_LIB): tabix-0.2.5.tar.bz2
@@ -44,11 +44,13 @@ doc: README
 
 test: test1
 test1: rvtest
-	./rvtest --inVcf test.vcf --outVcf test1.out.vcf 
+	./rvtest --inVcf test.vcf.gz --outVcf test1.out.vcf 
 test2: rvtest
-	./rvtest --inVcf test.vcf --outVcf test2.out.vcf --peopleIncludeID 1232,1455,1232 
+	./rvtest --inVcf test.vcf.gz --outVcf test2.out.vcf --peopleIncludeID P4,P2
 test3: rvtest
-	./rvtest --inVcf 100.vcf.gz --outVcf test3.vcf --peopleIncludeID 1160
+	./rvtest --inVcf test.vcf.gz --outVcf test3.vcf --peopleIncludeID P2,NotValid,P3 --peopleExcludeID P3
+test4: rvtest
+	./rvtest --inVcf test.vcf.gz --make-bed test.plink
 
 # automated tests
 autoTest: autoTest1 autoTest2

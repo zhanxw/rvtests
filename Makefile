@@ -13,7 +13,7 @@ VCF_LIB = ./libVcf/VCFUtil.h
 REGRESSION_INC = ./regression
 REGRESSION_LIB = ./regression/lib-regression.a
 
-DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS
+DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 
 .PHONY: release debug
 all: debug

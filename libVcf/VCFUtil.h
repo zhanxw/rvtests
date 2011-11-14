@@ -2,7 +2,6 @@
 #define _VCFUTIL_H_
 
 #include "Exception.h"
-#include "PeopleSet.h"
 #include "RangeList.h"
 #include "Utils.h"
 
@@ -35,7 +34,7 @@ class VCFHeader{
     std::vector<std::string> data;
 };
 
-#define MISSING_GENOTYPE -1
+#define MISSING_GENOTYPE -9
 /**
  * the versatile format to store value for VCF file.
  */
@@ -405,59 +404,47 @@ public:
             this->allIndv[i] = NULL;
         }
     };
-    void setPeople(PeopleSet* pInclude, PeopleSet* pExclude) {
-        bool inclusionEmpty = (!pInclude || pInclude->size() == 0);
-        bool exclusionEmpty = (!pExclude || pExclude->size() == 0);
-        if (inclusionEmpty && exclusionEmpty) return;
-
-        // only inclusion set
-        if (inclusionEmpty && !exclusionEmpty) {
-            // by default set the mask, unless the people is in pInclude and not in pExclude
-            for (unsigned int i = 0; i != this->allIndv.size(); i++){
-                VCFIndividual* p = this->allIndv[i];
-                p->exclude();
-                if (pInclude->contain(p->getName())) {
-                    p->include();
-                }
-            }
-            return;
-        }
-        
-        // only exclusion set
-        if (!inclusionEmpty && exclusionEmpty) {
-            for (unsigned int i = 0; i != this->allIndv.size(); i++){
-                VCFIndividual* p = this->allIndv[i];
-                p->include();
-                if (!pExclude && pExclude->contain(p->getName()))
-                    p->exclude();
-            }
-            return;
-        }
-
-        // both inclusion set and exclusion set.
-        int duplicateNames = 0;
-        // by default set the mask, unless the people is in pInclude and not in pExclude
-        for (unsigned int i = 0; i != this->allIndv.size(); i++){
+    void includePeople(const std::string& name){
+        for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
             VCFIndividual* p = this->allIndv[i];
-            
-            bool inc = pInclude->contain(p->getName());
-            bool exc = pExclude->contain(p->getName());
-            
-            if (!inc && !exc) {
-                p->exclude();
-            } else if (!inc && exc){
-                p->exclude();
-            } else if (inc && !exc){
+            if (p->getName() == name) {
                 p->include();
-            } else if (inc && exc){
-                duplicateNames++;
+            }
+        }
+    };
+    void includePeople(const std::vector<std::string>& v){
+        for (unsigned int i = 0; i++ ; i < v.size()){
+            this->includePeople(v[i]);
+        }
+    };
+    void includePeopleFromFile(const char* fn){
+        LineReader lr(fn);
+        std::vector<std::string> fd;
+        while(lr.readLineBySep(&fd, "\t ")) {
+            for (unsigned int i = 0; i < fd.size(); i++)
+                this->includePeople(fd[i]);
+        }
+    };
+    void excludePeople(const std::string& name){
+        for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
+            VCFIndividual* p = this->allIndv[i];
+            if (p->getName() == name) {
                 p->exclude();
             }
         }
-        if (duplicateNames > 0) {
-            fprintf(stderr, "WARNING: %d people appear in both inclusion set and exclusion set (we will not analyze them).\n", duplicateNames);
+    };
+    void excludePeople(const std::vector<std::string>& v){
+        for (unsigned int i = 0; i++ ; i != v.size()){
+            this->excludePeople(v[i]);
         }
-        return;
+    };
+    void excludePeopleFromFile(const char* fn){
+        LineReader lr(fn);
+        std::vector<std::string> fd;
+        while(lr.readLineBySep(&fd, "\t ")) {
+            for (unsigned int i = 0; i != fd.size(); i++)
+                this->excludePeople(fd[i]);
+        }
     };
     const char* getInfoTag(const char* tag) {
         return this->vcfInfo.getTag(tag);
@@ -504,7 +491,7 @@ private:
 class VCFInputFile{
 public:
     VCFInputFile (const char* fn):
-        fp(NULL), tabixHandle(NULL), range(NULL){
+        fp(NULL), tabixHandle(NULL){
         this->fileName = fn;
         // open file
         this->fp = new LineReader(fn);
@@ -564,25 +551,28 @@ public:
         ti_close(this->tabixHandle);
     };
 
-    void setRange(RangeList* rl) { this->range = rl; };
-    void setPeople(PeopleSet* pInclude, PeopleSet* pExclude) {
-        this->record.setPeople(pInclude, pExclude);
-    };
+    void setRangeFile(const char* fn) {
+        this->range.addRangeFile(fn);
+    }
+    void setRangeList(const char* l){
+        this->range.addRangeList(l);
+    }
+
     bool readRecord(){
         assert(this->headerLoaded);
         // load contents 
-        if (this->range && this->range->size() > 0) {
+        if (this->range.size() > 0) {
             if (this->hasIndex) {                 // there is index
                 static int rangeIdx = 0;
                 // unsigned int numRange = this->range->size();
                 static ti_iter_t iter; 
                 static const char* s = 0;
                 int len;
-                while (rangeIdx < this->range->size()) {
+                while (rangeIdx < this->range.size()) {
                     if (!s) { // last time does not read a valid line
                         // get range
                         std::string r;
-                        this->range->obtainRange(rangeIdx, &r);
+                        this->range.obtainRange(rangeIdx, &r);
                         // parse range
                         int tid, beg, end;
                         if (ti_parse_region(tabixHandle->idx, r.c_str(), &tid, &beg, &end) != 0){
@@ -615,7 +605,7 @@ public:
             else { // no index
                 while(this->fp->readLine(&this->line)){
                     this->record.parse(line.c_str());
-                    if (!this->range->isInRange(this->record.getChrom(), this->record.getPos()))
+                    if (!this->range.isInRange(this->record.getChrom(), this->record.getPos()))
                         continue;
                 }
                 this->record.parse(this->line.c_str());
@@ -637,7 +627,7 @@ private:
     
     LineReader* fp;
     tabix_t * tabixHandle;
-    RangeList* range;
+    RangeList range;
     
     std::string fileName;
     std::string line; // actual data line

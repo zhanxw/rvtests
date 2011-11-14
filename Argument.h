@@ -124,7 +124,7 @@ class ParameterParser{
         bool isCommentLine = true;
         while (isCommentLine){
             int n = fscanf(fp, "%s", line);
-            if ( n = EOF ) {
+            if ( n == EOF ) {
                 fprintf(stderr, "%s is empty\n.", fileName);
             };
             len = strlen(line);
@@ -232,7 +232,7 @@ class ParameterParser{
                     getlogin(), hostName, ctime(&tt));
         }
         int numFlagOutputted = 0;
-        for (int i = 0; i < this->flagVec.size(); i++){
+        for (unsigned int i = 0; i != this->flagVec.size(); i++){
             FlagInfo& fi = this->flagInfoMap[i];
             if (fi.isParsed) {
                 // separate different flags
@@ -263,7 +263,7 @@ class ParameterParser{
                 numFlagOutputted ++;
             }
         }
-        for (int i = 0; i < this->ptrRemainingArg->size(); i++) {
+        for (unsigned int i = 0; i != this->ptrRemainingArg->size(); i++) {
             // separate different flags
             if (numFlagOutputted)
                 fprintf(fp, " ");
@@ -487,7 +487,7 @@ class ParameterParser{
                     fprintf(stdout, "%*s%s%s", (int)(FLAG_WIDTH - flag.size() ), "-", flag.c_str(), SEP);
                 }
 
-                for (int docIndex = 0; docIndex < fi.doc.size(); docIndex++) {
+                for (unsigned int docIndex = 0; docIndex != fi.doc.size(); docIndex++) {
                     if (docIndex != 0 && docIndex % DOC_WIDTH == 0) {
                         fprintf(stdout, "\n");
                         fprintf(stdout, "%*s%s", FLAG_WIDTH, " ", EMPTY_SEP);

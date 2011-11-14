@@ -5,8 +5,6 @@
    5. loading phenotype and covariate (need tests now).
    6. do analysis. (test CMC for now)
    7. VT (combine Collapsor and ModelFitter)
-   8. Make code easy to use ( hide PeopleSet and RangeList)
-   9. Inclusion/Exclusion set should be considered sequentially.
 
    futher TODO:
    1. handle different format GT:GD:DP ...
@@ -15,6 +13,8 @@
    1. suppport PLINK output
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
+   8. Make code easy to use ( hide PeopleSet and RangeList)
+   9. Inclusion/Exclusion set should be considered sequentially.
 
 */
 #include "Argument.h"
@@ -28,8 +28,6 @@
 #include <vector>
 #include <algorithm>
 
-#include "PeopleSet.h"
-#include "RangeList.h"
 #include "Utils.h"
 #include "VCFUtil.h"
 
@@ -584,16 +582,16 @@ int main(int argc, char** argv){
     VCFInputFile vin(fn);
 
     // set range filters here
-    RangeList rl;
-    rl.addRangeList(FLAG_rangeList.c_str());
-    vin.setRange(&rl);
+    // RangeList rl;
+    // rl.addRangeList(FLAG_rangeList.c_str());
+    //vin.setRange(&rl);
     
     // set people filters here
-    PeopleSet peopleInclude;
-    PeopleSet peopleExclude;
-    peopleInclude.readID(FLAG_peopleIncludeID.c_str());
-    peopleExclude.readID(FLAG_peopleExcludeID.c_str());
-    vin.setPeople(&peopleInclude, &peopleExclude);
+    // PeopleSet peopleInclude;
+    // PeopleSet peopleExclude;
+    // peopleInclude.readID(FLAG_peopleIncludeID.c_str());
+    // peopleExclude.readID(FLAG_peopleExcludeID.c_str());
+    //vin.setPeople(&peopleInclude, &peopleExclude);
 
     // let's write it out.
     VCFOutputFile* vout = NULL;
@@ -635,11 +633,12 @@ int main(int argc, char** argv){
     VCFData vcfData;
     vcfData.loadPlink(FLAG_outPlink.c_str());
     vcfData.writeGenotypeToR("test.plink.geno");
-    
+
     // apply analysis
     Analysis* ana = new CMCAnalysis;
     ana->setData(&vcfData);
     ana->collapseBySet("test.set.txt");
+    //ana->writeCollapsedGeno("test.plink.collapsedGeno");
     ana->fit("cmc.output");
     
     currentTime = time(0);

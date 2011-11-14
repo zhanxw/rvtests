@@ -76,6 +76,7 @@ class PlainFileReader: public FileReader{
         if (!this->fp) {
             fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
         }
+        return this->fp;
     }
     // close 
     void close() {
@@ -124,6 +125,7 @@ class GzipFileReader: public FileReader{
         if (!this->fp) {
             fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
         }
+        return this->fp;
     }
     // close 
     void close() {
@@ -626,6 +628,7 @@ class BufferedFileWriter: public AbstractFileWriter{
         this->buf[this->bufPtr] = '\0';
         this->f->write(this->buf);
         this->bufPtr = 0;
+        return 0;
     };
   private:
     char* buf;

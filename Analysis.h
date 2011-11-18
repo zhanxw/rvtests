@@ -19,6 +19,12 @@ public:
      * Fitting model, AND writes results.
      */
     virtual int fit(const char* fn) = 0;
+
+    /**
+     * dump collapsed genotype to PLINK format
+     */
+    virtual void writePlink(const char* prefix) = 0; 
+
     Collapsor* collapsor;
     ModelFitter* fitter;
 };
@@ -38,7 +44,7 @@ public:
         this->fitter = new LogisticModelFitter;
         if (!this->collapsor) FATAL("Collapsor is NULL.");
         if (!this->fitter) FATAL("ModelFitter is NULL.");
-    };        
+    }; 
     int collapseBySet(const char* fn){
         this->collapsor->loadSetFile(fn);
         this->collapsor->collapseMarker(0);
@@ -63,6 +69,9 @@ public:
         }
         fclose(fp);
         return 0;
+    };
+    void writePlink(const char* prefix) {
+        this->collapsor->writePlink(prefix);
     };
 }; // end class CMCAnalysis
 

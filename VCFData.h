@@ -127,7 +127,7 @@ public:
                 continue;
             }
             const std::string& pname = fd[1];
-            if (this->people2Idx.count(pname) == 0) {
+            if (!this->people2Idx.find(pname) ) {
                 fprintf(stderr, "%s does not exist yet.\n", pname.c_str());
                 continue;
             }
@@ -163,7 +163,7 @@ public:
                 this->covariate->Dimension(this->people2Idx.size(), fd.size() - 2);
             }
             const std::string& pname = fd[1];
-            if (this->people2Idx.count(pname) == 0) {
+            if (!this->people2Idx.find(pname)) {
                 fprintf(stderr, "%s does not exist yet.\n", pname.c_str());
                 continue;
             }
@@ -204,8 +204,8 @@ public:
     Matrix* getGeno() {return this->genotype;};
     Matrix* getPheno() {return this->phenotype;};
     Matrix* getCov() {return this->covariate;};
-    std::map<std::string, int>* getPeople2Idx() {return &this->people2Idx;};
-    std::map<std::string, int>* getMarker2Idx() {return &this->marker2Idx;};
+    OrderedMap<std::string, int>* getPeople2Idx() {return &this->people2Idx;};
+    OrderedMap<std::string, int>* getMarker2Idx() {return &this->marker2Idx;};
 private:
     void loadMarkerFromBim(const char* fn){
         std::vector<std::string> fd;
@@ -262,10 +262,10 @@ private:
     std::vector<double> markerFreq;
     std::vector<int> markerCount;
 
-    std::map<std::string, int> people2Idx;
+    OrderedMap<std::string, int> people2Idx;
     int numPeople;
 
-    std::map<std::string, int> marker2Idx;
+    OrderedMap<std::string, int> marker2Idx;
     int numMarker;
 }; // end VCFData
 

@@ -40,7 +40,7 @@ public:
     /// Should properly handle missing genotypes
     void collapseMarker(void* param){
         // check if there is marker not in current
-        unsigned int numSet = this->markerSet.size();
+        unsigned int numSet = this->set2Idx.size();
         this->collapsedGeno = new Matrix; // this is the collapsed result
         assert(this->collapsedGeno);
         (*collapsedGeno).Dimension(this->numPeople, numSet);
@@ -69,22 +69,29 @@ public:
         }                
     };
 
-    void writeCollapsedInPlink(const char* prefix) {
-        PlinkOutputFile out(prefix);
-        std::vector< std::string > v;
-        v.resize(this->people2Idx.size());
-        for (std::map<std::string, int>::const_iterator i = this->people2Idx.begin();
-             i != this->people2Idx.end();
-             i++) {
-            v[i->second] = i->first;
+    void writePlink(const char* prefix) {
+        PlinkOutputFile fn(prefix);
+        // write FAM
+        std::vector<std::string> peopleName;
+        std::string name;
+        int idx;
+        for (unsigned int i = 0 ; i < this->people2Idx.size(); i++) {
+            this->people2Idx.at(i, &name, &idx);
+            peopleName.push_back(name);
         }
-        out.writeFAM(v);
+        fn.writeFAM(peopleName);
 
-        // here are FAKE chrom, pos, ref and alt.
-        for (int i = 0 ; i < numMarker; i++){
-            out.writeBIM("1", ".", 0, i, "A", "T");
+        // write BIM
+        const char* chrom = "1";
+        std::string setName;
+        for (unsigned int i = 0; i < this->set2Idx.size(); i++) {
+            int idx;
+            this->set2Idx.at(i, &setName, &idx);
+            fn.writeBIM(chrom, setName.c_str(), 0, (int)(i), "A", "T");            
         }
-        out.writeBED(this->collapsedGeno);
+
+        // write BED
+        fn.writeBED(this->collapsedGeno);
     };
 
     void loadSetFile(const char* fileName) {
@@ -108,15 +115,14 @@ public:
                 } else {
                     if (setName.size() == 0) { // begin a new set
                         setName = s;
-                        this->markerSet[s] = this->markerSetIdx.size();
-                        this->marker2Idx[s] = this->markerSetIdx.size();
+                        this->set2Idx[s] = this->set2Idx.size();
                     } else { // add more marker to the set
                         if (processMarker.find(s) != processMarker.end()){
                             numDup ++;
                         } else{
                             processMarker.insert(s);
                         }
-                        if ((*this->data->getMarker2Idx()).count(s) == 0) {
+                        if (! this->data->getMarker2Idx()->find(s) ) {
                             fprintf(stderr, "Cannot find marker %s from existing markers.\n", s.c_str());
                             continue;
                         }
@@ -132,33 +138,32 @@ public:
             // in case user forget to put END at last
             this->markerSetIdx.push_back(-1);
         }
+#if 0
         //debug code
         for (unsigned int i = 0; i < this->markerSetIdx.size(); i++){
             printf("%d ", markerSetIdx[i]);
         }
         printf("\n");
-        fprintf(stdout, "Total %d sets loaded.\n", (int)(this->marker2Idx.size()));
-
-
+#endif
+        fprintf(stdout, "Total %d sets loaded.\n", (int)(this->set2Idx.size()));
     };
     Matrix* getGeno() { return this->collapsedGeno;};
     Matrix* getPheno() { return this->pheno;};
     Matrix* getCov() { return this->cov;};
 private:
     // idx:                         0, 1, 2,  3, 4, 5, 6, 7, 
-    // we use "-1" to separate set: 1, 2, 3, -1, 4, 5, 7, -1, ...
-    // then: markerSet["set1"] = 0, markerSet["set2"] = 4
-    // and marker idx 1, 2, 3 belongs to "set1", and marker idx 4, 5, 7 belongs to "set2"
-    std::map<std::string, int> markerSet;
+    // we use "-1" to separate set: 1, 2, 3, -1, 4, 5, 7, -1, ... (the content of this->markerSetIdx)
+    // marker idx 1, 2, 3 belongs to "set1", and marker idx 4, 5, 7 belongs to "set2"
     std::vector<int> markerSetIdx; 
 
     Matrix* collapsedGeno;
     Matrix* pheno;
     Matrix* cov;
-    int numMarker;
+
+    int numSet;
     int numPeople;
-    std::map<std::string, int> marker2Idx;
-    std::map<std::string, int> people2Idx;
+    OrderedMap<std::string, int> set2Idx;
+    OrderedMap<std::string, int> people2Idx;
 
     VCFData* data;
     // make friend class to save some getter/setter codes

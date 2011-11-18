@@ -127,7 +127,7 @@ int main(int argc, char** argv){
     Analysis* ana = new CMCAnalysis;
     ana->setData(&vcfData);
     ana->collapseBySet("test.set.txt");
-    //ana->writeCollapsedGeno("test.plink.collapsedGeno");
+    ana->writePlink("test.collapse");
     ana->fit("cmc.output");
     
     currentTime = time(0);

@@ -4,11 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void REPORT(const char* x) { 
+inline void REPORT(const char* x) { 
     fprintf(stderr, "Report '%s' to zhanxw@umich.edu\n", x ); 
 };
 
-static void FATAL(const char* x) {
+inline void FATAL(const char* x) {
     REPORT(x);
     abort();
 };

@@ -10,7 +10,7 @@
 
 // convert double/int/byte to string type
 template<class T>
-static std::string toString(T i){
+inline std::string toString(T i){
     std::stringstream ss;
     ss << i;
     return ss.str();
@@ -18,7 +18,7 @@ static std::string toString(T i){
 
 // convert std::string to integer
 // @return true if conversion succeed
-static bool str2int(const char* input, int* output) {
+inline bool str2int(const char* input, int* output) {
     char* endptr;
     long val;
     errno = 0;
@@ -40,7 +40,7 @@ static bool str2int(const char* input, int* output) {
 
 // convert std::string to double
 // @return true if conversion succeed
-static bool str2double(const char* input, double* output) {
+inline bool str2double(const char* input, double* output) {
     char* endptr;
     double val;
 
@@ -61,7 +61,7 @@ static bool str2double(const char* input, double* output) {
     return true;
 }
 
-static int atoi(const std::string& s) {
+inline int atoi(const std::string& s) {
     int result; 
     bool ret = str2int(s.c_str(), & result);
     if (!ret) {

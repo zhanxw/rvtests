@@ -3,7 +3,7 @@
 
 #include "VCFValue.h"
 
-static int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret) {
+inline int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret) {
     assert(ret);
     ret->line = line;
     ret->beg = beg;
@@ -14,7 +14,7 @@ static int parseTillChar(const char c, const char* line, const int beg, VCFValue
     return ret->end;
 };
 
-static int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret) {
+inline int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret) {
     assert(ret);
     ret->line = line;
     ret->beg = beg;
@@ -30,7 +30,7 @@ static int parseTillChar(const char* c, const char* line, const int beg, VCFValu
  * @return 0: found @param id in @paraminfo, and store results in @param result
  * @return -1: not found, @param result value is undetermined
  */
-static inline int parseVCFINFO(std::string* result, const std::string info, const char* id) {
+inline int parseVCFINFO(std::string* result, const std::string info, const char* id) {
     size_t begin = info.find(id);
     if (begin == std::string::npos) {
         return -1;
@@ -45,7 +45,7 @@ static inline int parseVCFINFO(std::string* result, const std::string info, cons
 /**
  * @return -1: we cannot find depth
  */
-static int obtainDepth(const char* s, int start, int end) {
+inline int obtainDepth(const char* s, int start, int end) {
     const char* DEPTH_STRING = "DP";
     const int dpStrLen = strlen(DEPTH_STRING);
     bool isMatch = true;

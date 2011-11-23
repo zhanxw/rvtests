@@ -13,6 +13,9 @@ VCF_LIB = ./libVcf/VCFUtil.h
 REGRESSION_INC = ./regression
 REGRESSION_LIB = ./regression/lib-regression.a
 
+BASE_INC = ./base
+BASE_LIB = ./base/lib-base.a
+
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 
 .PHONY: release debug
@@ -33,10 +36,13 @@ $(GONCALO_LIB): lib-goncalo.tgz
 $(REGRESSION_LIB): 
 	(cd regression; make)
 
-rvtest: Main.cpp Utils.h OrderedMap.h IO.h Argument.h \
-	$(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB)
-	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB)  -lz -lbz2 -lm -lpcre -lpcreposix
+$(BASE_LIB):
+	(cd base; make)
+
+rvtest: Main.cpp \
+	$(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB)
+	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC) -D__ZLIB_AVAILABLE__
+	g++ -o $@ Main.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 clean: 
 	rm -rf *.o $(EXEC)
 doc: README

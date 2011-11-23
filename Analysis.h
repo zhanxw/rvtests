@@ -3,6 +3,7 @@
 
 #include "Collapsor.h"
 #include "ModelFitter.h"
+#include "VCFData.h"
 
 class Analysis{
 public:

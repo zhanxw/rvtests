@@ -5,6 +5,7 @@
 // accordig to http://lh3lh3.users.sourceforge.net/reb.shtml
 // PCRE-posix is fast
 #include <pcreposix.h>
+#include <string>
 #define ERROR_BUF_LEN 64
 class Regex {
 public:
@@ -12,9 +13,9 @@ public:
      * read pattern like "=Synonymous,=Indel"
      */
 
-    void readPattern(std::string& argInfoGrep) {
+    void readPattern(std::string& argRegex) {
         int cflags = 0;
-        int ret = regcomp(& this->pattern, argInfoGrep.c_str(), 0);
+        int ret = regcomp(& this->pattern, argRegex.c_str(), 0);
         if (ret) {
             regerror(ret, & this->pattern, error_buf, ERROR_BUF_LEN);
             fputs(error_buf, stderr);
@@ -47,10 +48,10 @@ public:
         }
         return false;
     };
-    InfoGrepper() {
+    Regex() {
         this->initialized = false;
     }
-    ~InfoGrepper(){
+    ~Regex(){
         if (this->initialized)
             regfree(&pattern);
         this->initialized = false;

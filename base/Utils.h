@@ -4,9 +4,11 @@
 #include <string.h> // for strlen
 #include <stdlib.h>
 
+#include <vector>
 #include <string>
 #include <cassert>
 #include <algorithm>
+
 /**
  * @return 0: found @param id in @paraminfo, and store results in @param result
  * @return -1: not found, @param result value is undetermined

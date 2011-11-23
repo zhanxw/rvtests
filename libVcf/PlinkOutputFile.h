@@ -2,7 +2,7 @@
 #define _PLINKOUTPUTFILE_H_
 
 #include "VCFUtil.h"
-#include "libsrc/MathMatrix.h"
+#include "MathMatrix.h"
 /****************************/
 /*    Binary PLINK format   */
 /****************************/

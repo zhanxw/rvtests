@@ -2,6 +2,7 @@
 #define _TYPECONVERSION_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h> // for HUGE_VALH, HUGE_VALL
@@ -9,7 +10,7 @@
 
 // convert double/int/byte to string type
 template<class T>
-std::string toString(T i){
+static std::string toString(T i){
     std::stringstream ss;
     ss << i;
     return ss.str();
@@ -17,7 +18,7 @@ std::string toString(T i){
 
 // convert std::string to integer
 // @return true if conversion succeed
-bool str2int(const char* input, int* output) {
+static bool str2int(const char* input, int* output) {
     char* endptr;
     long val;
     errno = 0;
@@ -39,7 +40,7 @@ bool str2int(const char* input, int* output) {
 
 // convert std::string to double
 // @return true if conversion succeed
-bool str2double(const char* input, double* output) {
+static bool str2double(const char* input, double* output) {
     char* endptr;
     double val;
 
@@ -60,7 +61,7 @@ bool str2double(const char* input, double* output) {
     return true;
 }
 
-int atoi(const std::string& s) {
+static int atoi(const std::string& s) {
     int result; 
     bool ret = str2int(s.c_str(), & result);
     if (!ret) {

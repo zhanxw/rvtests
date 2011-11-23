@@ -1,6 +1,7 @@
 #ifndef _VCFINPUTFILE_H_
 #define _VCFINPUTFILE_H_
 
+#include "tabix.h"
 #include "VCFRecord.h"
 
 class VCFInputFile{
@@ -137,11 +138,17 @@ public:
     void includePeople(const char* s) {
         this->record.includePeople(s);
     };
+    void includePeople(const std::vector<std::string>& v){
+        this->record.includePeople(v);
+    };
     void includePeopleFromFile(const char* fn) {
         this->record.includePeople(fn);
     };
     void excludePeople(const char* s) {
         this->record.excludePeople(s);
+    };
+    void excludePeople(const std::vector<std::string>& v){
+        this->record.excludePeople(v);
     };
     void excludePeopleFromFile(const char* fn) {
         this->record.excludePeople(fn);

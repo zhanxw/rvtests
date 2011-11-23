@@ -4,6 +4,7 @@
 // We use PCRE here, use 'man pcreposix' for more information
 // accordig to http://lh3lh3.users.sourceforge.net/reb.shtml
 // PCRE-posix is fast
+#include <stdio.h>
 #include <pcreposix.h>
 #include <string>
 #define ERROR_BUF_LEN 64

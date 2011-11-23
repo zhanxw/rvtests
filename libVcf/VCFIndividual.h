@@ -1,10 +1,13 @@
 #ifndef _VCFINDIVIDUAL_H_
 #define _VCFINDIVIDUAL_H_
 
+#include "VCFFunction.h"
 #include "VCFValue.h"
 
+#if 0
 extern int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret); 
 extern int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret);
+#endif
 
 // we assume format are always  GT:DP:GQ:GL
 class VCFIndividual{

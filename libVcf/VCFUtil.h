@@ -6,33 +6,12 @@
 #include "Utils.h"
 
 #include "VCFConstant.h"
+#include "VCFFunction.h"
 #include "VCFHeader.h"
 #include "VCFInputFile.h"
 #include "VCFOutputFile.h"
 #include "PlinkOutputFile.h"
 
-int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret) {
-    assert(ret);
-    ret->line = line;
-    ret->beg = beg;
-    ret->end = ret->beg;
-    while(line[ret->end] != c && line[ret->end] != '\0') {
-        ret->end++;
-    }
-    return ret->end;
-}
-
-int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret) {
-    assert(ret);
-    ret->line = line;
-    ret->beg = beg;
-    ret->end = ret->beg;
-    int cLen = strlen(c);
-    while(!index(c, line[ret->end])){ // line[beg] is not a separator
-        ret->end++;
-    }
-    return ret->end;
-}
 
 #if 0
 typedef int(*PARSE_FUNCTION)(const char* s, int beg, int end);

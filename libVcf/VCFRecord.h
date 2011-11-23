@@ -1,11 +1,16 @@
 #ifndef _VCFRECORD_H_
 #define _VCFRECORD_H_
 
+#include "VCFFunction.h"
+#include "VCFRecord.h"
 #include "VCFIndividual.h"
 #include "VCFInfo.h"
+#include "OrderedMap.h"
 
+#if 0 
 extern int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret); 
 extern int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret);
+#endif 
 
 typedef OrderedMap<int, VCFIndividual*> VCFPeople;
 class VCFRecord{

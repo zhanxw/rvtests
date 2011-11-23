@@ -9,6 +9,7 @@
 
 #include "TypeConversion.h"
 #include "Utils.h"
+#include "IO.h"
 
 /**
    range is inclusive on both edges.
@@ -26,12 +27,12 @@ PositionPair(unsigned int b, unsigned int e):
         return (begin == o.begin && end == o.end);
     }
 };
-bool PositionPairCompare(const PositionPair& p1, const PositionPair& p2){
+
+static inline bool PositionPairCompare(const PositionPair& p1, const PositionPair& p2){
     if (p1.begin != p2.begin)
         return (p1.begin < p2.begin);
     return (p1.end < p2.end);
-}
-
+};
 
 class RangeCollection{
   public:
@@ -85,6 +86,20 @@ class RangeCollection{
         }
         assert(false);
     };   
+    bool isInRange(const std::string& chr, int pos){
+        if (rangeMap.find(chr) == rangeMap.end()) return false;
+        std::vector<PositionPair>& r = rangeMap[chr];
+        PositionPair p(pos, pos);
+        int low = lower_bound(r.begin(), r.end(), p, PositionPairCompare) - r.begin();
+        int up = upper_bound(r.begin(), r.end(), p, PositionPairCompare) - r.begin();
+        for (int i = low; i < up; i++){
+            PositionPair& pp = r[i];
+            if (pp.begin <= pos && pp.end <= pos) {
+                return true;
+            }
+        };
+        return false;
+    };
     size_t size() const { return this->rangeMap.size();};
   private:
     void sortChrVector() {
@@ -139,24 +154,10 @@ class RangeCollection{
         v->clear();
         std::swap( t, *v);
     };
-    bool isInRange(const std::string& chr, int pos){
-        if (rangeMap.find(chr) == rangeMap.end()) return false;
-        std::vector<PositionPair>& r = rangeMap[chr];
-        PositionPair p(pos, pos);
-        int low = lower_bound(r.begin(), r.end(), p, PositionPairCompare) - r.begin();
-        int up = upper_bound(r.begin(), r.end(), p, PositionPairCompare) - r.begin();
-        for (int i = low; i < up; i++){
-            PositionPair& pp = r[i];
-            if (pp.begin <= pos && pp.end <= pos) {
-                return true;
-            }
-        };
-        return false;
-    };
   private:
     std::vector<std::string> chrVector;
     std::map< std::string, std::vector<PositionPair> > rangeMap;
-};
+}; // end class RangeCollection
 
 class RangeList{
 public:
@@ -177,148 +178,13 @@ public:
         this->isSorted = false;
         this->rangeCollection.addRange(chr, begin, end);
     };
-    bool isInRange(const std::string& chr, int pos);
+    bool isInRange(const std::string& chr, int pos) {
+        return this->rangeCollection.isInRange(chr, pos);
+    };
 private:
     RangeCollection rangeCollection;
     bool isSorted;
 };
 
-//
-void RangeList::filterGeneName(const char* inclusionGeneFileName, const char* geneTableFileName){
-    // require user input gene list file
-    if (strlen(geneTableFileName) == 0 && strlen(inclusionGeneFileName) != 0) {
-        fprintf(stderr, "Please provide gene list file (e.g. refFlat) until we are able to process gene\n");
-        exit(1);
-    }
-
-    // if not specify any gene, return whole range.
-    if (strlen(inclusionGeneFileName) == 0) {
-        return;
-    }
-
-    // store which gene do we want if specified
-    std::set< std::string > inclusionSet;
-    LineReader lr(inclusionGeneFileName);
-    std::string gene;
-    while(lr.readLine(&gene)) {
-        inclusionSet.insert(gene);
-    }
-    
-    std::vector<std::string> fields;
-    std::string chr;
-    std::string geneNameTbl;
-
-    LineReader geneTable(geneTableFileName);
-    while (geneTable.readLineBySep(&fields, "\t ")) {
-        geneNameTbl = fields[0];
-        if (inclusionSet.find(geneNameTbl) != inclusionSet.end()){ // store gene range
-            chr = chopChr(fields[2].c_str());
-            this->rangeCollection.addRange(chr, 
-                                     atoi(fields[4].c_str()),   // start
-                                     atoi(fields[5].c_str()));   // end
-        }
-    }
-    if (this->rangeCollection.size() == 0){
-        fprintf(stdout, "We cannot find given gene in your geneListFile, so all sites will be outputed\n");
-    }
-}
-
-// verify if s is of the format: chr:begin-end format
-// @return true: valid format
-bool verifyRangeFormat(const std::string& s, std::string* chr, unsigned int* begin, unsigned int* end) {
-    int i = 0; 
-    chr->clear();
-    while (i < s.size()){
-        if (s[i]!=':'){
-            chr->push_back(s[i]);
-        } else{
-            break;
-        }
-        i++;
-    }
-    i ++; //skip ':'
-    
-    std::string t;
-    while (i < s.size()){
-       if (s[i] !='-') {
-            t.push_back(s[i]);
-       } else{
-           break;
-       }
-        i++;
-    }
-    int b;
-    if (!str2int(t.c_str(), &b) || b < 0) return false;
-    *begin = b;
-
-    if (s[i] == '\0'){ // 1:100 meaning a single point
-        *end = b;
-        return true;
-    }
-    
-    i ++ ; // skip '-'
-    int e;
-    if (s[i] == '\0'){ //format like: 1:100-
-        *end = 1<<29;  // that's the constant used in tabix
-    } else{
-        if (!str2int(s.c_str() + i, &e) || e < 0 || b > e) return false;
-    }
-    *end = e;
-    return true;
-}
-
-// input range such as: 1:100-200,3:200-300
-void RangeList::addRangeList(const char* argRangeList) {
-    if (!strlen(argRangeList)) return;
-
-    std::string rangeList = argRangeList;
-    std::vector<std::string> col;
-    //col.AddTokens(arg, ',');
-    stringTokenize(rangeList, ',', &col);
-    for (int i = 0; i < col.size(); i++){
-        std::string c;
-        unsigned int b,e;
-        if (!verifyRangeFormat(col[i], &c, &b, &e)) {
-            fprintf(stdout, "This range does not conform 1:100-200 format -- %s\n", col[i].c_str());
-        } else {
-            this->rangeCollection.addRange(c, b, e);
-        }
-    }
-};
-
-/**
- * read a range list file like following
- * chr beg start
- * or 
- * chr beg
- * we will assume beg == end in the second case
- */
-void RangeList::addRangeFile(const char* argRangeFile){
-    if (!strlen(argRangeFile)) return;
-
-    LineReader lr(argRangeFile);
-    std::vector<std::string> sa;
-    while ( lr.readLineBySep(&sa, "\t ")) {
-        if (sa.size() == 0) continue;
-        if (sa.size() == 1){
-            fprintf(stderr, "Wrong --rangeFile: %s\n", argRangeFile);
-            return;
-        } else if (sa.size() == 2)
-            this->rangeCollection.addRange(sa[0].c_str(), (unsigned int) atoi(sa[1]), (unsigned int) atoi(sa[1]));
-        else if (sa.size() == 3)
-            this->rangeCollection.addRange(sa[0].c_str(), (unsigned int) atoi(sa[1]), (unsigned int) atoi(sa[2]));
-        else {
-            fprintf(stdout, "Will only use the first 3 column of --rangeFile %s\n", argRangeFile);
-            this->rangeCollection.addRange(sa[0].c_str(), (unsigned int) atoi(sa[1]), (unsigned int) atoi(sa[2]));
-        }
-    }
-};
-
-/**
- * check if chr:pos is in the collection
- */
-bool RangeList::isInRange(const std::string& chr, int pos){
-    
-};
 
 #endif /* _RANGELIST_H_ */

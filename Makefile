@@ -8,7 +8,7 @@ GONCALO_INC = ./libsrc
 GONCALO_LIB = ./libsrc/lib-goncalo.a
 
 VCF_INC = ./libVcf
-VCF_LIB = ./libVcf/VCFUtil.h
+VCF_LIB = ./libVcf/lib-vcf.a
 
 REGRESSION_INC = ./regression
 REGRESSION_LIB = ./regression/lib-regression.a
@@ -39,10 +39,13 @@ $(REGRESSION_LIB):
 $(BASE_LIB):
 	(cd base; make)
 
+$(VCF_LIB):
+	(cd libVcf; make)
+
 rvtest: Main.cpp \
 	$(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB)
-	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(VCF_INC) -I$(BASE_INC) -D__ZLIB_AVAILABLE__
+	g++ -o $@ Main.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 clean: 
 	rm -rf *.o $(EXEC)
 doc: README

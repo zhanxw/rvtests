@@ -70,6 +70,7 @@ public:
     void setRangeFile(const char* fn) {
         this->range.addRangeFile(fn);
     }
+    // @param l is a string of range(s)
     void setRangeList(const char* l){
         this->range.addRangeList(l);
     }

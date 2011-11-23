@@ -1,12 +1,12 @@
-#ifndef _INFOGREPPER_H_
-#define _INFOGREPPER_H_
+#ifndef _REGEX_H_
+#define _REGEX_H_
 
 // We use PCRE here, use 'man pcreposix' for more information
 // accordig to http://lh3lh3.users.sourceforge.net/reb.shtml
 // PCRE-posix is fast
 #include <pcreposix.h>
 #define ERROR_BUF_LEN 64
-class InfoGrepper {
+class Regex {
 public:
     /**
      * read pattern like "=Synonymous,=Indel"
@@ -60,6 +60,7 @@ private:
     regex_t pattern;
     unsigned int numPattern;
     char error_buf[ERROR_BUF_LEN];
+
 };
 
-#endif /* _INFOGREPPER_H_ */
+#endif /* _REGEX_H_ */

@@ -77,6 +77,7 @@ public:
         }
     };
     void includePeople(const std::string& name){
+        if (name.size() == 0) return;
         for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
             VCFIndividual* p = this->allIndv[i];
             if (p->getName() == name) {
@@ -90,6 +91,7 @@ public:
         }
     };
     void includePeopleFromFile(const char* fn){
+        if (!fn || strlen(fn) == 0) return;
         LineReader lr(fn);
         std::vector<std::string> fd;
         while(lr.readLineBySep(&fd, "\t ")) {
@@ -97,7 +99,14 @@ public:
                 this->includePeople(fd[i]);
         }
     };
+    void includeAllPeople() {
+        for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
+            VCFIndividual* p = this->allIndv[i];
+            p->include();
+        }
+    };
     void excludePeople(const std::string& name){
+        if (name.size() == 0) return;
         for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
             VCFIndividual* p = this->allIndv[i];
             if (p->getName() == name) {
@@ -111,11 +120,18 @@ public:
         }
     };
     void excludePeopleFromFile(const char* fn){
+        if (!fn || strlen(fn) == 0) return;
         LineReader lr(fn);
         std::vector<std::string> fd;
         while(lr.readLineBySep(&fd, "\t ")) {
             for (unsigned int i = 0; i != fd.size(); i++)
                 this->excludePeople(fd[i]);
+        }
+    };
+    void excludeAllPeople() {
+        for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
+            VCFIndividual* p = this->allIndv[i];
+            p->exclude();
         }
     };
     const char* getInfoTag(const char* tag) {

@@ -143,7 +143,10 @@ public:
         this->record.includePeople(v);
     };
     void includePeopleFromFile(const char* fn) {
-        this->record.includePeople(fn);
+        this->record.includePeopleFromFile(fn);
+    };
+    void includeAllPeople(){
+        this->record.includeAllPeople();
     };
     void excludePeople(const char* s) {
         this->record.excludePeople(s);
@@ -152,7 +155,10 @@ public:
         this->record.excludePeople(v);
     };
     void excludePeopleFromFile(const char* fn) {
-        this->record.excludePeople(fn);
+        this->record.excludePeopleFromFile(fn);
+    };
+    void excludeAllPeople(){
+        this->record.excludeAllPeople();
     };
     VCFRecord& getVCFRecord() {return this->record;};
     const std::string& getLine() const {return this->line;};

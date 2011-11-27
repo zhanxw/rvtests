@@ -66,6 +66,15 @@ int main(int argc, char** argv){
 
     pl.Read(argc, argv);
     pl.Status();
+    
+    if (FLAG_REMAIN_ARG.size() > 0){
+        fprintf(stderr, "Unparsed arguments: ");
+        for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
+            fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
+        }
+        fprintf(stderr, "\n");
+        abort();
+    }
 
     REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
 
@@ -77,8 +86,11 @@ int main(int argc, char** argv){
     vin.setRangeList(FLAG_rangeFile.c_str());
 
     // set people filters here
-    vin.includePeople(FLAG_peopleIncludeID.c_str());
-    vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+    if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
+        vin.excludeAllPeople();
+        vin.includePeople(FLAG_peopleIncludeID.c_str());
+        vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+    }
     vin.excludePeople(FLAG_peopleExcludeID.c_str());
     vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
     

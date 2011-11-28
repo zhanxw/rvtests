@@ -20,7 +20,7 @@ class VCFHeader{
         }
     };
     int size() const {return this->data.size();}
-    std::string operator[] (int n) {return this->data[n];};
+    std::string& operator[] (int n) {return this->data[n];};
     const std::string operator[] (int n) const {return this->data[n];};
     std::string at(int n) { return this->data.at(n);};
     const std::string at(int n) const {return this->data.at(n);};

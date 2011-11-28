@@ -29,6 +29,9 @@ public:
         }
 
         this->openIndex();
+
+        this->rangeIdx = 0;
+        this->s = 0;
     };
     ~VCFInputFile(){
         closeIndex();
@@ -80,10 +83,6 @@ public:
         // load contents 
         if (this->range.size() > 0) {
             if (this->hasIndex) {                 // there is index
-                static int rangeIdx = 0;
-                // unsigned int numRange = this->range->size();
-                static ti_iter_t iter; 
-                static const char* s = 0;
                 int len;
                 while (rangeIdx < this->range.size()) {
                     if (!s) { // last time does not read a valid line
@@ -175,6 +174,12 @@ private:
 
     bool headerLoaded;
     bool hasIndex;
+
+    // variable used for accessing by region.
+    int rangeIdx;
+    ti_iter_t iter; 
+    const char* s;
+
 };
 
 #endif /* _VCFINPUTFILE_H_ */

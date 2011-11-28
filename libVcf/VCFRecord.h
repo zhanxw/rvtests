@@ -7,14 +7,13 @@
 #include "VCFInfo.h"
 #include "OrderedMap.h"
 
-#if 0 
-extern int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret); 
-extern int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret);
-#endif 
-
 typedef OrderedMap<int, VCFIndividual*> VCFPeople;
 class VCFRecord{
 public:
+    VCFRecord(){
+        this->hasAccess = false;
+    };
+
     int parse(const char* line){
         this->line = line;
         // go through VCF sites (first 9 columns)
@@ -86,7 +85,7 @@ public:
         }
     };
     void includePeople(const std::vector<std::string>& v){
-        for (unsigned int i = 0; i++ ; i < v.size()){
+        for (unsigned int i = 0; i < v.size(); i++){
             this->includePeople(v[i]);
         }
     };
@@ -115,7 +114,7 @@ public:
         }
     };
     void excludePeople(const std::vector<std::string>& v){
-        for (unsigned int i = 0; i++ ; i != v.size()){
+        for (unsigned int i = 0; i != v.size(); i++ ){
             this->excludePeople(v[i]);
         }
     };
@@ -149,14 +148,13 @@ public:
     const char* getFormat() { return this->format.toStr(); };
     const char* getLine() {return this->line;};
     VCFPeople& getPeople(){
-        static bool hasAccess = false;
         if (!hasAccess) {
             for (int i = 0; i < this->allIndv.size(); i++){
                 if (allIndv[i]->isInUse()) {
                     this->selectedIndv[this->selectedIndv.size()] = allIndv[i];
                 }
             }
-            hasAccess = true;
+            this->hasAccess = true;
         }
         return this->selectedIndv;
     };
@@ -174,6 +172,10 @@ private:
     VCFValue format;
     const char* line; // points to data line
     VCFInfo vcfInfo;
+
+    // indicates if getPeople() has been called
+    bool hasAccess;
+
 }; // VCFRecord
 
 #endif /* _VCFRECORD_H_ */

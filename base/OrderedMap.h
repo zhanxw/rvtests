@@ -48,6 +48,37 @@ class OrderedMap{
         }
         return true;
     }
+    const KEY& keyAt(unsigned int idx) const {
+        if (idx >= this->size()) {
+            fprintf(stderr, "Index out of bound, now quitting...");
+            abort();
+        }
+        return this->keyVec[idx];
+    }
+    const TYPE& valueAt(unsigned int idx) const {
+        if (idx >= this->size()) return false;
+        const KEY& k = this->keyVec[idx];
+        if (this->keyTypeMap.find(k) == this->keyTypeMap.end()){
+            fprintf(stderr, "Cannot find KEY in valueAt()\n");
+            abort();
+        } else {
+            return this->keyTypeMap.find(*k)->second;
+        }
+    }
+    /**
+     * compare 
+     */
+    void compareKey(const OrderedMap<KEY, TYPE>& other, int* overlap, int* thisUniqueKeys, int* otherUniqueKeys) const{
+        assert(overlap && thisUniqueKeys && otherUniqueKeys);
+        for (unsigned int i = 0; i != this->size(); i ++ ){
+            KEY& k = this->keyAt(i);
+            if (other.find(k))
+                *overlap++;
+            else
+                *thisUniqueKeys++;
+        }
+        *otherUniqueKeys = other.size() - *overlap;
+    }
     unsigned int size() const { return this->keyVec.size();} ;
   private:
     std::vector < KEY > keyVec;

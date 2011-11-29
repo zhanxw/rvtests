@@ -1,6 +1,8 @@
 #ifndef _VCFDATA_H_
 #define _VCFDATA_H_
 
+#include "MathMatrix.h"
+
 /**
  * Hold genotype, phenotype, covariate data
  *      markerName (id), markerChrom, markerPos, markerRef, markerAlt, markerFreq
@@ -26,7 +28,6 @@ public:
     void loadVCFHeader(VCFHeader* h){
         std::vector<std::string> p;
         h->getPeopleName(&p);
-        this->numPeople = p.size();
         for (int i = 0; i < p.size(); i++){
             this->people2Idx[p[i]] = i;
         };
@@ -72,6 +73,8 @@ public:
             // snp major mode
             unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
             unsigned char c;
+            int numPeople = this->people2Idx.size();
+            int numMarker = this->marker2Idx.size();
             (*this->genotype).Dimension( numMarker, numPeople);
             for (int m = 0; m < numMarker; m++){
                 for (int p = 0; p < numPeople; p++) {
@@ -137,11 +140,14 @@ public:
         };
         return (this->people2Idx.size() - processed.size());
     };
+    void writePhenotype(const char* fn){
+
+    };
     // we only load covariate for people that appeared in genotype
     // please use numeric covariate only
     // return: num of people whose covariate that are not set
     // return 0: success
-    int loadCovariate(const char* fn){
+    int readCovariate(const char* fn){
         // we cannot use phenotype->Read(FILE*) ,
         // since in that case header line is required!
         LineReader lr(fn);
@@ -174,11 +180,58 @@ public:
         };
         return (this->people2Idx.size() - processed.size());
     };
-    void writeGenotypeToR(const char* fn){
+    /** write covariate to file, format is as following:
+     *  header line: PeopleName CovName1 CovName2 ...
+     *  content line: P1 1.0 2.0 ...
+     */
+    int writeCovariate(const char* fn) {
+        this->readTabularFile(fn, this->covariate, this->peopleName, this->covName);
+        // check how many people covariate are read or not read.
+    };
+    // read genotypes.
+    // required format:
+    //   have header: PeopleID MarkerName[0] MarkerName[1]...
+    //   don't have row names
+    //   genotype are people x marker
+    void readGenotypeFromR(const char* fn){
+        this->people2Idx.clear();
+        this->marker2Idx.clear();
+
+        if (!fn || strlen(fn) == 0) {
+            fprintf(stderr, "Cannot read genotypes from %s, as it is empty.\n", fn);
+            continue;
+        }
+        
+        LineReader lr(fn);
+        std::vector <std::string> fd;
+        int lineNo = 0;
+        while (lr.readLineBySep(&fd, "\t ")){
+            if (!lineNo) {// header line
+                for (int i = 1; i < fd.size(); i++) {
+                    this->marker2Idx[fd[i]] = (i-1);
+                };
+                fprintf(stdout, "%d marker(s) loaded.\n", this->marker2Idx.size());
+            } else { // body lines
+                this->people2Idx[fd[0]] = (lineNo - 1);
+                this->genotype.Dimension( this->marker2Idx.size(), this->people2Idx.size());
+                for (unsigned int  m = 1; m < fd.size(); m++) {
+                    (*this->genotype) [ (lineNo - 1)] [ m] = atoi(fd[m]);
+                }
+            }
+            lineNo ++;
+        };
+    };
+    
+    // write genotype in R format:
+    //   have header: PeopleID MarkerName[0] MarkerName[1]...
+    //   don't have row names
+    //   genotype are people x marker
+    void writeGenotypeToR(const char* fn, ){
         FileWriter fw(fn);
         // header
+        fw.write("PeopleID");
         for (int i = 0; i < markerName.size(); i++){
-            if (i) fw.write(" ");
+            fw.write("\t");
             if (markerName[i].size() == 0){
                 fw.write("\".\"");
             }else {
@@ -187,16 +240,17 @@ public:
                 fw.write("\"");
             }
         };
-        if (markerName.size()) fw.write("\n");
+        fw.write("\n");
 
         // content
-        for (int m = 0; m < this->numMarker; m++) {
-            fw.printf("%d", m); // line no
-            for (int p = 0; p < this->numPeople; p++ ){
-                fw.printf(" %d", (int)((*this->genotype)[m][p]));
+        for (int p = 0; p < this->numPeople; p++ ){
+            fw.write(this->people2Idx.keyAt(p).c_str());
+            for (int m = 0; m < this->numMarker; m++) {
+                fw.printf("\t%d", (int)((*this->genotype)[m][p]));
             }
             fw.write("\n");
         }
+        fw.close();
     };
 
     // use friend class to save codes...
@@ -248,7 +302,28 @@ private:
             (*this->phenotype)[i][0] = pheno[i];
         }
     }
-
+    
+    void calcFreqAndCount() {
+        this->markerFreq.clear();
+        this->markerCount.clear();
+        this->markerTotalAllele.clear();
+            
+        for (unsigned int i = 0; i < genotype->nrow; i++) {
+            int count = 0;
+            int totalAllele = 0;
+            for (unsigned int j = 0; j < genotype->ncol; j++) {
+                if (genotype < 0) continue;
+                count += genotype[i][j];
+                totalAllele += 2;
+            }
+            this->markerCount.push_back(count);
+            this->markerTotalAllele.push_back(totalAllele);
+            if (totalAllele == 0)
+                this->markerFreq.push_back(NaN);
+            else
+                this->markerFreq.push_back( (double)(count) / totalAllele);
+        }
+    };
 private:
     Matrix* genotype; // marker x people
     Matrix* covariate; // people x cov
@@ -260,13 +335,14 @@ private:
     std::vector<std::string> markerRef;
     std::vector<std::string> markerAlt;
     std::vector<double> markerFreq;
-    std::vector<int> markerCount;
+    std::vector<int> markerCount; // Alternative allele count
+    std::vector<int> markerTotalAllele; // Total number of allele
 
-    OrderedMap<std::string, int> people2Idx;
-    int numPeople;
+    OrderedMap<std::string, int> people2Idx; // peopleID -> idx in this->genotype
+    // int numPeople; 
 
-    OrderedMap<std::string, int> marker2Idx;
-    int numMarker;
+    OrderedMap<std::string, int> marker2Idx; // markerName -> idx in this->genotype
+    // int numMarker;
 }; // end VCFData
 
 #endif /* _VCFDATA_H_ */

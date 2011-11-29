@@ -27,7 +27,7 @@ public:
             FATAL("Cannot using NULL to collapse data!");
         };
 
-        this->collapsedGeno = data->genotype;
+        this->collapsedGeno = NULL;
         this->pheno = data->phenotype;
         this->cov = data->covariate;
         this->numPeople = data->numPeople;
@@ -38,36 +38,7 @@ public:
     };
 
     /// Should properly handle missing genotypes
-    void collapseMarker(void* param){
-        // check if there is marker not in current
-        unsigned int numSet = this->set2Idx.size();
-        this->collapsedGeno = new Matrix; // this is the collapsed result
-        assert(this->collapsedGeno);
-        (*collapsedGeno).Dimension(this->numPeople, numSet);
-        (*collapsedGeno).Zero();
-
-
-        double g;
-        int setIdx;
-        for (int p = 0; p < this->numPeople; p++) {
-            setIdx = 0;
-            g = 0.0;
-            // (*collapsedGeno)[p][setIdx] == 0;
-            // setIdx = 0;
-            for (unsigned int m = 0; m < this->markerSetIdx.size(); m++){
-                int mIdx = markerSetIdx[m];
-                // printf("%d %d %d\n", mIdx, p, setIdx);
-                if ( mIdx == -1) {
-                    (*collapsedGeno)[p][setIdx++] = g;
-                    g = 0.0;
-                    continue;
-                }
-
-                if ( (*this->data->genotype)[mIdx][p] != MISSING_GENOTYPE) // skip missing genotypes
-                    g += (*this->data->genotype)[mIdx][p];
-            }
-        }                
-    };
+    virtual void collapseMarker(void* param) = 0;
 
     void writePlink(const char* prefix) {
         PlinkOutputFile fn(prefix);
@@ -169,5 +140,85 @@ private:
     // make friend class to save some getter/setter codes
     friend class ModelFitter;
 }; // end class Collapsor
+
+class NaiveCollapsor: public Collapsor{
+
+};
+
+class CMCCollapsor: public Collapsor{
+    void collapseMarker(void* param){
+        // check if there is marker not in current
+        unsigned int numSet = this->set2Idx.size();
+        this->collapsedGeno = new Matrix; // this is the collapsed result
+        assert(this->collapsedGeno);
+        (*collapsedGeno).Dimension(this->numPeople, numSet);
+        (*collapsedGeno).Zero();
+
+        double g;
+        int setIdx;
+        for (int p = 0; p < this->numPeople; p++) {
+            setIdx = 0;
+            g = 0.0;
+            // (*collapsedGeno)[p][setIdx] == 0;
+            // setIdx = 0;
+            for (unsigned int m = 0; m < this->markerSetIdx.size(); m++){
+                int mIdx = markerSetIdx[m];
+                // printf("%d %d %d\n", mIdx, p, setIdx);
+                if ( mIdx == -1) {
+                    (*collapsedGeno)[p][setIdx++] = g;
+                    g = 0.0;
+                    continue;
+                }
+
+                if ( (*this->data->genotype)[mIdx][p] != MISSING_GENOTYPE) // skip missing genotypes
+                    g ++; 
+            }
+        }                
+    };
+};
+
+class ZegginiCollapsor: public Collapsor{
+    void collapseMarker(void* param){
+        // check if there is marker not in current
+        unsigned int numSet = this->set2Idx.size();
+        this->collapsedGeno = new Matrix; // this is the collapsed result
+        assert(this->collapsedGeno);
+        (*collapsedGeno).Dimension(this->numPeople, numSet);
+        (*collapsedGeno).Zero();
+
+        double g;
+        int setIdx;
+        for (int p = 0; p < this->numPeople; p++) {
+            setIdx = 0;
+            g = 0.0;
+            // (*collapsedGeno)[p][setIdx] == 0;
+            // setIdx = 0;
+            for (unsigned int m = 0; m < this->markerSetIdx.size(); m++){
+                int mIdx = markerSetIdx[m];
+                // printf("%d %d %d\n", mIdx, p, setIdx);
+                if ( mIdx == -1) {
+                    (*collapsedGeno)[p][setIdx++] = g;
+                    g = 0.0;
+                    continue;
+                }
+
+                if ( (*this->data->genotype)[mIdx][p] != MISSING_GENOTYPE) // skip missing genotypes
+                    g += (*this->data->genotype)[mIdx][p];
+            }
+        }                
+    };
+};
+
+class FreqCutoffCollapsor: public Collapsor{
+
+};
+
+class VTCollapsor: public Collapsor{
+
+};
+
+class SKATCollapsor: public Collapsor{
+
+};
 
 #endif /* _COLLAPSOR_H_ */

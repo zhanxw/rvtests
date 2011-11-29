@@ -43,5 +43,8 @@ class LogisticModelFitter: public ModelFitter{
     };
 }; // LogisticModelFitter
 
+class LinearModelFitter: public ModelFitter{
+
+};
 
 #endif /* _MODELFITTER_H_ */

@@ -1,5 +1,6 @@
 /**
    immediately TODO:
+   8. force loading index when read by region.
    3. support tri-allelic (getAlt())
    4. speed up VCF parsing. (make a separate line buffer).
    5. loading phenotype and covariate (need tests now).

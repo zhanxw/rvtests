@@ -56,6 +56,8 @@ class LogisticRegressionScoreTest{
   public:
     LogisticRegressionScoreTest();
 	bool FitLogisticModel(Matrix &X, Vector &y, int colToTest, int nRound);
+    bool FitNullModel(Matrix& Xnull, Vector& y, int nRound);
+    bool TestCovariate(Matrix& X, int colToTest);
     double getPvalue() const {return this->pvalue;};
   private:
 	void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol); 

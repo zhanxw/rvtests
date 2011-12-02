@@ -111,6 +111,15 @@ public:
         };
         fclose(fBed);
     };
+    void loadMarkerSetFromVCF(const char * fVCF, const char* fSet) {
+    };
+    void loadMarkerSetFromPlink(const char * fVCF, const char* fSet) {
+    };
+    void loadMarkerSetFromVCF(const char* fVCF, RangeList& rl){
+    };
+    void loadMarkerSetFromPlink(const char* fVCF, RangeList& rl){
+    };
+
     // col: 1-based column 
     // return: num of people whose phenotype that are not set
     // return 0: success
@@ -208,6 +217,9 @@ public:
         while (lr.readLineBySep(&fd, "\t ")){
             if (!lineNo) {// header line
                 for (int i = 1; i < fd.size(); i++) {
+                    if (this->marker2Idx.find(fd[i])) {
+                        fprintf(stderr, "Duplicate marker %s.\n", fd[i].c_str());
+                    }
                     this->marker2Idx[fd[i]] = (i-1);
                 };
                 fprintf(stdout, "%d marker(s) loaded.\n", this->marker2Idx.size());

@@ -1,6 +1,8 @@
 #ifndef _ORDEREDMAP_H_
 #define _ORDEREDMAP_H_
 
+#include <cassert>
+
 /**
  * a simple OrderedMap class
  * use operator[] to insert elements

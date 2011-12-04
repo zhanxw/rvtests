@@ -101,6 +101,10 @@ class RangeCollection{
         return false;
     };
     size_t size() const { return this->rangeMap.size();};
+    void clear() {
+        this->chrVector.clear();
+        this->rangeMap.clear();
+    };
   private:
     void sortChrVector() {
         std::sort(chrVector.begin(), chrVector.end());
@@ -180,6 +184,10 @@ public:
     };
     bool isInRange(const std::string& chr, int pos) {
         return this->rangeCollection.isInRange(chr, pos);
+    };
+    void clear() {
+        this->rangeCollection.clear();
+        this->isSorted = false;
     };
 private:
     RangeCollection rangeCollection;

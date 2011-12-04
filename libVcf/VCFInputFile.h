@@ -70,11 +70,18 @@ public:
         ti_close(this->tabixHandle);
     };
 
+    void clearRange() {
+        this->range.clear();
+        this->rangeIdx = 0;
+        this->s = 0;
+    };
     void setRangeFile(const char* fn) {
+        this->clearRange();
         this->range.addRangeFile(fn);
     }
     // @param l is a string of range(s)
     void setRangeList(const char* l){
+        this->clearRange();
         this->range.addRangeList(l);
     }
 

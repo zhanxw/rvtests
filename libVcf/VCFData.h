@@ -347,7 +347,7 @@ private:
 #if 0
 private:
 #else
-#pragma message "TO Change"
+#pragma message "Change class VCFData private properties?"
 #endif
     Matrix* genotype; // marker x people
     Matrix* covariate; // people x cov

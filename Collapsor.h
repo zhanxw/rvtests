@@ -30,7 +30,7 @@ public:
         this->collapsedGeno = NULL;
         this->pheno = data->phenotype;
         this->cov = data->covariate;
-        this->numPeople = data->numPeople;
+        //this->numPeople = data->numPeople;
         this->data = data;
     };
     virtual ~Collapsor() {
@@ -121,7 +121,7 @@ public:
     Matrix* getGeno() { return this->collapsedGeno;};
     Matrix* getPheno() { return this->pheno;};
     Matrix* getCov() { return this->cov;};
-private:
+protected:
     // idx:                         0, 1, 2,  3, 4, 5, 6, 7, 
     // we use "-1" to separate set: 1, 2, 3, -1, 4, 5, 7, -1, ... (the content of this->markerSetIdx)
     // marker idx 1, 2, 3 belongs to "set1", and marker idx 4, 5, 7 belongs to "set2"
@@ -139,6 +139,7 @@ private:
     VCFData* data;
     // make friend class to save some getter/setter codes
     friend class ModelFitter;
+    friend class Analysis;
 }; // end class Collapsor
 
 class NaiveCollapsor: public Collapsor{
@@ -146,6 +147,10 @@ class NaiveCollapsor: public Collapsor{
 };
 
 class CMCCollapsor: public Collapsor{
+  public:
+  CMCCollapsor(VCFData* data):
+    Collapsor(data){};
+
     void collapseMarker(void* param){
         // check if there is marker not in current
         unsigned int numSet = this->set2Idx.size();

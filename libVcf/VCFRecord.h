@@ -158,6 +158,34 @@ public:
         }
         return this->selectedIndv;
     };
+    int getFormatIndex(const char* s){
+        int b = this->format.beg;
+        int e = this->format.end;
+        int l = strlen(s);
+        int idx = 0;
+
+        // locate first field
+        while ( b < e) {
+            // check match
+            bool match = true;
+            for (int i = 0; i < l ; i++) {
+                if (line[b + i]  != s[i]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) return idx;
+            else {
+                // skip to next field
+                idx++;
+                while ( line[b++] != ':') {
+                    if (b >= e) {
+                        return -1;
+                    }
+                }
+            }
+        }
+    };
 private:
     VCFPeople allIndv;      // all individual
     VCFPeople selectedIndv; // user-selected individual

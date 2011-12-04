@@ -82,6 +82,10 @@ class OrderedMap{
         *otherUniqueKeys = other.size() - *overlap;
     }
     unsigned int size() const { return this->keyVec.size();} ;
+    void clear() {
+        this->keyVec.clear();
+        this->keyTypeMap.clear();
+    };
   private:
     std::vector < KEY > keyVec;
     std::map < KEY, TYPE > keyTypeMap;

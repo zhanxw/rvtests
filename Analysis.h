@@ -41,7 +41,7 @@ public:
         if (this->fitter) delete this->fitter;
     };
     void setData(VCFData* data) {
-        this->collapsor = new Collapsor(data);
+        this->collapsor = new CMCCollapsor(data);
         this->fitter = new LogisticModelFitter;
         if (!this->collapsor) FATAL("Collapsor is NULL.");
         if (!this->fitter) FATAL("ModelFitter is NULL.");

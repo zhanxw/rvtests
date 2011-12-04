@@ -119,6 +119,10 @@ public:
                 return false;
             } // end hasIndex
             else { // no index
+                fprintf(stderr, "Failed to load index when accessing VCF by region\n");
+                abort();
+
+                // legacy code that can handle region in a slow but working way.
                 while(this->fp->readLine(&this->line)){
                     this->record.parse(line.c_str());
                     if (!this->range.isInRange(this->record.getChrom(), this->record.getPos()))

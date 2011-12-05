@@ -108,7 +108,7 @@ int main(int argc, char** argv){
 
     // now let's finish some statistical tests
     
-    
+    Mat
 #if 0
     // let's write it out.
     VCFOutputFile* vout = NULL;

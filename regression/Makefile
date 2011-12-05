@@ -2,13 +2,14 @@ LIB = lib-regression.a
 GONCALO_INC = ../libsrc
 GONCALO_LIB = ../libsrc/lib-goncalo.a
 
-DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -g #-Wall
-release: CXXFLAGS = -O2 $(DEFAULT_CXXFLAGS)
+DEFAULT_CXXFLAGS = -O2 -D__STDC_LIMIT_MACROS #-Wall
+release: CXXFLAGS = $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 debug: CXXFLAGS = -g -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB)
 
 all: $(LIB)
+
 $(LIB): LogisticRegression.o LinearRegression.o
 	ar -cqs $(LIB) *.o
 LogisticRegression.o: LogisticRegression.cpp LogisticRegression.h

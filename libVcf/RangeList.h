@@ -13,15 +13,15 @@
 
 /**
    range is inclusive on both edges.
- */
+*/
 struct PositionPair{
     unsigned int begin;
     unsigned int end;
 PositionPair():
-    begin(0), end(0) 
+    begin(0), end(0)
         {};
 PositionPair(unsigned int b, unsigned int e):
-    begin(b), end(e) 
+    begin(b), end(e)
         {};
     bool operator== (const PositionPair o){
         return (begin == o.begin && end == o.end);
@@ -35,7 +35,7 @@ inline bool PositionPairCompare(const PositionPair& p1, const PositionPair& p2){
 };
 
 class RangeCollection{
-  public:
+public:
     void addRange(const std::string& chr, unsigned int begin, unsigned int end) {
         // if chr not exists
         // add chr to the chrVector
@@ -43,7 +43,7 @@ class RangeCollection{
         if (this->rangeMap.find(c) == this->rangeMap.end()){
             chrVector.push_back(c);
         }
-        
+
         // add begin, end to that chr entry
         this->rangeMap[c].push_back( PositionPair(begin, end) );
     }
@@ -52,25 +52,25 @@ class RangeCollection{
          * some test code
          */
         /*
-        this->addRange("X", 2, 4 );
-        this->addRange("X", 1, 3 );
-        this->addRange("1", 1, 3 );
-        this->addRange("1", 4, 6 );
-        this->addRange("1", 5, 10 );
+          this->addRange("X", 2, 4 );
+          this->addRange("X", 1, 3 );
+          this->addRange("1", 1, 3 );
+          this->addRange("1", 4, 6 );
+          this->addRange("1", 5, 10 );
         */
         this->sortChrVector();
         this->consolidate();
         /*
-        assert(chrVector[0] == "1");
-        assert(rangeMap["1"][0] == PositionPair(1, 3));
-        assert(rangeMap["1"][1] == PositionPair(4, 10));
-        assert(rangeMap["X"][0] == PositionPair(1, 4));
+          assert(chrVector[0] == "1");
+          assert(rangeMap["1"][0] == PositionPair(1, 3));
+          assert(rangeMap["1"][1] == PositionPair(4, 10));
+          assert(rangeMap["X"][0] == PositionPair(1, 4));
         */
     }
-    
+
     void obtainRange(const unsigned int index, std::string* range) {
-        int t = index; 
-        int s; 
+        int t = index;
+        int s;
         for(unsigned int i = 0; i < this->chrVector.size(); i++ ) {
             s = rangeMap[chrVector[i]].size();
             if ( t < s) {
@@ -85,7 +85,7 @@ class RangeCollection{
             }
         }
         assert(false);
-    };   
+    };
     bool isInRange(const std::string& chr, int pos){
         if (rangeMap.find(chr) == rangeMap.end()) return false;
         std::vector<PositionPair>& r = rangeMap[chr];
@@ -100,8 +100,12 @@ class RangeCollection{
         };
         return false;
     };
+    void clear() {
+        this->chrVector.clear();
+        this->rangeMap.clear();
+    };
     size_t size() const { return this->rangeMap.size();};
-  private:
+private:
     void sortChrVector() {
         std::sort(chrVector.begin(), chrVector.end());
     };
@@ -129,7 +133,7 @@ class RangeCollection{
     void consolidateRange(std::vector<PositionPair>* v) {
         std::vector<PositionPair> t;
         unsigned int l = v->size();
-        if (l == 0) 
+        if (l == 0)
             return;
 
         unsigned int beg =  (*v)[0].begin;
@@ -138,9 +142,9 @@ class RangeCollection{
             // if this range falls into last range, skip
             if ( (*v)[i].end <= (*v)[i - 1].end )
                 continue;
-            
+
             // if this range overlaps with last range, extend last range
-            if ( (*v)[i].begin <= (*v)[i-1].end && 
+            if ( (*v)[i].begin <= (*v)[i-1].end &&
                  (*v)[i].end > (*v)[i-1].end) {
                 t[i-1].end = (*v)[i].end;
                 continue;
@@ -149,19 +153,19 @@ class RangeCollection{
             // this range now is after the last range, so append it to the list
             t.push_back( (*v)[i] );
         }
-        
+
         // copy t -> v
         v->clear();
         std::swap( t, *v);
     };
-  private:
+private:
     std::vector<std::string> chrVector;
     std::map< std::string, std::vector<PositionPair> > rangeMap;
 }; // end class RangeCollection
 
 class RangeList{
 public:
-  RangeList(): isSorted(false) {};
+RangeList(): isSorted(false) {};
     void obtainRange(const unsigned int index, std::string* range) {
         if (!this->isSorted) {
             this->rangeCollection.sort();
@@ -180,6 +184,10 @@ public:
     };
     bool isInRange(const std::string& chr, int pos) {
         return this->rangeCollection.isInRange(chr, pos);
+    };
+    bool clear() {
+        this->isSorted = false;
+        this->rangeCollection.clear();
     };
 private:
     RangeCollection rangeCollection;

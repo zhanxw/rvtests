@@ -71,10 +71,12 @@ public:
     };
 
     void setRangeFile(const char* fn) {
+        this->range.clear();
         this->range.addRangeFile(fn);
     }
     // @param l is a string of range(s)
     void setRangeList(const char* l){
+        this->range.clear();
         this->range.addRangeList(l);
     }
 
@@ -119,6 +121,11 @@ public:
                 return false;
             } // end hasIndex
             else { // no index
+                // no index so force quitting
+                fprint(stderr, "Index file is required to read by section\n");
+                abort();
+                // legacy code (when there is no index but still want to parse VCF file).
+                fprintf(stderr, "Should not reach here!!\n");
                 while(this->fp->readLine(&this->line)){
                     this->record.parse(line.c_str());
                     if (!this->range.isInRange(this->record.getChrom(), this->record.getPos()))

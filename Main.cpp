@@ -92,12 +92,34 @@ int main(int argc, char** argv){
         vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
     }
     vin.excludePeople(FLAG_peopleExcludeID.c_str());
-    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
-
-    // add filters. e.g. 
-    // site: DP, MAC
-    // indv: GD, GQ 
+    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());    // now let's finish some statistical tests
     
+    // add filters. e.g. put in VCFInputFile is a good method
+    // site: DP, MAC, MAF (T3, T5)
+    // indv: GD, GQ 
+
+    Collapsor collapsor;
+    collapsor.setSetFileName("set.txt");
+    collapsor.setCollapsingStrategy(Collapsor::CMC);
+    VCFData data;
+    LogisticModelFitter lmf;
+    PermutateModelFitter lmf;
+
+    FILE* fout = fopen("results", "w");
+    // write headers
+    //...
+    while(collapsor.iterateSet(vin)){
+        std::string& setName = collapsor.getCurrentSetName();
+        collapsor.extractGenotype(data);
+        // for each model, fit the genotype data
+        lmf.fit(data);
+        
+        // output 
+        data.writeRawData(setName.c_str());
+        collapsor.writeOutput(fout);
+        lmf.writeOutput(fout);
+    }
+
     // now use analysis module to load data by set
     // load to set
     // for each set:
@@ -106,9 +128,8 @@ int main(int argc, char** argv){
     //    fit model
     //    output datasets and results
 
-    // now let's finish some statistical tests
-    
-    Mat
+
+
 #if 0
     // let's write it out.
     VCFOutputFile* vout = NULL;

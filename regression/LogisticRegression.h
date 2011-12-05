@@ -32,6 +32,8 @@ class LogisticRegression
     double GetDeviance(Matrix & X, Vector & succ, Vector& total);
 	Vector & GetAsyPvalue();
 	Vector & GetCovEst();
+    Vector & GetPredicted() {return this->p;}; // predicted probability \hat{p}
+    Vector & GetVariance()  {return this->V;}; // predicted variance ( \hat{p} * (1- \hat{p}) )
 	Matrix & GetCovB();
     void reset(Matrix& X); // get everything cleared
 
@@ -40,7 +42,7 @@ class LogisticRegression
 
   private:
 	Vector pValue;
-	Vector p, V, W;
+	Vector p, V, W; // p: estimted prob; V: p(1-p) ; W n*p*(1-p)
     Vector residuals;
     Vector deltaB;
     Matrix D;
@@ -55,11 +57,24 @@ class LogisticRegression
 class LogisticRegressionScoreTest{
   public:
     LogisticRegressionScoreTest();
+    /**
+     * @param colToTest: 0-based
+     */
 	bool FitLogisticModel(Matrix &X, Vector &y, int colToTest, int nRound);
+
+    bool FitNullModel(Matrix& Xnull, Vector& y, int nRound);
+    bool TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol);
+    
+    
+    // fit y~1+ beta*x  (no covariate)
+    bool TestCovariate(Vector& x, Vector& y);
+
+
     double getPvalue() const {return this->pvalue;};
   private:
 	void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol); 
 	double pvalue;
+    LogisticRegression lr;
 };
 #endif
 

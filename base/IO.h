@@ -604,7 +604,7 @@ class FileWriter{
             fprintf(stderr, "Cannot allocate printf buffer for FileWriter.\n");
         };
     }
-    ~FileWriter(){
+    void close() {
         if (this->fp){
             this->fp->close();
             delete this->fp;
@@ -621,6 +621,9 @@ class FileWriter{
 #ifdef IO_DEBUG
         fprintf(stderr, "FileWriter desc()\n");
 #endif
+    };
+    ~FileWriter(){
+        this->close();
     };
     int write(const char* s){
         return this->fp->write(s);

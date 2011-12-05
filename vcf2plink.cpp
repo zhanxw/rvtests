@@ -82,6 +82,8 @@ int main(int argc, char** argv){
     VCFInputFile vin(fn);
 
     // set range filters here
+    // e.g.     
+    // vin.setRangeList("1:69500-69600");
     vin.setRangeList(FLAG_rangeList.c_str());
     vin.setRangeList(FLAG_rangeFile.c_str());
 
@@ -92,45 +94,8 @@ int main(int argc, char** argv){
         vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
     }
     vin.excludePeople(FLAG_peopleExcludeID.c_str());
-    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());    // now let's finish some statistical tests
+    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
     
-    // add filters. e.g. put in VCFInputFile is a good method
-    // site: DP, MAC, MAF (T3, T5)
-    // indv: GD, GQ 
-
-    Collapsor collapsor;
-    collapsor.setSetFileName("set.txt");
-    collapsor.setCollapsingStrategy(Collapsor::CMC);
-    VCFData data;
-    LogisticModelFitter lmf;
-    PermutateModelFitter lmf;
-
-    FILE* fout = fopen("results", "w");
-    // write headers
-    //...
-    while(collapsor.iterateSet(vin)){
-        std::string& setName = collapsor.getCurrentSetName();
-        collapsor.extractGenotype(data);
-        // for each model, fit the genotype data
-        lmf.fit(data);
-        
-        // output 
-        data.writeRawData(setName.c_str());
-        collapsor.writeOutput(fout);
-        lmf.writeOutput(fout);
-    }
-
-    // now use analysis module to load data by set
-    // load to set
-    // for each set:
-    //    load Set
-    //    collapse
-    //    fit model
-    //    output datasets and results
-
-
-
-#if 0
     // let's write it out.
     VCFOutputFile* vout = NULL;
     PlinkOutputFile* pout = NULL;
@@ -142,10 +107,10 @@ int main(int argc, char** argv){
     };
     if (!vout && !pout) {
         vout = new VCFOutputFile("temp.vcf");
+    }
 
     if (vout) vout->writeHeader(vin.getVCFHeader());
     if (pout) pout->writeHeader(vin.getVCFHeader());
-    vin.setRangeList("1:69500-69600");
     while (vin.readRecord()){
         VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
@@ -170,55 +135,9 @@ int main(int argc, char** argv){
         printf("\n");
     };
 
-    vin.setRangeList("1:69400-69600");
-    while (vin.readRecord()){
-        VCFRecord& r = vin.getVCFRecord(); 
-        VCFPeople& people = r.getPeople();
-        VCFIndividual* indv;
-        if (vout) vout->writeRecord(& r);
-        if (pout) pout ->writeRecord(& r);
-        printf("%s:%d\t", r.getChrom(), r.getPos());
-
-        // e.g.: get TAG from INFO field
-        // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
-
-        // e.g.: Loop each (selected) people in the same order as in the VCF 
-        for (int i = 0; i < people.size(); i++) {
-            indv = people[i];
-            // get GT index. if you are sure the index will not change, call this function only once!
-            int GTidx = r.getFormatIndex("GT");
-            if (GTidx >= 0) 
-                printf("%s ", (*indv)[GTidx].toStr());  // [0] meaning the first field of each individual
-            else 
-                fprintf(stderr, "Cannot find GT field!\n");
-        }
-        printf("\n");
-    };
-
-
     if (vout) delete vout;
     if (pout) delete pout;
 
     
-    return -1; 
-
-
-    // load data
-    VCFData vcfData;
-    vcfData.loadPlink(FLAG_outPlink.c_str());
-    vcfData.writeGenotypeToR("test.plink.geno");
-
-    // apply analysis
-    Analysis* ana = new CMCAnalysis;
-    ana->setData(&vcfData);
-    ana->collapseBySet("test.set.txt");
-    ana->writePlink("test.collapse");
-    ana->fit("cmc.output");
-    
-#endif
-
-    currentTime = time(0);
-    fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));
-
-    return 0;
+    return 0; 
 };

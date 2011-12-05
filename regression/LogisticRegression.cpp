@@ -389,45 +389,61 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
 LogisticRegressionScoreTest::LogisticRegressionScoreTest():pvalue(0.0){};
 bool LogisticRegressionScoreTest::FitLogisticModel(Matrix &X, Vector &y, int colToTest, int nRound) {
     Matrix Xnull;
-    Vector xcol;
-    this->splitMatrix(X, colToTest, Xnull, xcol); // Xnull is the X matrix after taking out xcol
-    LogisticRegression lr;
-    if (lr.FitLogisticModel(Xnull, y, nRound) == false){
+    Vector Xcol;
+    this->splitMatrix(X, colToTest, Xnull, Xcol); // Xnull is the X matrix after taking out xcol
+    // LogisticRegression lr;
+    // if (this->lr.FitLogisticModel(Xnull, y, nRound) == false){
+    //     return false;
+    // }
+    if (!this->FitNullModel(Xnull, y, nRound)) 
+        return false;
+    if (!this->TestCovariate(Xnull, y, Xcol))
+        return false;
+    return true;
+}
+
+bool LogisticRegressionScoreTest::FitNullModel(Matrix& Xnull, Vector& y, int nRound){
+    if (!this->lr.FitLogisticModel(Xnull, y, nRound)){
         return false;
     }
-    Vector & betaHat1 = lr.GetCovEst(); // From MLE
+    return true;
+};
+bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol){
     double U = 0.0;
     double I = 0.0;
 
-    printf("size of betaHat = %d\n",betaHat1.Length());
-    Vector betaHat;
-    int numTotalCoeff = betaHat1.Length() + 1;
-    betaHat.Dimension(numTotalCoeff);
+    // printf("size of betaHat = %d\n",betaHat1.Length());
 
-    for (int i = 0; i < numTotalCoeff; i ++) {
-        if (i < colToTest) {
-            betaHat[i] = betaHat1[i];
-        } else if (i > colToTest) {
-            betaHat[i] = betaHat1[i-1];
-        } else {
-            betaHat[i] = 0.0;
-        }
-    }
+    // Vector & betaHatNull = lr.GetCovEst(); // From MLE
+    // Vector betaHat;
+    // int numTotalCoeff = betaHatNull.Length() + 1;
+    // betaHat.Dimension(numTotalCoeff);
+
+    // for (int i = 0; i < numTotalCoeff; i ++) {
+    //     if (i < colToTest) {
+    //         betaHat[i] = betaHatNull[i];
+    //     } else if (i > colToTest) {
+    //         betaHat[i] = betaHatNull[i-1];
+    //     } else {
+    //         betaHat[i] = 0.0;
+    //     }
+    // }
 
     /*for (int i = 0; i < xcol.Length(); i ++) {
       printf("xcol[%d] = %f\n",xcol[i]);
       }
       return false;*/
 
-    printf("colToTest = %d\n",colToTest);
-    printf("size of X = (%d,%d)\n",X.rows, X.cols);
+    // printf("colToTest = %d\n",colToTest);
+    // printf("size of X = (%d,%d)\n",X.rows, X.cols);
 
-    for (int i = 0; i < betaHat.Length(); i ++) {
-        printf("betaHat[%d] = %f\n",i,betaHat[i]);
-    }
+    // for (int i = 0; i < betaHat.Length(); i ++) {
+    //     printf("betaHat[%d] = %f\n",i,betaHat[i]);
+    // }
 
     // define a vector and a matrix for I_r = V_rr - corr*(mat_corr)^{-1}*corr
-    int nParamRemain = X.cols - 1;
+    //int nParamRemain = X.cols - 1;
+    int nParamRemain = Xnull.cols;
     Vector vec_corr;
     vec_corr.Dimension(nParamRemain,0.0);
     Matrix mat_corr;
@@ -436,50 +452,50 @@ bool LogisticRegressionScoreTest::FitLogisticModel(Matrix &X, Vector &y, int col
     // Vector v;
     // v.Dimension(X.rows, 0.0);
 
-    for (int i = 0; i < X.rows; i++){
-        double bnull = 0.0;
-        for (int j = 0; j < X.cols; j++){
-            if (j == colToTest) continue; // this corresponds to testing the coeff to be 0
-            bnull += X[i][j] * betaHat[j];
-        }
+    for (int i = 0; i < Xnull.rows; i++){
+        // double bnull = 0.0;
+        // for (int j = 0; j < X.cols; j++){
+        //     if (j == colToTest) continue; // this corresponds to testing the coeff to be 0
+        //     bnull += X[i][j] * betaHat[j];
+        // }
 
         // bnull = exp(bnull);
         //U += xcol[i] * ( bnull*(-1.0+y[i]) + y[i] ) / (1.0 + bnull);
-        double tmpBull = exp( bnull ); // Here bull = exp(X * betaNull)
-        bnull = tmpBull / (1 + tmpBull);
+        // double tmpBull = exp( bnull ); // Here bull = exp(X * betaNull)
+        // bnull = tmpBull / (1 + tmpBull);
 
-        U += xcol[i] * ( y[i] - bnull );
+        U += Xcol[i] * ( y[i] - lr.GetPredicted()[i] );
 
-        bnull =  bnull/ (1 + tmpBull) ;  // So bull = exp(XbetaNull)/(1+exp(XbetaNull))^2
+        // bnull =  bnull/ (1 + tmpBull) ;  // So bull = exp(XbetaNull)/(1+exp(XbetaNull))^2
 
-        double tmp = xcol[i]/( 1.0 + bnull ); // xcol[i] = x[i][colToTest];
+        // double tmp = xcol[i]/( 1.0 + lr.V[i] ); // xcol[i] = x[i][colToTest];
 
         // calcualte vec_corr
         for (int j = 0; j < Xnull.cols; j ++) {
-            vec_corr[j] += bnull * xcol[i] * Xnull[i][j];
+            vec_corr[j] += lr.GetVariance()[i] * Xcol[i] * Xnull[i][j];
             // printf("j = %d, xcol = %d, Xnull = %d\n",j,bnull, xcol[j], Xnull[i][j]);
         }
 
         // calcualte mat_corr
         for (int j = 0; j < nParamRemain; j ++) {
             for (int k = 0; k < nParamRemain; k ++) {
-                mat_corr[j][k] += bnull * Xnull[i][j] * Xnull[i][k];
+                mat_corr[j][k] += lr.GetVariance()[i] * Xnull[i][j] * Xnull[i][k];
             }
         }
 
         // I += bnull * tmp * tmp;
-        I += bnull * xcol[i] * xcol[i];
-        printf("i=%d U=%.5f I=%.5f\n", i, U, I);
+        I += lr.GetVariance()[i] * Xcol[i] * Xcol[i];
+        // printf("i=%d U=%.5f I=%.5f\n", i, U, I);
     }
 
-    printf("size of mat_corr = (%d, %d)\n", mat_corr.rows, mat_corr.cols);
+    // printf("size of mat_corr = (%d, %d)\n", mat_corr.rows, mat_corr.cols);
 
-    for (int i = 0; i < Xnull.cols; i ++) {
-        printf("vec_corr[%d] = %.5f\n",i, vec_corr[i]);
-        for (int j = 0; j < Xnull.cols; j ++) {
-            printf("mat_corrr[%d]%d] = %.5f\n",i, j, mat_corr[i][j]);
-        }
-    }
+    // for (int i = 0; i < Xnull.cols; i ++) {
+    //     printf("vec_corr[%d] = %.5f\n",i, vec_corr[i]);
+    //     for (int j = 0; j < Xnull.cols; j ++) {
+    //         printf("mat_corrr[%d]%d] = %.5f\n",i, j, mat_corr[i][j]);
+    //     }
+    // }
 
     // inverse the mat_corr
     SVD svd;
@@ -501,10 +517,42 @@ bool LogisticRegressionScoreTest::FitLogisticModel(Matrix &X, Vector &y, int col
         I -= leftMult_corr[i] * vec_corr[i];
     }
 
-    printf("In the end, I = %.5f\n",I);
+    // printf("In the end, I = %.5f\n",I);
+    if (I < 1e-6) {
+        this->pvalue = 0.0;
+        return false;
+    }
 
-    this->pvalue = chidist(U*U/I,1.0); // use chisq to inverse
-}
+    this->pvalue = chidist(U*U/I, 1.0); // use chisq to inverse
+    return true;
+};
+
+bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
+    // notation is from Danyu Lin's paper
+    double sumSi = 0.0;
+    double sumSi2 = 0.0; 
+    double sumYi = 0.0;
+    int l = x.Length();
+    for (int i = 0; i < l; i++){
+        sumSi += x[i];
+        sumSi2 += x[i]*x[i];
+        sumYi += y[i];
+    };
+    double yMean = sumYi / l;
+    double U = 0.0;
+    for (int i = 0; i < l; i++){
+        U += (y[i] - yMean) * x[i];
+    };
+    int n = y.Length();
+    double V = yMean * (1.0 - yMean) * (sumSi2 - sumSi / n *sumSi);
+    if (V < 1e-6) {
+        this->pvalue = 0.0;
+        return false;
+    }
+
+    this->pvalue = chidist(U*U/V, 1.0); // use chisq to inverse
+    return true;
+};
 
 void LogisticRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol){
     if (x.cols < 2) {

@@ -105,7 +105,11 @@ public:
         this->rangeMap.clear();
     };
     size_t size() const { return this->rangeMap.size();};
-private:
+    void clear() {
+        this->chrVector.clear();
+        this->rangeMap.clear();
+    };
+  private:
     void sortChrVector() {
         std::sort(chrVector.begin(), chrVector.end());
     };
@@ -185,9 +189,9 @@ RangeList(): isSorted(false) {};
     bool isInRange(const std::string& chr, int pos) {
         return this->rangeCollection.isInRange(chr, pos);
     };
-    bool clear() {
-        this->isSorted = false;
+    void clear() {
         this->rangeCollection.clear();
+        this->isSorted = false;
     };
 private:
     RangeCollection rangeCollection;

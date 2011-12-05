@@ -1,6 +1,8 @@
 #ifndef _ORDEREDMAP_H_
 #define _ORDEREDMAP_H_
 
+#include <cassert>
+
 /**
  * a simple OrderedMap class
  * use operator[] to insert elements
@@ -80,6 +82,10 @@ class OrderedMap{
         *otherUniqueKeys = other.size() - *overlap;
     }
     unsigned int size() const { return this->keyVec.size();} ;
+    void clear() {
+        this->keyVec.clear();
+        this->keyTypeMap.clear();
+    };
   private:
     std::vector < KEY > keyVec;
     std::map < KEY, TYPE > keyTypeMap;

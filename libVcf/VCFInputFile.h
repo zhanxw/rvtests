@@ -70,13 +70,18 @@ public:
         ti_close(this->tabixHandle);
     };
 
-    void setRangeFile(const char* fn) {
+    void clearRange() {
         this->range.clear();
+        this->rangeIdx = 0;
+        this->s = 0;
+    };
+    void setRangeFile(const char* fn) {
+        this->clearRange();
         this->range.addRangeFile(fn);
     }
     // @param l is a string of range(s)
     void setRangeList(const char* l){
-        this->range.clear();
+        this->clearRange();
         this->range.addRangeList(l);
     }
 
@@ -122,10 +127,11 @@ public:
             } // end hasIndex
             else { // no index
                 // no index so force quitting
-                fprint(stderr, "Index file is required to read by section\n");
+                fprintf(stderr, "Failed to load index when accessing VCF by region\n");
                 abort();
+
                 // legacy code (when there is no index but still want to parse VCF file).
-                fprintf(stderr, "Should not reach here!!\n");
+                // legacy code that can handle region in a slow but working way.
                 while(this->fp->readLine(&this->line)){
                     this->record.parse(line.c_str());
                     if (!this->range.isInRange(this->record.getChrom(), this->record.getPos()))

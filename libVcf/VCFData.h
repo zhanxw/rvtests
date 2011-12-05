@@ -111,6 +111,15 @@ public:
         };
         fclose(fBed);
     };
+    void loadMarkerSetFromVCF(const char * fVCF, const char* fSet) {
+    };
+    void loadMarkerSetFromPlink(const char * fVCF, const char* fSet) {
+    };
+    void loadMarkerSetFromVCF(const char* fVCF, RangeList& rl){
+    };
+    void loadMarkerSetFromPlink(const char* fVCF, RangeList& rl){
+    };
+
     // col: 1-based column 
     // return: num of people whose phenotype that are not set
     // return 0: success
@@ -185,8 +194,15 @@ public:
      *  content line: P1 1.0 2.0 ...
      */
     int writeCovariate(const char* fn) {
-        this->readTabularFile(fn, this->covariate, this->peopleName, this->covName);
+        OrderedMap<std::string, int> peopleName;
+        OrderedMap<std::string, int> covName;
+        this->readTabularFile(fn, this->covariate, &peopleName, &covName);
         // check how many people covariate are read or not read.
+        return 0;
+    };
+    int readTabularFile(const char* fn, Matrix* m, OrderedMap<std::string, int>* rowLabel, OrderedMap<std::string, int>* colLabel){
+        fprintf(stderr, "TODO\n");
+        return 0;
     };
     // read genotypes.
     // required format:
@@ -199,7 +215,7 @@ public:
 
         if (!fn || strlen(fn) == 0) {
             fprintf(stderr, "Cannot read genotypes from %s, as it is empty.\n", fn);
-            continue;
+            return;
         }
         
         LineReader lr(fn);
@@ -208,14 +224,17 @@ public:
         while (lr.readLineBySep(&fd, "\t ")){
             if (!lineNo) {// header line
                 for (int i = 1; i < fd.size(); i++) {
+                    if (this->marker2Idx.find(fd[i])) {
+                        fprintf(stderr, "Duplicate marker %s.\n", fd[i].c_str());
+                    }
                     this->marker2Idx[fd[i]] = (i-1);
                 };
                 fprintf(stdout, "%d marker(s) loaded.\n", this->marker2Idx.size());
             } else { // body lines
                 this->people2Idx[fd[0]] = (lineNo - 1);
-                this->genotype.Dimension( this->marker2Idx.size(), this->people2Idx.size());
+                this->genotype->Dimension( this->marker2Idx.size(), this->people2Idx.size());
                 for (unsigned int  m = 1; m < fd.size(); m++) {
-                    (*this->genotype) [ (lineNo - 1)] [ m] = atoi(fd[m]);
+                    (*this->genotype) [ (lineNo - 1)] [ int(m)] = atoi(fd[m]);
                 }
             }
             lineNo ++;
@@ -226,7 +245,7 @@ public:
     //   have header: PeopleID MarkerName[0] MarkerName[1]...
     //   don't have row names
     //   genotype are people x marker
-    void writeGenotypeToR(const char* fn, ){
+    void writeGenotypeToR(const char* fn){
         FileWriter fw(fn);
         // header
         fw.write("PeopleID");
@@ -243,9 +262,11 @@ public:
         fw.write("\n");
 
         // content
-        for (int p = 0; p < this->numPeople; p++ ){
+        int numMarker = this->marker2Idx.size();
+        int numPeople = this->people2Idx.size();
+        for (int p = 0; p < numPeople; p++ ){
             fw.write(this->people2Idx.keyAt(p).c_str());
-            for (int m = 0; m < this->numMarker; m++) {
+            for (int m = 0; m < numMarker; m++) {
                 fw.printf("\t%d", (int)((*this->genotype)[m][p]));
             }
             fw.write("\n");
@@ -276,8 +297,6 @@ private:
         if (this->marker2Idx.size() != lineNo) {
             fprintf(stderr, "Duplicate markers in %s.\n", fn );
         }
-        this->numMarker = marker2Idx.size();
-        
     }
     void loadPeopleFromFam(const char* fn){
         std::vector<std::string> fd;
@@ -295,8 +314,8 @@ private:
         if (this->people2Idx.size() != lineNo){
             fprintf(stderr, "Dupliate people name in %s.\n", fn);
         };
-        this->numPeople = this->people2Idx.size();
-        (*this->phenotype).Dimension(numPeople, 1);
+        // this->numPeople = this->people2Idx.size();
+        (*this->phenotype).Dimension(this->people2Idx.size(), 1);
         
         for (int i = 0; i < pheno.Length(); i++){
             (*this->phenotype)[i][0] = pheno[i];
@@ -308,23 +327,28 @@ private:
         this->markerCount.clear();
         this->markerTotalAllele.clear();
             
-        for (unsigned int i = 0; i < genotype->nrow; i++) {
+        for (int i = 0; i < genotype->rows; i++) {
             int count = 0;
             int totalAllele = 0;
-            for (unsigned int j = 0; j < genotype->ncol; j++) {
+            for (int j = 0; j < genotype->cols; j++) {
                 if (genotype < 0) continue;
-                count += genotype[i][j];
+                count += (*genotype)[i][j];
                 totalAllele += 2;
             }
             this->markerCount.push_back(count);
             this->markerTotalAllele.push_back(totalAllele);
             if (totalAllele == 0)
-                this->markerFreq.push_back(NaN);
+                this->markerFreq.push_back(-1);
             else
                 this->markerFreq.push_back( (double)(count) / totalAllele);
         }
     };
+  public:
+#if 0
 private:
+#else
+#pragma message "Change class VCFData private properties?"
+#endif
     Matrix* genotype; // marker x people
     Matrix* covariate; // people x cov
     Matrix* phenotype; // people x phenotypes

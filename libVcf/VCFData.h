@@ -25,16 +25,50 @@ public:
         if (this->phenotype) delete this->phenotype;
         if (this->covariate) delete this->covariate;
     }
-    void loadVCFHeader(VCFHeader* h){
+    // adjust covariate and pheonotype
+    // so the data will be matched later on.
+    void addVCFHeader(VCFHeader* h){
         std::vector<std::string> p;
         h->getPeopleName(&p);
         for (int i = 0; i < p.size(); i++){
             this->people2Idx[p[i]] = i;
         };
     };
-    void loadVCFRecord(VCFRecord* r){
-        //add one marker for all people
-        FATAL("Not ready at this moment. Will provide soon.\n");
+    /**
+     * NOTE: call addVCFHeader()  first
+     */
+    void addVCFRecord(VCFRecord& r){
+        // make sure the phenotype, covariate and matched by peopleID
+        // and match genotype peopleID to pheontoype and covaraite
+
+        // add people genotype
+        // 1. find markerName/row index
+        std::string m = r->getID().toStr();
+        int rowNum = -1;
+        if (this->marker2Idx.find(m)) {
+            rowNum = this->marker2Idx[m];
+        } else{
+            rowNum = this->genotype->rows;
+            this->genotype->Dimension(rowNum + 1, this->genotype->cols);
+        };
+        
+        VCFPeople& people = r.getPeople();
+        VCFIndividual* indv;
+        for (int i = 0; i < people.size(); i++) {
+            indv = people[i];
+            // find peopleName/col index.
+            if (!this->people2Idx.find(indv->getName)) {
+                continue;
+            }
+            int colName = this->people2Idx.find(indv->getName);
+
+            // get GT index. if you are sure the index will not change, call this function only once!
+            int GTidx = r.getFormatIndex("GT");
+            if (GTidx >= 0) 
+                (*this->genotype)[rowNum][colNum] = (*indv)[GTidx].getGenotype();
+            else 
+                (*this->genotype)[rowNum][colNum] = MISSING_GENOTYPE;
+        }
     };
     // load data from plink format
     void loadPlink(const char* prefix){
@@ -149,6 +183,7 @@ public:
         };
         return (this->people2Idx.size() - processed.size());
     };
+
     void writePhenotype(const char* fn){
 
     };
@@ -246,34 +281,59 @@ public:
     //   don't have row names
     //   genotype are people x marker
     void writeGenotypeToR(const char* fn){
+        this->writeTable(fn, this->genotype, this->marker2Idx, this->people2Idx, "MarkerName");
+    };
+    void writeCollapsedGenotype( const char* fn){
+        this->writeTable(fn, this->collapsedGenotype, this->people2Idx, this->set2Idx, "PeopleID");
+    };
+    void writeCovariate(const char* fn) {
+        this->writeTable(fn, this->genotype, this->people2Idx, this->covaraite2Idx, "PeopleID");
+    };
+    void writePhenotype(const char* fn) {
+        this->writeTable(fn, this->genotype, this->people2Idx, this->phenotype2Idx, "PeopleID");
+    };
+
+    /**
+     */
+    void writeTable(const char* fn,
+                    Matrix* data, OrderedSet<std::string, int> & rowName, OrderedSet<std::string, int> & colName, const char* upperLeftName) {
+        if (rowName.size() != data->rows) {
+            fprintf(stderr, "Row number does not match!");
+            return;
+        }
+        if (colName.size() != data->cols) {
+            fprintf(stderr, "Col number does not match!");
+            return;
+        }
+
         FileWriter fw(fn);
         // header
-        fw.write("PeopleID");
-        for (int i = 0; i < markerName.size(); i++){
+        fw.write(upperLeftName);
+        for (int i = 0; i < colName.size(); i++){
             fw.write("\t");
-            if (markerName[i].size() == 0){
+            if (colName[i].size() == 0){
                 fw.write("\".\"");
             }else {
                 fw.write("\"");
-                fw.write(markerName[i].c_str());
+                fw.write(colName.keyAt[i].c_str());
                 fw.write("\"");
             }
         };
         fw.write("\n");
 
         // content
-        int numMarker = this->marker2Idx.size();
-        int numPeople = this->people2Idx.size();
-        for (int p = 0; p < numPeople; p++ ){
-            fw.write(this->people2Idx.keyAt(p).c_str());
-            for (int m = 0; m < numMarker; m++) {
-                fw.printf("\t%d", (int)((*this->genotype)[m][p]));
+        int numCol = this->colName.size();
+        int numRow = this->rowName.size();
+        for (int r = 0; r < numRow; r++ ){
+            fw.write(rowName.keyAt(p).c_str());
+            for (int c = 0; c < numCol; c++) {
+                fw.printf("\t%d", (int)((*data)[r][c]));
             }
             fw.write("\n");
         }
         fw.close();
     };
-
+    
     // use friend class to save codes...
     friend class Collapsor;
     Matrix* getGeno() {return this->genotype;};
@@ -350,6 +410,7 @@ private:
 #pragma message "Change class VCFData private properties?"
 #endif
     Matrix* genotype; // marker x people
+    Matrix* collapsedGenotype;
     Matrix* covariate; // people x cov
     Matrix* phenotype; // people x phenotypes
     
@@ -367,6 +428,10 @@ private:
 
     OrderedMap<std::string, int> marker2Idx; // markerName -> idx in this->genotype
     // int numMarker;
+    
+    OrderedMap<std::string, int> phenotype2Idx; // phenotype -> idx in this->collapsedGenotype
+    OrderedMap<std::string, int> set2Idx; // collapsedSetName -> idx in this->collapsedGenotype
+j
 }; // end VCFData
 
 #endif /* _VCFDATA_H_ */

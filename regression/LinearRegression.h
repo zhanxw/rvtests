@@ -20,6 +20,7 @@ class LinearRegression{
 	Matrix & GetCovB() {return this->covB;};
     Vector & GetPredicted() { return this->predict;};
     Vector & GetResiduals() { return this->residuals;};
+    double GetSigma2() {return this->sigma2;};
     Vector B;       // coefficient vector
     Matrix covB;    // coefficient covariance matrix
   private:
@@ -28,6 +29,7 @@ class LinearRegression{
     Vector predict;  // Y - X' \hat(beta)
     Matrix XtXinv;   // (X'X)^ {-1}
     Cholesky chol;
+    double sigma2; // \hat{\sigma^2} MLE
 };
 
 class LinearRegressionScoreTest{
@@ -37,9 +39,18 @@ class LinearRegressionScoreTest{
 
     bool FitNullModel(Matrix& Xnull, Vector& y);
     bool TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol);
+    /**
+     * Test H0: \beta = 0  (\beta is multiple dimension).
+     * y ~ \beta * Xcol + \gamma * Xnull  
+     */
+    bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
     
     // fit y~1+ beta*x  (no covariate)
     bool TestCovariate(Vector& x, Vector& y);
+    /**
+     * Test y~ 1 + \beta * X (no covariate)
+     */
+    bool TestCovariate(Matrix& x, Vector& y);
 
     double getPvalue() const {return this->pvalue;};
 

@@ -408,6 +408,7 @@ bool LogisticRegressionScoreTest::FitNullModel(Matrix& Xnull, Vector& y, int nRo
     }
     return true;
 };
+
 bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol){
     double U = 0.0;
     double I = 0.0;
@@ -527,6 +528,10 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector
     return true;
 };
 
+bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol){
+
+};
+
 bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
     // notation is from Danyu Lin's paper
     double sumSi = 0.0;
@@ -552,6 +557,10 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
 
     this->pvalue = chidist(U*U/V, 1.0); // use chisq to inverse
     return true;
+};
+
+bool LogisticRegressionScoreTest::TestCovariate(Matrix& x, Vector& y){
+
 };
 
 void LogisticRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol){

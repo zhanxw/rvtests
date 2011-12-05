@@ -20,11 +20,11 @@ bool LinearRegression::FitLinearModel(Matrix & X, Vector & y){
     this->residuals = y;
     this->residuals.Subtract(this->predict);
 
-    double sigma2 = 0.0;
+    this->sigma2 = 0.0;
     for (int i = 0; i < this->B.Length(); i++){
         sigma2 += (this->residuals[i]) * (this->residuals[i]);
     }
-    sigma2 /= (this->B.Length() - X.cols);
+    sigma2 /= y.Length(); // MLE estimates of sigma2
 
     this->covB = this->XtXinv;
     this->covB.Multiply(sigma2);
@@ -119,14 +119,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& 
         I -= leftMult_corr[i] * vec_corr[i];
     }
 
-    double sigma2 = 0.0;
-    Vector & residuals = this->lr.GetResiduals();
-    for (int i = 0; i < residuals.Length(); i++){
-        sigma2 += residuals[i] * residuals[i];
-    }
-    sigma2 /=  residuals.Length();
-    
-    I *= sigma2;
+    I *= this->lr.GetSigma2();
 
     // printf("In the end, I = %.5f\n",I);
     if (I < 1e-6) {
@@ -136,6 +129,39 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& 
 
     this->pvalue = chidist(U*U/I, 1.0); // use chisq to inverse
     return true;
+};
+
+/** NOTE:
+ * S_i is column i of the transposed @param Xcol, S_i is m by 1 dimension
+ * U = \sum_i (Y_i - \hat{\gamma}^T Z_i ) * S_i
+ * V = \hat{\sigma}^2 ( \sum _i S_i^T S_i - (\sum Z_i S_i^T) T  inv(\sum Z_i Z_i^T) (\sum Z_i S_i^T)
+ */
+bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol){
+    if (Xnull.rows != y.Length() || y.Length() != Xcol.rows){
+        fprintf(stderr, "Incompatible dimensino.\n");
+        return false;
+    }
+    int n = Xcol.rows;
+    int m = Xcol.cols;
+    int d = Xnull.cols;
+
+    Vector U(m);
+    Matrix SS(m,m);
+    Matrix SZ(d,m);
+    Matrix ZZ(d,d);
+    U.Zero();
+    SS.Zero();
+    SZ.Zero();
+    ZZ.Zero();
+        
+    for (int i = 0; i < n; i ++){
+        U += X[i] * this->lr.GetResiduals()[i];
+
+        SS += X[i] * Transpose(X[i]) ;
+        SZ += X[i] * Xnull[i];
+        
+    }
+
 };
 
 bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
@@ -168,6 +194,10 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
 
     this->pvalue = chidist(U*U/V, 1.0); // use chisq to inverse
     return true;
+};
+
+bool LinearRegressionScoreTest::TestCovariate(Matrix& x, Vector& y){
+
 };
 
 void LinearRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol){

@@ -75,6 +75,9 @@ public:
             this->allIndv[i] = NULL;
         }
     };
+
+    //////////////////////////////////////////////////////////////////////
+    // Code related with include/exclude people
     void includePeople(const std::string& name){
         if (name.size() == 0) return;
         for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
@@ -83,11 +86,13 @@ public:
                 p->include();
             }
         }
+        this->hasAccess = false;
     };
     void includePeople(const std::vector<std::string>& v){
         for (unsigned int i = 0; i < v.size(); i++){
             this->includePeople(v[i]);
         }
+        this->hasAccess = false;
     };
     void includePeopleFromFile(const char* fn){
         if (!fn || strlen(fn) == 0) return;
@@ -97,12 +102,14 @@ public:
             for (unsigned int i = 0; i < fd.size(); i++)
                 this->includePeople(fd[i]);
         }
+        this->hasAccess = false;
     };
     void includeAllPeople() {
         for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
             VCFIndividual* p = this->allIndv[i];
             p->include();
         }
+        this->hasAccess = false;
     };
     void excludePeople(const std::string& name){
         if (name.size() == 0) return;
@@ -112,11 +119,13 @@ public:
                 p->exclude();
             }
         }
+        this->hasAccess = false;
     };
     void excludePeople(const std::vector<std::string>& v){
         for (unsigned int i = 0; i != v.size(); i++ ){
             this->excludePeople(v[i]);
         }
+        this->hasAccess = false;
     };
     void excludePeopleFromFile(const char* fn){
         if (!fn || strlen(fn) == 0) return;
@@ -126,12 +135,14 @@ public:
             for (unsigned int i = 0; i != fd.size(); i++)
                 this->excludePeople(fd[i]);
         }
+        this->hasAccess = false;
     };
     void excludeAllPeople() {
         for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
             VCFIndividual* p = this->allIndv[i];
             p->exclude();
         }
+        this->hasAccess = false;
     };
     const char* getInfoTag(const char* tag) {
         return this->vcfInfo.getTag(tag);

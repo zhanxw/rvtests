@@ -102,6 +102,11 @@ int main(int argc, char** argv){
     collapsor.setSetFileName("set.txt");
     collapsor.setCollapsingStrategy(Collapsor::CMC);
     VCFData data;
+    // data.LoadCovariate("cov.txt");
+    // data.LoadPhenotype("pheno.txt");
+    Vector pheno;
+    data->getPhenotype(&pheno);
+
     LogisticModelFitter lmf;
     PermutateModelFitter lmf;
 
@@ -117,6 +122,7 @@ int main(int argc, char** argv){
         // output 
         data.writeRawData(setName.c_str());
         collapsor.writeOutput(fout);
+        lmf.fitModel(data);
         lmf.writeOutput(fout);
     }
 

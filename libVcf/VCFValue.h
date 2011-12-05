@@ -43,6 +43,7 @@ public:
         }
     };
 public:
+    // try to convert to genotype
     int getGenotype(){
         int g = 0;
         int p = beg;

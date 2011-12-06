@@ -1,5 +1,16 @@
 #include "LinearRegression.h"
 
+static void MatrixPlusEqualV1andV2T(Matrix& m, Vector& v1, Vector& v2){
+    if (m.rows != v1.Length() || m.cols != v2.Length()){
+        fprintf(stderr, "Dimension does not match!");
+    };
+    for (int i = 0; i < m.rows; i++){
+        for (int j = 0; j < m.cols; j++){
+            m[i][j] += v1[i] * v2[j];
+        }
+    }
+};
+
 bool LinearRegression::FitLinearModel(Matrix & X, Vector & y){
     Matrix Xt;
     Xt.Transpose(X);
@@ -131,10 +142,38 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& 
     return true;
 };
 
+bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
+    // notation is from Danyu Lin's paper
+    double sumSi = 0.0;
+    double sumSi2 = 0.0; 
+    double sumYi = 0.0;
+    int l = x.Length();
+    for (int i = 0; i < l; i++){
+        sumSi += x[i];
+        sumSi2 += x[i]*x[i];
+        sumYi += y[i];
+    };
+    double yMean = sumYi / l;
+    double U = 0.0;
+    double sigma2 = this->lr.GetSigma2();
+
+    int n = y.Length();
+    double V = sigma2 * (sumSi2 - sumSi / n *sumSi);
+    if (V < 1e-6) {
+        this->pvalue = 0.0;
+        return false;
+    }
+
+    this->pvalue = chidist(U*U/V, 1.0); // use chisq to inverse
+    return true;
+};
+    
+
 /** NOTE:
  * S_i is column i of the transposed @param Xcol, S_i is m by 1 dimension
  * U = \sum_i (Y_i - \hat{\gamma}^T Z_i ) * S_i
- * V = \hat{\sigma}^2 ( \sum _i S_i^T S_i - (\sum Z_i S_i^T) T  inv(\sum Z_i Z_i^T) (\sum Z_i S_i^T)
+ * V = \hat{\sigma}^2 ( \sum _i S_i S_i^T - (\sum Z_i S_i^T) T  inv(\sum Z_i Z_i^T) (\sum Z_i S_i^T)
+ * U^T*inv(V)*U is the score test statistic
  */
 bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol){
     if (Xnull.rows != y.Length() || y.Length() != Xcol.rows){
@@ -155,49 +194,87 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
     ZZ.Zero();
         
     for (int i = 0; i < n; i ++){
-        U += X[i] * this->lr.GetResiduals()[i];
+        U.AddMultiple(this->lr.GetResiduals()[i], Xcol[i]) ;
 
-        SS += X[i] * Transpose(X[i]) ;
-        SZ += X[i] * Xnull[i];
-        
+        MatrixPlusEqualV1andV2T(SS, Xcol[i], Xcol[i]);
+        MatrixPlusEqualV1andV2T(SZ, Xcol[i], Xnull[i]);
+        MatrixPlusEqualV1andV2T(ZZ, Xnull[i], Xnull[i]);
     }
+    // inverse in place ZZ
+    SVD svd;
+    svd.InvertInPlace(ZZ);
+    
+    Matrix ZS;
+    ZS.Transpose(SZ);
+    SZ.AddMultiple(0.0, ZZ);
+    SZ.AddMultiple(0.0, ZS);
+    
+    SZ.Negate();
+    SS.Add(SZ);
 
-};
-
-bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
-    // notation is from Danyu Lin's paper
-    double sumSi = 0.0;
-    double sumSi2 = 0.0; 
-    double sumYi = 0.0;
-    int l = x.Length();
-    for (int i = 0; i < l; i++){
-        sumSi += x[i];
-        sumSi2 += x[i]*x[i];
-        sumYi += y[i];
-    };
-    double yMean = sumYi / l;
-    double U = 0.0;
-    double sigma2 = 0.0;
-    for (int i = 0; i < l; i++){
-        double tmp = y[i] - yMean;
-        sigma2 += tmp * tmp;
-        U += tmp * x[i];
-    };
-    sigma2 /= x.Length();
-
-    int n = y.Length();
-    double V = sigma2 * (sumSi2 - sumSi / n *sumSi);
-    if (V < 1e-6) {
-        this->pvalue = 0.0;
-        return false;
+    svd.InvertInPlace(SS);
+    double S = 0.0; 
+    for (int i = 0; i < m; i++){
+        S += U[i] * SS[i][i] * U[i];
+        for (int j = i+1; j < m; j++){
+            S += 2.0 * U[i] * SS[i][j] * U[j];
+        }
     }
+    
+    S /= this->lr.GetSigma2();
 
-    this->pvalue = chidist(U*U/V, 1.0); // use chisq to inverse
+    this->pvalue = chidist(S, n); // use chisq to inverse
     return true;
 };
 
-bool LinearRegressionScoreTest::TestCovariate(Matrix& x, Vector& y){
 
+/** NOTE
+ * S_i is column i of the transposed @param X, S_i is m by 1 dimension
+ * U = \sum_i (Y_i - \hat{\gamma}^T Z_i ) * S_i
+ * V = \hat{\sigma}^2 ( \sum _i S_i S_i^T - (\sum S_i)  (\sum S_i^T) / n)
+ * U^T*inv(V)*U is the score test statistic
+ */
+bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
+    if (X.rows != y.Length()){
+        fprintf(stderr, "Incompatible dimensino.\n");
+        return false;
+    }
+    int m = X.cols; // also: df
+    int n = X.rows;
+
+    Vector U(m);
+    Matrix SS(m,m);
+    Vector SumS(m);
+    U.Zero();
+    SS.Zero();
+    SumS.Zero();
+
+    for (int i = 0; i < X.rows; i++){
+        U.AddMultiple(this->lr.GetResiduals()[i], X[i]) ;
+        MatrixPlusEqualV1andV2T(SS, X[i], X[i]);
+        SumS.Add(X[i]);
+    }
+    Matrix temp;
+    temp.Copy(SS);
+    MatrixPlusEqualV1andV2T(temp, SumS, SumS);
+    temp.Negate();
+    SS.Add(temp);
+
+    SVD svd;
+    svd.InvertInPlace(SS);
+    double S = 0.0; 
+    for (int i = 0; i < m; i++){
+        S += U[i] * SS[i][i] * U[i];
+        for (int j = i+1; j < m; j++){
+            S += 2.0 * U[i] * SS[i][j] * U[j];
+        }
+    }
+    
+    S /= this->lr.GetSigma2();
+
+    this->pvalue = chidist(S, n); // use chisq to inverse
+    return true;
+    
 };
 
 void LinearRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol){

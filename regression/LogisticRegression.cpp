@@ -38,6 +38,17 @@ void printToFile(Matrix& m, String fn, int index) {
 }
 #endif
 
+static void MatrixPlusEqualV1andV2TWithWeight(Matrix& m, Vector& v1, Vector& v2, double w){
+    if (m.rows != v1.Length() || m.cols != v2.Length()){
+        fprintf(stderr, "Dimension does not match!");
+    };
+    for (int i = 0; i < m.rows; i++){
+        for (int j = 0; j < m.cols; j++){
+            m[i][j] += v1[i] * v2[j] * w;
+        }
+    }
+};
+
 LogisticRegression::LogisticRegression()
 {
 }
@@ -528,10 +539,6 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector
     return true;
 };
 
-bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol){
-
-};
-
 bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
     // notation is from Danyu Lin's paper
     double sumSi = 0.0;
@@ -559,8 +566,120 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
     return true;
 };
 
-bool LogisticRegressionScoreTest::TestCovariate(Matrix& x, Vector& y){
 
+    
+
+/** NOTE:
+ * S_i is column i of the transposed @param Xcol, S_i is m by 1 dimension
+ * U = \sum_i (Y_i - \hat{\gamma}^T Z_i ) * S_i
+ * V =  ( \sum _i v_i S_i S_i^T - (\sum v_i Z_i S_i^T) T  inv(\sum v_i Z_i Z_i^T) (\sum v_i Z_i S_i^T)
+ * U^T*inv(V)*U is the score test statistic
+ */
+bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol){
+    if (Xnull.rows != y.Length() || y.Length() != Xcol.rows){
+        fprintf(stderr, "Incompatible dimensino.\n");
+        return false;
+    }
+    int n = Xcol.rows;
+    int m = Xcol.cols;
+    int d = Xnull.cols;
+
+    Vector U(m);
+    Matrix SS(m,m);
+    Matrix SZ(d,m);
+    Matrix ZZ(d,d);
+    U.Zero();
+    SS.Zero();
+    SZ.Zero();
+    ZZ.Zero();
+
+    Vector& v = this->lr.GetVariance();
+    for (int i = 0; i < n; i ++){
+        U.AddMultiple(y[i] - this->lr.GetPredicted()[i], Xcol[i]) ;
+
+        MatrixPlusEqualV1andV2TWithWeight(SS, Xcol[i], Xcol[i], v[i]);
+        MatrixPlusEqualV1andV2TWithWeight(SZ, Xcol[i], Xnull[i], v[i]);
+        MatrixPlusEqualV1andV2TWithWeight(ZZ, Xnull[i], Xnull[i], v[i]);
+    }
+    // inverse in place ZZ
+    SVD svd;
+    svd.InvertInPlace(ZZ);
+    
+    Matrix ZS;
+    ZS.Transpose(SZ);
+    SZ.AddMultiple(0.0, ZZ);
+    SZ.AddMultiple(0.0, ZS);
+    
+    SZ.Negate();
+    SS.Add(SZ);
+
+    // S = U^T inv(I) U : quadratic form
+    svd.InvertInPlace(SS);
+    double S = 0.0; 
+    for (int i = 0; i < m; i++){
+        S += U[i] * SS[i][i] * U[i];
+        for (int j = i+1; j < m; j++){
+            S += 2.0 * U[i] * SS[i][j] * U[j];
+        }
+    }
+
+    this->pvalue = chidist(S, n); // use chisq to inverse
+    return true;
+};
+
+/** NOTE
+ * S_i is column i of the transposed @param X, S_i is m by 1 dimension
+ * U = \sum_i (Y_i - \hat{\gamma}^T Z_i ) * S_i
+ * V = (yMean)(1-yMean) ( \sum _i v_i S_i S_i^T - (\sum v_i S_i)  (\sum v_i S_i^T) / n)
+ * U^T*inv(V)*U is the score test statistic
+ */
+bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
+    if (X.rows != y.Length()){
+        fprintf(stderr, "Incompatible dimensino.\n");
+        return false;
+    }
+    int m = X.cols; // also: df
+    int n = X.rows;
+
+    Vector U(m);
+    Matrix SS(m,m);
+    Vector SumS(m);
+    U.Zero();
+    SS.Zero();
+    SumS.Zero();
+
+    
+    Vector& v = this->lr.GetVariance();
+    double sumY = 0.0;
+    for (int i = 0; i < X.rows; i++){
+        U.AddMultiple(y[i] - this->lr.GetPredicted()[i], X[i]) ;
+        MatrixPlusEqualV1andV2TWithWeight(SS, X[i], X[i], v[i]);
+        SumS.Add(X[i]);
+        sumY += this->lr.GetPredicted()[i];
+    }
+    double yMean = sumY / n;
+
+    Matrix temp;
+    temp.Copy(SS);
+    MatrixPlusEqualV1andV2TWithWeight(temp, SumS, SumS, 1.0);
+    temp.Negate();
+    SS.Add(temp);
+
+    SVD svd;
+    svd.InvertInPlace(SS);
+    double S = 0.0; 
+    for (int i = 0; i < m; i++){
+        S += U[i] * SS[i][i] * U[i];
+        for (int j = i+1; j < m; j++){
+            S += 2.0 * U[i] * SS[i][j] * U[j];
+        }
+    }
+    
+    S /= yMean * (1-yMean);
+
+    this->pvalue = chidist(S, n); // use chisq to inverse
+    return true;
+    
 };
 
 void LogisticRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol){

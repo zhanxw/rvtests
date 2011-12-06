@@ -105,26 +105,25 @@ int main(int argc, char** argv){
     // data.LoadCovariate("cov.txt");
     // data.LoadPhenotype("pheno.txt");
     Vector pheno;
-    data->getPhenotype(&pheno);
+    data.extractPhenotype(&pheno);
 
     LogisticModelFitter lmf;
-    PermutateModelFitter lmf;
+    //PermutateModelFitter lmf;
 
     FILE* fout = fopen("results", "w");
     // write headers
     //...
-    while(collapsor.iterateSet(vin)){
+    while(collapsor.iterateSet(vin, &data)){
         std::string& setName = collapsor.getCurrentSetName();
-        collapsor.extractGenotype(data);
+        collapsor.extractGenotype(&data);
         // for each model, fit the genotype data
-        lmf.fit(data);
+        lmf.fit(data.collapsedGenotype, &pheno, data.covariate, fout);
         
         // output 
         data.writeRawData(setName.c_str());
         collapsor.writeOutput(fout);
-        lmf.fitModel(data);
-        lmf.writeOutput(fout);
     }
+    fclose(fout);
 
     // now use analysis module to load data by set
     // load to set

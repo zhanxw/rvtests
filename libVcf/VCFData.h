@@ -1,6 +1,7 @@
 #ifndef _VCFDATA_H_
 #define _VCFDATA_H_
 
+#include "OrderedMap.h"
 #include "MathMatrix.h"
 
 /**
@@ -43,7 +44,7 @@ public:
 
         // add people genotype
         // 1. find markerName/row index
-        std::string m = r->getID().toStr();
+        std::string m = r.getID();
         int rowNum = -1;
         if (this->marker2Idx.find(m)) {
             rowNum = this->marker2Idx[m];
@@ -57,10 +58,10 @@ public:
         for (int i = 0; i < people.size(); i++) {
             indv = people[i];
             // find peopleName/col index.
-            if (!this->people2Idx.find(indv->getName)) {
+            if (!this->people2Idx.find(indv->getName())) {
                 continue;
             }
-            int colName = this->people2Idx.find(indv->getName);
+            int colNum = this->people2Idx[indv->getName()];
 
             // get GT index. if you are sure the index will not change, call this function only once!
             int GTidx = r.getFormatIndex("GT");
@@ -183,9 +184,11 @@ public:
         };
         return (this->people2Idx.size() - processed.size());
     };
-
-    void writePhenotype(const char* fn){
-
+    void extractPhenotype(Vector* v){
+        v->Dimension(this->people2Idx.size());
+        for (int i = 0; i < v->Length(); i++){
+            (*v)[i] = (*this->phenotype)[i][0];
+        }
     };
     // we only load covariate for people that appeared in genotype
     // please use numeric covariate only
@@ -223,17 +226,6 @@ public:
                 (*this->covariate)[idx][col - 2] = atof(fd[col].c_str());
         };
         return (this->people2Idx.size() - processed.size());
-    };
-    /** write covariate to file, format is as following:
-     *  header line: PeopleName CovName1 CovName2 ...
-     *  content line: P1 1.0 2.0 ...
-     */
-    int writeCovariate(const char* fn) {
-        OrderedMap<std::string, int> peopleName;
-        OrderedMap<std::string, int> covName;
-        this->readTabularFile(fn, this->covariate, &peopleName, &covName);
-        // check how many people covariate are read or not read.
-        return 0;
     };
     int readTabularFile(const char* fn, Matrix* m, OrderedMap<std::string, int>* rowLabel, OrderedMap<std::string, int>* colLabel){
         fprintf(stderr, "TODO\n");
@@ -276,18 +268,35 @@ public:
         };
     };
     
+    // outputs:
+    // prefix + ".geno": raw genotype
+    // prefix + ".cgeno": raw genotype
+    // prefix + ".cov": raw genotype
+    // prefix + ".pheno": raw genotype    
+    void writeRawData(const char* prefix){
+        std::string p = prefix;
+        this->writeGenotype( (p + ".geno").c_str());
+        this->writeCollapsedGenotype( (p + ".cgeno").c_str());
+        this->writeCovariate( (p + ".cov").c_str());
+        this->writePhenotype( (p + ".pheno").c_str());
+    };
+
     // write genotype in R format:
     //   have header: PeopleID MarkerName[0] MarkerName[1]...
     //   don't have row names
     //   genotype are people x marker
-    void writeGenotypeToR(const char* fn){
+    void writeGenotype(const char* fn){
         this->writeTable(fn, this->genotype, this->marker2Idx, this->people2Idx, "MarkerName");
     };
     void writeCollapsedGenotype( const char* fn){
         this->writeTable(fn, this->collapsedGenotype, this->people2Idx, this->set2Idx, "PeopleID");
     };
+    /** write covariate to file, format is as following:
+     *  header line: PeopleName CovName1 CovName2 ...
+     *  content line: P1 1.0 2.0 ...
+     */
     void writeCovariate(const char* fn) {
-        this->writeTable(fn, this->genotype, this->people2Idx, this->covaraite2Idx, "PeopleID");
+        this->writeTable(fn, this->genotype, this->people2Idx, this->covariate2Idx, "PeopleID");
     };
     void writePhenotype(const char* fn) {
         this->writeTable(fn, this->genotype, this->people2Idx, this->phenotype2Idx, "PeopleID");
@@ -296,7 +305,9 @@ public:
     /**
      */
     void writeTable(const char* fn,
-                    Matrix* data, OrderedSet<std::string, int> & rowName, OrderedSet<std::string, int> & colName, const char* upperLeftName) {
+                    Matrix* data, OrderedMap<std::string, int> & rowName, 
+                    OrderedMap<std::string, int> & colName, 
+                    const char* upperLeftName) {
         if (rowName.size() != data->rows) {
             fprintf(stderr, "Row number does not match!");
             return;
@@ -311,21 +322,21 @@ public:
         fw.write(upperLeftName);
         for (int i = 0; i < colName.size(); i++){
             fw.write("\t");
-            if (colName[i].size() == 0){
+            if (colName.size() == 0){
                 fw.write("\".\"");
             }else {
                 fw.write("\"");
-                fw.write(colName.keyAt[i].c_str());
+                fw.write(colName.keyAt(i).c_str());
                 fw.write("\"");
             }
         };
         fw.write("\n");
 
         // content
-        int numCol = this->colName.size();
-        int numRow = this->rowName.size();
+        int numCol = colName.size();
+        int numRow = rowName.size();
         for (int r = 0; r < numRow; r++ ){
-            fw.write(rowName.keyAt(p).c_str());
+            fw.write(rowName.keyAt(r).c_str());
             for (int c = 0; c < numCol; c++) {
                 fw.printf("\t%d", (int)((*data)[r][c]));
             }
@@ -428,10 +439,11 @@ private:
 
     OrderedMap<std::string, int> marker2Idx; // markerName -> idx in this->genotype
     // int numMarker;
-    
+
+    OrderedMap<std::string, int> covariate2Idx; // covariate name -> idx in this->covariate
     OrderedMap<std::string, int> phenotype2Idx; // phenotype -> idx in this->collapsedGenotype
     OrderedMap<std::string, int> set2Idx; // collapsedSetName -> idx in this->collapsedGenotype
-j
+
 }; // end VCFData
 
 #endif /* _VCFDATA_H_ */

@@ -7,7 +7,7 @@ class Collapsor{
 public:
     bool setSetFileName(const char* fn){
         this->setContent.clear();
-        this->setNaem.clear();
+        this->setName.clear();
 
         LineReader lr(fn);
         std::vector<std::string> fd;
@@ -21,7 +21,7 @@ public:
             if (fd[1] == "RANGE"){
                 RangeList rl;
                 for (int i = 2; i < fd.size(); i++){
-                    rl.addRange(fd[i]);
+                    rl.addRangeList(fd[i].c_str());
                 }
                 this->setContent.push_back (rl);
                 this->setName.push_back(fd[0]);
@@ -43,14 +43,14 @@ public:
      */
     bool iterateSet(VCFInputFile& vin, VCFData* data){
         setIndex ++;
-        data->addVCFHeader(vin->getHeader());
+        data->addVCFHeader(vin.getVCFHeader());
 
         if (this->setName.size() == 0) {
             // iterate every marker
 
             if (vin.readRecord()){ 
-                VCFRecord& record = vin.readRecord();               
-                vcfdata.addRecord(vcfRecord);
+                VCFRecord& record = vin.getVCFRecord();               
+                data->addVCFRecord(record);
                 return true;
             } else{
                 return false;
@@ -66,8 +66,11 @@ public:
         
         // add genotypes within set to this-> genotype
         for (int i = 0; i < rl.size(); i++ ){
-            vin.setRangeList(rl[i]);
-            vcfdata.addRecord(vcfRecord);
+            vin.setRangeList(rl);
+            while(vin.readRecord()){
+                VCFRecord& record = vin.getVCFRecord();
+                data->addVCFRecord(record);
+            }
         };
     };
 
@@ -98,37 +101,30 @@ public:
     };
     bool writeOutput(FILE* fp){
     };
-    // outputs:
-    // prefix + ".geno": raw genotype
-    // prefix + ".cgeno": raw genotype
-    // prefix + ".cov": raw genotype
-    // prefix + ".pheno": raw genotype    
-    void writeRawData(VCFData* data, const char* prefix){
-        std::string p = prefix;
-        data->writeGenotype( (p + '.geno').c_str());
-        data->writeCollapsedGenotype( (p + '.cgeno').c_str());
-        data->writeCovariate( (p + '.cov').c_str());
-        data->writePhenotype( (p + '.pheno').c_str());
-    };
 public:
     void naiveCollapse(VCFData* d){
-        *(d->collapsedGenotype) = transpose(*d->genotype);
+        int numPeople = d->people2Idx.size();
+        int numMarker = d->marker2Idx.size();
+        d->collapsedGenotype->Dimension(numPeople, numMarker);
+        for (int p = 0; p < numPeople; p++)
+            for (int m = 0; m < numMarker; m++)
+                (*d->collapsedGenotype)[p][m] = (*d->genotype)[m][p];
     };
     void cmcCollapse(VCFData* d){
         int numPeople = d->people2Idx.size();
         int numMarker = d->marker2Idx.size();
-        this->d->collapsedGenotype->Dimension(numPeople, 1);
+        d->collapsedGenotype->Dimension(numPeople, 1);
         for (int p = 0; p < numPeople; p++){
             bool hasVariant = 0;
             int ac = 0; // allele count
             for (int m = 0; m < numMarker; m++) {
                 int g = (*d->genotype)[m][p];
                 if (g > 0) {
-                    (*this->d->collapsedGenotype)[p][0] = 1.0;
+                    (*d->collapsedGenotype)[p][0] = 1.0;
                     break;
                 }
             };
-            (*this->d->collapsedGenotype)[p][0] = 0.0;
+            (*d->collapsedGenotype)[p][0] = 0.0;
         };
     };
     void zegginiCollapse(VCFData* d){
@@ -153,7 +149,7 @@ private:
     int setIndex;                       // record current visited index of set 
     std::vector< std::string> setName;
     std::vector<RangeList> setContent;
-}
+};
 
 #if 0
 /**

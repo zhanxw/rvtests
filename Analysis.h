@@ -5,6 +5,7 @@
 #include "ModelFitter.h"
 #include "VCFData.h"
 
+#if 0
 class Analysis{
 public:
     /**
@@ -76,5 +77,5 @@ public:
     };
 }; // end class CMCAnalysis
 
-
+#endif
 #endif /* _ANALYSIS_H_ */

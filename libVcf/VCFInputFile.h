@@ -78,13 +78,16 @@ public:
     void setRangeFile(const char* fn) {
         this->clearRange();
         this->range.addRangeFile(fn);
-    }
+    };
     // @param l is a string of range(s)
     void setRangeList(const char* l){
         this->clearRange();
         this->range.addRangeList(l);
-    }
-
+    };
+    void setRangeList(RangeList& rl){
+        this->clearRange();
+        this->range = rl;
+    };
     bool readRecord(){
         assert(this->headerLoaded);
         // load contents 

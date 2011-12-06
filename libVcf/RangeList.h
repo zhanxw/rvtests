@@ -105,10 +105,6 @@ public:
         this->rangeMap.clear();
     };
     size_t size() const { return this->rangeMap.size();};
-    void clear() {
-        this->chrVector.clear();
-        this->rangeMap.clear();
-    };
   private:
     void sortChrVector() {
         std::sort(chrVector.begin(), chrVector.end());
@@ -180,6 +176,7 @@ RangeList(): isSorted(false) {};
     unsigned int size() const {return this->rangeCollection.size(); };
     // read gene list file and add these ranges
     void filterGeneName(const char* geneName, const char* fileName);
+    /// argRangeList is a string indicating the range
     void addRangeList(const char* argRangeList);
     void addRangeFile(const char* argRangeFile);
     void addRange(const std::string& chr, unsigned int begin, unsigned int end) {

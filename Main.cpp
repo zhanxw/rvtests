@@ -109,7 +109,7 @@ int main(int argc, char** argv){
     collapsor.setCollapsingStrategy(Collapsor::NAIVE);
     VCFData data;
     // data.LoadCovariate("cov.txt");
-    data.loadPhenotype(FLAG_pheno);
+    data.loadPlinkPhenotype(FLAG_pheno.c_str());
 
     Vector pheno;
     data.extractPhenotype(&pheno);

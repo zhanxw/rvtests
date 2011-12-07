@@ -2,6 +2,8 @@
 #define _ORDEREDMAP_H_
 
 #include <cassert>
+#include <vector>
+#include <map>
 
 /**
  * a simple OrderedMap class

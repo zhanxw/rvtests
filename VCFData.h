@@ -169,6 +169,11 @@ public:
             return -1;
         }
 
+        if (!fn || strlen(fn) == 0){
+            fprintf(stderr, "Cannot open phenotype file (file name empty).\n");
+            abort();
+        }
+
         col --; // get 0-based column
         LineReader lr(fn);
         std::vector<std::string> fd;

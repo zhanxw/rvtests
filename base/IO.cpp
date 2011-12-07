@@ -3,6 +3,11 @@
 //static method
 FileReader* FileReader::open(const char* fileName){
     FileReader * fr = NULL;
+    if (!fileName || fileName[0] == '\0') {
+        fprintf(stderr, "Empty file name.\n");
+        return fr;
+    }
+
     switch(FileReader::checkFileType(fileName)) {
     case PLAIN:
         fr = new PlainFileReader(fileName);

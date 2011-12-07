@@ -93,44 +93,44 @@ void VCFData::writeTable(const char* fn,
 void VCFData::readTable(const char* fn,
                          Matrix* data, OrderedMap<std::string, int> * rowName,
                          OrderedMap<std::string, int> * colName,
-                        std::string* upperLeftName) {
+                        std::string* upperLeftName,
+                        double defaultValue) {
     if (!data || data->rows == 0 || data->cols == 0)
         return;
 
-    if (rowName.size() != data->rows) {
-        fprintf(stderr, "Row number does not match!");
-        return;
-    }
-    if (colName.size() != data->cols) {
-        fprintf(stderr, "Col number does not match!");
-        return;
-    }
-
-    FileWriter fw(fn);
-    // header
-    fw.write(upperLeftName);
-    for (int i = 0; i < colName.size(); i++){
-        fw.write("\t");
-        if (colName.size() == 0){
-            fw.write("\".\"");
-        }else {
-            fw.write("\"");
-            fw.write(colName.keyAt(i).c_str());
-            fw.write("\"");
+    LineReader lr(fn);
+    std::vector <std::string> fd;
+    std::vector <std::string> header;
+    int lineNo = 0;
+    int nCol = -1; // col number including row name.
+    while (lr.readLineBySep(&fd, " \t")){
+        if (lineNo == 0){
+            header = fd;
+            // since the first column may or may not have header, 
+            // we will later check the size of header and set the values of colName
+            continue;
         }
+        if (lineNo == 1){
+            nCol = fd.size();
+            if (fd.size() == header.size()) {
+                // first column have header
+                for (int r = 1; r < header.size(); r++) 
+                    (*rowName)[header[r]] = r - 1;
+            } else{
+                // first column does not have header
+                for (int r = 0; r < header.size(); r++) 
+                    (*rowName)[header[r]] = r ;
+            }
+        }
+        int row = this->lineNo - 1;
+        this->data->Dimension(lineNo, nCol - 1);
+        (*rowName)[fd[0]] = row;
+        for (int col = 1; col < nCol; col++){
+            if (!str2double(  fd[col].c_str(),  &(*this->data[row][col])) ){
+                (*this->data)[row][col] = defaultValue;
+            }
+        }
+        lineNo++;
     };
-    fw.write("\n");
-
-    // content
-    int numCol = colName.size();
-    int numRow = rowName.size();
-    for (int r = 0; r < numRow; r++ ){
-        fw.write(rowName.keyAt(r).c_str());
-        for (int c = 0; c < numCol; c++) {
-            fw.printf("\t%d", (int)((*data)[r][c]));
-        }
-        fw.write("\n");
-    }
-    fw.close();
 };
 

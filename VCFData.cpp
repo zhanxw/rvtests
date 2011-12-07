@@ -88,16 +88,18 @@ void VCFData::writeTable(const char* fn,
  * read @param fn into @param data from R-readable format
  * REQURIE:
  *   @param rowName and @param colName are both treated like string
- *   @data should be integer/float number
+ *   @param data should be integer/float number
+ *   @param defaultValue, when data cannot be converted to double, use this value instead.
  */
-void VCFData::readTable(const char* fn,
+int VCFData::readTable(const char* fn,
                          Matrix* data, OrderedMap<std::string, int> * rowName,
                          OrderedMap<std::string, int> * colName,
                         std::string* upperLeftName,
                         double defaultValue) {
-    if (!data || data->rows == 0 || data->cols == 0)
-        return;
+    if (!data || data->rows == 0 || data->cols == 0 || !upperLeftName)
+        return -1;
 
+    int invalidConversion = 0;
     LineReader lr(fn);
     std::vector <std::string> fd;
     std::vector <std::string> header;
@@ -122,15 +124,67 @@ void VCFData::readTable(const char* fn,
                     (*rowName)[header[r]] = r ;
             }
         }
-        int row = this->lineNo - 1;
-        this->data->Dimension(lineNo, nCol - 1);
+
+        if (fd.size() != nCol) {
+            fprintf(stderr, "Inconsistent column number at line %d, skipping...\n", lineNo);
+            continue;
+        }
+
+        int row = lineNo - 1;
+        data->Dimension(lineNo, nCol - 1);
         (*rowName)[fd[0]] = row;
         for (int col = 1; col < nCol; col++){
-            if (!str2double(  fd[col].c_str(),  &(*this->data[row][col])) ){
-                (*this->data)[row][col] = defaultValue;
+            if (!str2double( fd[col].c_str(),  &(*data)[row][col])){
+                (*data)[row][col] = defaultValue;
+                invalidConversion++;
             }
         }
         lineNo++;
     };
+    return invalidConversion;
 };
+
+int readPlinkTable(const char* fn,
+                   Matrix* data, 
+                   OrderedMap<std::string, int> * rowName,
+                   OrderedMap<std::string, int> * colName,
+                   double defaultValue){
+    if (!data || data->rows == 0 || data->cols == 0)
+        return -1;
+
+    int invalidConversion = 0;
+    LineReader lr(fn);
+    std::vector <std::string> fd;
+    int lineNo = 0;
+    int nCol = -1; // col number including row name.
+    while (lr.readLineBySep(&fd, " \t")){
+        if (lineNo == 0){
+            nCol = fd.size();
+            for (int r = 2; r < fd.size(); r++) {// skip first 2 column
+                (*rowName)[fd[r]] = r - 1;
+            }
+            continue;
+        }
+        if (fd.size() != nCol) {
+            fprintf(stderr, "Inconsistent column number at line %d, skipping...\n", lineNo);
+            continue;
+        }
+        int row = lineNo - 1;
+        data->Dimension(lineNo, nCol - 1);
+        if (rowName->find(fd[1])){
+            fprintf(stderr, "Duplicate sample: %s\n", fd[1].c_str());
+        }
+        (*rowName)[fd[1]] = row;
+        for (int col = 2; col < nCol; col++){
+            if (!str2double( fd[col].c_str(),  &(*data)[row][col])){
+                (*data)[row][col] = defaultValue;
+                invalidConversion++;
+            }
+        }
+        lineNo++;
+    };
+    return invalidConversion;
+};
+
+
 

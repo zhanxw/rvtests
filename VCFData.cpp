@@ -84,3 +84,53 @@ void VCFData::writeTable(const char* fn,
     fw.close();
 };
 
+/**
+ * read @param fn into @param data from R-readable format
+ * REQURIE:
+ *   @param rowName and @param colName are both treated like string
+ *   @data should be integer/float number
+ */
+void VCFData::readTable(const char* fn,
+                         Matrix* data, OrderedMap<std::string, int> * rowName,
+                         OrderedMap<std::string, int> * colName,
+                        std::string* upperLeftName) {
+    if (!data || data->rows == 0 || data->cols == 0)
+        return;
+
+    if (rowName.size() != data->rows) {
+        fprintf(stderr, "Row number does not match!");
+        return;
+    }
+    if (colName.size() != data->cols) {
+        fprintf(stderr, "Col number does not match!");
+        return;
+    }
+
+    FileWriter fw(fn);
+    // header
+    fw.write(upperLeftName);
+    for (int i = 0; i < colName.size(); i++){
+        fw.write("\t");
+        if (colName.size() == 0){
+            fw.write("\".\"");
+        }else {
+            fw.write("\"");
+            fw.write(colName.keyAt(i).c_str());
+            fw.write("\"");
+        }
+    };
+    fw.write("\n");
+
+    // content
+    int numCol = colName.size();
+    int numRow = rowName.size();
+    for (int r = 0; r < numRow; r++ ){
+        fw.write(rowName.keyAt(r).c_str());
+        for (int c = 0; c < numCol; c++) {
+            fw.printf("\t%d", (int)((*data)[r][c]));
+        }
+        fw.write("\n");
+    }
+    fw.close();
+};
+

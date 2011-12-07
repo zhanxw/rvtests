@@ -104,14 +104,6 @@ Vector & LogisticRegression::GetAsyPvalue(){
 	return(pValue);
 }
 
-Vector & LogisticRegression::GetCovEst(){
-	return(B);
-}
-
-Matrix & LogisticRegression::GetCovB()
-{
-	return(covB);
-}
 
 void LogisticRegression::reset(Matrix& X){
 	B.Dimension(X.cols);
@@ -577,7 +569,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
  */
 bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol){
     if (Xnull.rows != y.Length() || y.Length() != Xcol.rows){
-        fprintf(stderr, "Incompatible dimensino.\n");
+        fprintf(stderr, "Incompatible dimension.\n");
         return false;
     }
     int n = Xcol.rows;
@@ -635,7 +627,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
  */
 bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
     if (X.rows != y.Length()){
-        fprintf(stderr, "Incompatible dimensino.\n");
+        fprintf(stderr, "Incompatible dimension.\n");
         return false;
     }
     int m = X.cols; // also: df

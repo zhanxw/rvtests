@@ -47,17 +47,22 @@ public:
 
         if (this->setName.size() == 0) {
             // iterate every marker
-
             if (vin.readRecord()){ 
                 VCFRecord& record = vin.getVCFRecord();               
                 data->addVCFRecord(record);
+
+                this->currentSetName =record.getID();
+                if (this->currentSetName == ".") {
+                    this->currentSetName = record.getChrom();
+                    this->currentSetName += toString(record.getPos());
+                }
                 return true;
             } else{
                 return false;
             }
         } 
 
-        // there are content for the markers
+        // check boundary condition
         if (setIndex == this->setName.size()) return false;
 
         // load one set
@@ -98,6 +103,8 @@ public:
             fprintf(stderr, "Unrecognized collapsing method!\n");
             return false;
         };
+        // sanity check collapsing results
+        assert(data->collapsedGenotype->cols == data->set2Idx.size());
     };
     bool writeOutput(FILE* fp){
     };
@@ -109,6 +116,7 @@ public:
         for (int p = 0; p < numPeople; p++)
             for (int m = 0; m < numMarker; m++)
                 (*d->collapsedGenotype)[p][m] = (*d->genotype)[m][p];
+        d->set2Idx = d->marker2Idx;
     };
     void cmcCollapse(VCFData* d){
         int numPeople = d->people2Idx.size();

@@ -31,12 +31,12 @@ class LogisticRegression
     double GetDeviance(Matrix & X, Vector & y);
     double GetDeviance(Matrix & X, Vector & succ, Vector& total);
 	Vector & GetAsyPvalue();
-	Vector & GetCovEst();
+	Vector & GetCovEst()    {return this->B;};
     Vector & GetPredicted() {return this->p;}; // predicted probability \hat{p}
-    Vector & GetVariance()  {return this->V;}; // predicted variance ( \hat{p} * (1- \hat{p}) )
-	Matrix & GetCovB();
-    void reset(Matrix& X); // get everything cleared
+    Vector & GetVariance()  {return this->V;}; // predicted variance ( \hat{p} * (1- \hat{p}) 
+	Matrix & GetCovB()      {return this->covB;} ;
 
+    void reset(Matrix& X); // get everything cleared
     Vector B;       // coefficient vector
     Matrix covB;    // coefficient covariance matrix
 

@@ -53,6 +53,7 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
         ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
         ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
+        ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -99,18 +100,24 @@ int main(int argc, char** argv){
     // indv: GD, GQ 
 
     Collapsor collapsor;
-    collapsor.setSetFileName("set.txt");
-    collapsor.setCollapsingStrategy(Collapsor::CMC);
+    if (false) {
+        // single variant test for a set of markers using collapsing
+        collapsor.setSetFileName("set.txt");
+    } else {
+        // single variant test for each marker
+    }
+    collapsor.setCollapsingStrategy(Collapsor::NAIVE);
     VCFData data;
     // data.LoadCovariate("cov.txt");
-    // data.LoadPhenotype("pheno.txt");
+    data.loadPhenotype(FLAG_pheno);
+
     Vector pheno;
     data.extractPhenotype(&pheno);
 
-    LogisticModelFitter lmf;
+    LogisticModelScoreTest lmf;
     //PermutateModelFitter lmf;
 
-    FILE* fout = fopen("results", "w");
+    FILE* fout = fopen("results.txt", "w");
     // write headers
     //...
     while(collapsor.iterateSet(vin, &data)){
@@ -147,7 +154,7 @@ int main(int argc, char** argv){
     };
     if (!vout && !pout) {
         vout = new VCFOutputFile("temp.vcf");
-
+    }
     if (vout) vout->writeHeader(vin.getVCFHeader());
     if (pout) pout->writeHeader(vin.getVCFHeader());
     vin.setRangeList("1:69500-69600");

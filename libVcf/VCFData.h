@@ -17,14 +17,20 @@ class VCFData{
 public:
     VCFData(){
         this->genotype = new Matrix;
+        this->collapsedGenotype = new Matrix;
         this->phenotype = new Matrix;
         this->covariate = new Matrix;        
         assert(this->genotype && this->phenotype && this->covariate);
     }
     ~VCFData(){
         if (this->genotype ) delete this->genotype ;
+        if (this->collapsedGenotype) delete this->collapsedGenotype;
         if (this->phenotype) delete this->phenotype;
         if (this->covariate) delete this->covariate;
+        this->genotype = NULL;
+        this->collapsedGenotype = NULL;
+        this->phenotype = NULL;
+        this->covariate = NULL;
     }
     // adjust covariate and pheonotype
     // so the data will be matched later on.
@@ -44,16 +50,18 @@ public:
 
         // add people genotype
         // 1. find markerName/row index
+        VCFPeople& people = r.getPeople();
         std::string m = r.getID();
         int rowNum = -1;
         if (this->marker2Idx.find(m)) {
             rowNum = this->marker2Idx[m];
         } else{
             rowNum = this->genotype->rows;
-            this->genotype->Dimension(rowNum + 1, this->genotype->cols);
+            this->marker2Idx[m] = rowNum;
+            this->genotype->Dimension(rowNum + 1, people.size());
         };
         
-        VCFPeople& people = r.getPeople();
+
         VCFIndividual* indv;
         for (int i = 0; i < people.size(); i++) {
             indv = people[i];
@@ -146,15 +154,6 @@ public:
         };
         fclose(fBed);
     };
-    void loadMarkerSetFromVCF(const char * fVCF, const char* fSet) {
-    };
-    void loadMarkerSetFromPlink(const char * fVCF, const char* fSet) {
-    };
-    void loadMarkerSetFromVCF(const char* fVCF, RangeList& rl){
-    };
-    void loadMarkerSetFromPlink(const char* fVCF, RangeList& rl){
-    };
-
     // col: 1-based column 
     // return: num of people whose phenotype that are not set
     // return 0: success
@@ -275,6 +274,9 @@ public:
     // prefix + ".pheno": raw genotype    
     void writeRawData(const char* prefix){
         std::string p = prefix;
+        if (p == "") {
+            p = "rvtest.raw";
+        }
         this->writeGenotype( (p + ".geno").c_str());
         this->writeCollapsedGenotype( (p + ".cgeno").c_str());
         this->writeCovariate( (p + ".cov").c_str());
@@ -296,10 +298,10 @@ public:
      *  content line: P1 1.0 2.0 ...
      */
     void writeCovariate(const char* fn) {
-        this->writeTable(fn, this->genotype, this->people2Idx, this->covariate2Idx, "PeopleID");
+        this->writeTable(fn, this->covariate, this->people2Idx, this->covariate2Idx, "PeopleID");
     };
     void writePhenotype(const char* fn) {
-        this->writeTable(fn, this->genotype, this->people2Idx, this->phenotype2Idx, "PeopleID");
+        this->writeTable(fn, this->phenotype, this->people2Idx, this->phenotype2Idx, "PeopleID");
     };
 
     /**
@@ -308,6 +310,9 @@ public:
                     Matrix* data, OrderedMap<std::string, int> & rowName, 
                     OrderedMap<std::string, int> & colName, 
                     const char* upperLeftName) {
+        if (!data || data->rows == 0 || data->cols == 0)
+            return;
+
         if (rowName.size() != data->rows) {
             fprintf(stderr, "Row number does not match!");
             return;
@@ -345,13 +350,13 @@ public:
         fw.close();
     };
     
-    // use friend class to save codes...
-    friend class Collapsor;
-    Matrix* getGeno() {return this->genotype;};
-    Matrix* getPheno() {return this->phenotype;};
-    Matrix* getCov() {return this->covariate;};
-    OrderedMap<std::string, int>* getPeople2Idx() {return &this->people2Idx;};
-    OrderedMap<std::string, int>* getMarker2Idx() {return &this->marker2Idx;};
+    /* // use friend class to save codes... */
+    /* friend class Collapsor; */
+    /* Matrix* getGeno() {return this->genotype;}; */
+    /* Matrix* getPheno() {return this->phenotype;}; */
+    /* Matrix* getCov() {return this->covariate;}; */
+    /* OrderedMap<std::string, int>* getPeople2Idx() {return &this->people2Idx;}; */
+    /* OrderedMap<std::string, int>* getMarker2Idx() {return &this->marker2Idx;}; */
 private:
     void loadMarkerFromBim(const char* fn){
         std::vector<std::string> fd;
@@ -414,22 +419,20 @@ private:
                 this->markerFreq.push_back( (double)(count) / totalAllele);
         }
     };
+
+// member variables here are made public
+// so that access is easier.
   public:
-#if 0
-private:
-#else
-#pragma message "Change class VCFData private properties?"
-#endif
     Matrix* genotype; // marker x people
     Matrix* collapsedGenotype;
     Matrix* covariate; // people x cov
     Matrix* phenotype; // people x phenotypes
     
-    std::vector<std::string> markerName;
-    std::vector<int> markerChrom;
-    std::vector<int> markerPos;
-    std::vector<std::string> markerRef;
-    std::vector<std::string> markerAlt;
+    /* std::vector<std::string> markerName; */
+    /* std::vector<int> markerChrom; */
+    /* std::vector<int> markerPos; */
+    /* std::vector<std::string> markerRef; */
+    /* std::vector<std::string> markerAlt; */
     std::vector<double> markerFreq;
     std::vector<int> markerCount; // Alternative allele count
     std::vector<int> markerTotalAllele; // Total number of allele

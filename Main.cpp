@@ -53,6 +53,7 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
         ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
         ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
+        ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
         ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
@@ -108,7 +109,7 @@ int main(int argc, char** argv){
     }
     collapsor.setCollapsingStrategy(Collapsor::NAIVE);
     VCFData data;
-    // data.LoadCovariate("cov.txt");
+    data.loadCovariate(FLAG_cov.c_str());
     data.loadPlinkPhenotype(FLAG_pheno.c_str());
 
     Vector pheno;

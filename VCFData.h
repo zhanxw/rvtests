@@ -225,6 +225,9 @@ public:
     // return: num of people whose covariate that are not set
     // return 0: success
     int loadCovariate(const char* fn){
+        if (!fn || strlen(fn) == 0){
+            return 0;
+        }
         double defaultMissingCovariate = 0.0;
         // if this->genotype already have people2Idx, then make covariate people label match (also in order)
         // otherwise, just set people2Idx like the covariate.

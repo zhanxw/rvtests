@@ -53,6 +53,11 @@ public:
         // 1. find markerName/row index
         VCFPeople& people = r.getPeople();
         std::string m = r.getID();
+        if (m == ".") {
+            m = r.getChrom();
+            m += ':';
+            m += toString(r.getPos());
+        }
         int rowNum = -1;
         if (this->marker2Idx.find(m)) {
             rowNum = this->marker2Idx[m];
@@ -158,42 +163,51 @@ public:
 
     // PLINK requires phenotype on column 3.
     int loadPlinkPhenotype(const char* fn) {
-        return loadPhenotype(fn, 3);
+        return this->loadPhenotypeByCol(fn, 3);
     };
     // col: 1-based column 
     // return: num of people whose phenotype that are not set
-    // return 0: success
-    int loadPhenotype(const char* fn, int col) { // by default PLINK use 3rd column as phenotype
-        if (col <= 0) {
-            fprintf(stderr, "col should be larger than 0.\n");
-            return -1;
-        }
-
-        if (!fn || strlen(fn) == 0){
-            fprintf(stderr, "Cannot open phenotype file (file name empty).\n");
-            abort();
-        }
-
-        col --; // get 0-based column
-        LineReader lr(fn);
-        std::vector<std::string> fd;
-        std::set<std::string> processed;
-        while(lr.readLineBySep(&fd, "\t ")){
-            if (fd.size() < 3 || col >= fd.size() ) {
-                fprintf(stderr, "Insufficient columns in %s.\n", fn);
-                continue;
+    // return 0: success ; -n: n individual with missing phenotype
+    int loadPhenotypeByCol(const char* fn, int col) { // by default PLINK use 3rd column as phenotype
+        // if this->genotype already have people2Idx, then make phenotype people label match (also in order)
+        // otherwise, just set people2Idx like the phenotype.
+        if (this->people2Idx.size()) {
+            OrderedMap<std::string, int> pName;
+            int ret = this->readPlinkPhenotypeSkipMissing(fn, 0,
+                                                          this->phenotype,
+                                                          &pName,
+                                                          &this->phenotype2Idx);
+            if (ret) {
+                fprintf(stderr, "%d phenotype are skipped as their pheontype are not numeric.\n", ret);
+            } 
+            int skip1, skip2;
+            this->matchData(this->genotype, this->people2Idx, &skip1, 
+                            this->phenotype, pName, &skip2);
+            if (skip1) {
+                fprintf(stderr, "%d individuals' genotypes are dropped because of mismatch.\n", skip1);
+            } 
+            if (skip2) {
+                fprintf(stderr, "%d individuals' phenotype are dropped because of mismatch.\n", skip2);
             }
-            const std::string& pname = fd[1];
-            if (!this->people2Idx.find(pname) ) {
-                fprintf(stderr, "%s does not exist yet.\n", pname.c_str());
-                continue;
+            return ret;
+        } else {
+
+            int ret = this->readPlinkPhenotypeSkipMissing(fn, 
+                                                          0,
+                                                          this->phenotype,
+                                                          &this->people2Idx,
+                                                          &this->phenotype2Idx);
+            if (ret){
+                fprintf(stderr, "%d phenotype are skipped as their pheontype are not numeric.\n", ret);
             }
-            int idx = this->people2Idx[pname];
-            processed.insert(pname);
-            (*this->phenotype)[idx][0] = atof(fd[col].c_str());
-        };
-        return (this->people2Idx.size() - processed.size());
+            return ret;
+        }
     };
+    int readPlinkPhenotypeSkipMissing(const char* fn, const char* selectedCol, 
+                                      Matrix* data, 
+                                      OrderedMap<std::string, int> * rowName,
+                                      OrderedMap<std::string, int> * colName);
+
     void extractPhenotype(Vector* v){
         v->Dimension(this->people2Idx.size());
         for (int i = 0; i < v->Length(); i++){
@@ -204,7 +218,7 @@ public:
     // please use numeric covariate only
     // return: num of people whose covariate that are not set
     // return 0: success
-    int readCovariate(const char* fn){
+    int loadCovariate(const char* fn){
         double defaultMissingCovariate = 0.0;
         // if this->genotype already have people2Idx, then make covariate people label match (also in order)
         // otherwise, just set people2Idx like the covariate.
@@ -219,11 +233,12 @@ public:
             this->matchData(this->genotype, this->people2Idx, &skip1,
                             this->covariate, pName, &skip2);
             if (skip1) {
-                fprintf(stderr, "%d individuals' genotypes are dropped.\n", skip1);
+                fprintf(stderr, "%d individuals' genotypes are dropped because of mismatch.\n", skip1);
             } 
             if (skip2) {
-                fprintf(stderr, "%d individuals' covariates are dropped.\n", skip2);
+                fprintf(stderr, "%d individuals' covariates are dropped because of mismatch.\n", skip2);
             }
+            return ret;
         } else {
             int ret = this->readPlinkTable(fn, 
                                            this->covariate,

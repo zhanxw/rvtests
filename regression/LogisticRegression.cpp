@@ -38,6 +38,17 @@ void printToFile(Matrix& m, String fn, int index) {
 }
 #endif
 
+static void MatrixPlusEqualV1andV2T(Matrix& m, Vector& v1, Vector& v2){
+    if (m.rows != v1.Length() || m.cols != v2.Length()){
+        fprintf(stderr, "Dimension does not match!");
+    };
+    for (int i = 0; i < m.rows; i++){
+        for (int j = 0; j < m.cols; j++){
+            m[i][j] += v1[i] * v2[j];
+        }
+    }
+};
+
 static void MatrixPlusEqualV1andV2TWithWeight(Matrix& m, Vector& v1, Vector& v2, double w){
     if (m.rows != v1.Length() || m.cols != v2.Length()){
         fprintf(stderr, "Dimension does not match!");
@@ -615,14 +626,14 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
         }
     }
 
-    this->pvalue = chidist(S, n); // use chisq to inverse
+    this->pvalue = chidist(S, m); // use chisq to inverse
     return true;
 };
 
 /** NOTE
  * S_i is column i of the transposed @param X, S_i is m by 1 dimension
  * U = \sum_i (Y_i - \hat{\gamma}^T Z_i ) * S_i
- * V = (yMean)(1-yMean) ( \sum _i v_i S_i S_i^T - (\sum v_i S_i)  (\sum v_i S_i^T) / n)
+ * V = (yMean)(1-yMean) ( \sum_i S_i S_i^T - (\sum S_i)  (\sum  S_i^T) / n )
  * U^T*inv(V)*U is the score test statistic
  */
 bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
@@ -634,26 +645,24 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
     int n = X.rows;
 
     Vector U(m);
-    Matrix SS(m,m);
-    Vector SumS(m);
+    Matrix SS(m,m); // \sum S_i S_i^T
+    Vector SumS(m); // \sum S_i
     U.Zero();
     SS.Zero();
     SumS.Zero();
 
-    
-    Vector& v = this->lr.GetVariance();
-    double sumY = 0.0;
+    double yMean = y.Average();
+    double yVar = yMean * (1.0 - yMean);
     for (int i = 0; i < X.rows; i++){
-        U.AddMultiple(y[i] - this->lr.GetPredicted()[i], X[i]) ;
-        MatrixPlusEqualV1andV2TWithWeight(SS, X[i], X[i], v[i]);
+        U.AddMultiple(y[i] - yMean, X[i]) ;
+        MatrixPlusEqualV1andV2T(SS, X[i], X[i]);
         SumS.Add(X[i]);
-        sumY += this->lr.GetPredicted()[i];
     }
-    double yMean = sumY / n;
 
-    Matrix temp;
-    temp.Copy(SS);
-    MatrixPlusEqualV1andV2TWithWeight(temp, SumS, SumS, 1.0);
+    Matrix temp(SS.rows, SS.cols);
+    temp.Zero();
+    MatrixPlusEqualV1andV2T(temp, SumS, SumS);
+    temp.Multiply(1.0/ n);
     temp.Negate();
     SS.Add(temp);
 
@@ -666,12 +675,9 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
             S += 2.0 * U[i] * SS[i][j] * U[j];
         }
     }
-    
-    S /= yMean * (1-yMean);
-
-    this->pvalue = chidist(S, n); // use chisq to inverse
+    // fprintf(stderr, "m=%d\t S=%.3f\t U[0]=%.3f SS[0][0]=%.3f\n", m, S, U[0], SS[0][0]);
+    this->pvalue = chidist(S, m); // use chisq to inverse
     return true;
-    
 };
 
 void LogisticRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol){

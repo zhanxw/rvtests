@@ -77,7 +77,7 @@ void VCFData::writeTable(const char* fn,
     for (int r = 0; r < numRow; r++ ){
         fw.write(rowName.keyAt(r).c_str());
         for (int c = 0; c < numCol; c++) {
-            fw.printf("\t%d", (int)((*data)[r][c]));
+            fw.printf("\t%.3f", (double)((*data)[r][c]));
         }
         fw.write("\n");
     }
@@ -144,13 +144,17 @@ int VCFData::readTable(const char* fn,
     return invalidConversion;
 };
 
-int readPlinkTable(const char* fn,
-                   Matrix* data, 
-                   OrderedMap<std::string, int> * rowName,
-                   OrderedMap<std::string, int> * colName,
-                   double defaultValue){
-    if (!data || data->rows == 0 || data->cols == 0)
+int VCFData::readPlinkTable(const char* fn,
+                            Matrix* data, 
+                            OrderedMap<std::string, int> * rowName,
+                            OrderedMap<std::string, int> * colName,
+                            double defaultValue){
+    if (!fn || !data)
         return -1;
+
+    assert(rowName && colName);
+    rowName->clear();
+    colName->clear();
 
     int invalidConversion = 0;
     LineReader lr(fn);
@@ -160,8 +164,8 @@ int readPlinkTable(const char* fn,
     while (lr.readLineBySep(&fd, " \t")){
         if (lineNo == 0){
             nCol = fd.size();
-            for (int r = 2; r < fd.size(); r++) {// skip first 2 column
-                (*rowName)[fd[r]] = r - 1;
+            for (int c = 2; c < fd.size(); c++) {// skip first 2 column
+                (*colName)[fd[c]] = c - 1;
             }
             continue;
         }
@@ -169,11 +173,14 @@ int readPlinkTable(const char* fn,
             fprintf(stderr, "Inconsistent column number at line %d, skipping...\n", lineNo);
             continue;
         }
-        int row = lineNo - 1;
-        data->Dimension(lineNo, nCol - 1);
+        int row = rowName->size(); 
+
         if (rowName->find(fd[1])){
             fprintf(stderr, "Duplicate sample: %s\n", fd[1].c_str());
+        } else {
+            data->Dimension(row + 1, nCol - 1);
         }
+
         (*rowName)[fd[1]] = row;
         for (int col = 2; col < nCol; col++){
             if (!str2double( fd[col].c_str(),  &(*data)[row][col])){
@@ -186,5 +193,73 @@ int readPlinkTable(const char* fn,
     return invalidConversion;
 };
 
+int VCFData::readPlinkPhenotypeSkipMissing(const char* fn, const char* selectedCol,
+                                           Matrix* data, 
+                                           OrderedMap<std::string, int> * rowName,
+                                           OrderedMap<std::string, int> * colName){
+    if (!fn || !data)
+        return -1;
+
+    assert(rowName && colName);
+    rowName->clear();
+    colName->clear();
+
+    int skipped = 0;
+    LineReader lr(fn);
+    std::vector <std::string> fd;
+    int lineNo = 0;
+    int nCol = -1; // col number including row name.
+    while (lr.readLineBySep(&fd, " \t")){
+        if (lineNo == 0){
+            nCol = fd.size();
+            if (nCol < 2) {
+                fprintf(stderr, "Too few column for pheontype file: %s.\n", fn);
+                return -1;
+            }
+            if (selectedCol  && strlen(selectedCol) > 0) {
+                if (fd[0] == "FID" && fd[1] == "IID") {
+                    for (int r = 2; r < fd.size(); r++) {// skip first 2 column
+                        (*colName)[fd[r]] = r - 1;
+                    }
+                    continue;
+                } else{
+                    fprintf(stderr, "Phenotype file header should be FID and IID: %s.\n", fn);                    
+                    return -1;
+                }
+            } else {
+                // read only 3rd column
+#pragma message "add support to selected column"
+                // for (int r = 2; r < fd.size(); r++) {// skip first 2 column
+                //     (*rowName)[fd[r]] = r - 1;
+                // }
+                (*colName)["Pheno"] = 0;
+            }
+        }
+        if (fd.size() != nCol) {
+            fprintf(stderr, "Inconsistent column number at line %d, skipping...\n", lineNo);
+            continue;
+        }
+        int row = rowName->size() ;
+
+        if (rowName->find(fd[1])){
+            fprintf(stderr, "Duplicate sample: %s\n", fd[1].c_str());
+        } else{
+            data->Dimension(row + 1, 1);
+        }
+
+        int col = 2; // use 3rd column as phenotype
+        if (selectedCol && colName->find(selectedCol))
+            col = (*colName)[selectedCol];
+        if (!str2double( fd[col].c_str(),  &(*data)[row][0])){
+            fprintf(stderr, "Skiping missing phenotype of individual %s.\n", fd[1].c_str());
+            skipped ++;
+            continue;
+        } else {
+            (*rowName)[fd[1]] = row;
+        };
+        lineNo ++;
+    };
+    return skipped;
+};
 
 

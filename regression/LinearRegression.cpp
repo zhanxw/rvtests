@@ -249,14 +249,17 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
     SS.Zero();
     SumS.Zero();
 
+    double yMean = y.Average();
     for (int i = 0; i < X.rows; i++){
-        U.AddMultiple(this->lr.GetResiduals()[i], X[i]) ;
+        U.AddMultiple(y[i] - yMean, X[i]) ;
         MatrixPlusEqualV1andV2T(SS, X[i], X[i]);
         SumS.Add(X[i]);
     }
-    Matrix temp;
-    temp.Copy(SS);
+
+    Matrix temp(SS.rows, SS.cols);
+    temp.Zero();
     MatrixPlusEqualV1andV2T(temp, SumS, SumS);
+    temp.Multiply(1.0/ n);
     temp.Negate();
     SS.Add(temp);
 
@@ -272,7 +275,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
     
     S /= this->lr.GetSigma2();
 
-    this->pvalue = chidist(S, n); // use chisq to inverse
+    this->pvalue = chidist(S, m); // use chisq to inverse
     return true;
     
 };

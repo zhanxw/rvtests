@@ -1,9 +1,11 @@
 #ifndef _ORDEREDMAP_H_
 #define _ORDEREDMAP_H_
 
+#include <stdio.h>
 #include <cassert>
 #include <vector>
 #include <map>
+#include "Exception.h"
 
 /**
  * a simple OrderedMap class
@@ -54,8 +56,7 @@ class OrderedMap{
     }
     const KEY& keyAt(unsigned int idx) const {
         if (idx >= this->size()) {
-            fprintf(stderr, "Index out of bound, now quitting...");
-            abort();
+            log_error("Index out of bound, now quitting...");
         }
         return this->keyVec[idx];
     }

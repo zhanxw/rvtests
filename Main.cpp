@@ -1,6 +1,5 @@
 /**
    immediately TODO:
-   8. force loading index when read by region.
    3. support tri-allelic (getAlt())
    4. speed up VCF parsing. (make a separate line buffer).
    5. loading phenotype and covariate (need tests now).
@@ -13,9 +12,10 @@
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
    8. Make code easy to use ( hide PeopleSet and RangeList)
    9. Inclusion/Exclusion set should be considered sequentially.
+
    futher TODO:
    1. handle different format GT:GD:DP ... // use getFormatIndex()
-
+   8. force loading index when read by region.
 */
 #include "Argument.h"
 #include "IO.h"
@@ -120,6 +120,7 @@ int main(int argc, char** argv){
     FILE* fout = fopen("results.txt", "w");
     // write headers
     //...
+#pragma messge "Output headers"                
     while(collapsor.iterateSet(vin, &data)){
         std::string& setName = collapsor.getCurrentSetName();
         collapsor.extractGenotype(&data);
@@ -139,95 +140,6 @@ int main(int argc, char** argv){
     //    collapse
     //    fit model
     //    output datasets and results
-
-
-
-#if 0
-    // let's write it out.
-    VCFOutputFile* vout = NULL;
-    PlinkOutputFile* pout = NULL;
-    if (FLAG_outVcf.size() > 0) {
-        vout = new VCFOutputFile(FLAG_outVcf.c_str());
-    };
-    if (FLAG_outPlink.size() > 0) {
-        pout = new PlinkOutputFile(FLAG_outPlink.c_str());
-    };
-    if (!vout && !pout) {
-        vout = new VCFOutputFile("temp.vcf");
-    }
-    if (vout) vout->writeHeader(vin.getVCFHeader());
-    if (pout) pout->writeHeader(vin.getVCFHeader());
-    vin.setRangeList("1:69500-69600");
-    while (vin.readRecord()){
-        VCFRecord& r = vin.getVCFRecord(); 
-        VCFPeople& people = r.getPeople();
-        VCFIndividual* indv;
-        if (vout) vout->writeRecord(& r);
-        if (pout) pout ->writeRecord(& r);
-        printf("%s:%d\t", r.getChrom(), r.getPos());
-
-        // e.g.: get TAG from INFO field
-        // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
-
-        // e.g.: Loop each (selected) people in the same order as in the VCF 
-        for (int i = 0; i < people.size(); i++) {
-            indv = people[i];
-            // get GT index. if you are sure the index will not change, call this function only once!
-            int GTidx = r.getFormatIndex("GT");
-            if (GTidx >= 0) 
-                printf("%s ", (*indv)[0].toStr());  // [0] meaning the first field of each individual
-            else 
-                fprintf(stderr, "Cannot find GT field!\n");
-        }
-        printf("\n");
-    };
-
-    vin.setRangeList("1:69400-69600");
-    while (vin.readRecord()){
-        VCFRecord& r = vin.getVCFRecord(); 
-        VCFPeople& people = r.getPeople();
-        VCFIndividual* indv;
-        if (vout) vout->writeRecord(& r);
-        if (pout) pout ->writeRecord(& r);
-        printf("%s:%d\t", r.getChrom(), r.getPos());
-
-        // e.g.: get TAG from INFO field
-        // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
-
-        // e.g.: Loop each (selected) people in the same order as in the VCF 
-        for (int i = 0; i < people.size(); i++) {
-            indv = people[i];
-            // get GT index. if you are sure the index will not change, call this function only once!
-            int GTidx = r.getFormatIndex("GT");
-            if (GTidx >= 0) 
-                printf("%s ", (*indv)[GTidx].toStr());  // [0] meaning the first field of each individual
-            else 
-                fprintf(stderr, "Cannot find GT field!\n");
-        }
-        printf("\n");
-    };
-
-
-    if (vout) delete vout;
-    if (pout) delete pout;
-
-    
-    return -1; 
-
-
-    // load data
-    VCFData vcfData;
-    vcfData.loadPlink(FLAG_outPlink.c_str());
-    vcfData.writeGenotypeToR("test.plink.geno");
-
-    // apply analysis
-    Analysis* ana = new CMCAnalysis;
-    ana->setData(&vcfData);
-    ana->collapseBySet("test.set.txt");
-    ana->writePlink("test.collapse");
-    ana->fit("cmc.output");
-    
-#endif
 
     currentTime = time(0);
     fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));

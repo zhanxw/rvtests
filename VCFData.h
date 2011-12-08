@@ -34,11 +34,17 @@ public:
         this->covariate = NULL;
     }
     // adjust covariate and pheonotype
-    // so the data will be matched later on.
     void addVCFHeader(VCFHeader* h){
         std::vector<std::string> p;
         h->getPeopleName(&p);
         for (int i = 0; i < p.size(); i++){
+            if (this->people2Idx.size() && !this->people2Idx.find(p[i])){
+                //excluding some pheontype or covaraite
+#pragma messge "Handle sample matching program"
+            } else{
+                
+            }
+                
             this->people2Idx[p[i]] = i;
         };
     };

@@ -43,6 +43,9 @@ public:
      */
     bool iterateSet(VCFInputFile& vin, VCFData* data){
         setIndex ++;
+        // TODO: match individuals
+#pragma messge "Handle sample matching program"                
+        //data->addVCFHeader(vin.getVCFHeader());
         data->addVCFHeader(vin.getVCFHeader());
 
         if (this->setName.size() == 0) {

@@ -39,6 +39,7 @@ public:
         this->setIndex = -1;  //reset setIndex
     };
     void setCollapsingStrategy(const int strategy){
+#pragma message "Check if compatible, e.g NAIVE and set file are not compatible"        
         this->collapsingStrategy = strategy;
     };
     /** iterate  all sets

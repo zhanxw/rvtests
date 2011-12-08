@@ -5,9 +5,12 @@
 
 class Collapsor{
 public:
-    bool setSetFileName(const char* fn){
+    void setSetFileName(const char* fn){
         this->setContent.clear();
         this->setName.clear();
+
+        if (!fn || strlen(fn))
+            return;
 
         LineReader lr(fn);
         std::vector<std::string> fd;

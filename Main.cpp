@@ -55,6 +55,7 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
         ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
         ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
+        ADD_STRING_PARAMETER(pl, set, "--set", "specify set file (for collapsing)")
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -100,20 +101,24 @@ int main(int argc, char** argv){
     // site: DP, MAC, MAF (T3, T5)
     // indv: GD, GQ 
 
-    Collapsor collapsor;
-    if (false) {
-        // single variant test for a set of markers using collapsing
-        collapsor.setSetFileName("set.txt");
-    } else {
-        // single variant test for each marker
-    }
-    collapsor.setCollapsingStrategy(Collapsor::NAIVE);
+
     VCFData data;
     data.loadCovariate(FLAG_cov.c_str());
     data.loadPlinkPhenotype(FLAG_pheno.c_str());
 
     Vector pheno;
     data.extractPhenotype(&pheno);
+
+
+    Collapsor collapsor;
+    if (false) {
+        // single variant test for a set of markers using collapsing
+        collapsor.setSetFileName(FLAG_set.c_str());
+    } else {
+        // single variant test for each marker
+    }
+    collapsor.setCollapsingStrategy(Collapsor::NAIVE);
+
 
     LogisticModelScoreTest lmf;
     //PermutateModelFitter lmf;

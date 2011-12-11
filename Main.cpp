@@ -1,13 +1,16 @@
 /**
    immediately TODO:
+   1. fix suppport PLINK output
+
    3. support tri-allelic (getAlt())
    4. speed up VCF parsing. (make a separate line buffer).
    5. loading phenotype and covariate (need tests now).
-   6. do analysis. (test CMC for now)
-   7. VT (combine Collapsor and ModelFitter)
-
+   6. Test CMC
+   7. Test VT (combine Collapsor and ModelFitter)
+   8. Test permutation test
+   9. Add more filter to individuals
+   
    DONE:
-   1. suppport PLINK output
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
    8. Make code easy to use ( hide PeopleSet and RangeList)
@@ -74,8 +77,8 @@ int main(int argc, char** argv){
         // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis");
         // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis");
         // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
-        // ADD_PARAMETER_GROUP(pl, "Auxilury Functions")
-        // ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
+        ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
+        ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
         END_PARAMETER_LIST(pl)
         ;    
 
@@ -118,8 +121,8 @@ int main(int argc, char** argv){
     data.loadCovariate(FLAG_cov.c_str());
     data.loadPlinkPhenotype(FLAG_pheno.c_str());
 
-    Vector pheno;
-    data.extractPhenotype(&pheno);
+    // Vector pheno;
+    // data.extractPhenotype(&pheno);
 
 
     Collapsor collapsor;
@@ -136,18 +139,28 @@ int main(int argc, char** argv){
     //PermutateModelFitter lmf;
 
     FILE* fout = fopen("results.txt", "w");
+
     // write headers
-    //...
-#pragma messge "Output headers"                
+    collapsor.outputHeader(fout);
+    fprintf(fout, "\t");
+    lmf.outputHeader(fout);
+    fprintf(fout, "\n");
+
     while(collapsor.iterateSet(vin, &data)){
-        std::string& setName = collapsor.getCurrentSetName();
-        collapsor.extractGenotype(&data);
+        // collapsor.collapseGenotype(&data);
         // for each model, fit the genotype data
-        lmf.fit(data.collapsedGenotype, &pheno, data.covariate, fout);
+        lmf.fit(data, collapsor, fout);
         
-        // output 
-        data.writeRawData(setName.c_str());
-        collapsor.writeOutput(fout);
+        // output raw data
+        if (FLAG_outputRaw.size() >= 0) {
+            std::string& setName = collapsor.getCurrentSetName();
+            std::string out = FLAG_outputRaw + "." + setName;
+            data.writeRawData(out.c_str());
+        }
+
+        // // output to result file
+        // lmf.writeOutput(fout);
+        
     }
     fclose(fout);
 

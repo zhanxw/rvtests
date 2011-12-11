@@ -21,6 +21,7 @@ public:
         this->collapsedGenotype = new Matrix;
         this->phenotype = new Matrix;
         this->covariate = new Matrix;        
+        this->phenotypeVec = new Vector;
         assert(this->genotype && this->phenotype && this->covariate);
     }
     ~VCFData(){
@@ -28,10 +29,13 @@ public:
         if (this->collapsedGenotype) delete this->collapsedGenotype;
         if (this->phenotype) delete this->phenotype;
         if (this->covariate) delete this->covariate;
+        if (this->phenotypeVec) delete this->phenotypeVec;
+
         this->genotype = NULL;
         this->collapsedGenotype = NULL;
         this->phenotype = NULL;
         this->covariate = NULL;
+        this->phenotypeVec = NULL;
     }
     // adjust covariate and pheonotype
     void addVCFHeader(VCFHeader* h){
@@ -214,11 +218,14 @@ public:
                                       OrderedMap<std::string, int> * rowName,
                                       OrderedMap<std::string, int> * colName);
 
-    void extractPhenotype(Vector* v){
-        v->Dimension(this->people2Idx.size());
-        for (int i = 0; i < v->Length(); i++){
-            (*v)[i] = (*this->phenotype)[i][0];
+    Vector* extractPhenotype(){
+        if (this->phenotypeVec->Length()) return this->phenotypeVec;
+
+        this->phenotypeVec->Dimension(this->people2Idx.size());
+        for (int i = 0; i < phenotypeVec->Length(); i++){
+            (*phenotypeVec)[i] = (*this->phenotype)[i][0];
         }
+        return this->phenotypeVec;
     };
     // we only load covariate for people that appeared in genotype
     // please use numeric covariate only
@@ -370,6 +377,45 @@ public:
                     OrderedMap<std::string, int> & colName,
                     const char* upperLeftName);
 
+    
+    // type: FREQ_ALL, FREQ_CONTORL_ONLY
+    // will also update:
+    //    markerMAC and markerTotoalAllele ( for above type)
+    void calculateFrequency(const int type){
+        if (type != FREQ_ALL && type != FREQ_CONTORL_ONLY) {
+            fprintf(stderr, "Unsupported frequency calculation type!\n");
+            abort();
+        };
+        int numMarker = this->genotype->rows;
+        int numPeople = this->genotype->cols;
+        this->markerFreq.resize(numMarker);
+        this->markerMAC.resize(numMarker);
+        this->markerTotalAllele.resize(numMarker);
+
+        for (int m = 0; m < numMarker; m++){
+            for (int p = 0; p < numPeople; p++) {
+                if ( ! (
+                         (type == FREQ_ALL) ||
+                         (type == FREQ_CONTORL_ONLY && ((*this->phenotype)[p][0] - 1.0 < 1e-10))
+                         )
+                    )
+                    continue;
+
+                int geno = (*this->genotype)[m][p];
+                if (geno >= 0){
+                    this->markerTotalAllele[m] ++;
+                    if (geno != 0){
+                        this->markerMAC[m] += geno;
+                    }
+                }
+            }
+            if (this->markerTotalAllele[m] > 0)
+                this->markerFreq[m] = (double)(this->markerMAC[m]) / this->markerTotalAllele[m];
+            else 
+                this->markerFreq[m] = 0.0;
+        };
+    };
+
     /* // use friend class to save codes... */
     /* friend class Collapsor; */
     /* Matrix* getGeno() {return this->genotype;}; */
@@ -417,44 +463,26 @@ private:
             (*this->phenotype)[i][0] = pheno[i];
         }
     }
-    
-    void calcFreqAndCount() {
-        this->markerFreq.clear();
-        this->markerCount.clear();
-        this->markerTotalAllele.clear();
-            
-        for (int i = 0; i < genotype->rows; i++) {
-            int count = 0;
-            int totalAllele = 0;
-            for (int j = 0; j < genotype->cols; j++) {
-                if (genotype < 0) continue;
-                count += (*genotype)[i][j];
-                totalAllele += 2;
-            }
-            this->markerCount.push_back(count);
-            this->markerTotalAllele.push_back(totalAllele);
-            if (totalAllele == 0)
-                this->markerFreq.push_back(-1);
-            else
-                this->markerFreq.push_back( (double)(count) / totalAllele);
-        }
-    };
-
+  public:
+    static const int FREQ_ALL = 0;
+    static const int FREQ_CONTORL_ONLY = 1;
 // member variables here are made public
 // so that access is easier.
   public:
-    Matrix* genotype; // marker x people
+    Matrix* genotype;     // marker x people
     Matrix* collapsedGenotype;
-    Matrix* covariate; // people x cov
-    Matrix* phenotype; // people x phenotypes
-    
+    Matrix* covariate;    // people x cov
+    Matrix* phenotype;    // people x phenotypes
+    Vector* phenotypeVec; // pheotype to be use in various statistical models. 
+                          // here use it to speed up data loading.
+
     /* std::vector<std::string> markerName; */
     /* std::vector<int> markerChrom; */
     /* std::vector<int> markerPos; */
     /* std::vector<std::string> markerRef; */
     /* std::vector<std::string> markerAlt; */
     std::vector<double> markerFreq;
-    std::vector<int> markerCount; // Alternative allele count
+    std::vector<int> markerMAC; // minor(alternative) allele count 
     std::vector<int> markerTotalAllele; // Total number of allele
 
     OrderedMap<std::string, int> people2Idx; // peopleID -> idx in this->genotype

@@ -4,7 +4,7 @@
 #include "VCFData.h"
 
 class Collapsor{
-public:
+  public:
     void setSetFileName(const char* fn){
         this->setContent.clear();
         this->setName.clear();
@@ -31,7 +31,7 @@ public:
 
             } else if (fd[1] == "MARKER"){
 #pragma message "TODO"
-                fprintf(stderr, "Unsupported for now \n", lineNo);                
+                fprintf(stderr, "Unsupported for now \n", lineNo);
             } else {
                 fprintf(stderr, "Cannot regconized keyword on line %d. \n", lineNo);
             }
@@ -39,7 +39,7 @@ public:
         this->setIndex = -1;  //reset setIndex
     };
     void setCollapsingStrategy(const int strategy){
-#pragma message "Check if compatible, e.g NAIVE and set file are not compatible"        
+#pragma message "Check if compatible, e.g NAIVE and set file are not compatible"
         this->collapsingStrategy = strategy;
     };
     /** iterate  all sets
@@ -48,14 +48,14 @@ public:
     bool iterateSet(VCFInputFile& vin, VCFData* data){
         setIndex ++;
         // TODO: match individuals
-#pragma messge "Handle sample matching program"                
+#pragma messge "Handle sample matching program"
         //data->addVCFHeader(vin.getVCFHeader());
         data->addVCFHeader(vin.getVCFHeader());
 
         if (this->setName.size() == 0) {
             // iterate every marker
-            if (vin.readRecord()){ 
-                VCFRecord& record = vin.getVCFRecord();               
+            if (vin.readRecord()){
+                VCFRecord& record = vin.getVCFRecord();
                 data->addVCFRecord(record);
 
                 this->currentSetName =record.getID();
@@ -67,7 +67,7 @@ public:
             } else{
                 return false;
             }
-        } 
+        }
 
         // check boundary condition
         if (setIndex == this->setName.size()) return false;
@@ -75,7 +75,7 @@ public:
         // load one set
         this->currentSetName = this->setName[this->setIndex];
         RangeList& rl = this->setContent[this->setIndex];
-        
+
         // add genotypes within set to this-> genotype
         for (int i = 0; i < rl.size(); i++ ){
             vin.setRangeList(rl);
@@ -89,8 +89,12 @@ public:
     std::string& getCurrentSetName() {
         return this->currentSetName;
     };
-    
-    bool extractGenotype(VCFData* data){
+
+    /**
+     * Collapse data->genotype to this->collapsedGenotype
+     * @param param can be used to specify additional parameters.
+     */
+    bool collapseGenotype(VCFData* data, void* param){
         // note: missing data are handled different
         // see each collapsing method implementation for details.
         switch (this->collapsingStrategy) {
@@ -106,6 +110,12 @@ public:
         case MADSON_BROWNING:
             this->madsonbrowningCollapse(data);
             break;
+        case PROGRESSIVE:
+            this->progressiveCollapse(data, param);
+            break;
+        case UNDEFINED:
+            fprintf(stderr, "Please call setCollapsingStrategy().\n");
+            abort();
         default:
             fprintf(stderr, "Unrecognized collapsing method!\n");
             return false;
@@ -113,9 +123,10 @@ public:
         // sanity check collapsing results
         assert(data->collapsedGenotype->cols == data->set2Idx.size());
     };
-    bool writeOutput(FILE* fp){
+    bool outputHeader(FILE* fp){
+        fprintf(fp, "%s", this->currentSetName.c_str());
     };
-public:
+  public:
     void naiveCollapse(VCFData* d){
         int numPeople = d->people2Idx.size();
         int numMarker = d->marker2Idx.size();
@@ -129,39 +140,130 @@ public:
         int numPeople = d->people2Idx.size();
         int numMarker = d->marker2Idx.size();
         d->collapsedGenotype->Dimension(numPeople, 1);
+        d->collapsedGenotype->Zero();
         for (int p = 0; p < numPeople; p++){
-            bool hasVariant = 0;
-            int ac = 0; // allele count
             for (int m = 0; m < numMarker; m++) {
-                int g = (*d->genotype)[m][p];
+                int g = (int)((*d->genotype)[m][p]);
                 if (g > 0) {
                     (*d->collapsedGenotype)[p][0] = 1.0;
                     break;
                 }
             };
-            (*d->collapsedGenotype)[p][0] = 0.0;
         };
     };
     void zegginiCollapse(VCFData* d){
-
+        int numPeople = d->people2Idx.size();
+        int numMarker = d->marker2Idx.size();
+        d->collapsedGenotype->Dimension(numPeople, 1);
+        d->collapsedGenotype->Zero();
+        for (int p = 0; p < numPeople; p++){
+            for (int m = 0; m < numMarker; m++) {
+                int g = (*d->genotype)[m][p];
+                if (g > 0) { // genotype is non-reference
+                    (*d->collapsedGenotype)[p][0] += 1.0;
+                    break;
+                }
+            };
+        };
     };
     void madsonbrowningCollapse(VCFData* d){
-        
+        d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
+
+        int numPeople = d->people2Idx.size();
+        int numMarker = d->marker2Idx.size();
+        d->collapsedGenotype->Dimension(numPeople, 1);
+        d->collapsedGenotype->Zero();
+
+        for (int m = 0; m < numMarker; m++) {
+            // up weight by control freuqncey  1/p/(1-p)
+            double weight = 0.0;
+            if (d->markerFreq[m] >= 1e-6){
+                weight = 1.0 / d->markerFreq[m] / (1.0 - d->markerFreq[m]);
+            } else{
+                continue;
+            }
+
+            // calculate burden score at marker m
+            for (int p = 0; p < numPeople; p++){
+                double g = (*d->genotype)[m][p];
+                if (g > 0) {
+                    (*d->collapsedGenotype)[p][0] += g * weight;
+                    break;
+                }
+            };
+        };
     };
-public:
+    void progressiveCollapse(VCFData* d, void* param){
+        int col = *(int*)param;
+        int collapsingStrategy = * ( (int*)(param) + 1);
+        if (collapsingStrategy != CMC && collapsingStrategy != MADSON_BROWNING){
+            fprintf(stderr, "Unknow progressive collapsing method: %d.\n", collapsingStrategy);
+            abort();
+        }
+
+        int numPeople = d->people2Idx.size();
+        int numMarker = d->marker2Idx.size();
+        if (col < 0){
+            d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
+            d->collapsedGenotype->Dimension(numPeople, 1);
+            d->collapsedGenotype->Zero();
+            if (collapsingStrategy = MADSON_BROWNING){
+                d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
+            }
+            return;
+        }
+        switch(collapsingStrategy){
+        case CMC:
+            for (int p = 0; p < numPeople; p++) {
+                int g = (int)((*d->genotype)[col][p]);
+                if (g > 0) {
+                    (*d->collapsedGenotype)[p][0] = 1.0;
+                    break;
+                }
+            };
+            break;
+        case MADSON_BROWNING:
+        {
+            double weight = 0.0;
+            if (d->markerFreq[col] >= 1e-6){
+                weight = 1.0 / d->markerFreq[col] / (1.0 - d->markerFreq[col]);
+            } else{
+                return;
+            }
+            // calculate burden score at marker m
+            for (int p = 0; p < numPeople; p++){
+                double g = (*d->genotype)[col][p];
+                if (g > 0) {
+                    (*d->collapsedGenotype)[p][0] += g * weight;
+                    break;
+                }
+            };
+        }
+        break;
+        default:
+            fprintf(stderr, "Wrong progressive collapsing method: %d.\n", collapsingStrategy);
+            abort();
+            break;
+        }
+    };
+
+  public:
+    static const int UNDEFINED = -1;
     static const int NAIVE = 0;
     static const int CMC = 1;
     static const int ZEGGINI = 2;
     static const int MADSON_BROWNING = 3;
-private:
+    static const int PROGRESSIVE = 4;
+
+  private:
     Matrix stagedGenotype; // marker x people
     int collapsingStrategy;
     OrderedMap<std::string, int>* people2Idx;
     OrderedMap<std::string, int>* marker2Idx;
 
-    std::string currentSetName; 
+    std::string currentSetName;
 
-    int setIndex;                       // record current visited index of set 
+    int setIndex;                       // record current visited index of set
     std::vector< std::string> setName;
     std::vector<RangeList> setContent;
 };

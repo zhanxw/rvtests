@@ -39,6 +39,8 @@ public:
         if (this->fp) delete this->fp;
     };
 
+    // use current subset of included people
+    // to reconstruct a new VCF header line
     void rewriteVCFHeader() {
         std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
         VCFPeople& people = this->record.getPeople();
@@ -177,7 +179,11 @@ public:
     };
     VCFRecord& getVCFRecord() {return this->record;};
     const std::string& getLine() const {return this->line;};
-private:
+  private:
+    // disable copy-constructor
+    VCFInputFile(const VCFInputFile& v){};
+    VCFInputFile& operator=(const VCFInputFile& v){};
+  private:
     VCFHeader header;
     VCFRecord record;
     

@@ -49,6 +49,21 @@ void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
     }
 };
 
+void banner(FILE* fp) {
+    const char* string =
+        "..............................................         \n"
+        " ...      R(are) V(ariant) Tests            ...        \n"
+        "  ...      Xiaowei Zhan, Youna Hu            ...       \n"
+        "   ...      Bingshan Li, Dajiang Liu          ...      \n"        
+        "    ...      Goncalo Abecasis                  ...     \n"
+        "     ...      zhanxw@umich.edu                  ...    \n"
+        "      ...      Dec 2011                          ...   \n"
+        "       ..............................................  \n" 
+        "                                                       \n"
+        ;
+    fputs(string, fp);
+};
+
 int main(int argc, char** argv){
     time_t currentTime = time(0);
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));

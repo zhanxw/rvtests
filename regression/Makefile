@@ -11,11 +11,15 @@ debug: $(LIB)
 all: CXXFLAGS = -O2 $(DEFAULT_CXXFLAGS)
 all: $(LIB)
 
-$(LIB): LogisticRegression.o LinearRegression.o
+$(LIB): LogisticRegression.o LinearRegression.o Skat.o qfc.o
 	ar -cqs $(LIB) *.o
 LogisticRegression.o: LogisticRegression.cpp LogisticRegression.h
 	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC)
 LinearRegression.o: LinearRegression.cpp LinearRegression.h
+	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC)
+Skat.o: Skat.cpp Skat.h
+	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC) -I/usr/include/eigen3
+qfc.o: qfc.c
 	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC)
 clean:
 	rm -rf *.o *.a *~

@@ -195,7 +195,6 @@ private:
     int rangeIdx;
     ti_iter_t iter; 
     const char* s;
-
 };
 
 #endif /* _VCFINPUTFILE_H_ */

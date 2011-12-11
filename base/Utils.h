@@ -67,6 +67,29 @@ inline int stringTokenize(const std::string& str, const char delim, std::vector<
     return (stringTokenize(str, d, result));
 };
 
+// pretty much like stringTokenize, but @param result will not contain empty string
+inline int stringNaturalTokenize(const std::string& str, const std::string& delim, std::vector<std::string>* result){
+    assert(result);
+    result->clear();
+    std::string s;
+    unsigned int l = str.size();
+    unsigned int i = 0;
+    while (i < l) {
+        if (delim.find(str[i]) != std::string::npos) { // it's a delimeter
+            if (s.size()>0){
+                result->push_back(s);
+                s.clear();
+            }
+        } else {
+            s.push_back(str[i]);
+        }
+        ++i;
+    };
+    if (s.size() > 0) 
+        result->push_back(s);    
+    return result->size();
+};
+
 /**
  * print out the content for debug only
  */

@@ -9,7 +9,10 @@
    7. Test VT (combine Collapsor and ModelFitter)
    8. Test permutation test
    9. Add more filter to individuals
-   
+   10. Fast VCF INFO field retrieve
+   11. Fast VCF Individual inner field retrieve
+   12. Design command line various models (collapsing method, freq-cutoff)
+
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -77,6 +80,9 @@ int main(int argc, char** argv){
         // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis");
         // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis");
         // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
+        
+        ADD_PARAMETER_GROUP(pl, "Association Functions")
+        
         ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
         ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
         END_PARAMETER_LIST(pl)

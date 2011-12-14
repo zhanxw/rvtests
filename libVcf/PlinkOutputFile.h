@@ -75,7 +75,7 @@ public:
         for (int i = 0; i < people.size() ; i ++) {
             indv = people[i];
             offset = i & (4 - 1);
-            if ((*indv)[0].isHaploid()) {
+            if ((*indv)[0].isHaploid()) { // 0: index of GT
                 int a1 = (*indv)[0].getAllele1();
                 if (a1 == 0) 
                     setGenotype(&c, offset, HOM_REF);
@@ -109,7 +109,7 @@ public:
                 c = 0;
             }
         };
-        if (offset)
+        if (people.size() % 4 != 0 ) // remaining some bits
             fwrite(&c, sizeof(char), 1, this->fpBed);
     }
     void writeBIM(const char* chr, const char* id, int mapDist, int pos, const char* ref, const char* alt){

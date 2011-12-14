@@ -48,8 +48,9 @@ rvtest: Main.cpp \
 	$(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB)
 	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(VCF_INC) -I$(BASE_INC) -D__ZLIB_AVAILABLE__
 	g++ -o $@ Main.o VCFData.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
-vcf2plink: vcf2plink.cpp
-	g++ -O2 -o $@ $<  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(VCF_INC) -I$(BASE_INC)  $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+
+vcf2plink: vcf2plink.cpp $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB)
+	g++ -O4 -o $@ $<  -I. -I$(TABIX_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC)  $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 VCFData.o: VCFData.cpp VCFData.h
 	g++ -c $(CXXFLAGS) $<  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(VCF_INC) -I$(BASE_INC) -D__ZLIB_AVAILABLE__
 clean: 

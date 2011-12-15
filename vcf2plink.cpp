@@ -117,6 +117,8 @@ int main(int argc, char** argv){
         VCFIndividual* indv;
         if (vout) vout->writeRecord(& r);
         if (pout) pout ->writeRecord(& r);
+
+#if 0
         printf("%s:%d\t", r.getChrom(), r.getPos());
 
         // e.g.: get TAG from INFO field
@@ -133,6 +135,7 @@ int main(int argc, char** argv){
                 fprintf(stderr, "Cannot find GT field!\n");
         }
         printf("\n");
+#endif
     };
 
     if (vout) delete vout;

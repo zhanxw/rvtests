@@ -24,10 +24,10 @@ TARGET: $(EXEC)
 
 all: $(TARGET)
 
-# 'make release' will: clean current build; build with -O4 flags; backup executable files to release/ folder
+# 'make release' will: clean current build; build with -O4 flags;
 # NOTE: don't use -j flag!
 release: CXXFLAGS = -O4 $(DEFAULT_CXXFLAGS)
-release: clean $(EXEC) backup_release
+release: clean $(EXEC) 
 
 debug: CXXFLAGS = -g $(DEFAULT_CXXFLAGS)
 debug: $(EXEC)

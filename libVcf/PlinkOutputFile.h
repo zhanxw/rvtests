@@ -175,10 +175,9 @@ public:
             if ( offset == 3) { // 3: 4 - 1, so every 4 genotype we will flush 
                 fwrite(&c, sizeof(char), 1, this->fpBed);
                 c = 0;
-                offset = 3;
             }
         };
-        if (offset)
+        if (nPeople % 4 ! = 0 )
             fwrite(&c, sizeof(char), 1, this->fpBed);
     };
 private:

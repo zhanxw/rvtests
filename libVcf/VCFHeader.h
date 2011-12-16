@@ -24,6 +24,7 @@ class VCFHeader{
     const std::string operator[] (int n) const {return this->data[n];};
     std::string at(int n) { return this->data.at(n);};
     const std::string at(int n) const {return this->data.at(n);};
+    void clear() { this->data.clear();};
   private:
     std::vector<std::string> data;
 };

@@ -4,6 +4,8 @@
 #include "OrderedMap.h"
 #include "MathMatrix.h"
 #include "VCFUtil.h"
+#include "PlinkInputFile.h"
+#include "PlinkOutputFile.h"
 
 /**
  * Hold genotype, phenotype, covariate data
@@ -38,19 +40,45 @@ public:
         this->phenotypeVec = NULL;
     }
     // adjust covariate and pheonotype
-    void addVCFHeader(VCFHeader* h){
+    void addVCFHeader(VCFHeader* h, std::vector<std::string>* v){
+        assert(v);
+
+        if (this->people2Idx.size() == 0) {
+            h->getPeopleName(v); // include all people
+            return;
+        }
+            
         std::vector<std::string> p;
         h->getPeopleName(&p);
+        
+        std::map<int, std::string> order; // will adjust internal order of phenotype and covariate.
+        std::map<int, std::string>::iterator order_it;
+
         for (int i = 0; i < p.size(); i++){
-            if (this->people2Idx.size() && !this->people2Idx.find(p[i])){
-                //excluding some pheontype or covaraite
-#pragma messge "Handle sample matching program"
+            if (!this->people2Idx.find(p[i])) { // VCF file has p[i], but not in existing phenotype or covariate.
+                continue;
             } else{
-                
+                v->push_back(p[i]);
+                order[ order.size() ] = p[i];
             }
-                
-            this->people2Idx[p[i]] = i;
-        };
+        }
+
+        // adjust phenotype and covaraite order so they are the same as VCF file
+        for (int i = 0; i < order.size() ; i++){
+            //switch row i so i have people order[i]
+            int j = this->people2Idx[order[i]];
+            if (i == j) continue;
+            else{
+                if (this->phenotype->rows > j )
+                    this->phenotype->SwapRows(i,j);
+                if (this->covariate->rows > j )
+                    this->covariate->SwapRows(i,j);
+            }
+        }
+        fprintf(stdout, "%d samples from VCF files will not be included in study.\n", (int) this->people2Idx.size() - order.size());
+        this->people2Idx.clear();
+        for (int i = 0; i < order.size(); i ++)
+            this->people2Idx[order[i]] = i;
     };
     /**
      * NOTE: call addVCFHeader()  first
@@ -414,6 +442,29 @@ public:
             else 
                 this->markerFreq[m] = 0.0;
         };
+    };
+
+    bool isCaseControlPhenotype(){
+        Vector* v = this->extractPhenotype();
+        // case control are coded as 0, 1, or missing;
+        // if there are non-integer phenotype, then quantative trait
+        // if case-control but not code as 0, 1, or -9, give warning!
+        
+        int doubleCnt = 0;
+        int wrongCoding = 0;
+        for (int i = 0; i < v->Length(); i++){
+            double res = (*v)[i] - round( (*v)[i]);
+            if (res > 1e-3 || res < -1e-3) doubleCnt ++;
+            int code = (int) (*v)[i];
+            if (code != 0 || code != 1 || code != -9) {
+                wrongCoding ++;
+            }
+        }
+        if (doubleCnt > 0) {return false;};
+        if (wrongCoding > 0) {
+            fprintf(stderr, "Case control coding should be 0, 1, or -9, but wrong coding detected.\n");
+        }
+        return true;
     };
 
     /* // use friend class to save codes... */

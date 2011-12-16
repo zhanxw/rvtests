@@ -50,7 +50,9 @@ class Collapsor{
         // TODO: match individuals
 #pragma messge "Handle sample matching program"
         //data->addVCFHeader(vin.getVCFHeader());
-        data->addVCFHeader(vin.getVCFHeader());
+        std::vector<std::string> vcfPeople2include;
+        data->addVCFHeader(vin.getVCFHeader(), &vcfPeople2include);
+        vin.includePeople(vcfPeople2include);
 
         if (this->setName.size() == 0) {
             // iterate every marker

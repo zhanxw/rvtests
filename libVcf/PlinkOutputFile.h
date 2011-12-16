@@ -177,7 +177,7 @@ public:
                 c = 0;
             }
         };
-        if (nPeople % 4 ! = 0 )
+        if (nPeople % 4 != 0 )
             fwrite(&c, sizeof(char), 1, this->fpBed);
     };
 private:

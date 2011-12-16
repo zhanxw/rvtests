@@ -17,6 +17,7 @@ public:
         this->modelName = "Unassigned Model Name";
     };
     const std::string& getModelName() { return this->modelName; };
+    void reset() {}; // for particular class to call
 protected:
     std::string modelName;
 }; // end ModelFitter

@@ -42,13 +42,6 @@
 
 #include "Analysis.h"
 
-void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
-    if (flag.size() == 0){
-        fprintf(stderr, "%s\n", msg);
-        abort();
-    }
-};
-
 void banner(FILE* fp) {
     const char* string =
         "..............................................         \n"
@@ -77,8 +70,8 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
         ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_STRING_PARAMETER(pl, set, "--set", "specify set file (for collapsing)")
-        ADD_PARAMETER_GROUP(pl, "People Filter")
-        ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
+        ADD_PARAMETER_GROUP(pl, "People Filter") 
+       ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
@@ -97,7 +90,15 @@ int main(int argc, char** argv){
         // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
         
         ADD_PARAMETER_GROUP(pl, "Association Functions")
-        
+        // ADD_STRING_PARAMETER(pl, model, "--model", "Specify various models. e.g. freq,cmc(0.01),zeggini(0.05),browning(0.03-0.05),vt(cmc,0.03-0.05),skat(0.04)")
+        ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
+        ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, madson_browning")
+        ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, madson_browning, freq_all, skat")
+        ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT")
+        /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
+        ADD_BOOL_PARAMETER(pl, freqFromCase, "--freqFromCase", "Calculate frequency from case samples")
+        ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
+        ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
         ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
         ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
         END_PARAMETER_LIST(pl)
@@ -155,8 +156,50 @@ int main(int argc, char** argv){
     }
     collapsor.setCollapsingStrategy(Collapsor::NAIVE);
 
+    int numModel = (FLAG_modelSingle.size()>0? 1: 0) +
+        (FLAG_modelBurden.size()>0? 1: 0) +
+        (FLAG_modelVT.size()>0? 1: 0) +
+        (FLAG_modelKernel.size()>0? 1: 0);
+    if (numModel > 1) {
+        fprintf(stderr, "More than one model is specified!\n");
+        abort();
+    }
+ 
+    if (numModel == 1) {
+        if (FLAG_modelSingle.size() > 0) {
+            
+        } else if (FLAG_modelBurden.size() > 0){
 
-    LogisticModelScoreTest lmf;
+        } else if (FLAG_modelVT.size() > 0){
+
+        } else if (FLAG_modelKernel.size() > 0){
+        }
+    } else {
+        // no statistical model involved.
+    };
+
+    // check single and burden tests cannot specify together
+
+    // all models puts here
+    std::vector< ModelFitter* > model;
+    std::vector<std::string> modelNames;
+    if (FLAG_modelSingle.size() > 0) {
+        stringTokenize(FLAG_modelSingle, ",", &modelNames);
+        for (int i = 0; i < modelNames.size(); i ++ ) {
+
+        }
+    } else if () {
+
+    };
+
+
+    ModelFitter** model = new ModelFitter*[4];
+    model[0] = new CaseControlFreqSummary; // summary models
+    model[1] = new LogisticModelScoreTest; // freq cut-off
+    model[2] = new VariableThresholdTest;  // VT models
+    model[3] = new SKatModelTest; // non-parametric type models
+    
+    //LogisticModelScoreTest lmf;
     //PermutateModelFitter lmf;
 
     FILE* fout = fopen("results.txt", "w");
@@ -167,7 +210,36 @@ int main(int argc, char** argv){
     lmf.outputHeader(fout);
     fprintf(fout, "\n");
 
-    while(collapsor.iterateSet(vin, &data)){
+    while(collapsor.iterateSet(vin, &data)){ // now data.genotype have all available genotypes
+                                             // need to collapsing it carefully.
+        // no collapsing needed models (single variant)
+     
+   
+        if (any model needs frquency from case) {
+            // reset every model
+            
+            // calculate frequency
+            
+            // iterate higher -> lower frequency cutoff 
+            getOrderOfCutoff(order, lower_freq, high_freq);
+            for (i in order){
+                
+            };
+
+            // output results
+        }
+
+        if (any model need frequncy from control) {
+            // calculate frequency
+            
+            // iterate higher -> lower frequency cutoff 
+            
+            // output results
+
+        }
+
+        // skat model
+
         // collapsor.collapseGenotype(&data);
         // for each model, fit the genotype data
         lmf.fit(data, collapsor, fout);
@@ -178,10 +250,6 @@ int main(int argc, char** argv){
             std::string out = FLAG_outputRaw + "." + setName;
             data.writeRawData(out.c_str());
         }
-
-        // // output to result file
-        // lmf.writeOutput(fout);
-        
     }
     fclose(fout);
 

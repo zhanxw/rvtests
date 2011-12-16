@@ -35,3 +35,12 @@ $(EXEC): $(OBJ)
 
 clean:
 	rm -rf $(EXEC) *.o
+
+INC=-I. -I./cityhash/include -I/home/zhanxw/software/sparsehash/include
+LIB= -L./cityhash/lib -lcityhash
+map:
+	g++ -std=c++0x -static -g -O0 -o test StringMap.cpp $(INC) $(LIB)
+mapTest:
+	g++ -std=c++0x -static -O3 -o test StringMap.cpp $(INC) $(LIB) && xtime ./test
+mapTest2:
+	g++ -std=c++0x -static -pg -g -o test StringMap.cpp $(INC) $(LIB) && xtime ./test

@@ -56,7 +56,7 @@ plink2vcf: plink2vcf.cpp $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB)
 	g++ -g -O0 -o $@ $<  -I. -I$(TABIX_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC)  $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
 vcf2merlin: vcf2merlin.cpp $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB)
-	g++ -g -O0 -o $@ $<  -I. -I$(TABIX_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC)  $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+	g++ -O4 -o $@ $<  -I. -I$(TABIX_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC)  $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
 VCFData.o: VCFData.cpp VCFData.h
 	g++ -c $(CXXFLAGS) $<  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(VCF_INC) -I$(BASE_INC) -D__ZLIB_AVAILABLE__

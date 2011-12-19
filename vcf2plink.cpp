@@ -34,8 +34,6 @@
 #include "MathVector.h"
 #include "MathMatrix.h"
 
-#include "Analysis.h"
-
 int main(int argc, char** argv){
     time_t currentTime = time(0);
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));

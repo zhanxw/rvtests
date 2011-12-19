@@ -59,7 +59,7 @@ public:
         std::vector<std::string> sa;
         stringTokenize(line, '\t', &sa);
         if (sa.size() <= 9){
-            FATAL("not enough people in the VCF");
+            FATAL("not enough people in the VCF (VCF does not contain genotype and individuals?)");
         }
         for (int i = 9; i < sa.size(); i++ ) {
             int idx = i - 9;

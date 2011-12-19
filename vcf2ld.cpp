@@ -15,6 +15,8 @@
 // #include "MathVector.h"
 // #include "MathMatrix.h"
 
+#define min(x, y) ( (x) < (y) ? (x) : (y) )
+
 int calculateLD(std::vector<int>& lastGeno, std::vector<int>& geno, int* n, double* d) {
     assert(lastGeno.size() == geno.size());
     assert( n && d);
@@ -43,7 +45,16 @@ int calculateLD(std::vector<int>& lastGeno, std::vector<int>& geno, int* n, doub
     
     double pA = pAB + pAb;
     double pB = pAB + paB;
-    *d = pAB - pA * pB;
+    double pa = paB + pab;
+    double pb = pAb + pab;
+
+    // D
+    d[0] = pAB - pA * pB;
+    // D'  (D prime)
+    double Dmax = d[0] < 0.0 ?  (  min(pA* pB, pa * pb) ) : ( min(pA * pb, pa * pB));
+    d[1] = d[0] / (Dmax + 1e-30);
+    d[2] = d[0] / sqrt(pA * pa * pB * pb) ;
+        
 
     return 0;
 };
@@ -108,7 +119,7 @@ int main(int argc, char** argv){
     int lastPos, pos;
     std::string lastRs, rs;
         
-    fputs("ChrA\tPosA\tMarkerA\tChrB\tPosB\tMarkerB\tN00\tN01\tN10\tN11\tDprime\n", fout);
+    fputs("ChrA\tPosA\tMarkerA\tChrB\tPosB\tMarkerB\tN00\tN01\tN10\tN11\tD\tDprime\tr\n", fout);
 
     std::vector<int> lastGeno;
     std::vector<int> geno;
@@ -162,9 +173,10 @@ int main(int argc, char** argv){
         fprintf(fout, "%s\t%d\t%s\t", chrom.c_str(), pos, rs.c_str());
 
         int n[4] = {0};
-        double d = 0.0; // D prime
-        calculateLD(lastGeno, geno, n, &d);
-        fprintf(fout, "%d\t%d\t%d\t%d\t%.2f\n", n[0], n[1], n[2], n[3], d);
+        double d[3] = {0.0}; // D prime
+        calculateLD(lastGeno, geno, n, d);
+        fprintf(fout, "%d\t%d\t%d\t%d\t", n[0], n[1], n[2], n[3]);
+        fprintf(fout, "%.6lf\t%.6lf\t%.6lf\n", d[0], d[1], d[2]);
     };
 
     return 0; 

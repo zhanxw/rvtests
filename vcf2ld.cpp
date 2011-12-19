@@ -138,7 +138,7 @@ int main(int argc, char** argv){
 
         // swap 
         lastGeno = geno;
-        lastGeno = geno;
+        lastChrom = chrom;
         lastPos = pos;
         lastRs = rs;
 

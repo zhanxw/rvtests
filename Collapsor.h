@@ -71,6 +71,7 @@ class Collapsor{
             }
         }
 
+        // Multiple variant
         // check boundary condition
         if (setIndex == this->setName.size()) return false;
 
@@ -92,6 +93,7 @@ class Collapsor{
         return this->currentSetName;
     };
 
+#if 0
     /**
      * Collapse data->genotype to this->collapsedGenotype
      * @param param can be used to specify additional parameters.
@@ -129,125 +131,7 @@ class Collapsor{
         fprintf(fp, "%s", this->currentSetName.c_str());
     };
   public:
-    void naiveCollapse(VCFData* d){
-        int numPeople = d->people2Idx.size();
-        int numMarker = d->marker2Idx.size();
-        d->collapsedGenotype->Dimension(numPeople, numMarker);
-        for (int p = 0; p < numPeople; p++)
-            for (int m = 0; m < numMarker; m++)
-                (*d->collapsedGenotype)[p][m] = (*d->genotype)[m][p];
-        d->set2Idx = d->marker2Idx;
-    };
-    void cmcCollapse(VCFData* d){
-        int numPeople = d->people2Idx.size();
-        int numMarker = d->marker2Idx.size();
-        d->collapsedGenotype->Dimension(numPeople, 1);
-        d->collapsedGenotype->Zero();
-        for (int p = 0; p < numPeople; p++){
-            for (int m = 0; m < numMarker; m++) {
-                int g = (int)((*d->genotype)[m][p]);
-                if (g > 0) {
-                    (*d->collapsedGenotype)[p][0] = 1.0;
-                    break;
-                }
-            };
-        };
-    };
-    void zegginiCollapse(VCFData* d){
-        int numPeople = d->people2Idx.size();
-        int numMarker = d->marker2Idx.size();
-        d->collapsedGenotype->Dimension(numPeople, 1);
-        d->collapsedGenotype->Zero();
-        for (int p = 0; p < numPeople; p++){
-            for (int m = 0; m < numMarker; m++) {
-                int g = (*d->genotype)[m][p];
-                if (g > 0) { // genotype is non-reference
-                    (*d->collapsedGenotype)[p][0] += 1.0;
-                    break;
-                }
-            };
-        };
-    };
-    void madsonbrowningCollapse(VCFData* d){
-        d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
 
-        int numPeople = d->people2Idx.size();
-        int numMarker = d->marker2Idx.size();
-        d->collapsedGenotype->Dimension(numPeople, 1);
-        d->collapsedGenotype->Zero();
-
-        for (int m = 0; m < numMarker; m++) {
-            // up weight by control freuqncey  1/p/(1-p)
-            double weight = 0.0;
-            if (d->markerFreq[m] >= 1e-6){
-                weight = 1.0 / d->markerFreq[m] / (1.0 - d->markerFreq[m]);
-            } else{
-                continue;
-            }
-
-            // calculate burden score at marker m
-            for (int p = 0; p < numPeople; p++){
-                double g = (*d->genotype)[m][p];
-                if (g > 0) {
-                    (*d->collapsedGenotype)[p][0] += g * weight;
-                    break;
-                }
-            };
-        };
-    };
-    void progressiveCollapse(VCFData* d, void* param){
-        int col = *(int*)param;
-        int collapsingStrategy = * ( (int*)(param) + 1);
-        if (collapsingStrategy != CMC && collapsingStrategy != MADSON_BROWNING){
-            fprintf(stderr, "Unknow progressive collapsing method: %d.\n", collapsingStrategy);
-            abort();
-        }
-
-        int numPeople = d->people2Idx.size();
-        int numMarker = d->marker2Idx.size();
-        if (col < 0){
-            d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
-            d->collapsedGenotype->Dimension(numPeople, 1);
-            d->collapsedGenotype->Zero();
-            if (collapsingStrategy = MADSON_BROWNING){
-                d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
-            }
-            return;
-        }
-        switch(collapsingStrategy){
-        case CMC:
-            for (int p = 0; p < numPeople; p++) {
-                int g = (int)((*d->genotype)[col][p]);
-                if (g > 0) {
-                    (*d->collapsedGenotype)[p][0] = 1.0;
-                    break;
-                }
-            };
-            break;
-        case MADSON_BROWNING:
-        {
-            double weight = 0.0;
-            if (d->markerFreq[col] >= 1e-6){
-                weight = 1.0 / d->markerFreq[col] / (1.0 - d->markerFreq[col]);
-            } else{
-                return;
-            }
-            // calculate burden score at marker m
-            for (int p = 0; p < numPeople; p++){
-                double g = (*d->genotype)[col][p];
-                if (g > 0) {
-                    (*d->collapsedGenotype)[p][0] += g * weight;
-                    break;
-                }
-            };
-        }
-        break;
-        default:
-            fprintf(stderr, "Wrong progressive collapsing method: %d.\n", collapsingStrategy);
-            abort();
-            break;
-        }
-    };
 
   public:
     static const int UNDEFINED = -1;
@@ -256,12 +140,13 @@ class Collapsor{
     static const int ZEGGINI = 2;
     static const int MADSON_BROWNING = 3;
     static const int PROGRESSIVE = 4;
+#endif 
 
   private:
-    Matrix stagedGenotype; // marker x people
-    int collapsingStrategy;
-    OrderedMap<std::string, int>* people2Idx;
-    OrderedMap<std::string, int>* marker2Idx;
+    /* Matrix stagedGenotype; // marker x people */
+    /* int collapsingStrategy; */
+    /* OrderedMap<std::string, int>* people2Idx; */
+    /* OrderedMap<std::string, int>* marker2Idx; */
 
     std::string currentSetName;
 
@@ -269,5 +154,155 @@ class Collapsor{
     std::vector< std::string> setName;
     std::vector<RangeList> setContent;
 };
+
+//////////////////////////////////////////////////////////////////////
+// the following collapsor will convert d->collapsedGenotype to a Matrix* out,
+// then model can use @param out directly
+// internal, all collapsor will use variant that are in markerInclusion
+
+void naiveCollapse(VCFData* d, Matrix* out, bool addIntercept){
+    assert(out);
+    int numPeople = d->genotype->cols;
+    int numMarker = d->genotype->rows;
+    if (numMarker != 1) {
+        fprintf(stderr, "Naive collapse but number of variant larger than 1.\n");
+    }
+    int colNumber = (addIntercept == true ? 1 : 0) + 1 + (d->covariate == NULL ? 0 : d->covariate->cols);
+    out->Dimension(numPeople, colNumber);
+
+    int beginCol = 0;
+    for (int p = 0; p < numPeople; p++) {
+        (*out)[p][0] = (*this->collapseGenotype)[p][0];
+    }
+    beginCol++;
+
+    if (addIntercept) {
+        for (int p = 0; p < numPeople; p++) {
+            (*out)[p][beginCol] = 1.0;
+        }
+        beginCol ++;
+    }
+    
+    if (d->covariate) {
+        for (int c = 0; c < d->covariate->cols; c++) {
+            for (int p = 0; p < numPeople; p++) {
+                (*out)[p][beginCol + c] = (*d->covariate)[p][c];
+            }
+        }
+    }
+};
+
+void cmcCollapse(VCFData* d, Matrix* out, bool addIntercept){
+    int numPeople = d->people2Idx.size();
+    int numMarker = d->marker2Idx.size();
+    d->collapsedGenotype->Dimension(numPeople, 1);
+    d->collapsedGenotype->Zero();
+    for (int p = 0; p < numPeople; p++){
+        for (int m = 0; m < numMarker; m++) {
+            int g = (int)((*d->genotype)[m][p]);
+            if (g > 0) {
+                (*d->collapsedGenotype)[p][0] = 1.0;
+                break;
+            }
+        };
+    };
+};
+void zegginiCollapse(VCFData* d){
+    int numPeople = d->people2Idx.size();
+    int numMarker = d->marker2Idx.size();
+    d->collapsedGenotype->Dimension(numPeople, 1);
+    d->collapsedGenotype->Zero();
+    for (int p = 0; p < numPeople; p++){
+        for (int m = 0; m < numMarker; m++) {
+            int g = (*d->genotype)[m][p];
+            if (g > 0) { // genotype is non-reference
+                (*d->collapsedGenotype)[p][0] += 1.0;
+                break;
+            }
+        };
+    };
+};
+void madsonbrowningCollapse(VCFData* d){
+    d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
+
+    int numPeople = d->people2Idx.size();
+    int numMarker = d->marker2Idx.size();
+    d->collapsedGenotype->Dimension(numPeople, 1);
+    d->collapsedGenotype->Zero();
+
+    for (int m = 0; m < numMarker; m++) {
+        // up weight by control freuqncey  1/p/(1-p)
+        double weight = 0.0;
+        if (d->markerFreq[m] >= 1e-6){
+            weight = 1.0 / d->markerFreq[m] / (1.0 - d->markerFreq[m]);
+        } else{
+            continue;
+        }
+
+        // calculate burden score at marker m
+        for (int p = 0; p < numPeople; p++){
+            double g = (*d->genotype)[m][p];
+            if (g > 0) {
+                (*d->collapsedGenotype)[p][0] += g * weight;
+                break;
+            }
+        };
+    };
+};
+void progressiveCollapse(VCFData* d, void* param){
+    int col = *(int*)param;
+    int collapsingStrategy = * ( (int*)(param) + 1);
+    if (collapsingStrategy != CMC && collapsingStrategy != MADSON_BROWNING){
+        fprintf(stderr, "Unknow progressive collapsing method: %d.\n", collapsingStrategy);
+        abort();
+    }
+
+    int numPeople = d->people2Idx.size();
+    int numMarker = d->marker2Idx.size();
+    if (col < 0){
+        d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
+        d->collapsedGenotype->Dimension(numPeople, 1);
+        d->collapsedGenotype->Zero();
+        if (collapsingStrategy = MADSON_BROWNING){
+            d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
+        }
+        return;
+    }
+    switch(collapsingStrategy){
+    case CMC:
+        for (int p = 0; p < numPeople; p++) {
+            int g = (int)((*d->genotype)[col][p]);
+            if (g > 0) {
+                (*d->collapsedGenotype)[p][0] = 1.0;
+                break;
+            }
+        };
+        break;
+    case MADSON_BROWNING:
+    {
+        double weight = 0.0;
+        if (d->markerFreq[col] >= 1e-6){
+            weight = 1.0 / d->markerFreq[col] / (1.0 - d->markerFreq[col]);
+        } else{
+            return;
+        }
+        // calculate burden score at marker m
+        for (int p = 0; p < numPeople; p++){
+            double g = (*d->genotype)[col][p];
+            if (g > 0) {
+                (*d->collapsedGenotype)[p][0] += g * weight;
+                break;
+            }
+        };
+    }
+    break;
+    default:
+        fprintf(stderr, "Wrong progressive collapsing method: %d.\n", collapsingStrategy);
+        abort();
+        break;
+    }
+};
+
+
 
 #endif /* _COLLAPSOR_H_ */

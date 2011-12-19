@@ -11,7 +11,7 @@ void VCFData::writeRawData(const char* prefix){
         p = "rvtest.raw";
     }
     this->writeGenotype( (p + ".geno").c_str());
-    this->writeCollapsedGenotype( (p + ".cgeno").c_str());
+    // this->writeCollapsedGenotype( (p + ".cgeno").c_str());
     this->writeCovariate( (p + ".cov").c_str());
     this->writePhenotype( (p + ".pheno").c_str());
 };
@@ -23,9 +23,9 @@ void VCFData::writeRawData(const char* prefix){
 void VCFData::writeGenotype(const char* fn){
     this->writeTable(fn, this->genotype, this->marker2Idx, this->people2Idx, "MarkerName");
 };
-void VCFData::writeCollapsedGenotype( const char* fn){
-    this->writeTable(fn, this->collapsedGenotype, this->people2Idx, this->set2Idx, "PeopleID");
-};
+// void VCFData::writeCollapsedGenotype( const char* fn){
+//     this->writeTable(fn, this->collapsedGenotype, this->people2Idx, this->set2Idx, "PeopleID");
+// };
 /** write covariate to file, format is as following:
  *  header line: PeopleName CovName1 CovName2 ...
  *  content line: P1 1.0 2.0 ...

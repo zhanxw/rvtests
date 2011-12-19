@@ -39,26 +39,23 @@ public:
         this->covariate = NULL;
         this->phenotypeVec = NULL;
     }
-    // adjust covariate and pheonotype
-    void addVCFHeader(VCFHeader* h, std::vector<std::string>* v){
-        assert(v);
 
-        if (this->people2Idx.size() == 0) {
-            h->getPeopleName(v); // include all people
-            return;
-        }
-            
-        std::vector<std::string> p;
-        h->getPeopleName(&p);
-        
+    /**
+     * will adjust people2idx and phenotype and covariate order
+     * @param p: new order
+     * @param droppedId: dropped people's id
+     */
+    void adjustPeopleOrder(std::vector< std::string>& p, std::vector<std::string>* droppedId){
         std::map<int, std::string> order; // will adjust internal order of phenotype and covariate.
         std::map<int, std::string>::iterator order_it;
 
+        int nDropped = 0;
         for (int i = 0; i < p.size(); i++){
             if (!this->people2Idx.find(p[i])) { // VCF file has p[i], but not in existing phenotype or covariate.
-                continue;
+                nDropped ++;
+                if (droppedId)
+                    droppedId->push_back(p[i]);
             } else{
-                v->push_back(p[i]);
                 order[ order.size() ] = p[i];
             }
         }
@@ -75,11 +72,32 @@ public:
                     this->covariate->SwapRows(i,j);
             }
         }
-        fprintf(stdout, "%d samples from VCF files will not be included in study.\n", (int) this->people2Idx.size() - order.size());
+        fprintf(stdout, "%d samples from VCF files will not be included in study.\n", nDropped);
         this->people2Idx.clear();
         for (int i = 0; i < order.size(); i ++)
             this->people2Idx[order[i]] = i;
     };
+
+    // adjust covariate and pheonotype 
+    void addVCFHeader(VCFHeader* h, std::vector<std::string>* droppedId){
+        assert(h);
+
+        std::vector<std::string> v;
+
+        if (this->people2Idx.size() == 0) {
+            // don't have phenotype or covariate,
+            // use VCF order to set people2idx file
+            h->getPeopleName(v); // include all people
+            for (int i = 0; i < v.size(); i++)
+                this->people2Idx[v[i]] = i;
+            return;
+        }
+
+        // already have phenotype and covariate data
+        assert(droppedId);
+        this->adjustPeopleOrder(v, droppedId);
+    };
+        
     /**
      * NOTE: call addVCFHeader()  first
      */
@@ -122,6 +140,7 @@ public:
             else 
                 (*this->genotype)[rowNum][colNum] = MISSING_GENOTYPE;
         }
+
     };
     // load data from plink format
     void loadPlink(const char* prefix){
@@ -397,7 +416,7 @@ public:
 //   don't have row names, e.g. 1, 2, 3,...
 //   genotype are people x marker
     void writeGenotype(const char* fn);
-    void writeCollapsedGenotype( const char* fn);
+    // void writeCollapsedGenotype( const char* fn);
     void writeCovariate(const char* fn);
     void writePhenotype(const char* fn);
     void writeTable(const char* fn,
@@ -442,6 +461,20 @@ public:
             else 
                 this->markerFreq[m] = 0.0;
         };
+        // by default, includes all variants.
+        this->markerInclusion.resize(this->markerFreq.size());
+        for (int i = 0; i < this->markerFreq.size(); i++)
+            this->markerInclusion[i] = true;
+    };
+    void selectSiteByFrequency(double l, double u) {
+        this->markerInclusion.resize(this->markerFreq.size());
+        for (int i = 0; i < markerFreq.size(); i++) {
+            if ( l <= markerFreq[i] && markerFreq[i] <= u) {
+                this->markerInclusion[i] = true;
+            }else {
+                this->markerInclusion[i] = false;
+            }
+        }
     };
 
     bool isCaseControlPhenotype(){
@@ -541,10 +574,11 @@ private:
 
     OrderedMap<std::string, int> marker2Idx; // markerName -> idx in this->genotype
     // int numMarker;
+    std::vector<bool> markerInclusion;
 
     OrderedMap<std::string, int> covariate2Idx; // covariate name -> idx in this->covariate
     OrderedMap<std::string, int> phenotype2Idx; // phenotype -> idx in this->collapsedGenotype
-    OrderedMap<std::string, int> set2Idx; // collapsedSetName -> idx in this->collapsedGenotype
+    // OrderedMap<std::string, int> set2Idx; // collapsedSetName -> idx in this->collapsedGenotype
 
 }; // end VCFData
 

@@ -47,11 +47,11 @@ void banner(FILE* fp) {
         "..............................................         \n"
         " ...      R(are) V(ariant) Tests            ...        \n"
         "  ...      Xiaowei Zhan, Youna Hu            ...       \n"
-        "   ...      Bingshan Li, Dajiang Liu          ...      \n"        
+        "   ...      Bingshan Li, Dajiang Liu          ...      \n"
         "    ...      Goncalo Abecasis                  ...     \n"
         "     ...      zhanxw@umich.edu                  ...    \n"
         "      ...      Dec 2011                          ...   \n"
-        "       ..............................................  \n" 
+        "       ..............................................  \n"
         "                                                       \n"
         ;
     fputs(string, fp);
@@ -70,8 +70,8 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
         ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_STRING_PARAMETER(pl, set, "--set", "specify set file (for collapsing)")
-        ADD_PARAMETER_GROUP(pl, "People Filter") 
-       ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
+        ADD_PARAMETER_GROUP(pl, "People Filter")
+        ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
@@ -88,25 +88,25 @@ int main(int argc, char** argv){
         // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis");
         // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis");
         // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
-        
+
         ADD_PARAMETER_GROUP(pl, "Association Functions")
-        // ADD_STRING_PARAMETER(pl, model, "--model", "Specify various models. e.g. freq,cmc(0.01),zeggini(0.05),browning(0.03-0.05),vt(cmc,0.03-0.05),skat(0.04)")
         ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
         ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, madson_browning")
         ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, madson_browning, freq_all, skat")
         ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT")
+        ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
         /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
-        ADD_BOOL_PARAMETER(pl, freqFromCase, "--freqFromCase", "Calculate frequency from case samples")
+        ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
         ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
         ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
         ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
         ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
         END_PARAMETER_LIST(pl)
-        ;    
+        ;
 
     pl.Read(argc, argv);
     pl.Status();
-    
+
     if (FLAG_REMAIN_ARG.size() > 0){
         fprintf(stderr, "Unparsed arguments: ");
         for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
@@ -118,7 +118,7 @@ int main(int argc, char** argv){
 
     REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
 
-    const char* fn = FLAG_inVcf.c_str(); 
+    const char* fn = FLAG_inVcf.c_str();
     VCFInputFile vin(fn);
 
     // set range filters here
@@ -133,133 +133,150 @@ int main(int argc, char** argv){
     }
     vin.excludePeople(FLAG_peopleExcludeID.c_str());
     vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());    // now let's finish some statistical tests
-    
+
     // add filters. e.g. put in VCFInputFile is a good method
     // site: DP, MAC, MAF (T3, T5)
-    // indv: GD, GQ 
+    // indv: GD, GQ
 
 
     VCFData data;
     data.loadCovariate(FLAG_cov.c_str());
     data.loadPlinkPhenotype(FLAG_pheno.c_str());
 
-    // Vector pheno;
-    // data.extractPhenotype(&pheno);
+    // Vector* pheno;
+    // pheno = data.extractPhenotype();
 
 
     Collapsor collapsor;
-    if (false) {
+    if (FLAG_set == "") {
+        // single variant test for each marker
+        collapsor.setCollapsingStrategy(Collapsor::NAIVE);
+    } else {
         // single variant test for a set of markers using collapsing
         collapsor.setSetFileName(FLAG_set.c_str());
-    } else {
-        // single variant test for each marker
     }
-    collapsor.setCollapsingStrategy(Collapsor::NAIVE);
 
-    int numModel = (FLAG_modelSingle.size()>0? 1: 0) +
-        (FLAG_modelBurden.size()>0? 1: 0) +
-        (FLAG_modelVT.size()>0? 1: 0) +
-        (FLAG_modelKernel.size()>0? 1: 0);
-    if (numModel > 1) {
-        fprintf(stderr, "More than one model is specified!\n");
-        abort();
-    }
- 
-    if (numModel == 1) {
-        if (FLAG_modelSingle.size() > 0) {
-            
-        } else if (FLAG_modelBurden.size() > 0){
-
-        } else if (FLAG_modelVT.size() > 0){
-
-        } else if (FLAG_modelKernel.size() > 0){
-        }
-    } else {
-        // no statistical model involved.
-    };
-
-    // check single and burden tests cannot specify together
-
-    // all models puts here
+    //TODO:
+    // for quantative trait, here we may needs more models
+    //
+    //prepare each model
     std::vector< ModelFitter* > model;
-    std::vector<std::string> modelNames;
-    if (FLAG_modelSingle.size() > 0) {
-        stringTokenize(FLAG_modelSingle, ",", &modelNames);
-        for (int i = 0; i < modelNames.size(); i ++ ) {
+    std::vector< std::string> argModelName;
+    if (FLAG_set == "") {
+        model.push_back (new SingleVariantHeader);
+    } else {
+        model.push_back (new CollapsingHeader);
+    }
 
+    if (FLAG_modelSingle != "") {
+        stringTokenize(FLAG_modelSingle, ",", &argModelName);
+        for (int i = 0; i < argModelName.size(); i++ ){
+            if (argModelName[i] == "wald") {
+                model.push_back( new SingleVariantWaldTest );
+            } else if (argModelName[i] == "score") {
+                model.push_back( new SingleVariantScoreTest );
+            } else {
+                fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+                abort();
+            };
         }
-    } else if () {
-
+    };
+    if (FLAG_modelBurden != "") {
+        stringTokenize(FLAG_modelBurden, ",", &argModelName);
+        for (int i = 0; i < argModelName.size(); i++ ){
+            if (argModelName[i] == "cmc") {
+                model.push_back( new CMCTest );
+            } else if (argModelName[i] == "zeggini") {
+                model.push_back( new ZegginiTest );
+            } else if (argModelName[i] == "mb") {
+                model.push_back( new MadsonBrowningTest );
+                // NOTE: use may use different frequency (not freq from control),
+                // so maybe print a warning here?
+            } else {
+                fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+                abort();
+            };
+        }
+    };
+    if (FLAG_modelVT != "") {
+        stringTokenize(FLAG_modelVT, ",", &argModelName);
+        for (int i = 0; i < argModelName.size(); i++ ){
+            if (argModelName[i] == "vt(cmc)") {
+                model.push_back( new VariableThresholdCMCTest );
+            } else if (argModelName[i] == "vt(freq)") {
+                model.push_back( new VariableThresholdFreqTest );
+            } else {
+                fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+                abort();
+            };
+        }
+    };
+    if (FLAG_modelKernel != "") {
+        stringTokenize(FLAG_modelKernel, ",", &argModelName);
+        for (int i = 0; i < argModelName.size(); i++ ){
+            if (argModelName[i] == "skat") {
+                model.push_back( new SkatTest );
+            } else {
+                fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+                abort();
+            };
+        }
     };
 
-
-    ModelFitter** model = new ModelFitter*[4];
-    model[0] = new CaseControlFreqSummary; // summary models
-    model[1] = new LogisticModelScoreTest; // freq cut-off
-    model[2] = new VariableThresholdTest;  // VT models
-    model[3] = new SKatModelTest; // non-parametric type models
-    
-    //LogisticModelScoreTest lmf;
-    //PermutateModelFitter lmf;
-
+    // output part
     FILE* fout = fopen("results.txt", "w");
-
-    // write headers
-    collapsor.outputHeader(fout);
-    fprintf(fout, "\t");
-    lmf.outputHeader(fout);
-    fprintf(fout, "\n");
+    for (int m = 0; m < model.size(); m++){
+        model[m]->writeHeader(fout);
+    }
 
     while(collapsor.iterateSet(vin, &data)){ // now data.genotype have all available genotypes
                                              // need to collapsing it carefully.
-        // no collapsing needed models (single variant)
-     
-   
-        if (any model needs frquency from case) {
-            // reset every model
-            
-            // calculate frequency
-            
-            // iterate higher -> lower frequency cutoff 
-            getOrderOfCutoff(order, lower_freq, high_freq);
-            for (i in order){
-                
-            };
 
-            // output results
+        // preprocessing data
+        // discrard too low or too high frequency.
+        // TODO: add load external frequency.
+        if (!FLAG_freqFromControl) {
+            data.calculateFrequency(VCFData::FREQ_ALL);
+        } else {
+            data.calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
+        };
+
+        double freqUpper, freqLower;
+        if (FLAG_freqUpper == 0) {
+            freqUpper = 1.0;
+        } else {
+            freqUpper = FLAG_freqUpper;
+        };
+        if (FLAG_freqLower == 0) {
+            freqLower = -1.0;
+        } else {
+            freqLower = FLAG_freqLower;
         }
+        data.selectSiteByFrequency(freqLower, freqUpper);
 
-        if (any model need frequncy from control) {
-            // calculate frequency
-            
-            // iterate higher -> lower frequency cutoff 
-            
-            // output results
 
-        }
+        // parallel part
+        for (int m = 0; m < model.size(); m++){
+            model[m]->fit(data);
+            // output raw data
+            if (FLAG_outputRaw.size() >= 0) {
+                std::string& setName = collapsor.getCurrentSetName();
+                std::string out = FLAG_outputRaw + "." + setName;
+                data.writeRawData(out.c_str());
+            }
+        };
 
-        // skat model
-
-        // collapsor.collapseGenotype(&data);
-        // for each model, fit the genotype data
-        lmf.fit(data, collapsor, fout);
-        
-        // output raw data
-        if (FLAG_outputRaw.size() >= 0) {
-            std::string& setName = collapsor.getCurrentSetName();
-            std::string out = FLAG_outputRaw + "." + setName;
-            data.writeRawData(out.c_str());
-        }
+        // output part
+        for (int m = 0; m < model.size(); m++){
+            model[m]->writeOutput(fout);
+        };
     }
-    fclose(fout);
 
-    // now use analysis module to load data by set
-    // load to set
-    // for each set:
-    //    load Set
-    //    collapse
-    //    fit model
-    //    output datasets and results
+    // clean up code
+    for (int m = 0; m < model.size(); m++){
+        delete model[m];
+    };
+    fclose(fout);
 
     currentTime = time(0);
     fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));

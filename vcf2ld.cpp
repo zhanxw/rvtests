@@ -36,10 +36,10 @@ int calculateLD(std::vector<int>& lastGeno, std::vector<int>& geno, int* n, doub
     //          0 B ,   1 b
     //   0 A     0       1
     //   1 a     2       3
-    double pAB = (double) n[0] / nTotal;
-    double pAb = (double) n[1] / nTotal;
-    double paB = (double) n[2] / nTotal;
-    double pab = (double) n[3] / nTotal;
+    double pAB = 1.0 * n[0] / nTotal;
+    double pAb = 1.0 * n[1] / nTotal;
+    double paB = 1.0 * n[2] / nTotal;
+    double pab = 1.0 * n[3] / nTotal;
     
     double pA = pAB + pAb;
     double pB = pAB + paB;

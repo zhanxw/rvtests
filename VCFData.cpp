@@ -193,12 +193,21 @@ int VCFData::readPlinkTable(const char* fn,
     return invalidConversion;
 };
 
+/**
+ * @return -1: error
+ *          >=0 : num of individuals skipped
+ */
 int VCFData::readPlinkPhenotypeSkipMissing(const char* fn, const char* selectedCol,
                                            Matrix* data, 
                                            OrderedMap<std::string, int> * rowName,
                                            OrderedMap<std::string, int> * colName){
     if (!fn || !data)
         return -1;
+
+    if (strlen(fn) == 0) {
+        fprintf(stderr, "Emptye phenotpye file!\n");
+        return -1;
+    }
 
     assert(rowName && colName);
     rowName->clear();

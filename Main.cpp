@@ -101,12 +101,18 @@ int main(int argc, char** argv){
         ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
         ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
         ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
+        ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
         END_PARAMETER_LIST(pl)
         ;
 
     pl.Read(argc, argv);
-    pl.Status();
 
+    if (FLAG_help) {
+        pl.Help();
+        return 0;
+    }
+
+    pl.Status();
     if (FLAG_REMAIN_ARG.size() > 0){
         fprintf(stderr, "Unparsed arguments: ");
         for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
@@ -140,8 +146,24 @@ int main(int argc, char** argv){
 
 
     VCFData data;
-    data.loadCovariate(FLAG_cov.c_str());
-    data.loadPlinkPhenotype(FLAG_pheno.c_str());
+    if (FLAG_cov != "") {
+        if (data.loadCovariate(FLAG_cov.c_str()) < 0) {
+            fprintf(stderr, "Loading covariate failed!\n");
+            return -1;
+        };
+    }
+    if (FLAG_pheno != "") {
+        int ret = data.loadPlinkPhenotype(FLAG_pheno.c_str());
+        if (ret < 0) {
+            fprintf(stderr, "Loading phenotype failed!\n");
+            return -1;
+        } else {
+            fprintf(stdout, "Loaded %d sample pheontypes.\n", data.phenotype->rows);
+        }
+    } else {
+        fprintf(stderr, "Cannot do association when phenotype is missing!\n");
+        return -1;
+    };
 
     // Vector* pheno;
     // pheno = data.extractPhenotype();
@@ -167,9 +189,12 @@ int main(int argc, char** argv){
         collapsor.setSetFileName(FLAG_set.c_str());
     }
 
-    //TODO:
-    // for quantative trait, here we may needs more models
-    //
+    // TODO quantative trait models will be added later.
+    if (!data.isCaseControlPhenotype()) {
+        fprintf(stderr, "Phenotype is not case control data, however, we will dichotomized it using threshold 0.0 .\n");
+        data.dichotomizedPhenotype(0.0);
+    }
+
     //prepare each model
     std::vector< ModelFitter* > model;
     std::vector< std::string> argModelName;
@@ -236,22 +261,23 @@ int main(int argc, char** argv){
 
     // output part
     FILE* fout = fopen("results.txt", "w");
+    fputs("MarkerName\t", fout);
     for (int m = 0; m < model.size(); m++){
+        if (m) fputc('\t', fout);
         model[m]->writeHeader(fout);
     }
+    fputc('\n', fout);
 
-
-    collapsor.setFrequencyCutoff( FLAG_freqFromControl ? FREQ_CONTORL_ONLY : FREQ_ALL, freqLower, freqUpper);
+    collapsor.setFrequencyCutoff( (FLAG_freqFromControl ? FREQ_CONTORL_ONLY : FREQ_ALL), freqLower, freqUpper);
 
     while(collapsor.iterateSet(vin, &data)){ // now data.collapsedGenotype have all available genotypes
                                              // need to collapsing it carefully.
-
-
         // parallel part
         for (int m = 0; m < model.size(); m++){
+            model[m]->reset();
             model[m]->fit(data);
             // output raw data
-            if (FLAG_outputRaw.size() >= 0) {
+            if (FLAG_outputRaw != "") {
                 std::string& setName = collapsor.getCurrentSetName();
                 std::string out = FLAG_outputRaw + "." + setName;
                 data.writeRawData(out.c_str());
@@ -259,9 +285,13 @@ int main(int argc, char** argv){
         };
 
         // output part
+        fputs(collapsor.getCurrentSetName().c_str(), fout);
+        fputc('\t', fout);
         for (int m = 0; m < model.size(); m++){
+            if (m) fputc('\t', fout);
             model[m]->writeOutput(fout);
         };
+        fputc('\n', fout);
     }
 
     // clean up code

@@ -64,6 +64,9 @@ plink2vcf: plink2vcf.cpp $(LIB)
 vcf2merlin: vcf2merlin.cpp $(LIB)
 	g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
+vcf2ld: vcf2ld.cpp $(LIB)
+	g++ -O0 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+
 VCFData.o: VCFData.cpp VCFData.h
 	g++ -c $(CXXFLAGS) $<  -I. $(INC) -D__ZLIB_AVAILABLE__
 clean: 

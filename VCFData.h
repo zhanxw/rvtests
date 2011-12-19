@@ -86,11 +86,10 @@ public:
         assert(h);
 
         std::vector<std::string> v;
-
+        h->getPeopleName(&v); // include all people
         if (this->people2Idx.size() == 0) {
             // don't have phenotype or covariate,
             // use VCF order to set people2idx file
-            h->getPeopleName(&v); // include all people
             for (int i = 0; i < v.size(); i++)
                 this->people2Idx[v[i]] = i;
             return;
@@ -267,6 +266,19 @@ public:
                                       Matrix* data, 
                                       OrderedMap<std::string, int> * rowName,
                                       OrderedMap<std::string, int> * colName);
+
+    // abover @param threshold will set to 1.0, or 0.0
+    void dichotomizedPhenotype(double threshold) {
+        for (int i = 0; i < phenotypeVec->Length(); i++){
+            if ((*this->phenotype)[i][0] > threshold) {
+                (*this->phenotype)[i][0] = 1.0;
+                (*phenotypeVec)[i] = 1.0;
+            } else {
+                (*this->phenotype)[i][0] = 0.0;
+                (*phenotypeVec)[i] = 0.0;
+            }
+        }
+    };
 
     Vector* extractPhenotype(){
         if (this->phenotypeVec->Length()) return this->phenotypeVec;
@@ -487,6 +499,15 @@ public:
             fprintf(stderr, "Case control coding should be 0, 1, or -9, but wrong coding detected.\n");
         }
         return true;
+    };
+
+    void dumpSize() {
+        printf("genotype: %d x %d ;\n", genotype->rows, genotype->cols);
+        printf("collapsedGenotype: %d x %d ;\n", collapsedGenotype->rows, collapsedGenotype->cols);
+        printf("phenotype: %d x %d ;\n", phenotype->rows, phenotype->cols);
+        printf("covariate: %d x %d ;\n", covariate->rows, covariate->cols);
+        printf("people2Idx: %d ;\n", (int)people2Idx.size());
+        printf("marker2Idx: %d ;\n", (int)marker2Idx.size());
     };
 
     /* // use friend class to save codes... */

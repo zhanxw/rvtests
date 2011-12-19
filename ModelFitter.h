@@ -24,7 +24,7 @@ public:
         this->modelName = "Unassigned_Model_Name";
     };
     const std::string& getModelName() const { return this->modelName; };
-    void reset() {}; // for particular class to call
+    virtual void reset() {}; // for particular class to call
 protected:
     std::string modelName;
 }; // end ModelFitter
@@ -39,8 +39,9 @@ public:
         fprintf(fp, "NumpTotalSample\tNumSNP\tNumCaseTotal\tNumCase0\tNumCase1\tNumCase2\tNumCaseMissing\tNumControlTotal\tNumControl0\tNumControl1\tNumControl2\tNumControlMissing");
     };
     int fit (VCFData& data) {
-        this->numPeople = data.genotype->cols;
-        this->numMarker = data.genotype->rows;
+        // data.dumpSize();
+        this->numPeople = data.collapsedGenotype->rows;
+        this->numMarker = data.collapsedGenotype->cols;
         int group = -1;
         for (int p = 0; p < numPeople; p++){
             int pheno = (int) ((*data.phenotype)[p][0]);
@@ -52,11 +53,12 @@ public:
                 group = CASE;
                 break;
             default:
-                //treat as missing
+                fprintf(stderr, "Unknown case/control status: %d. \n", pheno);
+                abort();
                 continue;
             }
-            for (int m = 0; m < data.genotype->rows; m++){
-                int geno = (int) ((*data.genotype)[m][p]);
+            for (int m = 0; m < numMarker; m++){
+                int geno = (int) ((*data.collapsedGenotype)[p][m]);
                 switch (geno){
                 case 0:
                 case 1:

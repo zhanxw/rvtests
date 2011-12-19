@@ -160,6 +160,7 @@ public:
     const char* getLine() {return this->line;};
     VCFPeople& getPeople(){
         if (!hasAccess) {
+            this->selectedIndv.clear();
             for (int i = 0; i < this->allIndv.size(); i++){
                 if (allIndv[i]->isInUse()) {
                     this->selectedIndv[this->selectedIndv.size()] = allIndv[i];

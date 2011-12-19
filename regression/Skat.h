@@ -9,10 +9,10 @@
 
 class Skat
 {
-  public:
+public:
     Eigen::MatrixXf K;
 
-  public:
+public:
     void CalculateKMatrix(Eigen::MatrixXf &Geno, Eigen::VectorXf &w);
     double CalculatePValue(Eigen::MatrixXf& X, Eigen::MatrixXf& V, double Q);
     double CalculatePValue(Vector &y, Vector &y0, Matrix &geno, Vector &w);

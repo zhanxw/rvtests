@@ -38,22 +38,67 @@ class Collapsor{
         };
         this->setIndex = -1;  //reset setIndex
     };
-    void setCollapsingStrategy(const int strategy){
-#pragma message "Check if compatible, e.g NAIVE and set file are not compatible"
-        this->collapsingStrategy = strategy;
-    };
+/*     void setCollapsingStrategy(const int strategy){ */
+/* #pragma message "Check if compatible, e.g NAIVE and set file are not compatible" */
+/*         this->collapsingStrategy = strategy; */
+/*     }; */
+
+    /**
+     * @param howtoCalcFreq freq from all sample or from all control
+     * @param lb: lower bound
+     * @param ub: upper bound
+     */
+    void setFrequencyCutoff(int howtoCalcFreq, double lb, double ub){
+        switch (howtoCalcFreq) {
+        case FREQ_ALL:
+            this->howtoCalcFreq = FREQ_ALL;
+            break;
+        case FREQ_CONTORL_ONLY:
+            this->howtoCalcFreq = FREQ_CONTORL_ONLY;
+            break;
+        default:
+            fprintf(stderr, "Unknow frequency calculation method!\n");
+            abort();
+        }
+        this->freqLowerBound = lb;
+        this->freqUpperBound = up;
+    }
+
+    void filterGenotypeByFrequency(VCFData* d){
+        d->collapsedMarkerFreq.clear();
+        d->collapsedMarkerMAC.clear();
+        d->collapsedMarkerTotalAllele.clear();
+
+        data.calculateFrequency(this->howtoCalcFreq);
+        int numMarker = d->genotype->rows;
+        int numPeople = d->genotype->cols;
+        for (int m = 0; m < numMarker; m++){
+            if (freqLowerBound <= d->markerFreq[m] && d->markerFreq[m] <= freqUpperBound){
+                int r = d->collapsedGenotype->rows;
+                d->collapsedGenotype->Dimension(r, numPeople);
+                d->collapsedMarkerFreq.push_back(d->markerFreq[m]);
+                d->collapsedMarkerMAC.push_back(d->markerMAC[m]);
+                d->collapsedMarkerTotalAllele.push_back(d->markerTotalAllele[m]);
+                for (int p = 0; p < numPeople; p ++) {
+                    (*d->collapsedGenotype)[p][m] = (*d->genotype)[m][p];
+                }
+            }
+        }
+    }
+
     /** iterate  all sets
      *  @return false: when all sets are went over
      */
     bool iterateSet(VCFInputFile& vin, VCFData* data){
         setIndex ++;
-        // TODO: match individuals
-#pragma messge "Handle sample matching program"
-        //data->addVCFHeader(vin.getVCFHeader());
+        data->genotype->Dimension(0,0);
+
+        // DONE: match individuals
         std::vector<std::string> vcfPeople2include;
         data->addVCFHeader(vin.getVCFHeader(), &vcfPeople2include);
         vin.includePeople(vcfPeople2include);
 
+        // Single variant
         if (this->setName.size() == 0) {
             // iterate every marker
             if (vin.readRecord()){
@@ -65,6 +110,8 @@ class Collapsor{
                     this->currentSetName = record.getChrom();
                     this->currentSetName += toString(record.getPos());
                 }
+
+                filterGenotypeByFrequency(data);
                 return true;
             } else{
                 return false;
@@ -87,6 +134,8 @@ class Collapsor{
                 data->addVCFRecord(record);
             }
         };
+        filterGenotypeByFrequency(data);
+        return true;
     };
 
     std::string& getCurrentSetName() {
@@ -141,7 +190,9 @@ class Collapsor{
     static const int MADSON_BROWNING = 3;
     static const int PROGRESSIVE = 4;
 #endif 
-
+  /* public: */
+  /*   static const int FREQ_ALL = 0; */
+  /*   static const int FREQ_CONTORL_ONLY = 1; */
   private:
     /* Matrix stagedGenotype; // marker x people */
     /* int collapsingStrategy; */
@@ -160,80 +211,66 @@ class Collapsor{
 // then model can use @param out directly
 // internal, all collapsor will use variant that are in markerInclusion
 
-void naiveCollapse(VCFData* d, Matrix* out, bool addIntercept){
+#if 0
+void naiveCollapse(VCFData* d, Matrix* out){
     assert(out);
-    int numPeople = d->genotype->cols;
-    int numMarker = d->genotype->rows;
-    if (numMarker != 1) {
-        fprintf(stderr, "Naive collapse but number of variant larger than 1.\n");
-    }
-    int colNumber = (addIntercept == true ? 1 : 0) + 1 + (d->covariate == NULL ? 0 : d->covariate->cols);
-    out->Dimension(numPeople, colNumber);
+    Matrix& in = (*d->collapseGenotype);
+    int numPeople = in.rows;
+    int numMarker = in.cols;
 
-    int beginCol = 0;
-    for (int p = 0; p < numPeople; p++) {
-        (*out)[p][0] = (*this->collapseGenotype)[p][0];
-    }
-    beginCol++;
-
-    if (addIntercept) {
-        for (int p = 0; p < numPeople; p++) {
-            (*out)[p][beginCol] = 1.0;
-        }
-        beginCol ++;
-    }
-    
-    if (d->covariate) {
-        for (int c = 0; c < d->covariate->cols; c++) {
-            for (int p = 0; p < numPeople; p++) {
-                (*out)[p][beginCol + c] = (*d->covariate)[p][c];
-            }
-        }
-    }
+    *out = in;
 };
+#endif 
 
-void cmcCollapse(VCFData* d, Matrix* out, bool addIntercept){
-    int numPeople = d->people2Idx.size();
-    int numMarker = d->marker2Idx.size();
-    d->collapsedGenotype->Dimension(numPeople, 1);
-    d->collapsedGenotype->Zero();
+void cmcCollapse(VCFData* d, Matrix* out){
+    assert(out);
+    Matrix& in = (*d->collapseGenotype);
+    int numPeople = in.rows;
+    int numMarker = in.cols;
+
+    out->Dimension(numPeople, 1);
+    out->Zero();
     for (int p = 0; p < numPeople; p++){
         for (int m = 0; m < numMarker; m++) {
-            int g = (int)((*d->genotype)[m][p]);
+            int g = (int)(in[m][p]);
             if (g > 0) {
-                (*d->collapsedGenotype)[p][0] = 1.0;
+                (*out)[p][0] = 1.0;
                 break;
             }
         };
     };
 };
 void zegginiCollapse(VCFData* d){
-    int numPeople = d->people2Idx.size();
-    int numMarker = d->marker2Idx.size();
-    d->collapsedGenotype->Dimension(numPeople, 1);
-    d->collapsedGenotype->Zero();
+    assert(out);
+    Matrix& in = (*d->collapseGenotype);
+    int numPeople = in.rows;
+    int numMarker = in.cols;
+
+    out->Dimension(numPeople, 1);
+    out->Zero();
     for (int p = 0; p < numPeople; p++){
         for (int m = 0; m < numMarker; m++) {
-            int g = (*d->genotype)[m][p];
+            int g = (int)(in[m][p]);
             if (g > 0) { // genotype is non-reference
-                (*d->collapsedGenotype)[p][0] += 1.0;
+                (*out)[p][0] += 1.0;
                 break;
             }
         };
     };
 };
-void madsonbrowningCollapse(VCFData* d){
-    d->calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
+void madsonbrowningCollapse(VCFData* d, Matrix* out){
+    assert(out);
+    Matrix& in = (*d->collapseGenotype);
+    int numPeople = in.rows;
+    int numMarker = in.cols;
 
-    int numPeople = d->people2Idx.size();
-    int numMarker = d->marker2Idx.size();
-    d->collapsedGenotype->Dimension(numPeople, 1);
-    d->collapsedGenotype->Zero();
+    out->Dimension(numPeople, 1);
+    out->Zero();
 
     for (int m = 0; m < numMarker; m++) {
         // up weight by control freuqncey  1/p/(1-p)
         double weight = 0.0;
-        if (d->markerFreq[m] >= 1e-6){
+        if (d->collapsedMarkerFreq[m] >= 1e-6){
             weight = 1.0 / d->markerFreq[m] / (1.0 - d->markerFreq[m]);
         } else{
             continue;
@@ -241,15 +278,72 @@ void madsonbrowningCollapse(VCFData* d){
 
         // calculate burden score at marker m
         for (int p = 0; p < numPeople; p++){
-            double g = (*d->genotype)[m][p];
+            double g = (*d->collapseGenotype)[p][m];
             if (g > 0) {
-                (*d->collapsedGenotype)[p][0] += g * weight;
+                (*out)[p][0] += g * weight;
                 break;
             }
         };
     };
 };
-void progressiveCollapse(VCFData* d, void* param){
+
+void progressiveCMCCollapse(VCFData* d, Matrix* out, int col) {
+    assert(out);
+    Matrix& in = (*d->collapseGenotype);
+    int numPeople = in.rows;
+    int numMarker = in.cols;
+
+    out->Dimension(numPeople, 1);
+    if (col < 0) {
+        out->Zero();
+        return;
+    }
+
+    for (int p = 0; p < numPeople; p++){
+        const int m = col;
+        int g = (int)(in[m][p]);
+        if (g > 0) {
+            (*out)[p][0] = 1.0;
+        }
+    };
+
+    return;
+};
+
+void progressiveMadsonBrowningCollapse(VCFData* d, Matrix* out, int col) {
+    assert(out);
+    Matrix& in = (*d->collapseGenotype);
+    int numPeople = in.rows;
+    int numMarker = in.cols;
+
+    out->Dimension(numPeople, 1);
+    if (col < 0) {
+        out->Zero();
+        return;
+    }
+
+    const int m = col;
+    // up weight by control freuqncey  1/p/(1-p)
+    double weight = 0.0;
+    if (d->collapsedMarkerFreq[m] >= 1e-6){
+        weight = 1.0 / d->markerFreq[m] / (1.0 - d->markerFreq[m]);
+    } else
+        return;
+
+    // calculate burden score at marker m
+    for (int p = 0; p < numPeople; p++){
+        double g = (*d->collapseGenotype)[p][m];
+        if (g > 0) {
+            (*out)[p][0] += g * weight;
+        }
+    };
+
+    return;
+};
+
+#if 0
+void progressiveCMCCollapse(VCFData* d, Matrix* out, int col){
+
     int col = *(int*)param;
     int collapsingStrategy = * ( (int*)(param) + 1);
     if (collapsingStrategy != CMC && collapsingStrategy != MADSON_BROWNING){
@@ -303,6 +397,6 @@ void progressiveCollapse(VCFData* d, void* param){
     }
 };
 
-
+#endif
 
 #endif /* _COLLAPSOR_H_ */

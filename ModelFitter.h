@@ -4,6 +4,7 @@
 #include "VCFData.h"
 #include "regression/LogisticRegression.h"
 #include "regression/LinearRegression.h"
+#include "regression/Skat.h"
 
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure, 
@@ -114,22 +115,62 @@ class CollapsingHeader: public ModelFitter{
 }; // CollapsingHeader
 
 class SingleVariantWaldTest: public ModelFitter{
-    public:
+public:
     // write result header
     void writeHeader(FILE* fp) {
         fprintf(fp, "Beta\tSE\tPvalue");
     };
     // fitting model
     int fit(VCFData& data) {
-        lr.FitModel();
-        return 0;
+        if (data.covariate && data.covaraite->cols > 0) 
+            cbind(&X, data.genotype, data.covariate, true);
+        else 
+            cbind(&X, data.genotype, NULL, true);
+    
+        fitOK = lr.FitModel(X, *data.extractPhenotype());
+        return (fitOK ? 0 : 1);
     };
     // write model output
     void writeOutput(FILE* fp) {
+        if (fitOK) {
+            fprintf(fp, "%.3lf\t%.3lf\t%.3lf", lr->GetCovEst()[0], sqrt(lr->GetCovB()[0]), lr->GetAsyPvalue());
+        } else{
+            fputs("NA\tNA\tNA", fp);
+        }
     };
-    private:
+private:
+    void cbind(Matrix* out, Matrix* a, Matrix* b, bool addIntercept) {
+        assert(out && a);
+
+        int totalCol = a->cols + (b ? b->cols : 0) + (addIntercept ? 1 : 0);
+        if (b) 
+            assert ( a->rows == b->rows);
+        out->Dimension(a->rows, totalCol);
+        
+        for (int r = 0; r < a->rows; r ++ ){ 
+            int beginCol = 0;           
+            for (int c = 0; c < a->cols; c++) {
+                (*out)[r][c] = (*a)[r][c];
+            }
+            beginCol += a->cols;
+
+            if (b) {
+                for (int c = 0; c < b->cols; c++) {
+                    (*out)[r][c] = (*a)[r][beginCol + c];
+                }
+                beginCol += b->cols;
+            }
+            
+            if (addIntercept) {
+                (*out)[r][beginCol] = 1.0;
+            }
+        }
+    };
+private:
     Matrix X; // geno + 1 + covariate
     LogisticRegression lr;
+    bool fitOK;
+    
 }; // SingleVariantWaldTest
 
 class SingleVariantScoreTest: public ModelFitter{
@@ -140,98 +181,349 @@ class SingleVariantScoreTest: public ModelFitter{
     };
     // fitting model
     int fit(VCFData& data) {
+        if (data.covariate && data.covariate->cols > 0) {
+            fitOK = lrst.FitNullModel( *data->covariate, *data->extractPhenotype(), 100);
+            if (!fitOK)
+                return -1;
+            
+            fitOK = lrst.TestCovariate( *data->covariate, *data->collapsedGenotype, *data->extractPhenotype());
+            if (!fitOK)
+                return -1;
+        } else {
+            fitOK = lrst.TestCovariate( *data->collapsedGenotype, *data->extractPhenotype());
+            if (!fitOK)
+                return -1;
+        }
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
-        fprintf(fp, "%.3f", lrst.GetPvalue());
+        if (fitOK)
+            fprintf(fp, "%.3f", lrst.GetPvalue());
+        else 
+            fputs("NA", fp);
     };
     private:
     LogisticRegressionScoreTest lrst;
+    bool fitOK;
 }; // SingleVariantScoreTest
 
 class CMCTest: public ModelFitter{
-    public:
+public:
     // write result header
     void writeHeader(FILE* fp) {
+        fprintf(fp, "Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
         // collapsing
+        cmcCollapse(&data, &g);
+
         // fit model
+        if (data.covariate && data.covariate->cols > 0) {
+            fitOK = lrst.FitNullModel( *data->covariate, *data->extractPhenotype(), 100);
+            if (!fitOK)
+                return -1;
+            
+            fitOK = lrst.TestCovariate( *data->covariate, *data->collapsedGenotype, *data->extractPhenotype());
+            if (!fitOK)
+                return -1;
+        } else {
+            fitOK = lrst.TestCovariate( *data->collapsedGenotype, *data->extractPhenotype());
+            if (!fitOK)
+                return -1;
+        }
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
+        if (fitOK)
+            fprintf(fp, "%.3f", lrst.GetPvalue());
+        else 
+            fputs("NA", fp);
     };
-    prviate:
+prviate:
     Matrix g;
     LogisticRegressionScoreTest lrst;
 }; // CMCTest
 
 class ZegginiTest: public ModelFitter{
+public:
     // write result header
     void writeHeader(FILE* fp) {
+        fprintf(fp, "Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
+        // collapsing
+        zegginiCollapse(&data, &g);
+
+        // fit model
+        if (data.covariate && data.covariate->cols > 0) {
+            fitOK = lrst.FitNullModel( *data->covariate, *data->extractPhenotype(), 100);
+            if (!fitOK)
+                return -1;
+            
+            fitOK = lrst.TestCovariate( *data->covariate, *data->collapsedGenotype, *data->extractPhenotype());
+            if (!fitOK)
+                return -1;
+        } else {
+            fitOK = lrst.TestCovariate( *data->collapsedGenotype, *data->extractPhenotype());
+            if (!fitOK)
+                return -1;
+        }
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
+        if (fitOK)
+            fprintf(fp, "%.3f", lrst.GetPvalue());
+        else 
+            fputs("NA", fp);
     };
+prviate:
+    Matrix g;
+    LogisticRegressionScoreTest lrst;
 }; // ZegginiTest
 
 class MadsonBrowningTest: public ModelFitter{
+public:
     // write result header
     void writeHeader(FILE* fp) {
+        fprintf(fp, "Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
+        // collapsing
+        madsonbrowningCollapse(&data, &g);
+
+        // fit model
+        if (data.covariate && data.covariate->cols > 0) {
+            fitOK = lrst.FitNullModel( *data->covariate, *data->extractPhenotype(), 100);
+            if (!fitOK)
+                return -1;
+            
+            fitOK = lrst.TestCovariate( *data->covariate, *data->collapsedGenotype, *data->extractPhenotype());
+            if (!fitOK)
+                return -1;
+        } else {
+            fitOK = lrst.TestCovariate( *data->collapsedGenotype, *data->extractPhenotype());
+            if (!fitOK)
+                return -1;
+        }
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
+        if (fitOK)
+            fprintf(fp, "%.3f", lrst.GetPvalue());
+        else 
+            fputs("NA", fp);
     };
+prviate:
+    Matrix g;
+    LogisticRegressionScoreTest lrst;
 }; // MadsonBrowningTest
 
 class VariableThresholdCMCTest: public ModelFitter{
+public:
     // write result header
     void writeHeader(FILE* fp) {
+        fprintf(fp, "FreqCutoff\tPermPvalue");
     };
     // fitting model
     int fit(VCFData& data) {
+        // arrange frequency
+        for (int i = 0; i < d.collapsedMarkerFreq.size(); i++ ){
+            order[ d.collapsedMarkerFreq[i] ] = i;
+        }
+
+        // collapsing using CMC
+        progressiveCMCCollapse(&data, g, -1); // clear matrix
+
+        // fit null model
+        if (data.covariate && data.covariate->cols > 0) {
+            fitOK = lrst.FitNullModel( *data->covariate, *data->extractPhenotype(), 100);
+            if (!fitOK)
+                return -1;
+        }
+
+        for ( order_it = order.begin(); 
+              order_it != order.end();
+              order_it++ ){
+            progressiveCMCCollapsor(&data, g, order_it->second);
+            outFreq.push_back(order_it->first);
+            
+            if (data.covariate && data.covariate->cols > 0) {
+                fitOK = lrst.TestCovariate( *data->covariate, g, *data->extractPhenotype());
+                if (!fitOK) {
+                    pvalue.push_back("-1");
+                    continue;
+                }
+            } else {
+                fitOK = lrst.TestCovariate( *data->collapsedGenotype, *data->extractPhenotype());
+                if (!fitOK) {
+                    pvalue.push_back("-1");
+                    continue;
+                }
+            }
+        } // 
+
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
+        assert(outFreq.size() == pvalue.size());
+
+        for (int i = 0; i < outFreq.size(); i++) {
+            if (i) fputc(',', fp);
+            fprintf(fp, "%.3lf", outFreq[i]);
+        }
+        fputc('\t', fp);
+        for (int i = 0; i < pvalue.size(); i++) {
+            if (i) fputc(',', fp);
+            if (pvalue[i] > 0)
+                fprintf(fp, "%.3lf", pvalue[i]);
+            else 
+                fputs("NA", fp);
+        }
     };
+    void reset() {
+        this->outFreq.clear();
+        this->pvalue.clear();
+        this->order.clear();
+    };
+private:
+    Matrix g;
+    LogisticRegressionScoreTest lrst;
+    std::vector<double> outFreq;
+    std::vector<double> pvalue;
+    std::map<double, int> order;
+    std::map<double, int>::const_iterator order_it;
+    
 }; // VariableThresholdCMCTest
 
 class VariableThresholdFreqTest: public ModelFitter{
+public:
     // write result header
     void writeHeader(FILE* fp) {
+        fprintf(fp, "FreqCutoff\tPermPvalue");
     };
     // fitting model
     int fit(VCFData& data) {
+        // arrange frequency
+        for (int i = 0; i < d.collapsedMarkerFreq.size(); i++ ){
+            order[ d.collapsedMarkerFreq[i] ] = i;
+        }
+
+        // collapsing using CMC
+        progressiveMadsonBrowningCollapse(&data, g, -1); // clear matrix
+
+        // fit null model
+        if (data.covariate && data.covariate->cols > 0) {
+            fitOK = lrst.FitNullModel( *data->covariate, *data->extractPhenotype(), 100);
+            if (!fitOK)
+                return -1;
+        }
+
+        for ( order_it = order.begin(); 
+              order_it != order.end();
+              order_it++ ){
+            progressiveMadsonBrowningCollapse(&data, g, order_it->second);
+            outFreq.push_back(order_it->first);
+            
+            if (data.covariate && data.covariate->cols > 0) {
+                fitOK = lrst.TestCovariate( *data->covariate, g, *data->extractPhenotype());
+                if (!fitOK) {
+                    pvalue.push_back("-1");
+                    continue;
+                }
+            } else {
+                fitOK = lrst.TestCovariate( *data->collapsedGenotype, *data->extractPhenotype());
+                if (!fitOK) {
+                    pvalue.push_back("-1");
+                    continue;
+                }
+            }
+        }
+        
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
+        assert(outFreq.size() == pvalue.size());
+
+        for (int i = 0; i < outFreq.size(); i++) {
+            if (i) fputc(',', fp);
+            fprintf(fp, "%.3lf", outFreq[i]);
+        }
+        fputc('\t', fp);
+        for (int i = 0; i < pvalue.size(); i++) {
+            if (i) fputc(',', fp);
+            if (pvalue[i] > 0)
+                fprintf(fp, "%.3lf", pvalue[i]);
+            else 
+                fputs("NA", fp);
+        } 
     };
+    void reset() {
+        this->outFreq.clear();
+        this->pvalue.clear();
+        this->order.clear();
+    };
+private:
+    Matrix g;
+    LogisticRegressionScoreTest lrst;
+    std::vector<double> outFreq;
+    std::vector<double> pvalue;
+    std::map<double, int> order;
+    std::map<double, int>::const_iterator order_it;
+    
 }; // VariableThresholdFreqTest
 
 class SkatTest: public ModelFitter{
+public:
     // write result header
     void writeHeader(FILE* fp) {
+        fprintf(fp, "Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
+        // fill it wegith
+        Vector weight.Dimension(data->collapsedGenotype.cols);
+        for (int i = 0; i < data->collapsedMarkerFreq.size(); i++) {
+            weight[i] = 1 / ( data->collapsedMarkerFreq[i]  * ( 1.0 - data->collapsedMarkerFreq[i] ))%%;
+        };
+
+        // get ynulll
+        if (data->collapsedGenotype && data->collapsedGenotype.cols> 0) {
+            fitOK = lr.FitLogisticModel(*data->covariate, *data->extractPhenotype());
+            if (!fitOK) {
+                return -1;
+            }
+            ynull = lr->GetPredicted();
+        } else {
+            Vector* p = data->extractPhenotype();
+            double avg = p->Average();
+            ynull.Dimension(p->Length());
+            for (int i = 0; i < p->Length(); i++) 
+                ynull[i] = avg;
+        }
+
+        // get Pvalue
+        pvalue = skat.CalculatePValue(*data->extractPhenotype(), ynull, data->collapsedGenotype, w);
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
     };
+private:
+    Vector weight;
+    LogisticRegression lr;
+    Vector ynull;
+    bool fitOK;
+    Skat skat;
+    double pvalue;
 }; // SkatTest
 
 #if 0

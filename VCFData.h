@@ -7,6 +7,9 @@
 #include "PlinkInputFile.h"
 #include "PlinkOutputFile.h"
 
+const static int FREQ_ALL = 1;
+const static int FREQ_CONTORL_ONLY = 2;
+
 /**
  * Hold genotype, phenotype, covariate data
  *      markerName (id), markerChrom, markerPos, markerRef, markerAlt, markerFreq
@@ -87,7 +90,7 @@ public:
         if (this->people2Idx.size() == 0) {
             // don't have phenotype or covariate,
             // use VCF order to set people2idx file
-            h->getPeopleName(v); // include all people
+            h->getPeopleName(&v); // include all people
             for (int i = 0; i < v.size(); i++)
                 this->people2Idx[v[i]] = i;
             return;
@@ -461,20 +464,6 @@ public:
             else 
                 this->markerFreq[m] = 0.0;
         };
-        // by default, includes all variants.
-        this->markerInclusion.resize(this->markerFreq.size());
-        for (int i = 0; i < this->markerFreq.size(); i++)
-            this->markerInclusion[i] = true;
-    };
-    void selectSiteByFrequency(double l, double u) {
-        this->markerInclusion.resize(this->markerFreq.size());
-        for (int i = 0; i < markerFreq.size(); i++) {
-            if ( l <= markerFreq[i] && markerFreq[i] <= u) {
-                this->markerInclusion[i] = true;
-            }else {
-                this->markerInclusion[i] = false;
-            }
-        }
     };
 
     bool isCaseControlPhenotype(){
@@ -548,13 +537,11 @@ private:
         }
     }
   public:
-    static const int FREQ_ALL = 0;
-    static const int FREQ_CONTORL_ONLY = 1;
 // member variables here are made public
 // so that access is easier.
   public:
     Matrix* genotype;     // marker x people
-    Matrix* collapsedGenotype;
+    Matrix* collapsedGenotype; // people x marker
     Matrix* covariate;    // people x cov
     Matrix* phenotype;    // people x phenotypes
     Vector* phenotypeVec; // pheotype to be use in various statistical models. 
@@ -566,15 +553,19 @@ private:
     /* std::vector<std::string> markerRef; */
     /* std::vector<std::string> markerAlt; */
     std::vector<double> markerFreq;
-    std::vector<int> markerMAC; // minor(alternative) allele count 
-    std::vector<int> markerTotalAllele; // Total number of allele
+    std::vector<int> markerMAC;          // minor(alternative) allele count 
+    std::vector<int> markerTotalAllele;  // Total number of allele
+
+    std::vector<double> collapsedMarkerFreq;
+    std::vector<int>    collapsedMarkerMAC;          // minor(alternative) allele count 
+    std::vector<int>    collapsedMarkerTotalAllele;  // Total number of allele
+
 
     OrderedMap<std::string, int> people2Idx; // peopleID -> idx in this->genotype
     // int numPeople; 
 
     OrderedMap<std::string, int> marker2Idx; // markerName -> idx in this->genotype
     // int numMarker;
-    std::vector<bool> markerInclusion;
 
     OrderedMap<std::string, int> covariate2Idx; // covariate name -> idx in this->covariate
     OrderedMap<std::string, int> phenotype2Idx; // phenotype -> idx in this->collapsedGenotype

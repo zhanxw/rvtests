@@ -145,12 +145,23 @@ int main(int argc, char** argv){
 
     // Vector* pheno;
     // pheno = data.extractPhenotype();
+    double freqUpper, freqLower;
+    if (FLAG_freqUpper == 0) {
+        freqUpper = 1.0;
+    } else {
+        freqUpper = FLAG_freqUpper;
+    };
+    if (FLAG_freqLower == 0) {
+        freqLower = -1.0;
+    } else {
+        freqLower = FLAG_freqLower;
+    }
 
 
     Collapsor collapsor;
     if (FLAG_set == "") {
         // single variant test for each marker
-        collapsor.setCollapsingStrategy(Collapsor::NAIVE);
+        // collapsor.setCollapsingStrategy(Collapsor::NAIVE);
     } else {
         // single variant test for a set of markers using collapsing
         collapsor.setSetFileName(FLAG_set.c_str());
@@ -229,30 +240,11 @@ int main(int argc, char** argv){
         model[m]->writeHeader(fout);
     }
 
-    while(collapsor.iterateSet(vin, &data)){ // now data.genotype have all available genotypes
+
+    collapsor.setFrequencyCutoff( FLAG_freqFromControl ? FREQ_CONTORL_ONLY : FREQ_ALL, freqLower, freqUpper);
+
+    while(collapsor.iterateSet(vin, &data)){ // now data.collapsedGenotype have all available genotypes
                                              // need to collapsing it carefully.
-
-        // preprocessing data
-        // discrard too low or too high frequency.
-        // TODO: add load external frequency.
-        if (!FLAG_freqFromControl) {
-            data.calculateFrequency(VCFData::FREQ_ALL);
-        } else {
-            data.calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
-        };
-
-        double freqUpper, freqLower;
-        if (FLAG_freqUpper == 0) {
-            freqUpper = 1.0;
-        } else {
-            freqUpper = FLAG_freqUpper;
-        };
-        if (FLAG_freqLower == 0) {
-            freqLower = -1.0;
-        } else {
-            freqLower = FLAG_freqLower;
-        }
-        data.selectSiteByFrequency(freqLower, freqUpper);
 
 
         // parallel part

@@ -36,13 +36,6 @@
 
 #include "Analysis.h"
 
-void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
-    if (flag.size() == 0){
-        fprintf(stderr, "%s\n", msg);
-        abort();
-    }
-};
-
 int main(int argc, char** argv){
     time_t currentTime = time(0);
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));

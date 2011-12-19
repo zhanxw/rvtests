@@ -3,7 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+
+#if !defined(__APPLE__)
 #include <malloc.h>
+#endif
+
 #include <setjmp.h>
 
 #define TRUE  1

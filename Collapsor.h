@@ -61,7 +61,7 @@ class Collapsor{
             abort();
         }
         this->freqLowerBound = lb;
-        this->freqUpperBound = up;
+        this->freqUpperBound = ub;
     }
 
     void filterGenotypeByFrequency(VCFData* d){
@@ -69,7 +69,7 @@ class Collapsor{
         d->collapsedMarkerMAC.clear();
         d->collapsedMarkerTotalAllele.clear();
 
-        data.calculateFrequency(this->howtoCalcFreq);
+        d->calculateFrequency(this->howtoCalcFreq);
         int numMarker = d->genotype->rows;
         int numPeople = d->genotype->cols;
         for (int m = 0; m < numMarker; m++){
@@ -198,6 +198,9 @@ class Collapsor{
     /* int collapsingStrategy; */
     /* OrderedMap<std::string, int>* people2Idx; */
     /* OrderedMap<std::string, int>* marker2Idx; */
+    int howtoCalcFreq;
+    double freqLowerBound;
+    double freqUpperBound;
 
     std::string currentSetName;
 
@@ -214,7 +217,7 @@ class Collapsor{
 #if 0
 void naiveCollapse(VCFData* d, Matrix* out){
     assert(out);
-    Matrix& in = (*d->collapseGenotype);
+    Matrix& in = (*d->collapsedGenotype);
     int numPeople = in.rows;
     int numMarker = in.cols;
 
@@ -224,7 +227,7 @@ void naiveCollapse(VCFData* d, Matrix* out){
 
 void cmcCollapse(VCFData* d, Matrix* out){
     assert(out);
-    Matrix& in = (*d->collapseGenotype);
+    Matrix& in = (*d->collapsedGenotype);
     int numPeople = in.rows;
     int numMarker = in.cols;
 
@@ -240,9 +243,9 @@ void cmcCollapse(VCFData* d, Matrix* out){
         };
     };
 };
-void zegginiCollapse(VCFData* d){
+void zegginiCollapse(VCFData* d, Matrix* out){
     assert(out);
-    Matrix& in = (*d->collapseGenotype);
+    Matrix& in = (*d->collapsedGenotype);
     int numPeople = in.rows;
     int numMarker = in.cols;
 
@@ -260,7 +263,7 @@ void zegginiCollapse(VCFData* d){
 };
 void madsonbrowningCollapse(VCFData* d, Matrix* out){
     assert(out);
-    Matrix& in = (*d->collapseGenotype);
+    Matrix& in = (*d->collapsedGenotype);
     int numPeople = in.rows;
     int numMarker = in.cols;
 
@@ -278,7 +281,7 @@ void madsonbrowningCollapse(VCFData* d, Matrix* out){
 
         // calculate burden score at marker m
         for (int p = 0; p < numPeople; p++){
-            double g = (*d->collapseGenotype)[p][m];
+            double g = (*d->collapsedGenotype)[p][m];
             if (g > 0) {
                 (*out)[p][0] += g * weight;
                 break;
@@ -289,7 +292,7 @@ void madsonbrowningCollapse(VCFData* d, Matrix* out){
 
 void progressiveCMCCollapse(VCFData* d, Matrix* out, int col) {
     assert(out);
-    Matrix& in = (*d->collapseGenotype);
+    Matrix& in = (*d->collapsedGenotype);
     int numPeople = in.rows;
     int numMarker = in.cols;
 
@@ -312,7 +315,7 @@ void progressiveCMCCollapse(VCFData* d, Matrix* out, int col) {
 
 void progressiveMadsonBrowningCollapse(VCFData* d, Matrix* out, int col) {
     assert(out);
-    Matrix& in = (*d->collapseGenotype);
+    Matrix& in = (*d->collapsedGenotype);
     int numPeople = in.rows;
     int numMarker = in.cols;
 
@@ -332,7 +335,7 @@ void progressiveMadsonBrowningCollapse(VCFData* d, Matrix* out, int col) {
 
     // calculate burden score at marker m
     for (int p = 0; p < numPeople; p++){
-        double g = (*d->collapseGenotype)[p][m];
+        double g = (*d->collapsedGenotype)[p][m];
         if (g > 0) {
             (*out)[p][0] += g * weight;
         }

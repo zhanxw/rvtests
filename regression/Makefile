@@ -2,6 +2,9 @@ LIB = lib-regression.a
 GONCALO_INC = ../libsrc
 GONCALO_LIB = ../libsrc/lib-goncalo.a
 
+EIGEN_INC = ../eigen
+EIGEN_LIB =  # Eigen are header files only
+
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 release: CXXFLAGS = -O2 $(DEFAULT_CXXFLAGS)
 release: $(LIB)
@@ -18,7 +21,7 @@ LogisticRegression.o: LogisticRegression.cpp LogisticRegression.h
 LinearRegression.o: LinearRegression.cpp LinearRegression.h
 	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC)
 Skat.o: Skat.cpp Skat.h
-	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC) -I/usr/include/eigen3
+	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC) -I$(EIGEN_INC)
 qfc.o: qfc.c
 	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC)
 clean:

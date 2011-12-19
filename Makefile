@@ -16,6 +16,12 @@ REGRESSION_LIB = ./regression/lib-regression.a
 BASE_INC = ./base
 BASE_LIB = ./base/lib-base.a
 
+EIGEN_INC = ./eigen
+EIGEN_LIB =  # Eigen are header files only
+
+INC = -I$(TABIX_INC) -I$(GONCALO_INC) -I$(REGRESSION_INC) -I$(VCF_INC) -I$(BASE_INC) -I$(EIGEN_INC)
+LIB = $(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB)
+
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 
 .PHONY: release debug
@@ -45,21 +51,21 @@ $(VCF_LIB):
 rvtest: Main.cpp \
 	Collapsor.h ModelFitter.h \
 	VCFData.o \
-	$(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB)
-	g++ -c $(CXXFLAGS) Main.cpp  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(VCF_INC) -I$(BASE_INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o VCFData.o $(TABIX_LIB) $(REGRESSION_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+	$(LIB)
+	g++ -c $(CXXFLAGS) Main.cpp  -I. $(INC) -D__ZLIB_AVAILABLE__
+	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
-vcf2plink: vcf2plink.cpp $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB)
-	g++ -O4 -o $@ $<  -I. -I$(TABIX_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC)  $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+vcf2plink: vcf2plink.cpp $(LIB)
+	g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
-plink2vcf: plink2vcf.cpp $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB)
-	g++ -g -O0 -o $@ $<  -I. -I$(TABIX_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC)  $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+plink2vcf: plink2vcf.cpp $(LIB)
+	g++ -g -O0 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
-vcf2merlin: vcf2merlin.cpp $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB)
-	g++ -O4 -o $@ $<  -I. -I$(TABIX_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(BASE_INC)  $(TABIX_LIB) $(GONCALO_LIB) $(VCF_LIB) $(BASE_LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+vcf2merlin: vcf2merlin.cpp $(LIB)
+	g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
 VCFData.o: VCFData.cpp VCFData.h
-	g++ -c $(CXXFLAGS) $<  -I. -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(GONCALO_INC) -I$(VCF_INC) -I$(VCF_INC) -I$(BASE_INC) -D__ZLIB_AVAILABLE__
+	g++ -c $(CXXFLAGS) $<  -I. $(INC) -D__ZLIB_AVAILABLE__
 clean: 
 	rm -rf *.o $(EXEC)
 doc: README

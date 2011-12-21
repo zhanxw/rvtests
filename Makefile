@@ -83,6 +83,14 @@ test3: rvtest
 	./rvtest --inVcf test.vcf.gz --outVcf test3.vcf --peopleIncludeID P2,NotValid,P3 --peopleExcludeID P3
 test4: rvtest
 	./rvtest --inVcf test.vcf.gz --make-bed test.plink
+test5: rvtest
+	./rvtest --inVcf DajiangDataSet/qt1.vcf --pheno DajiangDataSet/qt1.pheno --single score,wald
+test6: rvtest
+	./rvtest --inVcf DajiangDataSet/qt1.vcf --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --burden cmc
+
+# mem test:
+testMemLeak: testMemLeak.cpp $(LIB)
+	g++ -g -O0 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
 # automated tests
 autoTest: autoTest1 autoTest2

@@ -28,7 +28,7 @@ public:
             }
         }
 
-        this->openIndex();
+        this->hasIndex = this->openIndex();
 
         this->rangeIdx = 0;
         this->s = 0;
@@ -63,10 +63,16 @@ public:
             this->hasIndex = false;
             return false;
         } else{
-			ti_lazy_index_load(this->tabixHandle);
-            this->hasIndex = true;
-            return true;
+			if (ti_lazy_index_load(this->tabixHandle) != 0) {
+                // failed to open tabix index
+                this->hasIndex = false;
+                return false;
+            } else {
+                this->hasIndex = true;
+                return true;
+            }
         }
+        return true;
     };
     void closeIndex(){
         ti_close(this->tabixHandle);
@@ -82,6 +88,10 @@ public:
         this->range.addRangeFile(fn);
     };
     // @param l is a string of range(s)
+    void setRange(const char* chrom, int begin, int end) {
+        this->clearRange();
+        this->range.addRange(chrom, begin, end);
+    };
     void setRangeList(const char* l){
         this->clearRange();
         this->range.addRangeList(l);
@@ -112,7 +122,9 @@ public:
                             this->line = s;
                             this->record.parse(this->line.c_str());
                             return true;
-                        } else{
+                        } else{ 
+                            // continue to next rangeIdx
+                            ti_iter_destroy(iter);
                             rangeIdx ++;
                             continue;
                         }

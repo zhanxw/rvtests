@@ -201,6 +201,7 @@ int main(int argc, char** argv){
     if (FLAG_set == "") {
         model.push_back (new SingleVariantHeader);
     } else {
+        collapsor.setSetFileName(FLAG_set.c_str());
         model.push_back (new CollapsingHeader);
     }
 

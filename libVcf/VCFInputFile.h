@@ -28,6 +28,7 @@ public:
             }
         }
 
+        this->iter = 0;
         this->hasIndex = this->openIndex();
 
         this->rangeIdx = 0;
@@ -75,6 +76,10 @@ public:
         return true;
     };
     void closeIndex(){
+        if (this->iter) {
+            ti_iter_destroy(this->iter);
+            this->iter = 0;
+        }
         ti_close(this->tabixHandle);
     };
 
@@ -124,7 +129,8 @@ public:
                             return true;
                         } else{ 
                             // continue to next rangeIdx
-                            ti_iter_destroy(iter);
+                            ti_iter_destroy(this->iter);
+                            this->iter = 0;
                             rangeIdx ++;
                             continue;
                         }

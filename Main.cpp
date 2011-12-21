@@ -91,8 +91,8 @@ int main(int argc, char** argv){
 
         ADD_PARAMETER_GROUP(pl, "Association Functions")
         ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
-        ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, madson_browning")
-        ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, madson_browning, freq_all, skat")
+        ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb")
+        ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
         ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT")
         ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
         /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
@@ -212,6 +212,9 @@ int main(int argc, char** argv){
                 model.push_back( new SingleVariantWaldTest );
             } else if (argModelName[i] == "score") {
                 model.push_back( new SingleVariantScoreTest );
+            } else if (argModelName[i] == "fisher") {
+                //model.push_back( new SingleVariantScoreTest );
+                // TODO: add fisher test
             } else {
                 fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
                 abort();
@@ -238,10 +241,15 @@ int main(int argc, char** argv){
     if (FLAG_modelVT != "") {
         stringTokenize(FLAG_modelVT, ",", &argModelName);
         for (int i = 0; i < argModelName.size(); i++ ){
-            if (argModelName[i] == "vt(cmc)") {
+            if (argModelName[i] == "cmc") {
                 model.push_back( new VariableThresholdCMCTest );
-            } else if (argModelName[i] == "vt(freq)") {
+            } else if (argModelName[i] == "zeggini") {
+                //model.push_back( new VariableThresholdFreqTest );
+                // TODO
+            } else if (argModelName[i] == "mb") {
                 model.push_back( new VariableThresholdFreqTest );
+            } else if (argModelName[i] == "skat") {
+                //model.push_back( new VariableThresholdFreqTest );
             } else {
                 fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
                 abort();

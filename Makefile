@@ -48,12 +48,21 @@ $(BASE_LIB):
 $(VCF_LIB):
 	(cd libVcf; make)
 
-rvtest: Main.cpp \
-	Collapsor.h ModelFitter.h \
+
+rvtest: Main.o \
 	VCFData.o \
+	Collapsor.h ModelFitter.h \
 	$(LIB)
 	g++ -c $(CXXFLAGS) Main.cpp  -I. $(INC) -D__ZLIB_AVAILABLE__
 	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+
+-include VCFData.d
+VCFData.o: VCFData.cpp VCFData.h
+	g++ -MMD -c $(CXXFLAGS) $<  -I. $(INC) -D__ZLIB_AVAILABLE__
+
+-include Main.d
+Main.o: Main.cpp
+	g++ -MMD -c $(CXXFLAGS) $<  -I. $(INC) -D__ZLIB_AVAILABLE__
 
 vcf2plink: vcf2plink.cpp $(LIB)
 	g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
@@ -67,10 +76,10 @@ vcf2merlin: vcf2merlin.cpp $(LIB)
 vcf2ld: vcf2ld.cpp $(LIB)
 	g++ -O0 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
-VCFData.o: VCFData.cpp VCFData.h
-	g++ -c $(CXXFLAGS) $<  -I. $(INC) -D__ZLIB_AVAILABLE__
+
 clean: 
 	rm -rf *.o $(EXEC)
+
 doc: README
 	pandoc README -o README.html
 
@@ -84,9 +93,13 @@ test3: rvtest
 test4: rvtest
 	./rvtest --inVcf test.vcf.gz --make-bed test.plink
 test5: rvtest
-	./rvtest --inVcf DajiangDataSet/qt1.vcf --pheno DajiangDataSet/qt1.pheno --single score,wald
+	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --single score,wald
 test6: rvtest
-	./rvtest --inVcf DajiangDataSet/qt1.vcf --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --burden cmc
+	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --burden cmc,zeggini,mb
+test7: rvtest
+	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --vt cmc,zeggini,mb,skat
+test8: rvtest
+	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --kernel skat
 
 # mem test:
 testMemLeak: testMemLeak.cpp $(LIB)

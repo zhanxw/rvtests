@@ -216,7 +216,7 @@ class CMCTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "Pvalue");
+        fprintf(fp, "CMC.Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -256,7 +256,7 @@ class ZegginiTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "Pvalue");
+        fprintf(fp, "Zeggini.Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -296,7 +296,7 @@ class MadsonBrowningTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "Pvalue");
+        fprintf(fp, "MB.Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -336,7 +336,7 @@ class VariableThresholdCMCTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "FreqCutoff\tPermPvalue");
+        fprintf(fp, "VT.FreqCutoff\tVT.PermPvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -414,7 +414,7 @@ class VariableThresholdFreqTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "FreqCutoff\tPermPvalue");
+        fprintf(fp, "VT.FreqCutoff\tVT.PermPvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -492,7 +492,7 @@ class SkatTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "Pvalue");
+        fprintf(fp, "SKAT.Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {

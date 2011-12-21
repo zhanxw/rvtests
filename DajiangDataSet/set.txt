@@ -1,1 +1,1 @@
-SET RANGE 1:1-40
+set1 RANGE 1:1-40

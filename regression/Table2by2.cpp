@@ -8,6 +8,11 @@
  */
 
 #include "Table2by2.h"
+#include "Error.h"
+#include <cmath>
+#include <cstring>
+#include <gsl/gsl_sf_gamma.h>
+
 
 Table2by2::Table2by2()
 {
@@ -21,7 +26,7 @@ Table2by2::Table2by2()
 	for (int i = 0; i < 2; i ++) {
 		m_marginCol[i] = 0;
 		for (int j = 0; j < 2; j ++) {
-			m_marginCol[i] += m_n[i][j]; 
+			m_marginCol[i] += m_n[i][j];
 		}
 	}
 	// Here, can I use the UpdateMarginSum() function instead???
@@ -29,7 +34,7 @@ Table2by2::Table2by2()
 	for (int j = 0; j < 2; j ++) {
 		m_marginRow[j] = 0;
 		for (int i = 0; i < 2; i ++) {
-			m_marginCol[j] += m_n[i][j]; 
+			m_marginCol[j] += m_n[i][j];
 		}
 	}
 	m_sum = 0;
@@ -52,7 +57,7 @@ void Table2by2::InitializeFromNums(int n00, int n01, int n10, int n11){
 	m_n[0][0] = n00;
 	m_n[0][1] = n01;
 	m_n[1][0] = n10;
-	m_n[1][1] = n11;	
+	m_n[1][1] = n11;
 }
 
 Table2by2::Table2by2(int n00, int n01, int n10, int n11)
@@ -69,6 +74,13 @@ Table2by2::Table2by2(Vector &yIn, Vector &xIn)
 	InitOtherVariables();
 }
 
+void Table2by2::reset() {
+	m_n[0][0] = 0;
+	m_n[0][1] = 0;
+	m_n[1][0] = 0;
+	m_n[1][1] = 0;
+};
+
 void Table2by2::Increment(int rowIndex, int colIndex)
 {
 //	printf("m_n[%d,%d] = %d\n",rowIndex, colIndex, m_n[rowIndex][colIndex]);
@@ -82,17 +94,17 @@ void Table2by2::UpdateMarginSum()
 	for (int i = 0; i < 2; i ++) {
 		m_marginRow[i] = 0;
 		for (int j = 0; j < 2; j ++) {
-			m_marginRow[i] += m_n[i][j]; 
+			m_marginRow[i] += m_n[i][j];
 		}
 	}
-	
+
 	// update the marginal rows and total sum
 	// Col sum: Col[j] = sum(m_n[i][j])
 	m_sum = 0;
 	for (int j = 0; j < 2; j ++) {
 		m_marginCol[j] = 0;
 		for (int i = 0; i < 2; i ++) {
-			m_marginCol[j] += m_n[i][j]; 
+			m_marginCol[j] += m_n[i][j];
 			m_sum += m_n[i][j];
 		}
 	}
@@ -144,7 +156,7 @@ void Table2by2::InitializeFromVecMat(Vector &yIn, Matrix &xIn)
 	UpdateMarginSum();
 	chisqStat = 0.0;
 	pChisq = -1.0;
-	pExact = -1.0;	
+	pExact = -1.0;
 	pGeneral = -1.0;
 }
 
@@ -155,8 +167,8 @@ bool Table2by2::MustExactTest()
 	for (int i = 0; i < 2; i ++) {
 		for (int j = 0; j < 2; j ++) {
 			expected2by2[i][j] = (double)m_marginRow[i]* (double) m_marginCol[j]/(double) m_sum;
-			if (expected2by2[i][j] < 5.0 || m_n[0][0] == 0 || m_n[0][1] == 0 
-					|| m_n[1][0] == 0 || m_n[1][1] == 0) {
+			if (expected2by2[i][j] < 5.0 || m_n[0][0] == 0 || m_n[0][1] == 0
+                || m_n[1][0] == 0 || m_n[1][1] == 0) {
 				return (true);
 			}
 		}
@@ -177,10 +189,10 @@ void Table2by2::ChisqTest(bool & valid)
 			if (expected2by2[i][j] < 5.0) {
 				valid = false;
 				return;
-			}  
-			chisqStat	+= ((double) m_n[i][j] - expected2by2[i][j])*( (double) m_n[i][j] - expected2by2[i][j])/expected2by2[i][j];			
+			}
+			chisqStat	+= ((double) m_n[i][j] - expected2by2[i][j])*( (double) m_n[i][j] - expected2by2[i][j])/expected2by2[i][j];
 //			printf("expected2by2 = %f, %f\n",expected2by2[i][j], ((double) m_n[i][j] - expected2by2[i][j])*( (double) m_n[i][j] - expected2by2[i][j])/expected2by2[i][j]);
-		}		
+		}
 	}
 	// p value (df for IbyJ table the df is (I-1)*(J-1))
 //	printf("pChisq = %f,chisqStat = %f\n",pChisq,chisqStat);
@@ -202,8 +214,8 @@ void Table2by2::PearsonChisq()
 		for (int j = 0; j < 2; j ++) {
 			expected2by2[i][j] = (double)m_marginRow[i]* (double) m_marginCol[j]/ (double) m_sum;
 //			printf("expected2by2 = %f, %f\n",expected2by2[i][j], ((double) m_n[i][j] - expected2by2[i][j])*( (double) m_n[i][j] - expected2by2[i][j])/expected2by2[i][j]);
-			chisqStat	+= ((double) m_n[i][j] - expected2by2[i][j])*( (double) m_n[i][j] - expected2by2[i][j])/expected2by2[i][j];			
-		}		
+			chisqStat	+= ((double) m_n[i][j] - expected2by2[i][j])*( (double) m_n[i][j] - expected2by2[i][j])/expected2by2[i][j];
+		}
 	}
 //	printf("chisqStat = %f\n",chisqStat);
 }
@@ -213,7 +225,7 @@ void Table2by2::FisherExactTest()
 {
 	//Update the margin and sum
 	UpdateMarginSum();
-	CalculateBoundsIn00ForFisher();	
+	CalculateBoundsIn00ForFisher();
 	// p value for observed = choose(n1+,n11)*choose(n2+,n21)/choose(n++,n+1)
 	double pObserved = gsl_sf_choose(m_marginRow[0],m_n[0][0])*gsl_sf_choose(m_marginRow[1], m_n[1][0])/gsl_sf_choose(m_sum, m_marginCol[0]);
 	pExact = 0;
@@ -247,30 +259,30 @@ void Table2by2::GeneralTest()
 	} else {
 		pGeneral = pChisq;
 	}
-	
+
 	/*	printf("valid to use pearson chisq test? %s\n",useChisqValid?"true":"false");
-	 printf("p value for general test = %f\n",pGeneral); */
+        printf("p value for general test = %f\n",pGeneral); */
 }
 
 void Table2by2::CalculateBoundsIn00ForFisher(){
-	
-	// uppderBound = min(n1+,n+1) 
-	upperBound = m_marginRow[0]; 
+
+	// uppderBound = min(n1+,n+1)
+	upperBound = m_marginRow[0];
 	if (upperBound > m_marginCol[0]) upperBound = m_marginCol[0];
-	
+
 	// lowerbound = max(0,n1+ + n+1 - sum)
 	lowerBound = m_marginRow[0] + m_marginCol[0] - m_sum;
-	if (lowerBound < 0) lowerBound = 0;	
+	if (lowerBound < 0) lowerBound = 0;
 }
 
-// this logFacs is used to store log(n!), 
+// this logFacs is used to store log(n!),
 void Table2by2::initLogFacs(double *logFacs, int n){
 	logFacs[0] = 0;
 	for(int i=1; i < n+1; ++i) {
 		logFacs[i] = logFacs[i-1] + log((double)i); // only n times of log() calls
 	}
 }
-		
+
 void Table2by2::initLogFacs(double *logFacs){
 	logFacs[0] = 0;
 	for (int i = 1; i < m_sum + 1; i ++) {
@@ -280,16 +292,16 @@ void Table2by2::initLogFacs(double *logFacs){
 
 double Table2by2::logHypergeometricProb(double *logFacs, int a, int b, int c, int d){
 	return (logFacs[a+b] + logFacs[c+d] + logFacs[a+c] + logFacs[b+d]
-	- logFacs[a] - logFacs[b] - logFacs[c] - logFacs[d] - logFacs[a+b+c+d]);
+            - logFacs[a] - logFacs[b] - logFacs[c] - logFacs[d] - logFacs[a+b+c+d]);
 }
 
 double Table2by2::logHypergeometricProb(double *logFacs){
 	int a = m_n[0][0], b = m_n[0][1], c = m_n[1][0], d = m_n[1][1];
 	return (logFacs[a+b] + logFacs[c+d] + logFacs[a+c] + logFacs[b+d]
-					- logFacs[a] - logFacs[b] - logFacs[c] - logFacs[d] - logFacs[a+b+c+d]);
+            - logFacs[a] - logFacs[b] - logFacs[c] - logFacs[d] - logFacs[a+b+c+d]);
 }
 
-void Table2by2::FullFastFisherExactTest(){ 
+void Table2by2::FullFastFisherExactTest(){
 	double *storeLogFacs = new double[m_sum];
 	// calculate and store all the factorials
 	initLogFacs(storeLogFacs);
@@ -299,14 +311,14 @@ void Table2by2::FullFastFisherExactTest(){
 	double pFraction = 0;
 	double pFractionLess = 0;
 	double pFractionGreater = 0;
-		
+
 	// calculate the boundaries for m_n[0][0] given the four marginals
 	CalculateBoundsIn00ForFisher();
-	
+
 	for (int i = lowerBound; i <= upperBound; i ++) {
 		double logpPossible = logHypergeometricProb(storeLogFacs,
-																								i,m_marginRow[0] - i, m_marginCol[0] - i, 
-																								m_marginRow[1] + i - m_marginCol[0]);
+                                                    i,m_marginRow[0] - i, m_marginCol[0] - i,
+                                                    m_marginRow[1] + i - m_marginCol[0]);
 		if (logpPossible <= logpCutoff) {
 			pFraction += exp(logpPossible - logpCutoff);
 		}
@@ -317,13 +329,13 @@ void Table2by2::FullFastFisherExactTest(){
 			pFractionGreater += exp(logpPossible - logpCutoff);
 		}
 	}
-	
+
 	double logpValue, logpValueLess, logpValueGreater;
-	
+
 	logpValue = logpCutoff + log(pFraction);
 	logpValueLess = logpCutoff + log(pFractionLess);
 	logpValueGreater = logpCutoff + log(pFractionGreater);
-	
+
 	// update the p values
 	pExactTwoSided = exp(logpValue);
 	pExactOneSidedLess = exp(logpValueLess);
@@ -369,7 +381,7 @@ void Table2by2::Print()
 	printf("\n");
 }
 
-void	Table2by2::PrintMargin()
+void Table2by2::PrintMargin()
 {
 	for (int i = 0; i < 2; i ++) {
 		printf("col margin: %d\t",m_marginCol[i]);
@@ -389,24 +401,16 @@ void Table2by2::GetTable( int b[2][2]){
 	}
 }
 
-int & Table2by2::Get01()
-{
-	return(m_n[0][1]);
-}
-
-int & Table2by2::Get11()
-{
-	return(m_n[1][1]);
-}
-
-double Table2by2::GetpFasterFisherExact(std::string testIndicator){
-	if (testIndicator != "TwoSided" && testIndicator != "Less" && testIndicator != "Greater") {
-		error("Inappropriate test side specification! 0: two sided; 1: one sided greater; -1: one sided less\n");
-	} else if (testIndicator == "TwoSided") {
+double Table2by2::GetpFasterFisherExact(const char* testIndicator){
+    if (strcmp(testIndicator, "TwoSided") == 0) {
 		return (pExactTwoSided);
-	} else if (testIndicator == "Less") {
+	} else if (strcmp(testIndicator, "Less") == 0) {
 		return (pExactOneSidedLess);
-	} else if (testIndicator == "Greater") {
+	} else if (strcmp(testIndicator, "Greater") == 0) {
 		return (pExactOneSidedGreater);
-	}	
-}	
+	} else {
+		error("Inappropriate test side specification! 0: two sided; 1: one sided greater; -1: one sided less\n");
+	} 
+
+    return 0.0;
+}

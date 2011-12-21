@@ -14,7 +14,7 @@ debug: $(LIB)
 all: CXXFLAGS = -O2 $(DEFAULT_CXXFLAGS)
 all: $(LIB)
 
-$(LIB): LogisticRegression.o LinearRegression.o Skat.o qfc.o
+$(LIB): LogisticRegression.o LinearRegression.o Skat.o qfc.o Table2by2.o
 	ar -cqs $(LIB) *.o
 LogisticRegression.o: LogisticRegression.cpp LogisticRegression.h
 	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC)
@@ -23,6 +23,8 @@ LinearRegression.o: LinearRegression.cpp LinearRegression.h
 Skat.o: Skat.cpp Skat.h
 	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC) -I$(EIGEN_INC)
 qfc.o: qfc.c
+	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC)
+Table2by2.o: Table2by2.cpp Table2by2.h
 	g++ $(CXXFLAGS) -c $< -I$(GONCALO_INC)
 clean:
 	rm -rf *.o *.a *~

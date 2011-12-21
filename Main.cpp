@@ -91,7 +91,7 @@ int main(int argc, char** argv){
 
         ADD_PARAMETER_GROUP(pl, "Association Functions")
         ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
-        ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb")
+        ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC")
         ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
         ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT")
         ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
@@ -232,6 +232,8 @@ int main(int argc, char** argv){
                 model.push_back( new MadsonBrowningTest );
                 // NOTE: use may use different frequency (not freq from control),
                 // so maybe print a warning here?
+            } else if (argModelName[i] == "exactCMC") {
+                model.push_back( new CMCFisherExactTest );
             } else {
                 fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
                 abort();

@@ -4,6 +4,24 @@
 #include <Eigen/Eigenvalues> 
 #include <Eigen/Dense>
 
+#include <ctime>
+#include <iostream>
+#include <fstream>
+void TIME() {
+    time_t t  = time(0);
+    printf("Time: %s\n", ctime(&t));
+}
+
+void outputMat(Eigen::MatrixXf m, const char* outName) {
+    TIME();
+    fputs(outName, stdout);
+    std::ofstream ofs(outName);
+    ofs << m;
+    ofs.close();
+    TIME();
+};
+
+
 using namespace std;
 int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
                           Matrix & G_G, Vector &w_G) {
@@ -23,19 +41,30 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
 
     if (!this->hasCache) {
         XtV = X.transpose() * v.asDiagonal();
-        
+        outputMat(XtV, "mat.XtV");
+
         P0 = v.asDiagonal();
         P0 -= XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
+        outputMat(P0, "mat.P0");
+
         MatrixSqrt(P0, P0_sqrt);
-        
+        outputMat(P0_sqrt, "mat.P0_sqrt");
+
         this->hasCache = true;
     };
 
 
     this->K = G * w.asDiagonal() * G.transpose();
+    outputMat(K, "mat.K");
+
     this->Q = (y-y0).transpose() * K * (y-y0);
+    printf("Q done. \n");
+    TIME();
+
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
     es.compute(P0_sqrt * K * P0_sqrt);
+    printf("done es \n");
+    TIME();
 
     // fit in parameters to qf()
     double *lambda = new double[v.size()];
@@ -60,6 +89,8 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
     double trace[7];
 
     this->pValue = qf(lambda, noncen, df, r, sigma, Q, lim, acc, trace, &fault);
+    printf("done qf \n");
+    TIME();
     delete [] lambda;
     delete [] noncen;
     delete [] df;

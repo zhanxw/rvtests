@@ -1,4 +1,8 @@
+#!/bin/bash
 for i in qt?.ped;
 do
-    python ped2vcf.py $i `basename $i .ped`
+    BASE=`basename $i .ped`
+    python ped2vcf.py ${BASE}.ped ${BASE}
+    ../tabix/bgzip -f ${BASE}.vcf
+    ../tabix/tabix -f -p vcf ${BASE}.vcf.gz
 done;

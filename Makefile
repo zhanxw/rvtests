@@ -96,6 +96,10 @@ test3: rvtest
 	./rvtest --inVcf test.vcf.gz --outVcf test3.vcf --peopleIncludeID P2,NotValid,P3 --peopleExcludeID P3
 test4: rvtest
 	./rvtest --inVcf test.vcf.gz --make-bed test.plink
+
+DajiangDataSet/qt1.vcf.gz: DajiangDataSet/qt1.ped
+	(cd DajiangDataSet; bash cmd.sh);
+
 testSingle: rvtest
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --single score,wald
 testBurden: rvtest

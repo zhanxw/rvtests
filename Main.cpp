@@ -128,7 +128,7 @@ int main(int argc, char** argv){
     const char* fn = FLAG_inVcf.c_str();
     VCFInputFile vin(fn);
 
-    // set range filters here
+   // set range filters here
     vin.setRangeList(FLAG_rangeList.c_str());
     vin.setRangeList(FLAG_rangeFile.c_str());
 

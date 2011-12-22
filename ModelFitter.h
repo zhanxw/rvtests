@@ -560,7 +560,7 @@ public:
         };
 
         // get ynulll
-        if (data.collapsedGenotype && data.collapsedGenotype->cols> 0) {
+        if (data.collapsedGenotype && data.collapsedGenotype->cols> 0 && (data.covariate && data.covariate->cols > 0)) {
             fitOK = lr.FitLogisticModel(*data.covariate, *data.extractPhenotype(), 100);
             if (!fitOK) {
                 return -1;

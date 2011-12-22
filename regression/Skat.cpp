@@ -1,17 +1,28 @@
 #include "Skat.h"
 #include "qfc.c"
 
+#include <Eigen/Eigenvalues> 
+
 using namespace std;
 
 double Skat::CalculatePValue(Eigen::MatrixXf &X, Eigen::MatrixXf &V, double Q)
 {
     Eigen::MatrixXf P0;
-    P0 = V - V * X* (X.transpose()*V*X).inverse() * X.transpose() * V;
+    P0 = V - V * X * (X.transpose()*V*X).inverse() * X.transpose() * V;
+    cout << "P0 done" << endl;
+    
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
+    es.compute(P0);
+    cout << "The eigenvalues of P0 are: " << es.eigenvalues().transpose() << endl;
 
     Eigen::JacobiSVD<Eigen::MatrixXf> svd_P0(P0, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
     Eigen::MatrixXf P0_sqrt;
     P0_sqrt = svd_P0.matrixU() * svd_P0.singularValues().cwiseSqrt().asDiagonal();
+
+    es.compute(P0_sqrt);
+    cout << "The eigenvalues of P0_sqrt are: " << es.eigenvalues().transpose() << endl;
+
 
     Eigen::JacobiSVD<Eigen::MatrixXf> svd(P0_sqrt * K * P0_sqrt, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
@@ -51,17 +62,29 @@ double Skat::CalculatePValue(Vector &y, Vector &y0, Matrix &Geno, Vector &w)
     Eigen::MatrixXf Geno_E;
     Eigen::VectorXf w_E;
 
+    cout << "Begin calc P" << endl;
     GVector2EigenVector(y, y_E);
     GVector2EigenVector(y0, y0_E);
     GVector2EigenVector(w, w_E);
     GMatrix2EigenMatrix(Geno, Geno_E);
 
+    // K = G W G' where
+    //   G is n by p matrix (subject by marker)
+    //   W is p by p diagnoal weight matrix
+    cout << "calculate K"<< endl;
     CalculateKMatrix(Geno_E, w_E);
+    cout << "calculate K done"<< endl;
 
+    // Q = (y - y0)' K (y - y0)
+    cout << "calculate Q"<< endl;
     double Q = CalculateQValue(y_E, y0_E, Geno_E, w_E);
+    cout << "calculate Q done"<< endl;
 
+    cout << "calculate V_E"<< endl;
     Eigen::MatrixXf V_E = y0_E.asDiagonal();
+    cout << "calculate V_E..."<< endl;
     double pvalue = CalculatePValue(Geno_E, V_E, Q);
+    cout << "calculate V_E done"<< endl;
     return(pvalue);
 }
 

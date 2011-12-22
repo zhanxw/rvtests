@@ -6,6 +6,7 @@
 #include "regression/LogisticRegression.h"
 #include "regression/LinearRegression.h"
 #include "regression/Skat.h"
+#include "regression/Table2by2.h"
 
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
@@ -216,7 +217,7 @@ class CMCTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "Pvalue");
+        fprintf(fp, "CMC.Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -252,11 +253,64 @@ private:
     bool fitOK;
 }; // CMCTest
 
+class CMCFisherExactTest: public ModelFitter{
+public:
+    // write result header
+    void writeHeader(FILE* fp) {
+        fputs("exactCMC.N00\t", fp);
+        fputs("exactCMC.N01\t", fp);
+        fputs("exactCMC.N10\t", fp);
+        fputs("exactCMC.N11\t", fp);
+        fputs("exactCMC.PvalueTwoSide\t", fp);
+        fputs("exactCMC.PvalueLess\t", fp);
+        fputs("exactCMC.PvalueGreater", fp);
+    };
+    // fitting model
+    int fit(VCFData& data) {
+        // collapsing
+        cmcCollapse(&data, &g);
+
+        // fit model
+        // step 1, fit two by two table
+        Vector & p = (*data.extractPhenotype());
+        int numPeople = g.rows;
+        for (int i = 0; i < numPeople; i++) {
+            int geno = g[i][0];
+            int pheno = p[i];
+            assert(0 <= geno && geno <= 1);
+            assert(0 <= pheno && pheno <= 1);
+            model.Increment(geno, pheno);
+        }
+
+        // step 2, calculate pvalue
+        model.UpdateMarginSum();
+        model.FullFastFisherExactTest();
+    };
+    // write model output
+    void writeOutput(FILE* fp) {
+        fprintf(fp, "%d\t", model.Get00());
+        fprintf(fp, "%d\t", model.Get01());
+        fprintf(fp, "%d\t", model.Get10());
+        fprintf(fp, "%d\t", model.Get11());
+
+        fprintf(fp, "%.3lf\t", model.getPExactTwoSided());
+        fprintf(fp, "%.3lf\t", model.getPExactOneSidedLess());
+        fprintf(fp, "%.3lf"  , model.getPExactOneSidedGreater());
+    };
+    void reset() {
+        model.reset();
+    };
+private:
+    Matrix g;
+    Table2by2 model;
+}; // CMCFisherExactTest
+
+
 class ZegginiTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "Pvalue");
+        fprintf(fp, "Zeggini.Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -296,7 +350,7 @@ class MadsonBrowningTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "Pvalue");
+        fprintf(fp, "MB.Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -336,7 +390,7 @@ class VariableThresholdCMCTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "FreqCutoff\tPermPvalue");
+        fprintf(fp, "VT.FreqCutoff\tVT.PermPvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -414,7 +468,7 @@ class VariableThresholdFreqTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "FreqCutoff\tPermPvalue");
+        fprintf(fp, "VT.FreqCutoff\tVT.PermPvalue");
     };
     // fitting model
     int fit(VCFData& data) {
@@ -492,7 +546,7 @@ class SkatTest: public ModelFitter{
 public:
     // write result header
     void writeHeader(FILE* fp) {
-        fprintf(fp, "Pvalue");
+        fprintf(fp, "SKAT.Pvalue");
     };
     // fitting model
     int fit(VCFData& data) {

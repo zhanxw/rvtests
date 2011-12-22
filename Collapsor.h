@@ -13,7 +13,9 @@ class Collapsor{
         this->setContent.clear();
         this->setName.clear();
 
-        if (!fn || strlen(fn))
+        if (!fn)
+            return;
+        if (strlen(fn) == 0) 
             return;
 
         LineReader lr(fn);
@@ -204,7 +206,7 @@ void cmcCollapse(VCFData* d, Matrix* out){
     out->Zero();
     for (int p = 0; p < numPeople; p++){
         for (int m = 0; m < numMarker; m++) {
-            int g = (int)(in[m][p]);
+            int g = (int)(in[p][m]);
             if (g > 0) {
                 (*out)[p][0] = 1.0;
                 break;
@@ -222,7 +224,7 @@ void zegginiCollapse(VCFData* d, Matrix* out){
     out->Zero();
     for (int p = 0; p < numPeople; p++){
         for (int m = 0; m < numMarker; m++) {
-            int g = (int)(in[m][p]);
+            int g = (int)(in[p][m]);
             if (g > 0) { // genotype is non-reference
                 (*out)[p][0] += 1.0;
                 break;
@@ -273,7 +275,7 @@ void progressiveCMCCollapse(VCFData* d, Matrix* out, int col) {
 
     for (int p = 0; p < numPeople; p++){
         const int m = col;
-        int g = (int)(in[m][p]);
+        int g = (int)(in[p][m]);
         if (g > 0) {
             (*out)[p][0] = 1.0;
         }

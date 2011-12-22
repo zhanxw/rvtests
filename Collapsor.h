@@ -130,7 +130,7 @@ class Collapsor{
                     this->currentSetName += ":";
                     this->currentSetName += toString(record.getPos());
                 }
-                
+                // put variant into collapsedGenotype
                 filterGenotypeByFrequency(data);
                 return true;
             } else{
@@ -154,7 +154,8 @@ class Collapsor{
                 data->addVCFRecord(record);
             }
         };
-        filterGenotypeByFrequency(data);
+        // put variant into collapsedGenotype
+        filterGenotypeByFrequency(data); 
         return true;
     };
 
@@ -185,16 +186,10 @@ class Collapsor{
 // then model can use @param out directly
 // internal, all collapsor will use variant that are in markerInclusion
 
-#if 0
-void naiveCollapse(VCFData* d, Matrix* out){
-    assert(out);
-    Matrix& in = (*d->collapsedGenotype);
-    int numPeople = in.rows;
-    int numMarker = in.cols;
-
-    *out = in;
-};
-#endif 
+/* void naiveCollapse(VCFData* d, Matrix* out){ */
+/*     assert(out); */
+/*     out = d->collapsedGenotype; */
+/* }; */
 
 void cmcCollapse(VCFData* d, Matrix* out){
     assert(out);

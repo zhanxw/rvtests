@@ -556,7 +556,11 @@ public:
         Vector weight;
         weight.Dimension(data.collapsedGenotype->cols);
         for (int i = 0; i < data.collapsedMarkerFreq.size(); i++) {
-            weight[i] = 1 / ( data.collapsedMarkerFreq[i]  * ( 1.0 - data.collapsedMarkerFreq[i] ));
+            if (data.collapsedMarkerFreq[i] > 1e-30) { // avoid dividing zero
+                weight[i] = 1 / ( data.collapsedMarkerFreq[i]  * ( 1.0 - data.collapsedMarkerFreq[i] ));
+            } else {
+                weight[i] = 0.0;
+            }
         };
 
         // get ynulll
@@ -566,22 +570,46 @@ public:
                 return -1;
             }
             ynull = lr.GetPredicted();
+            v = lr.GetVariance();
         } else {
             Vector* p = data.extractPhenotype();
             double avg = p->Average();
             ynull.Dimension(p->Length());
-            for (int i = 0; i < p->Length(); i++)
+            v.Dimension(p->Length());
+            for (int i = 0; i < p->Length(); i++) {
                 ynull[i] = avg;
+                v[i] = avg * (1 - avg);
+            }
         }
+        // get X
+        if (data.covariate && data.covariate->cols > 0) {
+            X.Dimension(data.covariate->rows, data.covariate->cols + 1);
+            for (int i = 0; i < data.covariate->rows; i ++ ){
+                for (int j = 0; j < data.covariate->cols; j ++ ) {
+                    X[i][j] = (*data.covariate)[i][j];
+                }
+                X[i][data.covariate->cols] = 1;
+            }
+        } else {
+            X.Dimension(data.collapsedGenotype->rows, 1);
+            for (int i = 0; i < data.collapsedGenotype->rows; i++) {
+                X[i][0] = 1.0;
+            }
+            
+        };
 
         // get Pvalue
-        pvalue = skat.CalculatePValue(*data.extractPhenotype(), ynull, *data.collapsedGenotype, weight);
+        pvalue = skat.CalculatePValue(*data.extractPhenotype(), ynull, X, v, *data.collapsedGenotype, weight);
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
     };
+    
 private:
+    Matrix* geno;
+    Matrix X; // n by (p+1) matrix, people by covariate (note intercept is needed);
+    Vector v;
     Vector weight;
     LogisticRegression lr;
     Vector ynull;

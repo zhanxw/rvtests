@@ -428,6 +428,7 @@ public:
                     continue;
                 }
             }
+            pvalue.push_back(lrst.GetPvalue());
         } //
 
         return 0;
@@ -506,6 +507,7 @@ public:
                     continue;
                 }
             }
+            pvalue.push_back(lrst.GetPvalue());
         }
 
         return 0;

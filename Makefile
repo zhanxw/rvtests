@@ -19,8 +19,11 @@ BASE_LIB = ./base/lib-base.a
 EIGEN_INC = ./eigen
 EIGEN_LIB =  # Eigen are header files only
 
-INC = -I$(TABIX_INC) -I$(GONCALO_INC) -I$(REGRESSION_INC) -I$(VCF_INC) -I$(BASE_INC) -I$(EIGEN_INC)
-LIB = $(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB)
+PCRE_INC = ./pcre/include
+PCRE_LIB = ./pcre/lib/libpcre.a ./pcre/lib/libpcreposix.a
+
+INC = -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(VCF_INC) -I$(BASE_INC) -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(PCRE_INC)
+LIB = $(TABIX_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(PCRE_LIB)
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 
@@ -48,13 +51,15 @@ $(BASE_LIB):
 $(VCF_LIB):
 	(cd libVcf; make)
 
+$(PCRE_LIB): pcre-8.21.tar.bz2
+	-(DIR=`pwd`; cd pcre-8.21; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
 
 rvtest: Main.o \
 	VCFData.o \
 	Collapsor.h ModelFitter.h \
 	$(LIB)
 	g++ -c $(CXXFLAGS) Main.cpp  -I. $(INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix -lgsl
+	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lgsl
 
 -include VCFData.d
 VCFData.o: VCFData.cpp VCFData.h
@@ -75,7 +80,6 @@ vcf2merlin: vcf2merlin.cpp $(LIB)
 
 vcf2ld: vcf2ld.cpp $(LIB)
 	g++ -O0 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
-
 
 clean: 
 	rm -rf *.o $(EXEC)

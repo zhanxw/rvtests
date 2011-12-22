@@ -1,6 +1,5 @@
 EXEC = rvtest
 
-#STATGEN_LIB = ../statgen/lib/libStatGen.a ../statgen//lib/samtools-0.1.7a-hybrid/libbam.a
 TABIX_INC = ./tabix-0.2.5
 TABIX_LIB = ./tabix-0.2.5/libtabix.a
 
@@ -22,8 +21,8 @@ EIGEN_LIB =  # Eigen are header files only
 PCRE_INC = ./pcre/include
 PCRE_LIB = ./pcre/lib/libpcre.a ./pcre/lib/libpcreposix.a
 
-INC = -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(VCF_INC) -I$(BASE_INC) -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(PCRE_INC)
-LIB = $(TABIX_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(PCRE_LIB)
+INC = -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(VCF_INC) -I$(BASE_INC) -I$(EIGEN_INC) -I$(PCRE_INC) -I$(GONCALO_INC)
+LIB = $(TABIX_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(PCRE_LIB) $(GONCALO_LIB)
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 
@@ -34,24 +33,25 @@ release: $(EXEC)
 debug: CXXFLAGS = -g -O0 $(DEFAULT_CXXFLAGS)
 debug: $(EXEC)
 
-$(TABIX_LIB): tabix-0.2.5.tar.bz2
+$(TABIX_LIB): tabix-0.2.5.tar.bz2 
 	tar jvxf $<
 	-(cd tabix-0.2.5; make;)
 
-$(GONCALO_LIB): lib-goncalo.tgz
+$(GONCALO_LIB): lib-goncalo.tgz 
 	tar zvxf $<
 	(cd libsrc; ./build.sh)
 
 $(REGRESSION_LIB): 
 	(cd regression; make)
 
-$(BASE_LIB):
+$(BASE_LIB): 
 	(cd base; make)
 
-$(VCF_LIB):
+$(VCF_LIB): 
 	(cd libVcf; make)
 
-$(PCRE_LIB): pcre-8.21.tar.bz2
+$(PCRE_LIB): pcre-8.21.tar.bz2 | pcre
+	tar jvxf $<
 	-(DIR=`pwd`; cd pcre-8.21; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
 
 rvtest: Main.o \
@@ -59,7 +59,7 @@ rvtest: Main.o \
 	Collapsor.h ModelFitter.h \
 	$(LIB)
 	g++ -c $(CXXFLAGS) Main.cpp  -I. $(INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lgsl
+	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lgsl -lblas
 
 -include VCFData.d
 VCFData.o: VCFData.cpp VCFData.h

@@ -13,11 +13,12 @@
 #include "Utils.h"
 #include "VCFUtil.h"
 
-#define COUNT 10
+#define COUNT 1000000
 
 int main()
 {
-    VCFInputFile vin("test.vcf.gz");
+    const char a[] = "test.vcf.gz";
+    VCFInputFile vin(a);
 
     for(int i=0; i<COUNT; i++)
     {

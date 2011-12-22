@@ -54,7 +54,7 @@ rvtest: Main.o \
 	Collapsor.h ModelFitter.h \
 	$(LIB)
 	g++ -c $(CXXFLAGS) Main.cpp  -I. $(INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix -lgsl
+	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix -lgsl -lblas
 
 -include VCFData.d
 VCFData.o: VCFData.cpp VCFData.h

@@ -28,6 +28,7 @@ public:
             }
         }
 
+        this->tabixHandle = 0;
         this->iter = 0;
         this->hasIndex = this->openIndex();
 
@@ -81,6 +82,7 @@ public:
             this->iter = 0;
         }
         ti_close(this->tabixHandle);
+        this->tabixHandle = 0;
     };
 
     void clearRange() {

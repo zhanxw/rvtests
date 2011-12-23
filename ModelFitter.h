@@ -599,11 +599,17 @@ public:
         };
 
         // get Pvalue
-        pvalue = skat.CalculatePValue(*data.extractPhenotype(), ynull, X, v, *data.collapsedGenotype, weight);
+        skat.CalculatePValue(*data.extractPhenotype(), ynull, X, v, *data.collapsedGenotype, weight);
+        this->pValue = skat.GetPvalue();
         return 0;
     };
     // write model output
     void writeOutput(FILE* fp) {
+        if (fitOK)
+            fprintf(fp, "%.3f", this->pValue);
+        else {
+            fputs("NA", fp);
+        }
     };
     
 private:
@@ -613,136 +619,9 @@ private:
     Vector weight;
     LogisticRegression lr;
     Vector ynull;
-    bool fitOK;
     Skat skat;
-    double pvalue;
+    bool fitOK;
+    double pValue;
 }; // SkatTest
-
-#if 0
-
-class LogisticModelScoreTest: public ModelFitter{
-public:
-    LogisticModelScoreTest(){
-        this->modelName = "LogisticModelScoreTest";
-        this->dirtyMark = true;
-    };
-    // write result header
-    void outputHeader(FILE* fp) {
-        fprintf(fp, "%s.PVALUE", this->modelName.c_str());
-    };
-    // fitting model
-    int fit(VCFData& d, Collapsor& c, FILE* fp) {
-        c.collapseGenotype(&d, NULL);
-        Matrix* geno = d.collapsedGenotype;
-        Vector* pheno = d.extractPhenotype();
-        Matrix* cov = d.covariate;
-
-        bool fitOK = false;
-        // when cov exists, we may cache null model
-        if (cov && cov->cols > 0) {
-
-
-            // deal with dirtyMark
-            if (this->phenoCache != pheno ||
-                this->covCache != cov)
-                this->dirtyMark = true;
-
-            if (dirtyMark) {
-                fitOK = lrst.FitNullModel(*cov, *pheno, 100);
-                this->dirtyMark = false;
-                this->phenoCache = pheno;
-                this->covCache = cov;
-            }
-
-            if (!fitOK) {
-                fputs("-1.00", fp);
-                return -1;
-            }
-
-            fitOK = lrst.TestCovariate(*cov, *pheno, *geno);
-            if (!fitOK) {
-                fputs("-1.00", fp);
-                return -1;
-            }
-
-            fprintf(fp, "%lf\n", lrst.getPvalue());
-            return 0;
-        } else {
-            // no covariate
-            fitOK = lrst.TestCovariate(*geno, *pheno);
-            if (!fitOK) {
-                fputs("-1.00", fp);
-                return -1;
-            }
-            fprintf(fp, "%lf\n", lrst.getPvalue());
-            return 0;
-        }
-        //  should not reach here.
-        return -2;
-    };
-private:
-    LogisticRegressionScoreTest lrst;
-    bool dirtyMark; // dirtyMark == true: need to refit Null Model
-    void* phenoCache;
-    void* covCache;
-}; // LogisticModelScoreTest
-
-class VariableThresholdTest: public ModelFitter{
-public:
-    VariableThresholdTest(){
-        this->modelName = "VT";
-    };
-
-    // write result header
-    void outputHeader(FILE* fp){
-        fprintf(fp, "ThresholdCutoffs\tPvalues");
-    };
-    // fitting model
-    int fit(VCFData& d, Collapsor& c, FILE* fp){
-        int numPeople = d.people2Idx.size();
-        int numMarker = d.marker2Idx.size();
-
-        d.calculateFrequency(VCFData::FREQ_CONTORL_ONLY);
-        std::map<double, int> freqCutOff;
-        std::map<double, int>::const_iterator freqCutOff_iter;
-        for (int m = 0; m < numMarker; m++){
-            if (d.markerFreq[m] > 1e-6) {
-                freqCutOff[d.markerFreq[m]] = m;
-            }
-        }
-        std::vector<double> pvalue;
-
-        // collapsor.setCollapsingStrategy(Collapsor::MADSON_BROWNING);
-        this->progressiveCollapsor.setCollapsingStrategy(Collapsor::PROGRESSIVE);
-        int param[2];
-        param[1] = Collapsor::CMC;
-        for (freqCutOff_iter = freqCutOff.begin();
-             freqCutOff_iter != freqCutOff.end();
-             freqCutOff_iter ++){
-
-            param[0] = freqCutOff_iter->second;
-            this->progressiveCollapsor.collapseGenotype(&d, &param);
-            pt.FitLinearModel(*d.collapsedGenotype, *d.extractPhenotype(), 1000, 0.10); // 0.10 = 0.05 * 2 ( try use adaptive permutation here).
-            pvalue.push_back(pt.getPvalue());
-        }
-        // output results;
-        for (freqCutOff_iter = freqCutOff.begin();
-             freqCutOff_iter != freqCutOff.end();
-             freqCutOff_iter ++){
-            if (freqCutOff_iter != freqCutOff.begin()) fprintf(fp, ",");
-            fprintf(fp, "%.3f", freqCutOff_iter->first);
-        }
-        fprintf(fp, "\t");
-        for (int i = 0; i < pvalue.size(); i++){
-            if (i) fprintf(fp, ",");
-            fprintf(fp, "%.3f", pvalue[i]);
-        }
-    };
-private:
-    Collapsor progressiveCollapsor;
-    LinearPermutationTest pt;
-};
-
-#endif
 
 #endif /* _MODELFITTER_H_ */

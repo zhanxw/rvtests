@@ -50,7 +50,7 @@ $(BASE_LIB):
 $(VCF_LIB): 
 	(cd libVcf; make)
 
-$(PCRE_LIB): pcre-8.21.tar.bz2 | pcre
+$(PCRE_LIB): pcre-8.21.tar.bz2 
 	tar jvxf $<
 	-(DIR=`pwd`; cd pcre-8.21; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
 
@@ -100,13 +100,15 @@ test4: rvtest
 DajiangDataSet/qt1.vcf.gz: DajiangDataSet/qt1.ped
 	(cd DajiangDataSet; bash cmd.sh);
 
-testSingle: rvtest
+DajiangDataSet := DajiangDataSet/qt1.vcf.gz DajiangDataSet/qt1.pheno
+
+testSingle: rvtest $(DajiangDataSet)
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --single score,wald
-testBurden: rvtest
+testBurden: rvtest $(DajiangDataSet)
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --burden cmc,zeggini,mb,exactCMC
-testVt: rvtest
+testVt: rvtest $(DajiangDataSet)
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --vt cmc,zeggini,mb,skat
-testKernel: rvtest
+testKernel: rvtest $(DajiangDataSet)
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --kernel skat
 
 # mem test:

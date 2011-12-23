@@ -12,9 +12,11 @@ void TIME() {
     printf("Time: %s\n", ctime(&t));
 }
 
+
 void outputMat(Eigen::MatrixXf m, const char* outName) {
     TIME();
     fputs(outName, stdout);
+    fputc('\n', stdout);
     std::ofstream ofs(outName);
     ofs << m;
     ofs.close();
@@ -61,6 +63,7 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
     printf("Q done. \n");
     TIME();
 
+    // NOTE, here we only need eigenvalues!
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
     es.compute(P0_sqrt * K * P0_sqrt);
     printf("done es \n");
@@ -88,12 +91,19 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
     int fault;
     double trace[7];
 
-    this->pValue = qf(lambda, noncen, df, r, sigma, Q, lim, acc, trace, &fault);
+    // note: qf give distribution but we want p-value.
+    this->pValue = 1.0 - qf(lambda, noncen, df, r, sigma, Q, lim, acc, trace, &fault);
     printf("done qf \n");
     TIME();
     delete [] lambda;
     delete [] noncen;
     delete [] df;
+
+    if (ifault) {
+        return ifault;
+    }
+
+    return 0;
 }
 
 void G_to_Eigen(Matrix& GM, Eigen::MatrixXf& EigenM)
@@ -126,9 +136,23 @@ void Eigen_to_G(Eigen::VectorXf& EigenV, Vector &GV)
         EigenV(i) = GV[i];
 }
 
+/**
+ *     // NOTE: since @param may not be full rank, we will use SVD
+ */
 void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf& out) {
+
+    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(in);
+    // out = es.operatorSqrt();
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(in);
-    out = es.operatorSqrt();
+    Eigen::VectorXf d = es.eigenvalues();;
+    for (int i = 0; i < d.size(); i++){
+        if (d(i) > 1e-30) {
+            d(i) = sqrt(d[i]);
+        }else{
+            d(i) = 0.0;
+        }
+    }
+    out = es.eigenvectors() * d.asDiagonal() *  es.eigenvectors().transpose();
 }
 
 

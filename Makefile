@@ -41,13 +41,13 @@ $(GONCALO_LIB): lib-goncalo.tgz
 	tar zvxf $<
 	(cd libsrc; ./build.sh)
 
-$(REGRESSION_LIB): 
+$(REGRESSION_LIB): $(shell ls -1 regression/*{cpp,h})
 	(cd regression; make)
 
-$(BASE_LIB): 
+$(BASE_LIB): $(shell ls -1 base/*{cpp,h}) 
 	(cd base; make)
 
-$(VCF_LIB): 
+$(VCF_LIB): $(shell ls -1 libVcf/*{cpp,h})
 	(cd libVcf; make)
 
 $(PCRE_LIB): pcre-8.21.tar.bz2 

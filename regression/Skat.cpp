@@ -1,6 +1,7 @@
 #include "Skat.h"
 #include "qfc.c"
 
+#include "MathMatrix.h"
 #include <Eigen/Eigenvalues> 
 #include <Eigen/Dense>
 

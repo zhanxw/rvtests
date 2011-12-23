@@ -36,7 +36,7 @@ class Collapsor{
                 this->setName.push_back(fd[0]);
 
             } else if (fd[1] == "MARKER"){
-#pragma message "TODO"
+                // "TODO": add marker file support
                 fprintf(stderr, "Unsupported for now \n", lineNo);
             } else {
                 fprintf(stderr, "Cannot regconized keyword on line %d. \n", lineNo);
@@ -44,10 +44,6 @@ class Collapsor{
         };
         this->setIndex = -1;  //reset setIndex
     };
-/*     void setCollapsingStrategy(const int strategy){ */
-/* #pragma message "Check if compatible, e.g NAIVE and set file are not compatible" */
-/*         this->collapsingStrategy = strategy; */
-/*     }; */
 
     /**
      * @param howtoCalcFreq freq from all sample or from all control

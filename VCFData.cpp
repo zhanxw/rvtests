@@ -237,7 +237,7 @@ int VCFData::readPlinkPhenotypeSkipMissing(const char* fn, const char* selectedC
                 }
             } else {
                 // read only 3rd column
-#pragma message "add support to selected column"
+                // TODO: "add support to selected column"
                 // for (int r = 2; r < fd.size(); r++) {// skip first 2 column
                 //     (*rowName)[fd[r]] = r - 1;
                 // }

@@ -1,8 +1,10 @@
 #ifndef __SKAT_H__
 #define __SKAT_H__
 
-#include "MathMatrix.h"
 #include <Eigen/Dense> 
+
+class Matrix;
+class Vector;
 
 void Eigen_to_G(Eigen::MatrixXf &EigenM, Matrix&);
 void Eigen_to_G(Eigen::VectorXf &EigenV, Vector& GV);

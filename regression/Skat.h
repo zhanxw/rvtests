@@ -3,7 +3,6 @@
 
 #include "MathMatrix.h"
 #include <Eigen/Dense> 
-/* #include <vector> */
 
 void Eigen_to_G(Eigen::MatrixXf &EigenM, Matrix&);
 void Eigen_to_G(Eigen::VectorXf &EigenV, Vector& GV);
@@ -16,26 +15,43 @@ class Skat
 {
 public:
     Skat() {
+        lambda = NULL;
+        noncen = NULL;
+        df = NULL;
         Reset();
     }
-    void Reset() { this->hasCache = false; };
-
+    void Reset() { 
+        this->hasCache = false; 
+        if (lambda) {
+            free(lambda);
+            lambda = NULL;
+        }
+        if (noncen) {
+            free(noncen);
+            noncen = NULL;
+        }
+        if (df) {
+            free(df);
+            df = NULL;
+        }
+    };
     int CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
                         Matrix & G_G, Vector &w_G);
-
-    /* int CalculatePValue(Eigen::MatrixXf& X, Eigen::MatrixXf& V, double Q); */
-    /* void CalculateKMatrix(Eigen::MatrixXf &Geno, Eigen::VectorXf &w); */
-    /* double CalculatePValue(Vector &y, Vector &y0, Matrix& X, Matrix &geno, Vector &w); */
-    /* double CalculateQValue(Eigen::VectorXf& y, Eigen::VectorXf& y0, Eigen::MatrixXf &Geno, Eigen::VectorXf &W); */
     double GetPvalue() {return this->pValue;};
 private:
-    Eigen::MatrixXf K; // G'WG
-    Eigen::MatrixXf P0; // V - VX ( X' V X)^{-1} X V
-    Eigen::MatrixXf P0_sqrt; // sqrt(P0)
-    Eigen::MatrixXf XtV; // X^t V
-    bool hasCache;      // hasCache, true: no need to recalculate P0
+    //Eigen::MatrixXf K;        // G * W * G'
+    Eigen::MatrixXf K_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
+    Eigen::VectorXf w_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
+    Eigen::MatrixXf P0;         // V - VX ( X' V X)^{-1} X V
+    Eigen::VectorXf res;        // residual
+    bool hasCache;              // hasCache == true: no need to recalculate P0
     double pValue;
     double Q;
+
+    // fit in parameters to qf()
+    double *lambda;
+    double *noncen;
+    int *df;
 };
 
 #endif

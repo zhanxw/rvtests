@@ -4,6 +4,7 @@
 #include <Eigen/Eigenvalues> 
 #include <Eigen/Dense>
 
+#if 0
 #include <ctime>
 #include <iostream>
 #include <fstream>
@@ -23,65 +24,95 @@ void outputMat(Eigen::MatrixXf m, const char* outName) {
     TIME();
 };
 
-
 using namespace std;
+
+#endif
+
 int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
                           Matrix & G_G, Vector &w_G) {
-    Eigen::VectorXf y;
-    Eigen::VectorXf y0;
+    // Eigen::VectorXf y;
+    // Eigen::VectorXf y0;
     Eigen::MatrixXf X;
     Eigen::VectorXf v;
     Eigen::MatrixXf G;
     Eigen::VectorXf w;
 
-    G_to_Eigen(y_G, y);
-    G_to_Eigen(y0_G, y0);
+    // G_to_Eigen(y_G, y);
+    // G_to_Eigen(y0_G, y0);
     G_to_Eigen(X_G, X);
     G_to_Eigen(v_G, v);
     G_to_Eigen(G_G, G);
     G_to_Eigen(w_G, w);
 
     if (!this->hasCache) {
-        XtV = X.transpose() * v.asDiagonal();
-        outputMat(XtV, "mat.XtV");
+        // get residual
+        int yLen = y_G.Length();
+        res.resize(yLen);
+        for (int i = 0; i < yLen; i++) {
+            res(i) = y_G[i] - y0_G[i];
+        }
+        
+        // cache P0
+        // P0 = V - V * X * (X' * V * X)^{-1} * X' * V        NOTE: V is symmetric
+        // when X is column vector of 1, 
+        // P0 = V - V * X * X' V / \sum(v_i)        v_i is ith element on V
+        //    = V - v * v' / \sum(v_i)              v is column vector of v_i
+        if (X_G.cols == 1) {
+            P0 = v.asDiagonal();
+            P0 -= v * v.transpose() / v.sum();
+        } else {
+            Eigen::MatrixXf XtV;        // X^t V
+            XtV = X.transpose() * v.asDiagonal();
+            P0 = v.asDiagonal();
+            P0 -= XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
+        }
+        //outputMat(P0, "mat.P0");
 
-        P0 = v.asDiagonal();
-        P0 -= XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
-        outputMat(P0, "mat.P0");
+        // prep parameters to qf()
+        lambda = new double[v.size()];
+        noncen = new double[v.size()];
+        df = new int[v.size()];
 
-        MatrixSqrt(P0, P0_sqrt);
-        outputMat(P0_sqrt, "mat.P0_sqrt");
+        // w_sqrt <- W
+        w_sqrt.resize(w_G.Length());
+        for (int i = 0; i < w_G.Length(); i++) {
+            if (w_G[i] > 1e-30)
+                w_sqrt(i) = sqrt(w_G[i]);
+            else 
+                w_sqrt(i) = 0.0;
+        }
 
         this->hasCache = true;
     };
 
+    // get K_sqrt
+    K_sqrt = w_sqrt.asDiagonal() * G.transpose();
 
-    this->K = G * w.asDiagonal() * G.transpose();
-    outputMat(K, "mat.K");
+    // get Q = (K_sqrt * res)' * (K_sqrt * res)
+    Eigen::VectorXf tmp = (K_sqrt * res);
+    Q = tmp.squaredNorm();
 
-    this->Q = (y-y0).transpose() * K * (y-y0);
-    printf("Q done. \n");
-    TIME();
+    // get P1 = w
+    Eigen::MatrixXf P1 = w_sqrt.asDiagonal() * G.transpose() * P0 * G * w_sqrt.asDiagonal();
 
-    // NOTE, here we only need eigenvalues!
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
-    es.compute(P0_sqrt * K * P0_sqrt);
+    es.compute(P1);
     printf("done es \n");
-    TIME();
 
     // fit in parameters to qf()
-    double *lambda = new double[v.size()];
-    double *noncen = new double[v.size()];
-    int *df = new int[v.size()];
-    for(int i=0; i<v.size(); i++)
-    {
-        lambda[i] = es.eigenvalues()[i];
-        noncen[i] = 0.0;
-        df[i] = 1;
-    }
 
     // Input to qf
-    int r = es.eigenvalues().size();
+    int r = 0; // es.eigenvalues().size();
+    for(int i=0; i<es.eigenvalues().size(); i++)
+    {
+        if (es.eigenvalues()[i] > 1e-30) {
+            lambda[i] = es.eigenvalues()[i];
+            noncen[i] = 0.0;
+            df[i] = 1;
+            r++;
+        }
+    }
+
     double sigma = 0.0;
     int lim = 10000;
     double acc = 0.0001;
@@ -93,14 +124,14 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
 
     // note: qf give distribution but we want p-value.
     this->pValue = 1.0 - qf(lambda, noncen, df, r, sigma, Q, lim, acc, trace, &fault);
-    printf("done qf \n");
-    TIME();
+    // printf("done qf \n");
+    // TIME();
     delete [] lambda;
     delete [] noncen;
     delete [] df;
 
-    if (ifault) {
-        return ifault;
+    if (fault) {
+        return fault;
     }
 
     return 0;

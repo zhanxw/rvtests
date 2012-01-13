@@ -130,7 +130,7 @@ int main(int argc, char** argv){
 
    // set range filters here
     vin.setRangeList(FLAG_rangeList.c_str());
-    vin.setRangeList(FLAG_rangeFile.c_str());
+    vin.setRangeFile(FLAG_rangeFile.c_str());
 
     // set people filters here
     if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {

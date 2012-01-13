@@ -46,6 +46,8 @@ public:
 
         // add begin, end to that chr entry
         this->rangeMap[c].push_back( PositionPair(begin, end) );
+
+        this->_size ++;
     }
     void sort() {
         /*
@@ -66,6 +68,10 @@ public:
           assert(rangeMap["1"][1] == PositionPair(4, 10));
           assert(rangeMap["X"][0] == PositionPair(1, 4));
         */
+
+        this->_size = 0;
+        for(unsigned int i = 0; i < this->chrVector.size(); i++ ) 
+            this->_size += this->rangeMap[this->chrVector[i]].size();
     }
 
     void obtainRange(const unsigned int index, std::string* range) {
@@ -103,8 +109,11 @@ public:
     void clear() {
         this->chrVector.clear();
         this->rangeMap.clear();
+        this->_size = 0;
     };
-    size_t size() const { return this->rangeMap.size();};
+    size_t size() const { 
+        return this->_size;
+    };
   private:
     void sortChrVector() {
         std::sort(chrVector.begin(), chrVector.end());
@@ -161,6 +170,7 @@ public:
 private:
     std::vector<std::string> chrVector;
     std::map< std::string, std::vector<PositionPair> > rangeMap;
+    size_t _size;
 }; // end class RangeCollection
 
 class RangeList{
@@ -172,8 +182,11 @@ RangeList(): isSorted(false) {};
             this->isSorted = true;
         }
         this->rangeCollection.obtainRange(index, range);
-    }
-    unsigned int size() const {return this->rangeCollection.size(); };
+
+    };
+    unsigned int size() const {
+        return this->rangeCollection.size();
+    };
     // read gene list file and add these ranges
     void filterGeneName(const char* geneName, const char* fileName);
     /// argRangeList is a string indicating the range

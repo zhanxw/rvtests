@@ -36,7 +36,7 @@ class Collapsor{
                 this->setName.push_back(fd[0]);
 
             } else if (fd[1] == "MARKER"){
-#pragma message "TODO"
+                // "TODO": add marker file support
                 fprintf(stderr, "Unsupported for now \n", lineNo);
             } else {
                 fprintf(stderr, "Cannot regconized keyword on line %d. \n", lineNo);
@@ -44,10 +44,6 @@ class Collapsor{
         };
         this->setIndex = -1;  //reset setIndex
     };
-/*     void setCollapsingStrategy(const int strategy){ */
-/* #pragma message "Check if compatible, e.g NAIVE and set file are not compatible" */
-/*         this->collapsingStrategy = strategy; */
-/*     }; */
 
     /**
      * @param howtoCalcFreq freq from all sample or from all control
@@ -130,7 +126,7 @@ class Collapsor{
                     this->currentSetName += ":";
                     this->currentSetName += toString(record.getPos());
                 }
-                
+                // put variant into collapsedGenotype
                 filterGenotypeByFrequency(data);
                 return true;
             } else{
@@ -154,7 +150,8 @@ class Collapsor{
                 data->addVCFRecord(record);
             }
         };
-        filterGenotypeByFrequency(data);
+        // put variant into collapsedGenotype
+        filterGenotypeByFrequency(data); 
         return true;
     };
 
@@ -185,16 +182,10 @@ class Collapsor{
 // then model can use @param out directly
 // internal, all collapsor will use variant that are in markerInclusion
 
-#if 0
-void naiveCollapse(VCFData* d, Matrix* out){
-    assert(out);
-    Matrix& in = (*d->collapsedGenotype);
-    int numPeople = in.rows;
-    int numMarker = in.cols;
-
-    *out = in;
-};
-#endif 
+/* void naiveCollapse(VCFData* d, Matrix* out){ */
+/*     assert(out); */
+/*     out = d->collapsedGenotype; */
+/* }; */
 
 void cmcCollapse(VCFData* d, Matrix* out){
     assert(out);

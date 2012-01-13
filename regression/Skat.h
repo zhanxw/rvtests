@@ -1,27 +1,59 @@
 #ifndef __SKAT_H__
 #define __SKAT_H__
 
-#include "MathMatrix.h"
-#include <Eigen/Dense>
-#include <vector>
+#include <Eigen/Dense> 
 
-//using namespace Eigen;
+class Matrix;
+class Vector;
+
+void Eigen_to_G(Eigen::MatrixXf &EigenM, Matrix&);
+void Eigen_to_G(Eigen::VectorXf &EigenV, Vector& GV);
+void G_to_Eigen(Vector &GV, Eigen::VectorXf &EigenV);
+void G_to_Eigen(Matrix &GM, Eigen::MatrixXf &EigenM);
+
+void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf& out);
 
 class Skat
 {
 public:
-    Eigen::MatrixXf K;
+    Skat() {
+        lambda = NULL;
+        noncen = NULL;
+        df = NULL;
+        Reset();
+    }
+    void Reset() { 
+        this->hasCache = false; 
+        if (lambda) {
+            free(lambda);
+            lambda = NULL;
+        }
+        if (noncen) {
+            free(noncen);
+            noncen = NULL;
+        }
+        if (df) {
+            free(df);
+            df = NULL;
+        }
+    };
+    int CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
+                        Matrix & G_G, Vector &w_G);
+    double GetPvalue() {return this->pValue;};
+private:
+    //Eigen::MatrixXf K;        // G * W * G'
+    Eigen::MatrixXf K_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
+    Eigen::VectorXf w_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
+    Eigen::MatrixXf P0;         // V - VX ( X' V X)^{-1} X V
+    Eigen::VectorXf res;        // residual
+    bool hasCache;              // hasCache == true: no need to recalculate P0
+    double pValue;
+    double Q;
 
-public:
-    void CalculateKMatrix(Eigen::MatrixXf &Geno, Eigen::VectorXf &w);
-    double CalculatePValue(Eigen::MatrixXf& X, Eigen::MatrixXf& V, double Q);
-    double CalculatePValue(Vector &y, Vector &y0, Matrix &geno, Vector &w);
-    double CalculateQValue(Eigen::VectorXf& y, Eigen::VectorXf& y0, Eigen::MatrixXf &Geno, Eigen::VectorXf &W);
-    void GMatrix2EigenMatrix(Matrix &GM, Eigen::MatrixXf &EigenM);
-    void EigenMatrix2GMatrix(Eigen::MatrixXf &EigenM, Matrix&);
-    void GVector2EigenVector(Vector &GV, Eigen::VectorXf &EigenV);
-    void EigenVector2GVector(Eigen::VectorXf &EigenV, Vector& GV);
-
+    // fit in parameters to qf()
+    double *lambda;
+    double *noncen;
+    int *df;
 };
 
 #endif

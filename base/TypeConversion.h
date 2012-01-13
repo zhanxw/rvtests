@@ -67,6 +67,6 @@ inline int atoi(const std::string& s) {
     if (!ret) {
         return 0;
     } 
-    return ret;
+    return result;
 };
 #endif /* _TYPECONVERSION_H_ */

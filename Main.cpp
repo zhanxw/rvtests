@@ -70,6 +70,7 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
         ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_STRING_PARAMETER(pl, set, "--set", "specify set file (for collapsing)")
+        ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -127,9 +128,9 @@ int main(int argc, char** argv){
     const char* fn = FLAG_inVcf.c_str();
     VCFInputFile vin(fn);
 
-    // set range filters here
+   // set range filters here
     vin.setRangeList(FLAG_rangeList.c_str());
-    vin.setRangeList(FLAG_rangeFile.c_str());
+    vin.setRangeFile(FLAG_rangeFile.c_str());
 
     // set people filters here
     if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {

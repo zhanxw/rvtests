@@ -112,6 +112,7 @@ void RangeList::addRangeList(const char* argRangeList) {
  */
 void RangeList::addRangeFile(const char* argRangeFile){
     if (!strlen(argRangeFile)) return;
+    fprintf(stdout, "Load range file %s.\n", argRangeFile);
 
     LineReader lr(argRangeFile);
     std::vector<std::string> sa;

@@ -1,6 +1,5 @@
 EXEC = rvtest
 
-#STATGEN_LIB = ../statgen/lib/libStatGen.a ../statgen//lib/samtools-0.1.7a-hybrid/libbam.a
 TABIX_INC = ./tabix-0.2.5
 TABIX_LIB = ./tabix-0.2.5/libtabix.a
 
@@ -19,8 +18,11 @@ BASE_LIB = ./base/lib-base.a
 EIGEN_INC = ./eigen
 EIGEN_LIB =  # Eigen are header files only
 
-INC = -I$(TABIX_INC) -I$(GONCALO_INC) -I$(REGRESSION_INC) -I$(VCF_INC) -I$(BASE_INC) -I$(EIGEN_INC)
-LIB = $(TABIX_LIB) $(GONCALO_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB)
+PCRE_INC = ./pcre/include
+PCRE_LIB = ./pcre/lib/libpcre.a ./pcre/lib/libpcreposix.a
+
+INC = -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(VCF_INC) -I$(BASE_INC) -I$(EIGEN_INC) -I$(PCRE_INC) -I$(GONCALO_INC)
+LIB = $(TABIX_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(PCRE_LIB) $(GONCALO_LIB)
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 
@@ -31,30 +33,33 @@ release: $(EXEC)
 debug: CXXFLAGS = -g -O0 $(DEFAULT_CXXFLAGS)
 debug: $(EXEC)
 
-$(TABIX_LIB): tabix-0.2.5.tar.bz2
+$(TABIX_LIB): tabix-0.2.5.tar.bz2 
 	tar jvxf $<
 	-(cd tabix-0.2.5; make;)
 
-$(GONCALO_LIB): lib-goncalo.tgz
+$(GONCALO_LIB): lib-goncalo.tgz 
 	tar zvxf $<
 	(cd libsrc; ./build.sh)
 
-$(REGRESSION_LIB): 
+$(REGRESSION_LIB): $(shell ls -1 regression/*{cpp,h})
 	(cd regression; make)
 
-$(BASE_LIB):
+$(BASE_LIB): $(shell ls -1 base/*{cpp,h}) 
 	(cd base; make)
 
-$(VCF_LIB):
+$(VCF_LIB): $(shell ls -1 libVcf/*{cpp,h})
 	(cd libVcf; make)
 
+$(PCRE_LIB): pcre-8.21.tar.bz2 
+	tar jvxf $<
+	-(DIR=`pwd`; cd pcre-8.21; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
 
 rvtest: Main.o \
 	VCFData.o \
 	Collapsor.h ModelFitter.h \
 	$(LIB)
 	g++ -c $(CXXFLAGS) Main.cpp  -I. $(INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix -lgsl
+	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lgsl -lblas
 
 -include VCFData.d
 VCFData.o: VCFData.cpp VCFData.h
@@ -65,7 +70,8 @@ Main.o: Main.cpp
 	g++ -MMD -c $(CXXFLAGS) $<  -I. $(INC) -D__ZLIB_AVAILABLE__
 
 vcf2plink: vcf2plink.cpp $(LIB)
-	g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+	#g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+	g++ -O0 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
 plink2vcf: plink2vcf.cpp $(LIB)
 	g++ -g -O0 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
@@ -75,7 +81,6 @@ vcf2merlin: vcf2merlin.cpp $(LIB)
 
 vcf2ld: vcf2ld.cpp $(LIB)
 	g++ -O0 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
-
 
 clean: 
 	rm -rf *.o $(EXEC)
@@ -92,13 +97,19 @@ test3: rvtest
 	./rvtest --inVcf test.vcf.gz --outVcf test3.vcf --peopleIncludeID P2,NotValid,P3 --peopleExcludeID P3
 test4: rvtest
 	./rvtest --inVcf test.vcf.gz --make-bed test.plink
-testSingle: rvtest
+
+DajiangDataSet/qt1.vcf.gz: DajiangDataSet/qt1.ped
+	(cd DajiangDataSet; bash cmd.sh);
+
+DajiangDataSet := DajiangDataSet/qt1.vcf.gz DajiangDataSet/qt1.pheno
+
+testSingle: rvtest $(DajiangDataSet)
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --single score,wald
-testBurden: rvtest
+testBurden: rvtest $(DajiangDataSet)
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --burden cmc,zeggini,mb,exactCMC
-testVt: rvtest
+testVt: rvtest $(DajiangDataSet)
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --vt cmc,zeggini,mb,skat
-testKernel: rvtest
+testKernel: rvtest $(DajiangDataSet)
 	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --kernel skat
 
 # mem test:

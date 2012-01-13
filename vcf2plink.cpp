@@ -76,7 +76,7 @@ int main(int argc, char** argv){
     // e.g.     
     // vin.setRangeList("1:69500-69600");
     vin.setRangeList(FLAG_rangeList.c_str());
-    vin.setRangeList(FLAG_rangeFile.c_str());
+    vin.setRangeFile(FLAG_rangeFile.c_str());
 
     // set people filters here
     if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {

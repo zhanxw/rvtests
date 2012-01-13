@@ -11,7 +11,7 @@ EXEC = lib-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils
 OBJ = $(BASE:=.o)
 
-DEFAULT_CXXFLAGS = $(STATGEN_INC)
+DEFAULT_CXXFLAGS = -I. -I../statgen -I../pcre/include
 
 TARGET: CXXFLAGS = $(DEFAULT_CXXFLAGS)
 TARGET: $(EXEC)
@@ -36,8 +36,10 @@ $(EXEC): $(OBJ)
 clean:
 	rm -rf $(EXEC) *.o
 
+
 INC=-I. -I./cityhash/include -I/home/zhanxw/software/sparsehash/include
 LIB= -L./cityhash/lib -lcityhash
+
 map:
 	g++ -std=c++0x -static -g -O0 -o test StringMap.cpp $(INC) $(LIB)
 mapTest:

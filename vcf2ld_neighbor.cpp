@@ -61,53 +61,35 @@ int calculateLD(std::vector<int>& lastGeno, std::vector<int>& geno, int* n, doub
 };
 
 int main(int argc, char** argv){
-    time_t currentTime = time(0);
-    fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
+  time_t currentTime = time(0);
+  fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
-    ////////////////////////////////////////////////
-    BEGIN_PARAMETER_LIST(pl)
-        ADD_PARAMETER_GROUP(pl, "Input/Output")
-        ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-        ADD_STRING_PARAMETER(pl, outLD, "--outLD", "output file prefix")
-        ADD_PARAMETER_GROUP(pl, "People Filter")
-        ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-        ADD_PARAMETER_GROUP(pl, "Site Filter")
-        ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-        ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-        END_PARAMETER_LIST(pl)
-        ;    
+  ////////////////////////////////////////////////
+  BEGIN_PARAMETER_LIST(pl)
+    ADD_PARAMETER_GROUP(pl, "Input/Output")
+    ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
+    ADD_STRING_PARAMETER(pl, outLD, "--outLD", "output file prefix")
+    ADD_PARAMETER_GROUP(pl, "People Filter")
+    ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
+    ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
+    ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
+    ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
+    ADD_PARAMETER_GROUP(pl, "Range Filter")
+    ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
+    ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+    ADD_PARAMETER_GROUP(pl, "Site Filter")
+    ADD_STRING_PARAMETER(pl, siteID, "--siteID", "Specify the sites to be extracted from the vcf file, separated by common")
+    ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file to contain the site to be extract from the vcf file.")
+    END_PARAMETER_LIST(pl)
+    ;    
 
-    pl.Read(argc, argv);
-    pl.Status();
-    
-    if (FLAG_REMAIN_ARG.size() > 0){
-        fprintf(stderr, "Unparsed arguments: ");
-        for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
-            fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
-        }
-        fprintf(stderr, "\n");
-        abort();
-    }
+  pl.Read(argc, argv);
+  pl.Status();
 
-    REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
-
-    const char* fn = FLAG_inVcf.c_str(); 
-    VCFInputFile vin(fn);
-
-    // set range filters here
-    // e.g.     
-    // vin.setRangeList("1:69500-69600");
-    vin.setRangeList(FLAG_rangeList.c_str());
-    vin.setRangeFile(FLAG_rangeFile.c_str());
-
-    // set people filters here
-    if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
-        vin.excludeAllPeople();
-        vin.includePeople(FLAG_peopleIncludeID.c_str());
-        vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+  if (FLAG_REMAIN_ARG.size() > 0){
+    fprintf(stderr, "Unparsed arguments: ");
+    for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
+      fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
     }
     fprintf(stderr, "\n");
     abort();
@@ -152,7 +134,7 @@ int main(int argc, char** argv){
     LineReader lr(FLAG_siteFile.c_str());
     std::vector<std::string> fd;
     StringIntHash includeSiteHash;
-    
+
     while (lr.readLineBySep( & fd, "\t ")){
         includeSiteHash.Add((fd[0]+":"+fd[1]).c_str(),0);
     } 
@@ -162,7 +144,6 @@ int main(int argc, char** argv){
    String siteID;
    bool inList = true;
    bool move2Next = false;
-   int wdSize = FLAG_wdSize;
    while (vin.readRecord()){// every line is a record object
      siteID.Clear();
      // add a line to skip the variants not included
@@ -171,7 +152,7 @@ int main(int argc, char** argv){
      VCFIndividual* indv;
 
      // store the last variant's chrom and pos number
-    if (inList && move2Next) { // if the previous pos is in the list, then copy it, otherwise, keep the previous previous one
+    if (inList) { // if the previous pos is in the list, then copy it, otherwise, keep the previous previous one
      lastChrom = chrom;
      lastPos = pos;
      lastGeno = geno;
@@ -187,45 +168,45 @@ int main(int argc, char** argv){
      siteID = chrom.c_str();
      siteID += ":";
      siteID += pos;
-     //printf("last pos = %d, pos = %d, inList = %d, move2Next = %d\n",lastPos, pos, inList?1:0, move2Next?1:0);
-     //printf("position is %s\n",siteID.c_str());
 
-    if (includeSiteHash.Find(siteID) == -1){ // if the next site is not in the list, then continue to extract the next site
+     //printf("position is %s\n",siteID.c_str());
+    if (includeSiteHash.Find(siteID) == -1 ){
         inList = false;
         continue;
-      } else {
-        if ( (pos-lastPos) > wdSize || lastPos == 0){ // if the next site falls out of the scope/window, then move down the first variant
-          inList = true;
-          move2Next = true;
-          rs = r.getID();
-          lineNo ++;
-          printf("Including %d individuals\n", (int) people.size());
-          for (int i = 0; i < people.size(); i++) {
-            indv = people[i];
-            // assume GTidx = 0;
-            const int GTidx = 0;
-            int g1 = (*indv)[GTidx].getAllele1();
-            int g2 = (*indv)[GTidx].getAllele2();
-            if (lastPos == 0){
-              geno.push_back(g1);
-              geno.push_back(g1);
-            } else{
-              geno[i * 2] = g1;
-              geno[i *2 + 1] = g2;
-            }
-          }
-        continue;
-        } else{
-          move2Next = false;
-          inList = true;
+      } else{
+        inList = true;
         }
+     lineNo ++;
+     if (lineNo == 1) {
+       rs = r.getID();
+       for (int i = 0; i < people.size(); i++) {
+         indv = people[i];
+         // assume GTidx = 0;
+         const int GTidx = 0;
+         int g1 = (*indv)[GTidx].getAllele1();
+         int g2 = (*indv)[GTidx].getAllele2();
+         geno.push_back(g1);
+         geno.push_back(g2);
+       }
+       continue;
      }
-
      //printf("people size = %d\n",people.size());
      /*for (int i = 0; i < people.size(); i ++){
         printf("people[%d] = %s\n",i,people[i].getName().c_str());
         } */
-     printf("Including %d individuals\n", (int) people.size());
+
+     /*
+     // swap 
+     lastGeno = geno;
+     lastChrom = chrom;
+     lastPos = pos;
+     lastRs = rs;
+
+     // update 
+     chrom = r.getChrom();
+     pos = r.getPos();
+     rs = r.getID();
+     */
      for (int i = 0; i < people.size(); i++) {
        indv = people[i];
        // assume GTidx = 0;

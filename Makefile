@@ -79,8 +79,12 @@ plink2vcf: plink2vcf.cpp $(LIB)
 vcf2merlin: vcf2merlin.cpp $(LIB)
 	g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
-vcf2ld: vcf2ld.cpp $(LIB)
-	g++ -O0 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+vcf2ld: vcf2ld_window vcf2ld_neighbor
+vcf2ld_window: vcf2ld_window.cpp $(LIB)
+	g++ -O2 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+
+vcf2ld_neighbor: vcf2ld_neighbor.cpp $(LIB)
+	g++ -O2 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
 clean: 
 	rm -rf *.o $(EXEC)

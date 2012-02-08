@@ -139,8 +139,10 @@ int main(int argc, char** argv){
         vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
     }
     vin.excludePeople(FLAG_peopleExcludeID.c_str());
-    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());    // now let's finish some statistical tests
+    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());    
 
+    // now let's finish some statistical tests
+    
     // add filters. e.g. put in VCFInputFile is a good method
     // site: DP, MAC, MAF (T3, T5)
     // indv: GD, GQ

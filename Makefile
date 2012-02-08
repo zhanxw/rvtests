@@ -1,93 +1,145 @@
+all: release
 EXEC = rvtest
+UTIL_EXEC = vcf2plink plink2vcf vcf2merlin vcf2ld_window vcf2ld_neighbor
 
-TABIX_INC = ./tabix-0.2.5
-TABIX_LIB = ./tabix-0.2.5/libtabix.a
+DIR_EXEC = ./executable
+DIR_EXEC_DBG = ./executable/dbg
 
-GONCALO_INC = ./libsrc
-GONCALO_LIB = ./libsrc/lib-goncalo.a
+$(DIR_EXEC):
+	mkdir -p $@
+$(DIR_EXEC_DBG):
+	mkdir -p $@
+
+##################################################
+# Our libs.
+BASE_INC = ./base
+BASE_LIB = ./base/lib-base.a
+BASE_LIB_DBG = ./base/lib-dbg-base.a
 
 VCF_INC = ./libVcf
 VCF_LIB = ./libVcf/lib-vcf.a
+VCF_LIB_DBG = ./libVcf/lib-dbg-vcf.a
 
 REGRESSION_INC = ./regression
 REGRESSION_LIB = ./regression/lib-regression.a
+REGRESSION_LIB_DBG = ./regression/lib-dbg-regression.a
 
-BASE_INC = ./base
-BASE_LIB = ./base/lib-base.a
+GONCALO_INC = ./libsrc
+GONCALO_LIB = ./libsrc/lib-goncalo.a
+GONCALO_LIB_DBG = ./libsrc/lib-dbg-goncalo.a
 
-EIGEN_INC = ./eigen
+$(BASE_LIB):
+	(cd base; make)
+$(BASE_LIB_DBG):
+	(cd base; make debug)
+$(VCF_LIB):
+	(cd libVcf; make)
+$(VCF_LIB_DBG):
+	(cd libVcf; make debug)
+$(REGRESSION_LIB):
+	(cd regression; make)
+$(REGRESSION_LIB_DBG):
+	(cd regression; make debug)
+$(GONCALO_LIB):
+	(cd libsrc; make)
+$(GONCALO_LIB_DBG):
+	(cd libsrc; make debug)
+
+##################################################
+# Third-party libs.
+TABIX_INC = third/tabix
+TABIX_LIB = third/tabix/libtabix.a
+
+EIGEN_INC = third/eigen
 EIGEN_LIB =  # Eigen are header files only
 
-PCRE_INC = ./pcre/include
-PCRE_LIB = ./pcre/lib/libpcre.a ./pcre/lib/libpcreposix.a
+PCRE_INC = third/pcre/include
+PCRE_LIB = third/pcre/lib/libpcre.a third/pcre/lib/libpcreposix.a
 
-INC = -I$(TABIX_INC) -I$(REGRESSION_INC) -I$(VCF_INC) -I$(BASE_INC) -I$(EIGEN_INC) -I$(PCRE_INC) -I$(GONCALO_INC)
-LIB = $(TABIX_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(PCRE_LIB) $(GONCALO_LIB)
+$(TABIX_INC) $(TABIX_LIB):
+	(cd third; make tabix)
+$(EIGEN_INC) $(EIGEN_LIB):
+	(cd third; make eigen)
+$(PCRE_INC) $(PCRE_LIB):
+	(cd third; make pcre)
+
+THIRD_INC = $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC)
+THIRD_LIB = $(TABIX_LIB) $(PCRE_LIB)
+##################################################
+
+INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
+LIB = $(THIRD_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) 
+LIB_DBG = $(THIRD_LIB) $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG)
+CXX_INCLUDE = $(addprefix -I, $(INCLUDE))
+CXX_LIB = $(LIB) -lz -lbz2 -lm -lgsl -lblas
+CXX_LIB_DBG = $(LIB_DBG) -lz -lbz2 -lm -lgsl -lblas
+
+lib: $(CXX_LIB)
+lib-dbg: $(CXX_LIB_DBG)
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 
-.PHONY: release debug
-all: debug
-release: CXXFLAGS = -O2 $(DEFAULT_CXXFLAGS)
-release: $(EXEC)
-debug: CXXFLAGS = -g -O0 $(DEFAULT_CXXFLAGS)
-debug: $(EXEC)
+.PHONY: release debug lib lib-dbg
 
-$(TABIX_LIB): tabix-0.2.5.tar.bz2 
-	tar jvxf $<
-	-(cd tabix-0.2.5; make;)
+release: CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS)
+release: $(DIR_EXEC)/$(EXEC) util
+$(DIR_EXEC)/$(EXEC): lib \
+                     Main.o \
+                     VCFData.o \
+                     Collapsor.h ModelFitter.h \
+                     |$(DIR_EXEC)
+	g++ -o $@ Main.o VCFData.o $(CXX_FLAGS) $(CXX_LIB)
 
-$(GONCALO_LIB): lib-goncalo.tgz 
-	tar zvxf $<
-	(cd libsrc; ./build.sh)
+debug: CXX_FLAGS = -g -O0 $(DEFAULT_CXXFLAGS) 
+debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
+$(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
+                         Main.o \
+                         VCFData.o \
+                         Collapsor.h ModelFitter.h \
+                         | $(DIR_EXEC_DBG)
+	g++ -o $@ Main.o VCFData.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
 
-$(REGRESSION_LIB): $(shell ls -1 regression/*{cpp,h})
-	(cd regression; make)
 
-$(BASE_LIB): $(shell ls -1 base/*{cpp,h}) 
-	(cd base; make)
-
-$(VCF_LIB): $(shell ls -1 libVcf/*{cpp,h})
-	(cd libVcf; make)
-
-$(PCRE_LIB): pcre-8.21.tar.bz2 
-	tar jvxf $<
-	-(DIR=`pwd`; cd pcre-8.21; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
-
-rvtest: Main.o \
-	VCFData.o \
-	Collapsor.h ModelFitter.h \
-	$(LIB)
-	g++ -c $(CXXFLAGS) Main.cpp  -I. $(INC) -D__ZLIB_AVAILABLE__
-	g++ -o $@ Main.o VCFData.o $(LIB) -lz -lbz2 -lm -lgsl -lblas
-
+##################################################
 -include VCFData.d
 VCFData.o: VCFData.cpp VCFData.h
-	g++ -MMD -c $(CXXFLAGS) $<  -I. $(INC) -D__ZLIB_AVAILABLE__
+	g++ -MMD -c $(CXXFLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 -include Main.d
 Main.o: Main.cpp
-	g++ -MMD -c $(CXXFLAGS) $<  -I. $(INC) -D__ZLIB_AVAILABLE__
+	g++ -MMD -c $(CXXFLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
-vcf2plink: vcf2plink.cpp $(LIB)
-	#g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
-	g++ -O0 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
-plink2vcf: plink2vcf.cpp $(LIB)
-	g++ -g -O0 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+##################################################
+# build utils
+util: $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC))
+define BUILD_util
+  TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
+  SRC := $(1).cpp
+  -include  $(1).d
+  $$(TAR): $$(SRC) | $(DIR_EXEC)
+	g++ -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
+endef
+$(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util, $(s))))
 
-vcf2merlin: vcf2merlin.cpp $(LIB)
-	g++ -O4 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+util-dbg: $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
+define BUILD_util_dbg
+  TAR := $(DIR_EXEC_DBG)/$(notdir $(basename $(1)))
+  SRC := $(1).cpp
+  -include  $(1).d
+  $$(TAR): $$(SRC) | $(DIR_EXEC_DBG)
+	g++ -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB_DBG)
+endef
+$(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util_dbg, $(s))))
 
-vcf2ld: vcf2ld_window vcf2ld_neighbor
-vcf2ld_window: vcf2ld_window.cpp $(LIB)
-	g++ -O2 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
-
-vcf2ld_neighbor: vcf2ld_neighbor.cpp $(LIB)
-	g++ -O2 -g -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
 clean: 
-	rm -rf *.o $(EXEC)
+	rm -rf *.o *.d $(EXEC)
+
+deepclean: clean
+	(cd base; make clean)
+	(cd regression; make clean)
+	(cd libVcf; make clean)
 
 doc: README
 	pandoc README -o README.html
@@ -136,6 +188,7 @@ autoTest2: rvtest
 DATE=$(shell date '+%m%d')
 tar:
 	tar zvchf rvtest.$(DATE).tgz *.h Main.cpp tabix*tar.bz2 
+
 
 # arg: Argument.h Argument.cpp
 # 	g++ -g -o Argument Argument.cpp

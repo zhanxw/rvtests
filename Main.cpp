@@ -1,7 +1,6 @@
 /**
    immediately TODO:
    1. fix suppport PLINK output
-
    3. support tri-allelic (getAlt())
    4. speed up VCF parsing. (make a separate line buffer).
    5. loading phenotype and covariate (need tests now).
@@ -11,18 +10,19 @@
    9. Add more filter to individuals
    10. Fast VCF INFO field retrieve
    11. Fast VCF Individual inner field retrieve
-   12. Design command line various models (collapsing method, freq-cutoff)
 
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
    8. Make code easy to use ( hide PeopleSet and RangeList)
    9. Inclusion/Exclusion set should be considered sequentially.
+   8. force loading index when read by region.
 
    futher TODO:
    1. handle different format GT:GD:DP ... // use getFormatIndex()
-   8. force loading index when read by region.
+   12. Design command line various models (collapsing method, freq-cutoff)
 */
+
 #include "Argument.h"
 #include "IO.h"
 #include "tabix.h"
@@ -67,8 +67,6 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
         ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
         ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
-        ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
-        ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_STRING_PARAMETER(pl, set, "--set", "specify set file (for collapsing)")
         ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
         ADD_PARAMETER_GROUP(pl, "People Filter")
@@ -91,6 +89,8 @@ int main(int argc, char** argv){
         // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
 
         ADD_PARAMETER_GROUP(pl, "Association Functions")
+        ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
+        ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
         ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC")
         ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")

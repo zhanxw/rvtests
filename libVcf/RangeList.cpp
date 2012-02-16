@@ -40,9 +40,13 @@ void RangeList::filterGeneName(const char* inclusionGeneFileName, const char* ge
     }
 }
 
-// verify if s is of the format: chr:begin-end format
-// @return true: valid format
-bool verifyRangeFormat(const std::string& s, std::string* chr, unsigned int* begin, unsigned int* end) {
+/**
+ * verify if s is of the format: chr:begin-end format
+ * @return 0: valid format
+ */
+int parseRangeFormat(const std::string& s, std::string* chr, unsigned int* begin, unsigned int* end) {
+    fprintf(stderr, "parseRangeFormat: %s\n", s.c_str());
+
     int i = 0; 
     chr->clear();
     while (i < s.size()){
@@ -64,27 +68,34 @@ bool verifyRangeFormat(const std::string& s, std::string* chr, unsigned int* beg
        }
         i++;
     }
-    int b;
-    if (!str2int(t.c_str(), &b) || b < 0) return false;
+    int b = 0;
+    if (!str2int(t.c_str(), &b) || b < 0) return -1;
     *begin = b;
 
     if (s[i] == '\0'){ // 1:100 meaning a single point
         *end = b;
-        return true;
+        return 0;
     }
     
     i ++ ; // skip '-'
-    int e;
+    int e = 1<<29;     // that's the constant used in tabix
     if (s[i] == '\0'){ //format like: 1:100-
         *end = 1<<29;  // that's the constant used in tabix
     } else{
         if (!str2int(s.c_str() + i, &e) || e < 0 || b > e) return false;
     }
     *end = e;
-    return true;
+
+    fprintf(stderr, "parse result: %s %d %d\n", chr->c_str(), *begin, *end);
+    return 0;
 }
 
-// input range such as: 1:100-200,3:200-300
+/**
+ * input range such as: 
+ * 1:100-200,3:200-300
+ * X:150
+ * MT
+*/
 void RangeList::addRangeList(const char* argRangeList) {
     if (!strlen(argRangeList)) return;
 
@@ -95,10 +106,10 @@ void RangeList::addRangeList(const char* argRangeList) {
     for (int i = 0; i < col.size(); i++){
         std::string c;
         unsigned int b,e;
-        if (!verifyRangeFormat(col[i], &c, &b, &e)) {
-            fprintf(stdout, "This range does not conform 1:100-200 format -- %s\n", col[i].c_str());
-        } else {
+        if (!parseRangeFormat(col[i], &c, &b, &e)) {
             this->rangeCollection.addRange(c, b, e);
+        } else {
+            fprintf(stdout, "This range does not conform 1:100-200 format -- %s\n", col[i].c_str());
         }
     }
 };

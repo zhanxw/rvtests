@@ -102,7 +102,9 @@ int main(int argc, char** argv){
 
     if (vout) vout->writeHeader(vin.getVCFHeader());
     if (pout) pout->writeHeader(vin.getVCFHeader());
+    int lineNo = 0;
     while (vin.readRecord()){
+        lineNo ++;
         VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
         VCFIndividual* indv;
@@ -128,7 +130,7 @@ int main(int argc, char** argv){
         printf("\n");
 #endif
     };
-
+    fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
     if (vout) delete vout;
     if (pout) delete pout;
 

@@ -91,20 +91,39 @@ public:
         this->s = 0;
     };
     void setRangeFile(const char* fn) {
-        this->clearRange();
+        if (!fn || strlen(fn) == 0)
+            return;
+        if (this->range.size()) {
+            fprintf(stdout, "Clear existing %d regions.\n", this->range.size());
+            this->clearRange();
+        }
         this->range.addRangeFile(fn);
     };
     // @param l is a string of range(s)
     void setRange(const char* chrom, int begin, int end) {
-        this->clearRange();
+        if (this->range.size()) {
+            fprintf(stdout, "Clear existing %d regions.\n", this->range.size());
+            this->clearRange();
+        }
         this->range.addRange(chrom, begin, end);
     };
     void setRangeList(const char* l){
-        this->clearRange();
+        if (!l || strlen(l) == 0)
+            return;
+
+        if (this->range.size()) {
+            fprintf(stdout, "Clear existing %d regions.\n", this->range.size());
+            this->clearRange();
+        }
         this->range.addRangeList(l);
     };
     void setRangeList(RangeList& rl){
-        this->clearRange();
+        if (rl.size() == 0) return;
+
+        if (this->range.size()) {
+            fprintf(stdout, "Clear existing %d regions.\n", this->range.size());
+            this->clearRange();
+        }
         this->range = rl;
     };
     bool readRecord(){

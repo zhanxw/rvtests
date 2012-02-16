@@ -117,7 +117,7 @@ define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): $$(SRC) | $(DIR_EXEC)
+  $$(TAR): $$(SRC) lib | $(DIR_EXEC)
 	g++ -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
 endef
 $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util, $(s))))
@@ -127,7 +127,7 @@ define BUILD_util_dbg
   TAR := $(DIR_EXEC_DBG)/$(notdir $(basename $(1)))
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): $$(SRC) | $(DIR_EXEC_DBG)
+  $$(TAR): $$(SRC) lib-dbg | $(DIR_EXEC_DBG)
 	g++ -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB_DBG)
 endef
 $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util_dbg, $(s))))

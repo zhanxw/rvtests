@@ -1,8 +1,6 @@
 #ifndef _VCFINFO_H_
 #define _VCFINFO_H_
 
-
-
 class VCFInfoValue{
   public:
     int fingerMark; 

@@ -11,7 +11,7 @@ all: release
 
 LIB = lib-vcf.a
 LIB_DBG = lib-dbg-vcf.a
-BASE = RangeList PeopleSet VCFUtil
+BASE = RangeList PeopleSet VCFUtil VCFExtractor
 OBJ = $(BASE:=.o)
 
 GONCALO_INC = ../libsrc

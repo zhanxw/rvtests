@@ -1,7 +1,6 @@
 /**
    immediately TODO:
    1. fix suppport PLINK output
-   3. support tri-allelic (getAlt())
    4. speed up VCF parsing. (make a separate line buffer).
    5. loading phenotype and covariate (need tests now).
    6. Test CMC
@@ -17,6 +16,7 @@
    8. Make code easy to use ( hide PeopleSet and RangeList)
    9. Inclusion/Exclusion set should be considered sequentially.
    8. force loading index when read by region.
+   3. support tri-allelic (getAlt())
 
    futher TODO:
    1. handle different format GT:GD:DP ... // use getFormatIndex()
@@ -100,6 +100,8 @@ int main(int argc, char** argv){
         ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
         ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
         ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
+        /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
+        /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
         ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
         ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
         ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")

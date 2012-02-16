@@ -13,17 +13,40 @@ public:
     /**
      * read pattern like "=Synonymous,=Indel"
      */
-
-    void readPattern(std::string& argRegex) {
+    void readPattern(const char* argRegex) {
         int cflags = 0;
-        int ret = regcomp(& this->pattern, argRegex.c_str(), 0);
+        int ret = regcomp(& this->pattern, argRegex, 0);
         if (ret) {
             regerror(ret, & this->pattern, error_buf, ERROR_BUF_LEN);
             fputs(error_buf, stderr);
             exit(1);
         }
         this->initialized = true;
+        
     };
+    void readPattern(std::string& argRegex) {
+        readPattern(argRegex.c_str());
+    };
+    /**
+     */
+    bool match(const char* text) {
+        if (!this->initialized) return true;
+        int eflags = REG_STARTEND;
+        int ret = regexec(&this->pattern, text, 0, 0, eflags);
+        if (ret == 0) {
+            //printf("Match: %s\n", text);
+            return true;
+        } else if (ret == REG_NOMATCH){
+            //printf("Nomatch: %s\n", text);
+            return false;
+        } else {
+            regerror(ret, & this->pattern, error_buf, ERROR_BUF_LEN);
+            fputs(error_buf, stderr);
+            exit(1);
+        }
+        return false;
+    };
+
     /**
      * @return if any pattern matches the text, will return true
      */

@@ -1,22 +1,3 @@
-/**
-   immediately TODO:
-   8. force loading index when read by region.
-   3. support tri-allelic (getAlt())
-   4. speed up VCF parsing. (make a separate line buffer).
-   5. loading phenotype and covariate (need tests now).
-   6. do analysis. (test CMC for now)
-   7. VT (combine Collapsor and ModelFitter)
-
-   DONE:
-   1. suppport PLINK output
-   2. support access INFO tag
-   5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
-   8. Make code easy to use ( hide PeopleSet and RangeList)
-   9. Inclusion/Exclusion set should be considered sequentially.
-   futher TODO:
-   1. handle different format GT:GD:DP ... // use getFormatIndex()
-
-*/
 #include "Argument.h"
 #include "IO.h"
 #include "tabix.h"

@@ -17,12 +17,13 @@ public:
         freqFromInfo(true),      // read AF from INFO field
         siteFreqMin(-1.0),
         siteFreqMax(-1.0),
+        siteMACMin(-1),
         annoRegex(NULL),
         onlyVariantSite(false)    
     {
         this->annoRegex = new Regex;
     };
-        ~VCFExtractor() {
+    virtual ~VCFExtractor() {
             if (this->annoRegex) {
                 delete this->annoRegex;
                 this->annoRegex = NULL;
@@ -83,6 +84,9 @@ public:
     };
     void setSiteFreqMin(double d) {
         this->siteFreqMin = d;
+    };
+    void setSiteMACMin(int d) {
+        this->siteMACMin = d;
     };
     void setOnlyVariantSite(bool b) {
         this->onlyVariantSite = b;
@@ -244,6 +248,12 @@ public:
                 }
             }
             
+            // apply site filter: MAC
+            if (this->siteMACMin > -1) {
+                if (totalAC < this->siteMACMin)
+                    continue;
+            }
+
             // apply site filter: output only variant site?
             if (this->onlyVariantSite && !isVariantSite) {
                 continue;
@@ -334,6 +344,7 @@ private:
     bool freqFromInfo;
     double siteFreqMin;
     double siteFreqMax;
+    int siteMACMin;
     Regex* annoRegex;          // for filter ANNO
     bool onlyVariantSite;     // only extract sites that are polymorphism
 

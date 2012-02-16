@@ -1,14 +1,12 @@
 /**
    immediately TODO:
-   1. fix suppport PLINK output
-   4. speed up VCF parsing. (make a separate line buffer).
    5. loading phenotype and covariate (need tests now).
    6. Test CMC
    7. Test VT (combine Collapsor and ModelFitter)
    8. Test permutation test
-   9. Add more filter to individuals
-   10. Fast VCF INFO field retrieve
    11. Fast VCF Individual inner field retrieve
+   12. Add support multi-thread
+   13. Add optional weight
 
    DONE:
    2. support access INFO tag
@@ -16,11 +14,18 @@
    8. Make code easy to use ( hide PeopleSet and RangeList)
    9. Inclusion/Exclusion set should be considered sequentially.
    8. force loading index when read by region.
-   3. support tri-allelic (getAlt())
+   3. support tri-allelic (fix some relateds codes when output vcf/plink file)
+   9. Add more filter to individuals (see VCFExtractor)
+   10. Fast VCF INFO field retrieve (VCFInfo class has cache)
+   1. fix suppport PLINK output
+   1. handle different format GT:GD:DP ... // use getFormatIndex()
 
    futher TODO:
-   1. handle different format GT:GD:DP ... // use getFormatIndex()
    12. Design command line various models (collapsing method, freq-cutoff)
+
+   Not sure if worthy to do:
+   4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
+
 */
 
 #include "Argument.h"
@@ -50,7 +55,7 @@ void banner(FILE* fp) {
         "   ...      Bingshan Li, Dajiang Liu          ...      \n"
         "    ...      Goncalo Abecasis                  ...     \n"
         "     ...      zhanxw@umich.edu                  ...    \n"
-        "      ...      Dec 2011                          ...   \n"
+        "      ...      Feburary 2012                     ...   \n"
         "       ..............................................  \n"
         "                                                       \n"
         ;

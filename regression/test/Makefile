@@ -26,5 +26,21 @@ check:
 	./t1 > t1.output
 	diff -q t1.output t1.correct
 
+	Rscript testLinearRegression.R # output.R.lm
+	./testLinearRegression > output.cpp.lm
+	sleep 10
+
+	Rscript testLogisticRegression.R # output.R.lm
+	./testLogisticRegression > output.cpp.lm
+	sleep 10
+
+	Rscript testLinearRegressionCov.R # output.R.lm
+	./testLinearRegressionCov > output.cpp.lm
+	sleep 10
+
+	Rscript testLogisticRegressionCov.R # output.R.lm
+	./testLogisticRegressionCov > output.cpp.lm
+	sleep 10
+
 clean:
 	-rm -f $(SRC) *.o *.d

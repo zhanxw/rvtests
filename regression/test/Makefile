@@ -1,5 +1,10 @@
-SRC = testLinearRegression testLogisticRegression
+SRC = testLinearRegression \
+      testLinearRegressionCov \
+      testLogisticRegression \
+      testLogisticRegressionCov
+
 all: $(SRC)
+debug: $(SRC)
 
 LIBS =  ../lib-dbg-regression.a ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a
 CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
@@ -17,16 +22,9 @@ define BUILD_each
 endef
 $(foreach s, $(SRC), $(eval $(call BUILD_each, $(s))))
 
-
-#testLinearRegression: testLinearRegression.cpp
-#	g++ -o $@ $< $(CXX_FLAGS)
-#
-#testLinearRegression: testLinearRegression.cpp
-#	g++ -o $@ $< $(CXX_FLAGS)
-#
 check:
 	./t1 > t1.output
 	diff -q t1.output t1.correct
 
 clean:
-	-rm -f $(SRC)
+	-rm -f $(SRC) *.o *.d

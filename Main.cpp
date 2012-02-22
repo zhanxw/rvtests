@@ -3,7 +3,6 @@
    5. loading phenotype and covariate (need tests now).
    6. Test CMC
    7. Test VT (combine Collapsor and ModelFitter)
-   8. Test permutation test
    11. Fast VCF Individual inner field retrieve
    12. Add support multi-thread
    13. Add optional weight
@@ -19,6 +18,7 @@
    10. Fast VCF INFO field retrieve (VCFInfo class has cache)
    1. fix suppport PLINK output
    1. handle different format GT:GD:DP ... // use getFormatIndex()
+   8. Test permutation test
 
    futher TODO:
    12. Design command line various models (collapsing method, freq-cutoff)
@@ -72,8 +72,7 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
         ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
         ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
-        ADD_STRING_PARAMETER(pl, set, "--set", "specify set file (for collapsing)")
-        ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
+
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -86,7 +85,6 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Site Filter")
         ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
         ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-
         // ADD_INT_PARAMETER(pl, siteMinDepth, "--siteDepthMin", "Specify minimum depth(inclusive) to be incluced in analysis");
         // ADD_INT_PARAMETER(pl, siteMaxDepth, "--siteDepthMax", "Specify maximum depth(inclusive) to be incluced in analysis");
         // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis");
@@ -100,6 +98,9 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC")
         ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
         ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT")
+        ADD_STRING_PARAMETER(pl, set, "--set", "specify set file (for collapsing)")
+        //ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
+
         ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
         /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
         ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
@@ -133,7 +134,8 @@ int main(int argc, char** argv){
     REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
 
     const char* fn = FLAG_inVcf.c_str();
-    VCFInputFile vin(fn);
+    VCFInputFile* pVin = new VCFInputFile(fn);
+    VCFInputFile& vin = *pVin;
 
    // set range filters here
     vin.setRangeList(FLAG_rangeList.c_str());
@@ -148,6 +150,51 @@ int main(int argc, char** argv){
     vin.excludePeople(FLAG_peopleExcludeID.c_str());
     vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());    
 
+    // conversion part
+    VCFOutputFile* vout = NULL;
+    if (FLAG_outVcf.size()) {
+        vout = VCFOutputFile(FLAG_outVcf);
+    }
+    PlinkOutputFile* pout = NULL;
+    if (FLAG_outPlink.size()) {
+        pout = PlinkOutputFile(FLAG_outPlink);
+    }
+    if (vout || pout) {
+        if (vout) vout->writeHeader(vin.getVCFHeader());
+        if (pout) pout->writeHeader(vin.getVCFHeader());
+        int lineNo = 0;
+        while (vin.readRecord()){
+            lineNo ++;
+            VCFRecord& r = vin.getVCFRecord(); 
+            VCFPeople& people = r.getPeople();
+            VCFIndividual* indv;
+            if (vout) vout->writeRecord(& r);
+            if (pout) pout->writeRecord(& r);
+
+#if 0
+            printf("%s:%d\t", r.getChrom(), r.getPos());
+            
+            // e.g.: get TAG from INFO field
+            // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
+            
+            // e.g.: Loop each (selected) people in the same order as in the VCF 
+            for (int i = 0; i < people.size(); i++) {
+                indv = people[i];
+                // get GT index. if you are sure the index will not change, call this function only once!
+                int GTidx = r.getFormatIndex("GT");
+                if (GTidx >= 0) 
+                    printf("%s ", (*indv)[0].toStr());  // [0] meaning the first field of each individual
+                else 
+                    fprintf(stderr, "Cannot find GT field!\n");
+            }
+            printf("\n");
+#endif
+        };
+        fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+        if (vout) delete vout;
+        if (pout) delete pout;
+    }
+    
     // now let's finish some statistical tests
     
     // add filters. e.g. put in VCFInputFile is a good method

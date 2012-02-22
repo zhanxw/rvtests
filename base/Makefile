@@ -8,7 +8,7 @@ endif
 
 LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
-BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils
+BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger
 OBJ = $(BASE:=.o)
 
 DEFAULT_CXXFLAGS = -I. -I../statgen -I../pcre/include

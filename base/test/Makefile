@@ -1,4 +1,4 @@
-EXE = t1 testVCFExtract
+EXE = testLogger
 all: $(EXE)
 debug: all
 

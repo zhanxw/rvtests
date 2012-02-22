@@ -1,10 +1,10 @@
-SRC = testLinearRegression \
+EXE = testLinearRegression \
       testLinearRegressionCov \
       testLogisticRegression \
       testLogisticRegressionCov
 
-all: $(SRC)
-debug: $(SRC)
+all: $(EXE)
+debug: $(EXE)
 
 LIBS =  ../lib-dbg-regression.a ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a
 CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
@@ -20,7 +20,7 @@ define BUILD_each
   $$(TAR): $$(SRC) $(LIBS) 
 	g++ -o $$@ $$< -MMD $$(CXX_FLAGS)
 endef
-$(foreach s, $(SRC), $(eval $(call BUILD_each, $(s))))
+$(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
 check:
 	./t1 > t1.output
@@ -43,4 +43,4 @@ check:
 	sleep 10
 
 clean:
-	-rm -f $(SRC) *.o *.d
+	-rm -f $(EXE) *.o *.d

@@ -201,7 +201,7 @@ int main(int argc, char** argv){
     // site: DP, MAC, MAF (T3, T5)
     // indv: GD, GQ
 
-
+    
     VCFData data;
     if (FLAG_cov != "") {
         if (data.loadCovariate(FLAG_cov.c_str()) < 0) {

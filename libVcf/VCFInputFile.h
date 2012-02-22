@@ -4,6 +4,8 @@
 #include "tabix.h"
 #include "VCFRecord.h"
 
+#include "Logger.h"
+
 class VCFInputFile{
 public:
     VCFInputFile (const char* fn):
@@ -33,7 +35,7 @@ public:
         this->hasIndex = this->openIndex();
 
         this->rangeIdx = 0;
-        this->s = 0;
+        this->readOnlyLine = 0;
     };
     ~VCFInputFile(){
         closeIndex();
@@ -88,7 +90,7 @@ public:
     void clearRange() {
         this->range.clear();
         this->rangeIdx = 0;
-        this->s = 0;
+        this->readOnlyLine = 0;
     };
     void setRangeFile(const char* fn) {
         if (!fn || strlen(fn) == 0)
@@ -239,7 +241,8 @@ public:
     // variable used for accessing by region.
     int rangeIdx;
     ti_iter_t iter; 
-    const char* s;
+    const char* readOnlyLine; // read-only copy from tabix
+    char* mutableLine;        // will contain cached copy of readOnlyLine to sparse up parsing.
 };
 
 #endif /* _VCFINPUTFILE_H_ */

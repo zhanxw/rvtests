@@ -2,12 +2,12 @@
 #define _VCFRECORD_H_
 
 #include "VCFFunction.h"
-#include "VCFRecord.h"
 #include "VCFIndividual.h"
 #include "VCFInfo.h"
 #include "OrderedMap.h"
 
 typedef OrderedMap<int, VCFIndividual*> VCFPeople;
+
 class VCFRecord{
 public:
     VCFRecord(){
@@ -157,9 +157,9 @@ public:
     const char* getFilt() { return this->filt.toStr(); };
     const char* getInfo() { return this->info.toStr(); };
     const char* getFormat() { return this->format.toStr(); };
-    const char* getLine() {return this->line;};
+    // const char* getLine() {return this->line;};
     VCFPeople& getPeople(){
-        if (!hasAccess) {
+        if (!this->hasAccess) {
             this->selectedIndv.clear();
             for (int i = 0; i < this->allIndv.size(); i++){
                 if (allIndv[i]->isInUse()) {
@@ -171,6 +171,7 @@ public:
         return this->selectedIndv;
     };
     int getFormatIndex(const char* s){
+        //TODO: cache query
         int b = this->format.beg;
         int e = this->format.end;
         int l = strlen(s);

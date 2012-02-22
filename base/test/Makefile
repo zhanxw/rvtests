@@ -1,4 +1,4 @@
-EXE = testLogger
+EXE = testLogger testIO
 all: $(EXE)
 debug: all
 

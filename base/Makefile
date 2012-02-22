@@ -11,7 +11,7 @@ LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger
 OBJ = $(BASE:=.o)
 
-DEFAULT_CXXFLAGS = -I. -I../statgen -I../pcre/include
+DEFAULT_CXXFLAGS = -I. -I../statgen -I../third/tabix
 
 .PHONY: all release debug
 all: release

@@ -128,6 +128,9 @@ public:
         }
         this->range = rl;
     };
+    /**
+     * @return true: a valid VCFRecord 
+     */
     bool readRecord(){
         assert(this->headerLoaded);
         // load contents 
@@ -135,7 +138,7 @@ public:
             if (this->hasIndex) {                 // there is index
                 int len;
                 while (rangeIdx < this->range.size()) {
-                    if (!s) { // last time does not read a valid line
+                    if (!this->readOnlyLine) { // last time does not read a valid line
                         // get range
                         std::string r;
                         this->range.obtainRange(rangeIdx, &r);
@@ -145,9 +148,9 @@ public:
                             FATAL("Cannot ti_parse_region");
                         }
                         iter =  ti_queryi(tabixHandle, tid, beg, end);
-                        s = ti_read(this->tabixHandle, iter, &len);
+                        this->readOnlyLine = ti_read(this->tabixHandle, iter, &len);
                         if (s) { // s is valid
-                            this->line = s;
+                            this->line = this->readOnlyLine;
                             this->record.parse(this->line.c_str());
                             return true;
                         } else{ 
@@ -158,12 +161,12 @@ public:
                             continue;
                         }
                     } else {  // last time read a valid line
-                        s = ti_read(this->tabixHandle, iter, &len);
+                        this->readOnlyLine = ti_read(this->tabixHandle, iter, &len);
                         if (!s) {
                             rangeIdx ++;
                             continue;
                         } else {
-                            this->line = s;
+                            this->line = this->readOnlyLine;
                             this->record.parse(line.c_str());
                             return true;
                         }
@@ -227,6 +230,7 @@ public:
   private:
     VCFHeader header;
     VCFRecord record;
+    VCFFilter filter;
     
     LineReader* fp;
     tabix_t * tabixHandle;

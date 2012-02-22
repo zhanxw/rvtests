@@ -39,6 +39,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "Logger.h"
 #include "Utils.h"
 #include "VCFUtil.h"
 

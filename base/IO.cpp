@@ -33,7 +33,7 @@ void FileReader::close(FileReader** f) {
 };
 
 // check header for known file type
-FileReader::FileType FileReader::checkFileType(const char* fileName){
+FileType FileReader::checkFileType(const char* fileName){
     // treat stdin as plain text file
     if (strncmp(fileName, "-", 1) == 0) {
         return PLAIN;

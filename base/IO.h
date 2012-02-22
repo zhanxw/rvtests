@@ -10,7 +10,17 @@
 #include <string>
 #include <vector>
 
+#include "bgzf.h"
+
 // #define IO_DEBUG
+
+typedef enum FileType {
+    PLAIN = 0,
+    GZIP = 1,
+    BZIP2 = 2,
+    BGZIP = 3,
+    UNKNOWN = 99
+} FileType;
 
 /**
  * Sample usage:
@@ -23,12 +33,13 @@
  */
 class FileReader{
   public:
-    typedef enum FileType {
-        PLAIN = 0,
-        GZIP = 1,
-        BZIP2 = 2,
-        UNKNOWN = 99
-    } FileType;
+    /* typedef enum FileType { */
+    /*     PLAIN = 0, */
+    /*     GZIP = 1, */
+    /*     BZIP2 = 2, */
+    /*     BGZIP = 3, */
+    /*     UNKNOWN = 99 */
+    /* } FileType; */
     virtual ~FileReader() {}; // make it virtual so subclass types can close file handle
     static FileReader* open(const char* fileName);
     static void close(FileReader** f);
@@ -179,7 +190,7 @@ class Bzip2FileReader: public FileReader{
     }
     // open
     BZFILE* open(const char* fileName) {
-        this->fp = fopen(fileName, "r");
+        this->fp = fopen(fileName, "rb");
         if (!this->fp) {
             fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
             return NULL;
@@ -195,11 +206,12 @@ class Bzip2FileReader: public FileReader{
     // close 
     void close() {
         if (this->bzerror != BZ_STREAM_END) {
-            BZ2_bzReadClose(&this->bzerror, fp);
+            BZ2_bzReadClose(&this->bzerror, this->bzp);
             /* omit code to handle error */
         } else {
-            BZ2_bzReadClose(&this->bzerror, fp);
+            BZ2_bzReadClose(&this->bzerror, this->bzp);
         }
+        if (this->fp) fclose(this->fp);
         this->fp = NULL;
         this->bzp = NULL;
         this->bzerror = 0;
@@ -281,6 +293,7 @@ class BufferedReader: public FileReader{
         if (this->fp){
             FileReader::close(&fp);
         }
+        this->fp = NULL;
         // delete buf
         if (this->buf) {
             free(this->buf);
@@ -289,6 +302,7 @@ class BufferedReader: public FileReader{
             this->bufPtr = 0;
             this->bufEnd = 0;
         }
+        this->buf = NULL;
     }
     int read(void* buf, unsigned int len) {
         // use current buffer to fill in buf
@@ -377,7 +391,7 @@ class LineReader{
     // return number of fields read.
     // when reading an empty line, will return 1, meaning 1 field are read, although its content is empty
     // consecutive separators, e.g. \t\t, will yield empty field
-    // when reading to the EOF, will 0. 
+    // when reading to the EOF, will return 0. 
     int readLineBySep(std::vector<std::string>* fields, const char* sep) {
         assert(this->fp && fields && sep);
         if (this->fp->isEof()) return 0;
@@ -409,6 +423,7 @@ class LineReader{
     FileReader* fp;
 };
 
+//////////////////////////////////////////////////////////////////////
 // FileWriter related classes
 class AbstractFileWriter{
   public:
@@ -473,7 +488,7 @@ class GzipFileWriter:public AbstractFileWriter{
   public:    
     GzipFileWriter(const char* fn, bool append = false){
         if (this->open(fn, append)){
-            fprintf(stderr, "Cannot create text file %s\n", fn);
+            fprintf(stderr, "Cannot create gzip file %s\n", fn);
         }
     }
     virtual ~GzipFileWriter(){
@@ -493,7 +508,10 @@ class GzipFileWriter:public AbstractFileWriter{
         return 0;
     }
     void close(){
-        if (this->fp) gzclose(fp);
+        if (this->fp) {
+            gzclose(this->fp);
+            this->fp = NULL;
+        }
     };
     int write(const char* s) {
         return gzputs(this->fp, s);
@@ -506,6 +524,116 @@ class GzipFileWriter:public AbstractFileWriter{
   private:
     gzFile fp;
 }; // end GzipFileWriter
+
+class Bzip2FileWriter:public AbstractFileWriter{
+  public:    
+    Bzip2FileWriter(const char* fn, bool append = false){
+        if (this->open(fn, append)){
+            fprintf(stderr, "Cannot create bzip2 file %s\n", fn);
+        }
+    }
+    virtual ~Bzip2FileWriter(){
+        this->close();
+#ifdef IO_DEBUG
+        fprintf(stderr, "Bzip2FileWriter desc()\n");
+#endif
+    };
+    int open(const char* fn, bool append = false){
+        if (append) 
+            fprintf(stderr, "bzip2 does not support appending.\n");
+        this->fp = fopen(fn, "wb");
+        if (fp == NULL) return -1;
+        
+        this->bzp = BZ2_bzWriteOpen(&this->bzerror, this->fp, 9, 0, 30); //block size is 9, 0 means silent, 30 means working factor
+        if (this->bzerror != BZ_OK) {
+            BZ2_bzWriteClose( & bzerror, this->bzp, 0, 0, 0); // 0: abandon, 0: results of # of bytes for input, 0: results of # of bytes outputted.
+            fprintf(stderr, "ERROR: Cannot open %s for write\n", fn);
+            return -1;
+        }
+        return 0;
+    }
+    void close(){
+        BZ2_bzWriteClose(&bzerror, this->bzp, 0, 0, 0);
+        if (bzerror != BZ_OK){
+        };
+        if (this->fp) fclose(this->fp);
+
+        this->bzp = NULL;
+        this->fp = NULL;
+    };
+    int write(const char* s) {
+        int ret = strlen(s);
+        BZ2_bzWrite(&this->bzerror, this->bzp, (void*)s, ret);
+        if (this->bzerror != BZ_OK) {
+            this->close();
+            return -1;
+        }
+        return ret;
+    };
+    int writeLine(const char* s) {
+        int ret = strlen(s);
+        BZ2_bzWrite(&this->bzerror, this->bzp, (void*)s, ret);
+        if (this->bzerror != BZ_OK) {
+            this->close();
+            return -1;
+        }
+        char buf[] = "\n";
+        BZ2_bzWrite(&this->bzerror, this->bzp, buf, 1);
+        if (this->bzerror != BZ_OK) {
+            this->close();
+            return -1;
+        }
+        return (ret + 1);
+    };
+  private:
+    FILE* fp;
+    BZFILE* bzp;
+    int bzerror;
+}; // end Bzip2FileWriter
+
+class BGZipFileWriter:public AbstractFileWriter{
+  public:    
+    BGZipFileWriter(const char* fn, bool append = false){
+        if (this->open(fn)){
+            fprintf(stderr, "Cannot create BGzip file %s\n", fn);
+        }
+    }
+    virtual ~BGZipFileWriter(){
+        this->close();
+#ifdef IO_DEBUG
+        fprintf(stderr, "BGZipFileWriter desc()\n");
+#endif
+    };
+    /**
+     * @param append: ignored
+     */
+    int open(const char* fn, bool append = false){
+        if (append) 
+            fprintf(stderr, "Gzip does not support appending.\n");
+        this->fp = bgzf_open(fn, "w");
+        if (!this->fp) {
+            fprintf(stderr, "ERROR: Cannot open %s for write\n", fn);
+            return -1;
+        }
+        return 0;
+    }
+    void close(){
+        if (this->fp) {
+            bgzf_close(this->fp);
+            this->fp = NULL;
+        }
+    };
+    int write(const char* s) {
+        return bgzf_write(this->fp, s, strlen(s));
+    };
+    int writeLine(const char* s) {
+        int ret = bgzf_write(this->fp, s, strlen(s));
+        ret += bgzf_write(this->fp, "\n", 1);
+        return (ret);
+    };
+  private:
+    BGZF* fp;
+}; // end BGZipFileWriter
 
 #define DEFAULT_WRITER_BUFFER 4096
 class BufferedFileWriter: public AbstractFileWriter{
@@ -585,9 +713,11 @@ class BufferedFileWriter: public AbstractFileWriter{
 class FileWriter{
   public:
     FileWriter(const char* fileName, bool append = false){
-        int l = strlen(fileName);
+        // int l = strlen(fileName);
         if (this->checkSuffix(fileName, ".gz")) {
             this->fpRaw = new GzipFileWriter(fileName, append);
+        } else if (this->checkSuffix(fileName, ".bz2")){
+            this->fpRaw = new Bzip2FileWriter(fileName, append);
         } else {
             this->fpRaw = new TextFileWriter(fileName, append);
         }
@@ -597,13 +727,39 @@ class FileWriter{
             abort();
         }
 
+        this->createBuffer();
+    }
+    FileWriter(const char* fileName, FileType t) {
+        bool append = false;
+        if ( PLAIN == t) {
+            this->fpRaw = new TextFileWriter(fileName, append);
+        } else if (GZIP == t) {
+            this->fpRaw = new GzipFileWriter(fileName, append);
+        } else if (BZIP2 == t) {
+            this->fpRaw = new Bzip2FileWriter(fileName, append);
+        } else if (BGZIP == t) {
+            this->fpRaw = new BGZipFileWriter(fileName, append);
+        } else {
+            fprintf(stderr, "Unrecognized file type, use plain text format instead!\n");
+            this->fpRaw = new TextFileWriter(fileName, append);
+        }
+
+        this->fp = new BufferedFileWriter(this->fpRaw);
+        if (!this->fpRaw || !this->fp){
+            fprintf(stderr, "Cannot create file\n");
+            abort();
+        }
+
+        this->createBuffer();
+    };
+    void createBuffer() {
         // create buffer for formatted string
         this->bufLen = 1024;
         this->buf = new char[this->bufLen];
         if (!this->buf){
             fprintf(stderr, "Cannot allocate printf buffer for FileWriter.\n");
         };
-    }
+    };
     void close() {
         if (this->fp){
             this->fp->close();
@@ -672,7 +828,7 @@ class FileWriter{
     AbstractFileWriter* fpRaw;
     char* buf;
     unsigned int bufLen;
-};
+}; // end class FileWriter
 
 #endif /* _IO_H_ */
 

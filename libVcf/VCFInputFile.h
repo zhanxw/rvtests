@@ -44,7 +44,7 @@ public:
     // use current subset of included people
     // to reconstruct a new VCF header line
     void rewriteVCFHeader() {
-        std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORAT";
+        std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
         VCFPeople& people = this->record.getPeople();
         for (int i = 0; i <people.size(); i++ ){
             s += '\t';

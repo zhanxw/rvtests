@@ -36,6 +36,7 @@ inline bool PositionPairCompare(const PositionPair& p1, const PositionPair& p2){
 
 class RangeCollection{
 public:
+    RangeCollection():_size(0){};
     void addRange(const std::string& chr, unsigned int begin, unsigned int end) {
         // if chr not exists
         // add chr to the chrVector
@@ -115,8 +116,35 @@ public:
         return this->_size;
     };
   private:
+    struct CompareChromName {
+        bool operator() (const std::string& i, const std::string& j) { 
+            int idx = 0;
+            while (i[idx] == j[idx] && idx <i.size() && idx< j.size())
+                idx++;
+            
+            if (idx == i.size())
+                return true;        // shorter name goes first
+            if (idx == j.size())
+                return false;
+
+            if (isdigit(i[idx])) {
+                if (isdigit(j[idx])) {
+                    return atoi(i.c_str() + idx) < atoi(j.c_str() + idx);
+                } else {
+                    return true; /// numeric fist
+                }
+            } else {
+                if (isdigit(j[idx]) ) {
+                    return false;
+                } else {
+                    return i[idx] < j[idx];
+                }
+            } 
+        }
+    } compareChromName;
+
     void sortChrVector() {
-        std::sort(chrVector.begin(), chrVector.end());
+        std::sort(chrVector.begin(), chrVector.end(), compareChromName);
     };
     void dump(const std::vector<PositionPair>& v){
         for (unsigned int i = 0; i < v.size(); i++){

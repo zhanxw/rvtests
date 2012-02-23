@@ -5,8 +5,10 @@ class VCFInfoValue{
   public:
     int fingerMark; 
     VCFValue* value;
+  public:
     VCFInfoValue(){
         this->value = new VCFValue;
+        assert(this->value);
     }
     ~VCFInfoValue(){
         delete this->value;
@@ -42,44 +44,61 @@ public:
     };
     void reset() { this-> hasParsed = false;};
     void parse(VCFValue* v) {
-        this->value = v;
+        this->self = v;
         this->hasParsed = false;
         this->fingerMark ++ ;
     };
     void parseActual(){
         this->hasParsed = true;
-        const char* line = this->value->line;
-        int b = this->value->beg;
-        int e = this->value->beg;
+        this->origString = this->self->line + this->self->beg;
+        const char* line = this->self->line;
+        int b = this->self->beg;
+        int e = this->self->beg;
         static std::string key;
 
-        while ( e < this->value->end){
+        while ( e < this->self->end){
             key.clear();
             // find tag name;
             while(line[e] != '='){
-                key.push_back(this->value->line[e++]);
+                key.push_back(this->self->line[e++]);
             }
+
             b = e + 1; // skip '='
         
+            VCFInfoValue* f;
             this->tableIter = this->table.find(key);
             if ( this->tableIter == this->table.end()){
-                VCFInfoValue* f = new VCFInfoValue;
+                f = new VCFInfoValue;
                 this->table[key] = f;
-                e = parseTillChar(";\t", line, b, f->value);
                 f->fingerMark = this->fingerMark;
-            } else {
-                e = parseTillChar(";\t", line, b, this->tableIter->second->value);
-                this->tableIter->second->fingerMark = this->fingerMark;
-            };
-            e ++ ;
+            } else {                
+                f = this->tableIter->second;
+                if (f->fingerMark == this->fingerMark) {
+                    fprintf(stdout, "Duplicated key [%s] in INFO field!\n", key.c_str());
+                } else {
+                    f->fingerMark = this->fingerMark;
+                }
+            }
+
+            this->self->parseTill(';', b, f->value);
+            f->value->line[f->value->end] = '\0';
+            e = f->value->end;
         }
     };
+  public:
+    const char* getOrigString() {
+        if (this->hasParsed)
+            return this->origString.c_str();
+        else 
+            return self->toStr();
+    }
 private:
+    VCFValue* self;
     bool hasParsed;
-    VCFValue* value;
     int fingerMark;
     std::map<std::string, VCFInfoValue*> table;
     std::map<std::string, VCFInfoValue*>::iterator tableIter;
+    std::string origString;
 }; // VCFInfo
 
 #endif /* _VCFINFO_H_ */

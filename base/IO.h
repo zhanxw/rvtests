@@ -790,7 +790,7 @@ class FileWriter{
         return (ret + 1);
     };
     // if @param fileName ends with @param suffix, then return true;
-    bool checkSuffix(const char* fileName, const char* suffix){
+    static bool checkSuffix(const char* fileName, const char* suffix){
         int lf = strlen(fileName);
         int ls = strlen(suffix);
         if (lf < ls) return false;

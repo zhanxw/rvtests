@@ -8,7 +8,7 @@ class VCFValue{
 public:
     int beg; // inclusive
     int end; // exclusive, and beg <= end
-    const char* line;
+    char* line;
 public:
     int toInt() const{ 
         return atoi(line+beg);
@@ -97,6 +97,25 @@ public:
     };
     bool isHaploid(){
         return (end - beg == 1);
+    };
+    
+    /**
+     * @return 0, a sub-range has successfully stored in @param result
+     */
+    inline int parseTill(const char c, int beg, VCFValue* result){
+        assert(result);
+        if (beg < this->beg || beg >= this->end) return -1;
+
+        result->line = this->line;
+        result->beg = beg;
+        result->end = beg;
+        while( this->line[result->end] != c && result->end < this->end) {
+            result->end++;
+        }
+        return 0;
+    };
+    int parseTill(const char c, VCFValue* result){
+        return parseTill(c, this->beg, result);
     };
   /* private: */
   /*   std::string retStr; // this held for the return value; */

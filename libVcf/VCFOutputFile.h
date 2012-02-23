@@ -5,8 +5,18 @@
 
 class VCFOutputFile{
 public:
+    VCFOutputFile(const std::string& fn){
+        init(fn.c_str());
+    };
     VCFOutputFile(const char* fn) {
-        this->fp = new FileWriter(fn);
+        init(fn);
+    };
+    void init(const char* fn){
+        if (FileWriter::checkSuffix(fn, ".gz")) {
+            this-> fp = new FileWriter(fn, BGZIP);
+        } else {
+            this->fp = new FileWriter(fn);
+        }
         if (!this->fp){
             REPORT("Cannot create VCF file!");
             abort();
@@ -31,13 +41,15 @@ public:
                          r->getRef(),
                          r->getAlt(),
                          r->getQual(),
-                         r->getInfo(),
                          r->getFilt(),
+                         r->getInfo(),
                          r->getFormat());
         VCFPeople& p = r->getPeople();
+        std::string s;
         for (int i = 0; i < p.size() ; i ++ ) {
             VCFIndividual* indv = p[i];
-            this->fp->printf("\t%s", indv->getData().toStr());
+            indv->rebuildString(&s);
+            this->fp->printf("\t%s", s.c_str());
         }
         this->fp->printf("\n");
     };

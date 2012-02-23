@@ -5,6 +5,7 @@
 #include "VCFRecord.h"
 
 #include "Logger.h"
+#include "VCFFilter.h"
 
 class VCFInputFile{
 public:
@@ -15,17 +16,17 @@ public:
         this->fp = new LineReader(fn);
         
         // read header
-        while (this->fp->readLine(&this->line)){
-            if (line[0] == '#') {
-                this->header.push_back(line);
-                if (line.substr(0, 6) == "#CHROM") {
-                    this->record.createIndividual(line);
+        while (this->fp->readLine(&_line)){
+            if (_line[0] == '#') {
+                this->header.push_back(_line);
+                if (_line.substr(0, 6) == "#CHROM") {
+                    this->record.createIndividual(_line);
                     this->headerLoaded = true;
                     break;
                 }
                 continue;
             }
-            if (line[0] != '#') {
+            if (_line[0] != '#') {
                 FATAL("Wrong VCF header");
             }
         }
@@ -35,18 +36,30 @@ public:
         this->hasIndex = this->openIndex();
 
         this->rangeIdx = 0;
+        this->clearRange();
         this->readOnlyLine = 0;
+
+        this->lineLength = 1024;
+        this->line = new char[1024];
+        assert(this->line);
+
+        /* this->mutableLine = (char*) malloc(sizeof(char) * 1024); */
+        /* this->mutableLineLength = 1024; */
     };
     ~VCFInputFile(){
         closeIndex();
         this->record.deleteIndividual();
         if (this->fp) delete this->fp;
+        /* if (this->mutableLine) { */
+        /*     free(this->mutableLine); */
+        /*     this->mutableLine = NULL; */
+        /* } */
     };
 
     // use current subset of included people
     // to reconstruct a new VCF header line
     void rewriteVCFHeader() {
-        std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORAT";
+        std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
         VCFPeople& people = this->record.getPeople();
         for (int i = 0; i <people.size(); i++ ){
             s += '\t';
@@ -133,25 +146,23 @@ public:
      */
     bool readRecord(){
         assert(this->headerLoaded);
+        
         // load contents 
         if (this->range.size() > 0) {
             if (this->hasIndex) {                 // there is index
-                int len;
                 while (rangeIdx < this->range.size()) {
                     if (!this->readOnlyLine) { // last time does not read a valid line
                         // get range
-                        std::string r;
-                        this->range.obtainRange(rangeIdx, &r);
+                        this->range.obtainRange(rangeIdx, &_r);
                         // parse range
-                        int tid, beg, end;
-                        if (ti_parse_region(tabixHandle->idx, r.c_str(), &tid, &beg, &end) != 0){
+                        if (ti_parse_region(tabixHandle->idx, _r.c_str(), &_tid, &_beg, &_end) != 0){
                             FATAL("Cannot ti_parse_region");
                         }
-                        iter =  ti_queryi(tabixHandle, tid, beg, end);
-                        this->readOnlyLine = ti_read(this->tabixHandle, iter, &len);
-                        if (s) { // s is valid
-                            this->line = this->readOnlyLine;
-                            this->record.parse(this->line.c_str());
+                        iter =  ti_queryi(tabixHandle, _tid, _beg, _end);
+                        this->readOnlyLine = ti_read(this->tabixHandle, iter, &_len);
+                        if (this->readOnlyLine) { // s is valid
+                            duplicateReadOnlyLine(this->readOnlyLine, _len);
+                            this->record.parse(this->line, this->lineLength);
                             return true;
                         } else{ 
                             // continue to next rangeIdx
@@ -161,13 +172,13 @@ public:
                             continue;
                         }
                     } else {  // last time read a valid line
-                        this->readOnlyLine = ti_read(this->tabixHandle, iter, &len);
-                        if (!s) {
+                        this->readOnlyLine = ti_read(this->tabixHandle, iter, &_len);
+                        if (!this->readOnlyLine) {
                             rangeIdx ++;
                             continue;
                         } else {
-                            this->line = this->readOnlyLine;
-                            this->record.parse(line.c_str());
+                            duplicateReadOnlyLine(this->readOnlyLine, _len);
+                            this->record.parse(this->line, this->lineLength);
                             return true;
                         }
                     }
@@ -179,18 +190,19 @@ public:
                 fprintf(stderr, "Failed to load index when accessing VCF by region\n");
                 abort();
 
-                // legacy code (when there is no index but still want to parse VCF file).
-                // legacy code that can handle region in a slow but working way.
-                while(this->fp->readLine(&this->line)){
-                    this->record.parse(line.c_str());
-                    if (!this->range.isInRange(this->record.getChrom(), this->record.getPos()))
-                        continue;
-                }
-                this->record.parse(this->line.c_str());
+                /* // legacy code (when there is no index but still want to parse VCF file). */
+                /* // legacy code that can handle region in a slow but working way. */
+                /* while(this->fp->readLine(&this->line)){ */
+                /*     this->record.parse(line.c_str()); */
+                /*     if (!this->range.isInRange(this->record.getChrom(), this->record.getPos())) */
+                /*         continue; */
+                /* } */
+                /* this->record.parse(this->line.c_str()); */
             };
         } else { // go line by line
-            if (this->fp->readLine(&this->line)){
-                this->record.parse(line.c_str());
+            if (this->fp->readLine(&_line)){
+                duplicateReadOnlyLine(_line);
+                this->record.parse(this->line, this->lineLength);
                 return true;
             } else {
                 return false; // reach file end
@@ -222,11 +234,32 @@ public:
         this->record.excludeAllPeople();
     };
     VCFRecord& getVCFRecord() {return this->record;};
-    const std::string& getLine() const {return this->line;};
+    const char* getLine() const {return this->line;};
   private:
     // disable copy-constructor
     VCFInputFile(const VCFInputFile& v){};
     VCFInputFile& operator=(const VCFInputFile& v){};
+    
+    // copy this->readOnlyLine to this->mutableLine
+    void duplicateReadOnlyLine(const char* s, int len){
+        while (this->lineLength < len) {
+            this->lineLength *= 2;
+        }
+        delete[] this->line;
+        this->line = new char[this->lineLength];
+        assert(this->line);
+        strncpy(this->line, s, len + 1);
+    };
+    void duplicateReadOnlyLine(const std::string& s){
+        int len = s.size();
+        while (this->lineLength < len) {
+            this->lineLength *= 2;
+        }
+        delete[] this->line;
+        this->line = new char[this->lineLength];
+        assert(this->line);
+        strncpy(this->line, s.c_str(), len + 1);
+    };
   private:
     VCFHeader header;
     VCFRecord record;
@@ -237,7 +270,6 @@ public:
     RangeList range;
     
     std::string fileName;
-    std::string line; // actual data line
 
     bool headerLoaded;
     bool hasIndex;
@@ -245,8 +277,20 @@ public:
     // variable used for accessing by region.
     int rangeIdx;
     ti_iter_t iter; 
+    char* line;
+    int lineLength;           // line length (excluding the trailing \n)
+    // std::string line;         // actual data line (only used for iterative parsing VCF).
     const char* readOnlyLine; // read-only copy from tabix
-    char* mutableLine;        // will contain cached copy of readOnlyLine to sparse up parsing.
+    
+    // those variables are declared for speed up readRecord()
+    std::string _r;       // region
+    int _tid, _beg, _end;   // rgeion for tabix
+    int _len; 
+    std::string _line;
+
+    /* char* mutableLine;        // will contain cached copy of readOnlyLine to sparse up parsing. */
+    /* int mutableLineLength;     */
+
 };
 
 #endif /* _VCFINPUTFILE_H_ */

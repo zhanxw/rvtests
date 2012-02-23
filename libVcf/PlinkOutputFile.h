@@ -27,6 +27,12 @@
 class PlinkOutputFile{
 public:
     PlinkOutputFile(const char* fnPrefix) {
+        init(fnPrefix);
+    };
+    PlinkOutputFile(const std::string& fnPrefix) {
+        init(fnPrefix.c_str());
+    };
+    void init(const char* fnPrefix) {
         std::string prefix = fnPrefix;
         this->fpBed = fopen( (prefix + ".bed").c_str(), "wb");
         this->fpBim = fopen( (prefix + ".bim").c_str(), "wt");

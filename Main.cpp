@@ -154,11 +154,11 @@ int main(int argc, char** argv){
     // conversion part
     VCFOutputFile* vout = NULL;
     if (FLAG_outVcf.size()) {
-        vout = VCFOutputFile(FLAG_outVcf);
+        vout = new VCFOutputFile(FLAG_outVcf);
     }
     PlinkOutputFile* pout = NULL;
     if (FLAG_outPlink.size()) {
-        pout = PlinkOutputFile(FLAG_outPlink);
+        pout = new PlinkOutputFile(FLAG_outPlink);
     }
     if (vout || pout) {
         if (vout) vout->writeHeader(vin.getVCFHeader());

@@ -15,12 +15,12 @@
    range is inclusive on both edges.
 */
 struct PositionPair{
-    unsigned int begin;
-    unsigned int end;
+    int begin;
+    int end;
 PositionPair():
     begin(0), end(0)
         {};
-PositionPair(unsigned int b, unsigned int e):
+PositionPair(int b, int e):
     begin(b), end(e)
         {};
     bool operator== (const PositionPair o){
@@ -37,7 +37,7 @@ inline bool PositionPairCompare(const PositionPair& p1, const PositionPair& p2){
 class RangeCollection{
 public:
     RangeCollection():_size(0){};
-    void addRange(const std::string& chr, unsigned int begin, unsigned int end) {
+    void addRange(const std::string& chr, int begin, int end) {
         // if chr not exists
         // add chr to the chrVector
         std::string c = chopChr(chr);
@@ -71,14 +71,14 @@ public:
         */
 
         this->_size = 0;
-        for(unsigned int i = 0; i < this->chrVector.size(); i++ ) 
+        for(int i = 0; i < this->chrVector.size(); i++ ) 
             this->_size += this->rangeMap[this->chrVector[i]].size();
     }
 
-    void obtainRange(const unsigned int index, std::string* range) {
+    void obtainRange(const int index, std::string* range) {
         int t = index;
         int s;
-        for(unsigned int i = 0; i < this->chrVector.size(); i++ ) {
+        for(int i = 0; i < this->chrVector.size(); i++ ) {
             s = rangeMap[chrVector[i]].size();
             if ( t < s) {
                 (*range) = chrVector[i];
@@ -93,6 +93,24 @@ public:
         }
         assert(false);
     };
+
+    void obtainRange(const int index, std::string* chrom, int* beg, int* end) {
+        int t = index;
+        int s;
+        for(int i = 0; i < this->chrVector.size(); i++ ) {
+            s = rangeMap[chrVector[i]].size();
+            if ( t < s) {
+                (*chrom) = chrVector[i];
+                (*beg) = (this->rangeMap[this->chrVector[i]][t]).begin;
+                (*end) = (this->rangeMap[this->chrVector[i]][t]).end;
+                return;
+            } else {
+                t -= s;
+            }
+        }
+        assert(false);
+    };
+
     bool isInRange(const std::string& chr, int pos){
         if (rangeMap.find(chr) == rangeMap.end()) return false;
         std::vector<PositionPair>& r = rangeMap[chr];
@@ -147,7 +165,7 @@ public:
         std::sort(chrVector.begin(), chrVector.end(), compareChromName);
     };
     void dump(const std::vector<PositionPair>& v){
-        for (unsigned int i = 0; i < v.size(); i++){
+        for (int i = 0; i < v.size(); i++){
             printf("[%d, %d] ", v[i].begin, v[i].end);
         }
         printf("\n");
@@ -169,13 +187,13 @@ public:
     // we will merge overlapped ranges
     void consolidateRange(std::vector<PositionPair>* v) {
         std::vector<PositionPair> t;
-        unsigned int l = v->size();
+        int l = v->size();
         if (l == 0)
             return;
 
-        unsigned int beg =  (*v)[0].begin;
+        int beg =  (*v)[0].begin;
         t.push_back( (*v)[0] );
-        for(unsigned int i = 1; i < l; i++) {
+        for(int i = 1; i < l; i++) {
             // if this range falls into last range, skip
             if ( (*v)[i].end <= (*v)[i - 1].end )
                 continue;
@@ -204,7 +222,7 @@ private:
 class RangeList{
 public:
 RangeList(): isSorted(false) {};
-    void obtainRange(const unsigned int index, std::string* range) {
+    void obtainRange(const int index, std::string* range) {
         if (!this->isSorted) {
             this->rangeCollection.sort();
             this->isSorted = true;
@@ -212,7 +230,15 @@ RangeList(): isSorted(false) {};
         this->rangeCollection.obtainRange(index, range);
 
     };
-    unsigned int size() const {
+    void obtainRange(const int index, std::string* chrom, int* beg, int* end) {
+        if (!this->isSorted) {
+            this->rangeCollection.sort();
+            this->isSorted = true;
+        }
+        this->rangeCollection.obtainRange(index, chrom, beg, end);
+
+    };
+    int size() const {
         return this->rangeCollection.size();
     };
     // read gene list file and add these ranges
@@ -220,7 +246,7 @@ RangeList(): isSorted(false) {};
     /// argRangeList is a string indicating the range
     void addRangeList(const char* argRangeList);
     void addRangeFile(const char* argRangeFile);
-    void addRange(const std::string& chr, unsigned int begin, unsigned int end) {
+    void addRange(const std::string& chr, int begin, int end) {
         this->isSorted = false;
         this->rangeCollection.addRange(chr, begin, end);
     };

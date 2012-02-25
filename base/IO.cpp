@@ -1,14 +1,14 @@
 #include "IO.h"
 
 //static method
-FileReader* FileReader::open(const char* fileName){
-    FileReader * fr = NULL;
+AbstractFileReader* AbstractFileReader::open(const char* fileName){
+    AbstractFileReader * fr = NULL;
     if (!fileName || fileName[0] == '\0') {
         fprintf(stderr, "Empty file name.\n");
         return fr;
     }
 
-    switch(FileReader::checkFileType(fileName)) {
+    switch(AbstractFileReader::checkFileType(fileName)) {
     case PLAIN:
         fr = new PlainFileReader(fileName);
         break;
@@ -25,7 +25,7 @@ FileReader* FileReader::open(const char* fileName){
     return fr;
 }
 // static method
-void FileReader::close(FileReader** f) {
+void AbstractFileReader::close(AbstractFileReader** f) {
     assert(f && *f);
     (*f)->close();
     delete (*f);
@@ -33,7 +33,7 @@ void FileReader::close(FileReader** f) {
 };
 
 // check header for known file type
-FileReader::FileType FileReader::checkFileType(const char* fileName){
+AbstractFileReader::FileType AbstractFileReader::checkFileType(const char* fileName){
     // treat stdin as plain text file
     if (strncmp(fileName, "-", 1) == 0) {
         return PLAIN;

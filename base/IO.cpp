@@ -19,7 +19,7 @@ AbstractFileReader* AbstractFileReader::open(const char* fileName){
         fr = new Bzip2FileReader(fileName);
         break;
     default:
-        fprintf(stderr, "Cannot detect file type (even not text file?!\n");
+        fprintf(stderr, "Cannot detect file type (does it exist?!)\n");
         break;
     }
     return fr;

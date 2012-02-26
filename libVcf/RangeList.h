@@ -75,17 +75,18 @@ public:
             this->_size += this->rangeMap[this->chrVector[i]].size();
     }
 
-    void obtainRange(const int index, std::string* range) {
+    void obtainRange(const int index, std::string* range) const {
         int t = index;
         int s;
         for(int i = 0; i < this->chrVector.size(); i++ ) {
-            s = rangeMap[chrVector[i]].size();
+            const std::vector<PositionPair>& v = this->rangeMap.find(chrVector[i])->second;
+            s = v.size();
             if ( t < s) {
                 (*range) = chrVector[i];
                 range->push_back(':');
-                (*range) += toString((this->rangeMap[this->chrVector[i]][t]).begin);
+                (*range) += toString(v[t].begin);
                 range->push_back('-');
-                (*range) += toString((this->rangeMap[this->chrVector[i]][t]).end);
+                (*range) += toString(v[t].end);
                 return;
             } else {
                 t -= s;
@@ -94,15 +95,16 @@ public:
         assert(false);
     };
 
-    void obtainRange(const int index, std::string* chrom, int* beg, int* end) {
+    void obtainRange(const int index, std::string* chrom, int* beg, int* end) const {
         int t = index;
         int s;
         for(int i = 0; i < this->chrVector.size(); i++ ) {
-            s = rangeMap[chrVector[i]].size();
+            const std::vector<PositionPair>& v = this->rangeMap.find(chrVector[i])->second;
+            s = v.size();
             if ( t < s) {
                 (*chrom) = chrVector[i];
-                (*beg) = (this->rangeMap[this->chrVector[i]][t]).begin;
-                (*end) = (this->rangeMap[this->chrVector[i]][t]).end;
+                (*beg) = v[t].begin;
+                (*end) = v[t].end;
                 return;
             } else {
                 t -= s;

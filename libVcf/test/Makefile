@@ -15,9 +15,16 @@ define BUILD_each
 endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
-check:
+check: check1 check2 check3
+check1:
 	./t1 > t1.output
 	diff -q t1.output t1.correct
-
+	rm t1.output
+check2:
+	./testVCFExtract
+check3:
+	./testReadVCF > testReadVCF.output
+	diff -q testReadVCF.output testReadVCF.correct
+	rm -f testReadVCF.output
 clean:
 	-rm -f $(EXE)

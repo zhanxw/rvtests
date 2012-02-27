@@ -4,7 +4,7 @@
 int main(){
     VCFExtractor ve;
     ve.open("test.vcf");
-    ve.setSiteFreqMin(0.01);
+    ve.setSiteFreqMin(0.001);
     ve.extract();
     const std::vector<double>& af = ve.getAF();
     for (int i = 0; i < af.size(); i++) {

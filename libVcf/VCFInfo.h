@@ -18,6 +18,19 @@ class VCFInfoValue{
 
 class VCFInfo{
 public:
+    VCFInfo() {
+        this->hasParsed = false;
+    };
+    ~VCFInfo(){
+        for (this->tableIter = this->table.begin(); 
+             this->tableIter != this->table.end(); 
+             this->tableIter ++){
+            if (this->tableIter->second != NULL){
+                delete this->tableIter->second;
+            }
+        }
+    };
+    void reset() { this-> hasParsed = false;};
     const char* getTag(const char* tag) {
         if (!tag || tag[0] == '\0') 
             return NULL;
@@ -33,16 +46,6 @@ public:
             return NULL;
         }
     } ;
-    ~VCFInfo(){
-        for (this->tableIter = this->table.begin(); 
-             this->tableIter != this->table.end(); 
-             this->tableIter ++){
-            if (this->tableIter->second != NULL){
-                delete this->tableIter->second;
-            }
-        }
-    };
-    void reset() { this-> hasParsed = false;};
     void parse(VCFValue* v) {
         this->self = v;
         this->hasParsed = false;
@@ -82,7 +85,7 @@ public:
 
             this->self->parseTill(';', b, f->value);
             f->value->line[f->value->end] = '\0';
-            e = f->value->end;
+            e = f->value->end + 1;
         }
     };
   public:

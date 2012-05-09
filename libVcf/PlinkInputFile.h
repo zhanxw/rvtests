@@ -24,7 +24,7 @@ public:
         char c;
         // magic number
         char magic1 = 0x6c; // 0b01101100;
-        int ret; 
+        int ret;
         ret = fread(&c, sizeof(char), 1, this->fpBed);
         assert(ret == 1);
         if (c != magic1) {
@@ -41,7 +41,7 @@ public:
 
         // snp major mode
         const int SNP_MAJOR_MODE = 0x01; //0b00000001;
-        const int INDV_MAJOR_MODE = 0x00; 
+        const int INDV_MAJOR_MODE = 0x00;
         ret = fread(&c, sizeof(char), 1, this->fpBed);
         assert(ret == 1);
         if ( c == SNP_MAJOR_MODE) {
@@ -62,13 +62,17 @@ public:
                 continue;
             }
 
-            chrom.push_back (fd[0]);
-            snp.push_back(fd[1]);
-            snp2Idx[fd[1]] = snp2Idx.size();
-            mapDist.push_back(atof(fd[2].c_str()));
-            pos.push_back(atoi(fd[3].c_str()));
-            ref.push_back(fd[4][0]);
-            alt.push_back(fd[5][0]);
+            if (snp2Idx.find(fd[1]) == snp2Idx.end()) {
+                chrom.push_back (fd[0]);
+                snp.push_back(fd[1]);
+                snp2Idx[fd[1]] = snp2Idx.size() - 1;      //  -1 since fd[1] will be created using []
+                mapDist.push_back(atof(fd[2].c_str()));
+                pos.push_back(atoi(fd[3].c_str()));
+                ref.push_back(fd[4][0]);
+                alt.push_back(fd[5][0]);
+            } else {
+                fprintf(stderr, "duplicate marker name [%s], ignore!\n", fd[1].c_str());
+            }
         };
         delete lr;
 
@@ -79,10 +83,16 @@ public:
                 fprintf(stderr, "Wrong format in fam file.\n");
                 continue;
             }
-            // skip fam, pid, mid, sex, pheno
-            indv.push_back(fd[1]);
-            sex.push_back(atoi(fd[4].c_str()));
-            pheno.push_back(atof(fd[5].c_str()));
+
+            // will skip loading fam, pid, mid
+            if (pid2Idx.find(fd[1]) == pid2Idx.end()) {
+                pid2Idx[fd[1]] = pid2Idx.size() - 1; //  -1 since fd[1] will be created using []
+                indv.push_back(fd[1]);
+                sex.push_back(atoi(fd[4].c_str()));
+                pheno.push_back(atof(fd[5].c_str()));
+            } else {
+                fprintf(stderr, "duplicated person id [ %s ], ignore!\n", fd[1].c_str());
+            }
         };
         delete lr;
 
@@ -92,17 +102,18 @@ public:
         fclose(this->fpBim);
         fclose(this->fpFam);
     };
-    
-    // m is people by marker matrix
+
+    // @param m: people by marker matrix
     int readIntoMatrix(Matrix* mat) {
         assert(mat);
 
         // read bed
         int numPeople = getNumIndv();
         int numMarker = getNumMarker();
-        
+
         if (snpMajorMode) {
-            unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
+            // unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
+            unsigned char mask = 0x3; // 0b0000011
             unsigned char c;
             (*mat).Dimension( numPeople, numMarker );
             for (int m = 0; m < numMarker; m++){
@@ -112,7 +123,7 @@ public:
                         int ret = fread(&c, sizeof(unsigned char), 1, fpBed);
                         assert (ret == 1);
                     }
-                    unsigned char geno = (c & mask[offset]) >> (offset << 1);
+                    unsigned char geno = (c  >> (offset << 1)) & mask;
                     switch (geno){
                     case HOM_REF:
                         (*mat)[p][m] = 0;
@@ -124,12 +135,15 @@ public:
                         (*mat)[p][m] = 2;
                         break;
                     case MISSING:
-                        (*mat)[p][m] = MISSING;
+                        (*mat)[p][m] = -9;
                         break;
                     default:
                         REPORT("Read PLINK genotype error!\n");
                         break;
                     };
+                    //
+                    //unsigned char temp =  (c >> (offset << 1) ) & 3 ; 
+                    //printf("m=%d, p=%d, offset=%d, c=%d, geno=%d, geno = %d, temp=%d\n", m,p,offset,c, geno, (int)(*mat)[p][m],temp);
                 }
             }
         } else { // Indv_Major_Mode
@@ -155,7 +169,7 @@ public:
                         (*mat)[m][p] = 2;
                         break;
                     case MISSING:
-                        (*mat)[m][p] = MISSING;
+                        (*mat)[m][p] = -9;
                         break;
                     default:
                         REPORT("Read PLINK genotype error!\n");
@@ -166,6 +180,111 @@ public:
         }
     };
 
+
+    int readIntoMatrix(Matrix* mat, std::vector<std::string>* peopleNames, std::vector<std::string>* markerNames) {
+        assert (mat);
+
+        // read bed
+        int numPeople = getNumIndv();
+        int numMarker = getNumMarker();
+
+        mat->Dimension( peopleNames == NULL ? numPeople: peopleNames->size(),
+                        markerNames == NULL ? numMarker: markerNames->size());
+
+        // get people index
+        std::vector<int> peopleIdx;
+        if (peopleNames == NULL || peopleNames->size() == 0) {
+            // all peoples
+            peopleIdx.resize(pid2Idx.size());
+            for (int i = 0; i < pid2Idx.size(); i++)
+                peopleIdx[i] = (i);
+        } else {
+            for (int i = 0; i < peopleNames->size(); i++)
+                if ( pid2Idx.find( (*peopleNames)[i] ) != pid2Idx.end()) {
+                    peopleIdx.push_back(  pid2Idx[ (*peopleNames)[i] ]) ;
+                }
+        }
+
+        // get marker index
+        std::vector<int> markerIdx;
+        if (markerNames == NULL || markerNames->size() == 0) {
+            // all markers
+            markerIdx.resize(snp.size());
+            for (int i = 0; i < snp.size(); i++)
+                markerIdx[i]= (i);
+        } else {
+            for (int i = 0; i < markerNames->size(); i++)
+                if ( snp2Idx.find( (*markerNames)[i] ) != snp2Idx.end()) {
+                    markerIdx.push_back(  snp2Idx[ (*markerNames)[i] ]) ;
+                }
+        }
+
+        int peopleToRead = peopleIdx.size();
+        int markerToRead = markerIdx.size();
+
+        unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
+        (*mat).Dimension( peopleToRead, markerToRead);
+        if (snpMajorMode) {
+            for (int p = 0; p < peopleToRead; p++) {
+                for (int m = 0; m < markerToRead; m++) {
+                    // get file position
+                    int pos = 3 + (numPeople / 4 + 1 ) * markerIdx[m] + peopleIdx[p] / 4;
+                    int offset = peopleIdx[p] % 4;
+                    unsigned char c;
+                    fseek(this->fpBed, pos, SEEK_SET);
+                    int ret = fread(&c, sizeof(unsigned char), 1, fpBed);                    
+                    unsigned char geno = (c & mask[offset]) >> (offset << 1);
+                    switch (geno){
+                    case HOM_REF:
+                        (*mat)[p][m] = 0;
+                        break;
+                    case HET:
+                        (*mat)[p][m] = 1;
+                        break;
+                    case HOM_ALT:
+                        (*mat)[p][m] = 2;
+                        break;
+                    case MISSING:
+                        (*mat)[p][m] = -9;
+                        break;
+                    default:
+                        REPORT("Read PLINK genotype error!\n");
+                        break;
+                    };
+                }
+            }
+        } else { // Indv_Major_Mode
+            for (int p = 0; p < numPeople; p++) {
+                for (int m = 0; m < numMarker; m++){
+                    // get file position
+                    int pos = 3 + (numMarker / 4  + 1) * peopleIdx[p] + markerIdx[m] / 4;
+                    int offset = markerIdx[m] % 4;
+                    unsigned char c;
+                    fseek(this->fpBed, pos, SEEK_SET);
+                    int ret = fread(&c, sizeof(unsigned char), 1, fpBed);
+
+                    unsigned char geno = (c & mask[offset]) >> (offset << 1);
+                    switch (geno){
+                    case HOM_REF:
+                        (*mat)[m][p] = 0;
+                        break;
+                    case HET:
+                        (*mat)[m][p] = 1;
+                        break;
+                    case HOM_ALT:
+                        (*mat)[m][p] = 2;
+                        break;
+                    case MISSING:
+                        (*mat)[m][p] = -9;
+                        break;
+                    default:
+                        REPORT("Read PLINK genotype error!\n");
+                        break;
+                    };
+                }
+            }
+        }
+    };
     int getMarkerIdx(const std::string& m){
         if (this->snp2Idx.find(m) == this->snp2Idx.end()){
             return -1;
@@ -173,14 +292,14 @@ public:
             return (this->snp2Idx[m]);
         }
     };
-    
+
     int getNumIndv() const {
         this->indv.size();
     };
     int getNumMarker() const {
         this->snp2Idx.size();
     };
-  public: 
+public:
     std::vector<std::string> chrom;
     std::vector<std::string> snp;
     std::vector<double> mapDist;
@@ -194,8 +313,8 @@ public:
 
 private:
     std::map<std::string, int> snp2Idx;
-
-    // we reverse the two bits as defined in PLINK format, 
+    std::map<std::string, int> pid2Idx;
+    // we reverse the two bits as defined in PLINK format,
     // so we can process 2-bit at a time.
     const static unsigned char HOM_REF = 0x0;     //0b00;
     const static unsigned char HET = 0x2;         //0b10;

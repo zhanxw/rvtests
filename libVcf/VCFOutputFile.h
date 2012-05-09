@@ -31,8 +31,8 @@ public:
                          r->getRef(),
                          r->getAlt(),
                          r->getQual(),
-                         r->getInfo(),
                          r->getFilt(),
+                         r->getInfo(),
                          r->getFormat());
         VCFPeople& p = r->getPeople();
         for (int i = 0; i < p.size() ; i ++ ) {

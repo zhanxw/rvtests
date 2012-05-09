@@ -1,22 +1,3 @@
-/**
-   immediately TODO:
-   8. force loading index when read by region.
-   3. support tri-allelic (getAlt())
-   4. speed up VCF parsing. (make a separate line buffer).
-   5. loading phenotype and covariate (need tests now).
-   6. do analysis. (test CMC for now)
-   7. VT (combine Collapsor and ModelFitter)
-
-   DONE:
-   1. suppport PLINK output
-   2. support access INFO tag
-   5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
-   8. Make code easy to use ( hide PeopleSet and RangeList)
-   9. Inclusion/Exclusion set should be considered sequentially.
-   futher TODO:
-   1. handle different format GT:GD:DP ... // use getFormatIndex()
-
-*/
 #include "Argument.h"
 #include "IO.h"
 #include "tabix.h"
@@ -76,7 +57,7 @@ int main(int argc, char** argv){
     // e.g.     
     // vin.setRangeList("1:69500-69600");
     vin.setRangeList(FLAG_rangeList.c_str());
-    vin.setRangeList(FLAG_rangeFile.c_str());
+    vin.setRangeFile(FLAG_rangeFile.c_str());
 
     // set people filters here
     if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
@@ -102,7 +83,9 @@ int main(int argc, char** argv){
 
     if (vout) vout->writeHeader(vin.getVCFHeader());
     if (pout) pout->writeHeader(vin.getVCFHeader());
+    int lineNo = 0;
     while (vin.readRecord()){
+        lineNo ++;
         VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
         VCFIndividual* indv;
@@ -128,7 +111,7 @@ int main(int argc, char** argv){
         printf("\n");
 #endif
     };
-
+    fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
     if (vout) delete vout;
     if (pout) delete pout;
 

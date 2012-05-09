@@ -5,10 +5,14 @@
 #include <Eigen/Eigenvalues> 
 #include <Eigen/Dense>
 
+#define ZBOUND 1e-30
+
 #if 0
 #include <ctime>
 #include <iostream>
 #include <fstream>
+
+
 void TIME() {
     time_t t  = time(0);
     printf("Time: %s\n", ctime(&t));
@@ -73,18 +77,28 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
         lambda = new double[v.size()];
         noncen = new double[v.size()];
         df = new int[v.size()];
-
-        // w_sqrt <- W
-        w_sqrt.resize(w_G.Length());
-        for (int i = 0; i < w_G.Length(); i++) {
-            if (w_G[i] > 1e-30)
-                w_sqrt(i) = sqrt(w_G[i]);
-            else 
-                w_sqrt(i) = 0.0;
-        }
+	lambda_size = v.size();
 
         this->hasCache = true;
     };
+
+       //Re-allocate memory if # of markers is > # of samples
+      if(lambda_size < G.cols())
+      {
+	lambda_size = G.cols();
+	delete [] lambda; delete [] noncen; delete [] df;
+        lambda = new double[lambda_size];
+        noncen = new double[lambda_size];
+        df = new int[lambda_size];
+      }
+        // w_sqrt <- W
+        w_sqrt.resize(w_G.Length());
+        for (int i = 0; i < w_G.Length(); i++) {
+            if (w_G[i] > ZBOUND)
+                w_sqrt(i) = sqrt(w_G[i]);
+            else 
+                w_sqrt(i) = 0.0;
+         }
 
     // get K_sqrt
     K_sqrt = w_sqrt.asDiagonal() * G.transpose();
@@ -98,20 +112,20 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
 
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
     es.compute(P1);
-    printf("done es \n");
-
-    // fit in parameters to qf()
 
     // Input to qf
+    int r_ub = G.rows() > G.cols() ? G.cols() : G.rows();
     int r = 0; // es.eigenvalues().size();
-    for(int i=0; i<es.eigenvalues().size(); i++)
+    int eigen_len = es.eigenvalues().size();
+    for(int i=eigen_len-1; i>=0; i--)
     {
-        if (es.eigenvalues()[i] > 1e-30) {
-            lambda[i] = es.eigenvalues()[i];
-            noncen[i] = 0.0;
-            df[i] = 1;
+        if (es.eigenvalues()[i] > ZBOUND && r<r_ub) {
+            lambda[r] = es.eigenvalues()[i];
+            noncen[r] = 0.0;
+            df[r] = 1;
             r++;
         }
+	else break;
     }
 
     double sigma = 0.0;
@@ -125,11 +139,9 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
 
     // note: qf give distribution but we want p-value.
     this->pValue = 1.0 - qf(lambda, noncen, df, r, sigma, Q, lim, acc, trace, &fault);
-    // printf("done qf \n");
+    if(this->pValue>1.0) this->pValue = 1.0; //this occurs when eigen values are very large
+
     // TIME();
-    delete [] lambda;
-    delete [] noncen;
-    delete [] df;
 
     if (fault) {
         return fault;
@@ -178,7 +190,7 @@ void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf& out) {
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(in);
     Eigen::VectorXf d = es.eigenvalues();;
     for (int i = 0; i < d.size(); i++){
-        if (d(i) > 1e-30) {
+        if (d(i) > ZBOUND) {
             d(i) = sqrt(d[i]);
         }else{
             d(i) = 0.0;

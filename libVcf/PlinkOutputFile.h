@@ -61,10 +61,12 @@ public:
         (*c) |= (geno << (pos<<1));
     }
 
-    void writeRecord(VCFRecord* r){
+    int writeRecord(VCFRecord* r){
+        int ret;
         // write BIM
         // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
-        this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(), r->getAlt());
+        ret = this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(), r->getAlt());
+        if (ret) return ret; // unsuccess
         // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
 
         // write BED
@@ -102,7 +104,11 @@ public:
                     } else {
                         setGenotype(&c, offset, MISSING); // missing
                     }
-                }
+                } else {
+                    // NOTE: Plink does not support tri-allelic
+                    // so have to set genotype as missing.
+                    setGenotype(&c, offset, MISSING); // missing
+                };
             }
             if ( offset == 3) { // 3: 4 - 1, so every 4 genotype we will flush 
                 fwrite(&c, sizeof(char), 1, this->fpBed);
@@ -111,13 +117,29 @@ public:
         };
         if (people.size() % 4 != 0 ) // remaining some bits
             fwrite(&c, sizeof(char), 1, this->fpBed);
+
+        return 0;
     }
-    void writeBIM(const char* chr, const char* id, int mapDist, int pos, const char* ref, const char* alt){
+    /**
+     * @return 0: success
+     */
+    int writeBIM(const char* chr, const char* id, int mapDist, int pos, const char* ref, const char* alt){
         // printf("In writeBIM(), id = %s and its address is id = %p \n", id, id);
-        if (strlen(ref) > 1 || strlen(alt) > 1) {
-            fprintf(stdout, "skip with ref = %s and alt = %s\n", ref, alt);
-            return;
+        int refLen = strlen(ref);
+        int altLen = strlen(alt);
+        if (refLen > 1 ) {
+            if (ref[1] != ','){
+                fprintf(stdout, "skip with ref = %s and alt = %s\n", ref, alt);
+                return -1;
+            }
         }
+        if (altLen >1 ) {
+            if (alt[1] != ',') {
+                fprintf(stdout, "skip with ref = %s and alt= %s\n", ref, alt);
+                return -1;
+            }
+        }
+
         std::string chrom = chr;
         if (atoi(chr) > 0) {
             fputs(chr, this->fpBim);
@@ -130,7 +152,7 @@ public:
             fputs("25\t", this->fpBim);
         else {
             fprintf(stdout, "skip chrom %s\n", chr);
-            return;
+            return -1;
         }
         if (id && id[0] != '.')
             fprintf(this->fpBim, "%s\t", id);
@@ -141,6 +163,7 @@ public:
         fprintf(this->fpBim, "%d\t", pos);
         fprintf(this->fpBim, "%c\t", ref[0]);
         fprintf(this->fpBim, "%c\n", alt[0]);
+        return 0;
     };
     void writeFAM(std::vector< std::string >& people){
         for (int i = 0; i < people.size(); i++) {
@@ -183,10 +206,10 @@ public:
 private:
     // we reverse the two bits as defined in PLINK format, 
     // so we can process 2-bit at a time.
-    const static unsigned char HOM_REF = 0x0;     //0b00;
-    const static unsigned char HET = 0x2;         //0b10;
-    const static unsigned char HOM_ALT = 0x3;     //0b11;
-    const static unsigned char MISSING = 0x1;     //0b01;
+    const static unsigned char HOM_REF = 0x0;     //0b00 ;
+    const static unsigned char HET = 0x2;         //0b10 ;
+    const static unsigned char HOM_ALT = 0x3;     //0b11 ;
+    const static unsigned char MISSING = 0x1;     //0b01 ;
 
 
     FILE* fpBed;

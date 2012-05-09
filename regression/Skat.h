@@ -20,8 +20,12 @@ public:
         lambda = NULL;
         noncen = NULL;
         df = NULL;
+	lambda_size = 0;
         Reset();
     }
+   ~Skat()
+    { Reset(); }
+
     void Reset() { 
         this->hasCache = false; 
         if (lambda) {
@@ -54,6 +58,7 @@ private:
     double *lambda;
     double *noncen;
     int *df;
+    int lambda_size;
 };
 
 #endif

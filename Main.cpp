@@ -1,28 +1,33 @@
 /**
    immediately TODO:
-   1. fix suppport PLINK output
-
-   3. support tri-allelic (getAlt())
-   4. speed up VCF parsing. (make a separate line buffer).
    5. loading phenotype and covariate (need tests now).
    6. Test CMC
    7. Test VT (combine Collapsor and ModelFitter)
    8. Test permutation test
-   9. Add more filter to individuals
-   10. Fast VCF INFO field retrieve
    11. Fast VCF Individual inner field retrieve
-   12. Design command line various models (collapsing method, freq-cutoff)
+   12. Add support multi-thread
+   13. Add optional weight
 
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
    8. Make code easy to use ( hide PeopleSet and RangeList)
    9. Inclusion/Exclusion set should be considered sequentially.
+   8. force loading index when read by region.
+   3. support tri-allelic (fix some relateds codes when output vcf/plink file)
+   9. Add more filter to individuals (see VCFExtractor)
+   10. Fast VCF INFO field retrieve (VCFInfo class has cache)
+   1. fix suppport PLINK output
+   1. handle different format GT:GD:DP ... // use getFormatIndex()
 
    futher TODO:
-   1. handle different format GT:GD:DP ... // use getFormatIndex()
-   8. force loading index when read by region.
+   12. Design command line various models (collapsing method, freq-cutoff)
+
+   Not sure if worthy to do:
+   4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
+
 */
+
 #include "Argument.h"
 #include "IO.h"
 #include "tabix.h"
@@ -50,7 +55,7 @@ void banner(FILE* fp) {
         "   ...      Bingshan Li, Dajiang Liu          ...      \n"
         "    ...      Goncalo Abecasis                  ...     \n"
         "     ...      zhanxw@umich.edu                  ...    \n"
-        "      ...      Dec 2011                          ...   \n"
+        "      ...      Feburary 2012                     ...   \n"
         "       ..............................................  \n"
         "                                                       \n"
         ;
@@ -67,8 +72,6 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
         ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
         ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
-        ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
-        ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_STRING_PARAMETER(pl, set, "--set", "specify set file (for collapsing)")
         ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
         ADD_PARAMETER_GROUP(pl, "People Filter")
@@ -91,6 +94,8 @@ int main(int argc, char** argv){
         // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
 
         ADD_PARAMETER_GROUP(pl, "Association Functions")
+        ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
+        ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
         ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
         ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC")
         ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
@@ -100,6 +105,8 @@ int main(int argc, char** argv){
         ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
         ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
         ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
+        /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
+        /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
         ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
         ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
         ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
@@ -130,7 +137,7 @@ int main(int argc, char** argv){
 
    // set range filters here
     vin.setRangeList(FLAG_rangeList.c_str());
-    vin.setRangeList(FLAG_rangeFile.c_str());
+    vin.setRangeFile(FLAG_rangeFile.c_str());
 
     // set people filters here
     if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
@@ -139,8 +146,10 @@ int main(int argc, char** argv){
         vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
     }
     vin.excludePeople(FLAG_peopleExcludeID.c_str());
-    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());    // now let's finish some statistical tests
+    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());    
 
+    // now let's finish some statistical tests
+    
     // add filters. e.g. put in VCFInputFile is a good method
     // site: DP, MAC, MAF (T3, T5)
     // indv: GD, GQ

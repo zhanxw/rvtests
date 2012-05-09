@@ -1,4 +1,3 @@
-
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
    HOME = /home/zhanxw

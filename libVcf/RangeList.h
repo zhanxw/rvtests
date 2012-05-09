@@ -34,6 +34,9 @@ inline bool PositionPairCompare(const PositionPair& p1, const PositionPair& p2){
     return (p1.end < p2.end);
 };
 
+/**
+ * Store arbitrary number of ranges: e.g. [chr1:1-100, chr2:2-300....]
+ */
 class RangeCollection{
 public:
     void addRange(const std::string& chr, unsigned int begin, unsigned int end) {
@@ -79,6 +82,22 @@ public:
                 (*range) += toString((this->rangeMap[this->chrVector[i]][t]).begin);
                 range->push_back('-');
                 (*range) += toString((this->rangeMap[this->chrVector[i]][t]).end);
+                return;
+            } else {
+                t -= s;
+            }
+        }
+        assert(false);
+    };
+    void obtainRange(const unisgned int index, std::string* str, unsigned int* beg, unsigned int* end) {
+        int t = index;
+        int s;
+        for(unsigned int i = 0; i < this->chrVector.size(); i++ ) {
+            s = rangeMap[chrVector[i]].size();
+            if ( t < s) {
+                (*chr) = chrVector[i];
+                (*beg) = (this->rangeMap[this->chrVector[i]][t]).begin;
+                (*end) = (this->rangeMap[this->chrVector[i]][t]).end;
                 return;
             } else {
                 t -= s;
@@ -155,23 +174,41 @@ public:
         }
 
         // copy t -> v
+
         v->clear();
         std::swap( t, *v);
+    };
+    class iterator {
+        
     };
 private:
     std::vector<std::string> chrVector;
     std::map< std::string, std::vector<PositionPair> > rangeMap;
 }; // end class RangeCollection
 
+
+/**
+ * Hold a collection of ranges, and offer utility function (e.g. load file)
+ */
 class RangeList{
 public:
 RangeList(): isSorted(false) {};
+    /**
+     * First sort all ranges(if necessary), then store th index-th range to @param range, in the format of "chr1:100-200"
+     */
     void obtainRange(const unsigned int index, std::string* range) {
         if (!this->isSorted) {
             this->rangeCollection.sort();
             this->isSorted = true;
         }
         this->rangeCollection.obtainRange(index, range);
+    }
+    void obtainRange(const unsigned int index, std::string* chr, unsigned int* beg, unsigned int* end) {
+        if (!this->isSorted) {
+            this->rangeCollection.sort();
+            this->isSorted = true;
+        }
+        this->rangeCollection.obtainRange(index, chr, beg, end);
     }
     unsigned int size() const {return this->rangeCollection.size(); };
     // read gene list file and add these ranges

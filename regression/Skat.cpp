@@ -49,7 +49,7 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
     G_to_Eigen(G_G, G);
     G_to_Eigen(w_G, w);
 
-    if (!this->hasCache) {
+    if (!this->hasCache){
         // get residual
         int yLen = y_G.Length();
         res.resize(yLen);

@@ -30,6 +30,9 @@ public:
                 FATAL("Wrong VCF header");
             }
         }
+        if (this->headerLoaded == false) {
+            FATAL("VCF File does not have header!");
+        }
 
         this->tabixHandle = 0;
         this->iter = 0;

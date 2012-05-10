@@ -27,7 +27,7 @@ $(EIGEN_INC) $(EIGEN_LIB):
 	(cd ../third; make eigen)
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
-release: CXXFLAGS = -O2 $(DEFAULT_CXXFLAGS)
+release: CXXFLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 debug: CXXFLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB-DBG)

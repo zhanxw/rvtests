@@ -6,6 +6,8 @@
    11. Fast VCF Individual inner field retrieve
    12. Add support multi-thread
    13. Add optional weight
+   14. support VCF specify given locations
+   15. region class support union, support region names
 
    DONE:
    2. support access INFO tag
@@ -71,8 +73,10 @@ int main(int argc, char** argv){
     BEGIN_PARAMETER_LIST(pl)
         ADD_PARAMETER_GROUP(pl, "Input/Output")
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-        ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
-        ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
+        ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
+        ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
+        ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")        
+        ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output [prefix].{fam,bed,bim} in Plink BED format")
 
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
@@ -91,6 +95,9 @@ int main(int argc, char** argv){
         // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis");
         // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis");
         // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
+        ADD_STRING_PARAMETER(pl, annoGene, "--annoGene", "Specify gene name that is followed by ANNO= in the VCF INFO field")
+        ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field")
+        // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any valid Python expression, will output if eval is > 0")
 
         ADD_PARAMETER_GROUP(pl, "Association Functions")
         ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
@@ -133,7 +140,7 @@ int main(int argc, char** argv){
     }
 
     REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
-
+    
     const char* fn = FLAG_inVcf.c_str();
     VCFInputFile* pVin = new VCFInputFile(fn);
     VCFInputFile& vin = *pVin;
@@ -153,16 +160,22 @@ int main(int argc, char** argv){
 
     // conversion part
     VCFOutputFile* vout = NULL;
-    if (FLAG_outVcf.size()) {
-        vout = new VCFOutputFile(FLAG_outVcf);
+    if (FLAG_outVcf) {
+        vout = new VCFOutputFile( (FLAG_outPrefix + ".vcf").c_str());
+        if (!vout) {
+            fprintf(stderr, "Cannot create VCF file.\n");
+            exit(1);
+        }
     }
     PlinkOutputFile* pout = NULL;
-    if (FLAG_outPlink.size()) {
-        pout = new PlinkOutputFile(FLAG_outPlink);
+    if (FLAG_outPlink) {
+        pout = new PlinkOutputFile( FLAG_outPrefix.c_str() );
     }
-    if (vout || pout) {
+    if (vout || pout || FLAG_outStdout) {
         if (vout) vout->writeHeader(vin.getVCFHeader());
         if (pout) pout->writeHeader(vin.getVCFHeader());
+        if (FLAG_outStdout) vin.getVCFHeader().output();
+
         int lineNo = 0;
         while (vin.readRecord()){
             lineNo ++;
@@ -171,7 +184,7 @@ int main(int argc, char** argv){
             VCFIndividual* indv;
             if (vout) vout->writeRecord(& r);
             if (pout) pout->writeRecord(& r);
-
+            if (FLAG_outStdout) r.output();
 #if 0
             printf("%s:%d\t", r.getChrom(), r.getPos());
             
@@ -191,7 +204,7 @@ int main(int argc, char** argv){
             printf("\n");
 #endif
         };
-        fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+        fprintf(stderr, "Total %d VCF records have converted successfully\n", lineNo);
         if (vout) delete vout;
         if (pout) delete pout;
     }

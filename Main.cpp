@@ -44,7 +44,6 @@
 #include "Logger.h"
 #include "Utils.h"
 #include "VCFUtil.h"
-
 #include "MathVector.h"
 #include "MathMatrix.h"
 
@@ -174,7 +173,7 @@ int main(int argc, char** argv){
     if (vout || pout || FLAG_outStdout) {
         if (vout) vout->writeHeader(vin.getVCFHeader());
         if (pout) pout->writeHeader(vin.getVCFHeader());
-        if (FLAG_outStdout) vin.getVCFHeader().output();
+        if (FLAG_outStdout) vin.getVCFHeader()->output(stdout);
 
         int lineNo = 0;
         while (vin.readRecord()){
@@ -184,7 +183,7 @@ int main(int argc, char** argv){
             VCFIndividual* indv;
             if (vout) vout->writeRecord(& r);
             if (pout) pout->writeRecord(& r);
-            if (FLAG_outStdout) r.output();
+            if (FLAG_outStdout) r.output(stdout);
 #if 0
             printf("%s:%d\t", r.getChrom(), r.getPos());
             

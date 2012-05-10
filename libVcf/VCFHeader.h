@@ -25,6 +25,11 @@ class VCFHeader{
     std::string at(int n) { return this->data.at(n);};
     const std::string at(int n) const {return this->data.at(n);};
     void clear() { this->data.clear();};
+    void output(FILE* fp) const{
+        for (unsigned int i = 0; i< data.size(); ++i){
+            fprintf(fp, "%s\n", data[i].c_str());
+        }
+    };
   private:
     std::vector<std::string> data;
 };

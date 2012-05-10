@@ -54,11 +54,13 @@ public:
         int idx = 0; // peopleIdx
         VCFIndividual* p = this->allIndv[idx]; 
         int end = this->format.end;
-        while( this->self.parseTill('\t', end + 1, &p->self) == 0) {
+        VCFValue indv;
+        while( this->self.parseTill('\t', end + 1, &indv) == 0) {
+            p->setSelf(indv);
             p->parse();
-            end = p->self.end;
+            end = indv.end;
 
-            if (p->self.end == this->self.end) {
+            if (indv.end == this->self.end) {
                 break;
             }
             // check next individual
@@ -67,7 +69,6 @@ public:
                 FATAL("VCF header have LESS people than VCF content!");
             }
             p = this->allIndv[idx];
-
         };
         
         if (idx + 1 > this->allIndv.size()) {
@@ -166,9 +167,13 @@ public:
     const char* getInfoTag(const char* tag) {
         return this->vcfInfo.getTag(tag);
     };
+    void output(FILE* fp) const{
+        this->self.output(fp);
+        fputc('\n', fp);
+    };
 public:
     const char* getChrom() { return this->chrom.toStr(); };
-    const int getPos()  { return this->pos.toInt(); };
+    const int   getPos()  { return this->pos.toInt(); };
     const char* getID() { return this->id.toStr(); };
     const char* getRef() { return this->ref.toStr(); };
     const char* getAlt() { return this->alt.toStr(); };
@@ -214,6 +219,9 @@ public:
                 }
             }
         }
+    };
+    const VCFValue& getSelf() const{
+        return this->self;
     };
 private:
     VCFPeople allIndv;      // all individual

@@ -36,6 +36,11 @@ public:
             s->push_back(line[i]);
         }
     };
+    void output(FILE* fp) const {
+        for (int i = beg; i < end; ++i) {
+            fputc(line[i], fp);
+        }
+    };
 public:
     // try to convert to genotype
     int getGenotype(){

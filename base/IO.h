@@ -25,24 +25,23 @@ typedef enum FileType {
 /**
  * Sample usage:
  * std::string line;
- * FileReader* f = FileReader::open("abc");
+ * LineReader* f = AbstractFileReader::open("abc");
  * while (f->readLine(line) > 0) {
  *   ...
  * }
- * FileReader::close(&f);
+ * delete f;
  */
-class FileReader{
+class AbstractFileReader{
   public:
-    /* typedef enum FileType { */
-    /*     PLAIN = 0, */
-    /*     GZIP = 1, */
-    /*     BZIP2 = 2, */
-    /*     BGZIP = 3, */
-    /*     UNKNOWN = 99 */
-    /* } FileType; */
-    virtual ~FileReader() {}; // make it virtual so subclass types can close file handle
-    static FileReader* open(const char* fileName);
-    static void close(FileReader** f);
+    typedef enum FileType {
+        PLAIN = 0,
+        GZIP = 1,
+        BZIP2 = 2,
+        UNKNOWN = 99
+    } FileType;
+    virtual ~AbstractFileReader() {}; // make it virtual so subclass types can close file handle
+    static AbstractFileReader* open(const char* fileName);
+    static void close(AbstractFileReader** f);
     // virtual functions
     // each specific file type will need to implement the following function
     //virtual int readLine(std::string* line) = 0;
@@ -54,10 +53,10 @@ class FileReader{
     // common utility function
     static FileType checkFileType(const char* fileName);
   protected:
-    FileReader() {}; // forbid explicit create FileReader class.
+    AbstractFileReader() {}; // forbid explicit create AbstractFileReader class.
 };
 
-class PlainFileReader: public FileReader{
+class PlainFileReader: public AbstractFileReader{
   public:
   PlainFileReader(const char* fileName):
     fp(NULL) {
@@ -106,7 +105,7 @@ class PlainFileReader: public FileReader{
 //////////////////////////////////////////////////////////////////////
 // Gzip reading class
 #include <zlib.h>
-class GzipFileReader: public FileReader{
+class GzipFileReader: public AbstractFileReader{
   public:
   GzipFileReader(const char* fileName):
     fp(NULL) {
@@ -155,7 +154,7 @@ class GzipFileReader: public FileReader{
 //////////////////////////////////////////////////////////////////////
 // Bzip2 reading class
 #include <bzlib.h>
-class Bzip2FileReader: public FileReader{
+class Bzip2FileReader: public AbstractFileReader{
   public:
   Bzip2FileReader(const char* fileName):
     fp(NULL) {
@@ -238,20 +237,21 @@ class Bzip2FileReader: public FileReader{
         }
     }
 */
-class BufferedReader: public FileReader{
-  public:
-    BufferedReader(const char* fileName, int bufferCapacity) {
+class BufferedReader: public AbstractFileReader{
+public:
+BufferedReader(const char* fileName, int bufferCapacity):
+    bufCap(0),bufEnd(0),bufPtr(0),buf(NULL),fp(NULL) {
 #ifdef IO_DEBUG
         fprintf(stderr, "BufferedReader open %s\n", fileName);
 #endif
         // initialize buf
-        if (bufferCapacity <= 0) {
+        if (bufferCapacity == 0) {
             fprintf(stderr, "Buffer size should be greater than 0, now use default buffer size 8096 instead of %d.\n", bufferCapacity);
             this->bufCap = 8096;
         } else {
-            this->bufCap = bufferCapacity;
+            this->bufCap = (unsigned int) (bufferCapacity);
         }
-        this->buf = (char*) malloc( sizeof(char)* this->bufCap);
+        this->buf = new char[this->bufCap]; 
         if (!this->buf) {
             fprintf(stderr, "Cannot allocate buffer for BufferedReader.\n");
             return;
@@ -259,7 +259,7 @@ class BufferedReader: public FileReader{
         this->bufPtr = 0;
         this->bufEnd = 0;
         // initialize fp
-        this->fp = FileReader::open(fileName);
+        this->fp = AbstractFileReader::open(fileName);
         if (!this->fp) {
             fprintf(stderr, "Canont open file %s\n", fileName);
             this->fp = NULL;
@@ -275,12 +275,12 @@ class BufferedReader: public FileReader{
         } 
 
         if (this->bufPtr < this->bufEnd)
-            return (this->buf [ this->bufPtr++] );
+            return (this->buf [ this->bufPtr++ ] );
         else 
             return EOF;
     }
     bool isEof() {
-        if (this->fp->isEof() && this->bufPtr == this->bufEnd){
+        if (this->fp && this->fp->isEof() && this->bufPtr == this->bufEnd){
             return true;
         }
         return false;
@@ -291,13 +291,13 @@ class BufferedReader: public FileReader{
 #endif
         // delete fp
         if (this->fp){
-            FileReader::close(&fp);
+            AbstractFileReader::close(&fp);
         }
         this->fp = NULL;
         // delete buf
         if (this->buf) {
-            free(this->buf);
-            this->buf = 0;
+            delete [] this->buf;
+            this->buf = NULL;
             this->bufCap = 0;
             this->bufPtr = 0;
             this->bufEnd = 0;
@@ -327,7 +327,7 @@ class BufferedReader: public FileReader{
     unsigned int bufEnd; // bufPtr should not read beyond bufEnd(incluive)
     unsigned int bufPtr; // from which buffer begins to read
     char* buf;
-    FileReader* fp;
+    AbstractFileReader* fp;
 };
 
 /** Example code:
@@ -348,7 +348,7 @@ class LineReader{
             this->fp = NULL;
         }
     }
-    LineReader(FileReader* fp) {
+    LineReader(AbstractFileReader* fp) {
         this->fp = fp;    
     }
     virtual ~LineReader(){
@@ -420,7 +420,7 @@ class LineReader{
         return 0;
     };
   private:
-    FileReader* fp;
+    AbstractFileReader* fp;
 };
 
 //////////////////////////////////////////////////////////////////////

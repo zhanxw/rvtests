@@ -123,7 +123,7 @@ void RangeList::addRangeList(const char* argRangeList) {
  */
 void RangeList::addRangeFile(const char* argRangeFile){
     if (!strlen(argRangeFile)) return;
-    fprintf(stdout, "Load range file %s.\n", argRangeFile);
+    // fprintf(stdout, "Load range file %s.\n", argRangeFile);
 
     LineReader lr(argRangeFile);
     std::vector<std::string> sa;
@@ -137,7 +137,8 @@ void RangeList::addRangeFile(const char* argRangeFile){
         else if (sa.size() == 3)
             this->rangeCollection.addRange(sa[0].c_str(), (unsigned int) atoi(sa[1]), (unsigned int) atoi(sa[2]));
         else {
-            fprintf(stdout, "Will only use the first 3 column of --rangeFile %s\n", argRangeFile);
+            // we will silently use the first 3 columns
+            // fprintf(stdout, "Will only use the first 3 column of --rangeFile %s\n", argRangeFile);
             this->rangeCollection.addRange(sa[0].c_str(), (unsigned int) atoi(sa[1]), (unsigned int) atoi(sa[2]));
         }
     }

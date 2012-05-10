@@ -80,9 +80,24 @@ public:
             *s += this->fd[i].toStr();
         }
     };
-  public:
-    VCFValue self;            // whole field for the individual
+    void setSelf(const VCFValue& v) {
+        this->self = v;
+    };
+    const VCFValue& getSelf() const{
+        return this->self;
+    };
+    /**
+     * dump the content of VCFIndividual column
+     */
+    void output(FILE* fp) const{
+        for (unsigned int i = 0; i < fd.size(); ++i){
+            if (i)
+                fputc(':', fp);
+            this->fd[i].output(fp);
+        }
+    };
   private:
+    VCFValue self;            // whole field for the individual
     bool inUse;
     std::string name;         // id name
     std::vector<VCFValue> fd; // each field separated by ':'

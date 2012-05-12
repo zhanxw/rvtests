@@ -1,10 +1,11 @@
-EXE = t1 testVCFExtract testRangeList testReadVCF
+EXE = testReadVCF #t1 testVCFExtract testReadVCF
 all: $(EXE)
 debug: all
 
-CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include ../../third/tabix/libtabix.a \
+CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
  ../../libVcf/lib-dbg-vcf.a \
  ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a -lz -lbz2 \
+../../third/tabix/libtabix.a \
 ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a
 
 define BUILD_each
@@ -17,10 +18,6 @@ endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
 check: check1 check2 check3
-testRangeList: testRangeList.cpp  ../../libVcf/lib-dbg-vcf.a 
-	g++ -o $@ $< $(CXX_FLAGS)
-
-
 check1:
 	./t1 > t1.output
 	diff -q t1.output t1.correct
@@ -29,7 +26,6 @@ check2:
 	./testVCFExtract
 check3:
 	./testReadVCF > testReadVCF.output
-	diff -q testReadVCF.output testReadVCF.correct
-	rm -f testReadVCF.output
+	diff -q testReadVCF.output testReadVCF.output.correct
 clean:
-	-rm -f $(EXE)
+	-rm -f $(EXE) *.d *.output

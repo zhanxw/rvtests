@@ -2,7 +2,7 @@
 
 int main() {
     VCFInputFile vin("test.vcf");
-    int lineNo;
+    int lineNo = 0;
     while (vin.readRecord()){
         lineNo ++;
         VCFRecord& r = vin.getVCFRecord(); 

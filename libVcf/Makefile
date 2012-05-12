@@ -1,18 +1,10 @@
-UNAME := $(shell uname)
-ifeq ($(UNAME), Linux)
-   HOME = /home/zhanxw
-endif
-ifeq ($(UNAME), Darwin)
-   HOME = /Users/zhanxw
-endif
-
 .PHONY: all release debug
 all: release 
 
 LIB = lib-vcf.a
 LIB_DBG = lib-dbg-vcf.a
-BASE = PeopleSet VCFUtil
-# VCFExtractor
+BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile # VCFExtractor
+
 OBJ = $(BASE:=.o)
 
 TABIX_INC = ../third/tabix

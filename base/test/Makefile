@@ -29,5 +29,3 @@ check:
 clean:
 	-rm -f $(EXE)
 
-# testRangeList: testRangeList.cpp  ../../libVcf/lib-dbg-vcf.a 
-# 	g++ -o $@ $< $(CXX_FLAGS)

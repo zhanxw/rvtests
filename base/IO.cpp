@@ -70,3 +70,30 @@ AbstractFileWriter::~AbstractFileWriter() {
     fprintf(stderr, "AbstractFileWriter desc()\n");
 #endif
 };
+
+
+int BGZipFileWriter::open(const char* fn, bool append){
+    if (append) 
+        fprintf(stderr, "Gzip does not support appending.\n");
+    this->fp = bgzf_open(fn, "w");
+    if (!this->fp) {
+        fprintf(stderr, "ERROR: Cannot open %s for write\n", fn);
+        return -1;
+    }
+    return 0;
+}
+void BGZipFileWriter::close(){
+    if (this->fp) {
+        bgzf_close(this->fp);
+        this->fp = NULL;
+    }
+};
+int BGZipFileWriter::write(const char* s) {
+        return bgzf_write(this->fp, s, strlen(s));
+    };
+int BGZipFileWriter::writeLine(const char* s) {
+    int ret = bgzf_write(this->fp, s, strlen(s));
+    ret += bgzf_write(this->fp, "\n", 1);
+        return (ret);
+};
+

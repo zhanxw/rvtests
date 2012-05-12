@@ -31,6 +31,16 @@ inline std::string chopChr(const std::string& s) {
     return s;
 };
 
+bool hasLeadingChr(const std::string& s) {
+    if (s.size() > 3 && 
+        (s[0] == 'c' || s[0] == 'C') &&
+        (s[1] == 'h' || s[1] == 'H') &&
+        (s[2] == 'r' || s[2] == 'R')){
+        return true;
+    }
+    return false;
+};
+
 // remove the leading and trailing white spaces 
 inline std::string stringStrip(const std::string& s){
     unsigned int beg = s.find_first_not_of(' ');
@@ -39,12 +49,20 @@ inline std::string stringStrip(const std::string& s){
 }
 
 /** tokenize the string
-    @return number of tokens we obtained
-    e.g. For empty input string, we will return 1, and result will have only 1 element (the empty string)
-*/
+ * @return number of tokens we obtained
+ * Special case:
+ * For empty input string, we will return 1, and @param result will have only 1 element (the empty string)
+ * When delim is empty, we will give warning, return 1, and @param result will have the whole input string
+ */
 inline int stringTokenize(const std::string& str, const std::string& delim, std::vector<std::string>* result){
     assert(result);
     result->clear();
+    if (!delim.size()) {
+        fprintf(stderr, "stringTokenize() using an empty delim");
+        result->push_back(str);
+        return -1;
+    }
+
     std::string s;
     unsigned int l = str.size();
     unsigned int i = 0;
@@ -71,6 +89,11 @@ inline int stringTokenize(const std::string& str, const char delim, std::vector<
 inline int stringNaturalTokenize(const std::string& str, const std::string& delim, std::vector<std::string>* result){
     assert(result);
     result->clear();
+    if (!delim.size()) {
+        fprintf(stderr, "stringTokenize() using an empty delim");
+        result->push_back(str);
+        return -1;
+    }
     std::string s;
     unsigned int l = str.size();
     unsigned int i = 0;

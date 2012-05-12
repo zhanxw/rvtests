@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 
+// cannot forward declare an typdef anonymous struct
+// http://stackoverflow.com/questions/804894/forward-declaration-of-a-typedef-in-c
+// so include the header file
 #include "bgzf.h"
 
 // #define IO_DEBUG
@@ -607,30 +610,10 @@ class BGZipFileWriter:public AbstractFileWriter{
     /**
      * @param append: ignored
      */
-    int open(const char* fn, bool append = false){
-        if (append) 
-            fprintf(stderr, "Gzip does not support appending.\n");
-        this->fp = bgzf_open(fn, "w");
-        if (!this->fp) {
-            fprintf(stderr, "ERROR: Cannot open %s for write\n", fn);
-            return -1;
-        }
-        return 0;
-    }
-    void close(){
-        if (this->fp) {
-            bgzf_close(this->fp);
-            this->fp = NULL;
-        }
-    };
-    int write(const char* s) {
-        return bgzf_write(this->fp, s, strlen(s));
-    };
-    int writeLine(const char* s) {
-        int ret = bgzf_write(this->fp, s, strlen(s));
-        ret += bgzf_write(this->fp, "\n", 1);
-        return (ret);
-    };
+    int open(const char* fn, bool append = false);
+    void close();
+    int write(const char* s);
+    int writeLine(const char* s);
   private:
     BGZF* fp;
 }; // end BGZipFileWriter
@@ -831,4 +814,3 @@ class FileWriter{
 }; // end class FileWriter
 
 #endif /* _IO_H_ */
-

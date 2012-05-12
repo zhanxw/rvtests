@@ -2,7 +2,8 @@
 #define _PLINKOUTPUTFILE_H_
 
 #include "VCFUtil.h"
-#include "MathMatrix.h"
+//#include "MathMatrix.h"
+class Matrix;
 /****************************/
 /*    Binary PLINK format   */
 /****************************/
@@ -177,15 +178,15 @@ public:
         };
     };
     // NOTE: m should be: marker x people
-    void writeBED(Matrix* mat){ 
-        int nPeople = mat->cols;
-        int nMarker = mat->rows;
+    void writeBED(int** mat, int nPeople, int nMarker){ 
+        /* int nPeople = mat->cols; */
+        /* int nMarker = mat->rows; */
         unsigned char c = 0;
         int offset;
         for (int m = 0; m < nMarker; m++){
             for (int i = 0; i < nPeople ; i ++) {
                 offset = i & (4 - 1);
-                int geno = (int)((*mat)[m][i]);
+                int geno = (int)(mat[m][i]);
                 switch(geno){
                 case HOM_REF:
                     setGenotype(&c, offset, HET); // het: 0b01                

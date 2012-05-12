@@ -8,6 +8,8 @@
 #include <math.h> // for HUGE_VALH, HUGE_VALL
 #include <sstream>
 
+#include "Utils.h"
+
 // convert double/int/byte to string type
 template<class T>
 inline std::string toString(T i){
@@ -23,7 +25,7 @@ inline bool str2int(const char* input, int* output) {
     long val;
     errno = 0;
     val = strtol(input, &endptr, 10);
-    
+
     if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
         || (errno != 0 && val == 0)) {
         perror("strtol");
@@ -46,7 +48,7 @@ inline bool str2double(const char* input, double* output) {
 
     errno = 0;
     val = strtod(input, &endptr);
-    
+
     if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL))
         || (errno != 0 && val == 0.)) {
         perror("strtod");
@@ -62,11 +64,47 @@ inline bool str2double(const char* input, double* output) {
 }
 
 inline int atoi(const std::string& s) {
-    int result; 
+    int result;
     bool ret = str2int(s.c_str(), & result);
     if (!ret) {
         return 0;
-    } 
+    }
     return result;
 };
+
+/**
+ * convert @param chrom to integer for easier comparisons
+ * leading "chr" will not be considered
+ * chr6 -> 6
+ * chr6_abc -> 6 + 100
+ * chrX -> 23
+ * chrY -> 24
+ * chrMT -> 25
+ * chrOther -> 1000 + ASCII('O')
+ * chr -> -1
+ */
+
+static int chrom2int(const std::string& chrom) {
+    int b = 0;
+    if (hasLeadingChr(chrom))
+        b = 3;
+    int e;
+    e = chrom.find('_', b);
+    std::string t = chrom.substr(b, e - b);
+    if (t.size() == 0) return -1;
+    int ret;
+    if (str2int(t.c_str(), &ret)){
+        if (e == chrom.npos ){
+            return ret;
+        } else {
+            return (ret + 100);
+        }
+    } else {
+        if ( t == "X" ) return 23;
+        if ( t== "Y" ) return 24;
+        if ( t== "MT" ) return 25;
+        return 1000 + int(t[0]);
+    }
+}
+
 #endif /* _TYPECONVERSION_H_ */

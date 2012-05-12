@@ -1,10 +1,12 @@
-EXE = testLogger testIO
+EXE = testLogger testIO testRangeList testUtils
 all: $(EXE)
 debug: all
 
-CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include ../../third/tabix/libtabix.a \
- ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a -lz -lbz2 \
-../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a
+CXX_FLAGS = -O0 -ggdb -I.. -I../../base -I../../third/tabix/ \
+-I../../third/pcre/include \
+../../base/lib-dbg-base.a -lz -lbz2 \
+../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
+../../third/tabix/libtabix.a
 
 define BUILD_each
   TAR := $(1)
@@ -16,8 +18,16 @@ endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
 check:
-	./t1 > t1.output
-	diff -q t1.output t1.correct
+	./testIO && \
+	./testLogger && \
+	./testRangeList > testRangeList_output && \
+	diff testRangeList_output testRangeList_output.correct && \
+	./testUtils
+
+#diff -q t1.output t1.correct
 
 clean:
 	-rm -f $(EXE)
+
+# testRangeList: testRangeList.cpp  ../../libVcf/lib-dbg-vcf.a 
+# 	g++ -o $@ $< $(CXX_FLAGS)

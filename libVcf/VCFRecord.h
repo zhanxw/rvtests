@@ -194,6 +194,11 @@ public:
         }
         return this->selectedIndv;
     };
+    /**
+     * You want to know tag "GQ" where FORMAT column is "GT:GQ:PL"
+     * then call getFormatIndx("GQ") will @return 1 (0-based index)
+     * @return -1 when not found
+     */
     int getFormatIndex(const char* s){
         int b = this->format.beg;
         int e = this->format.end;
@@ -236,6 +241,7 @@ private:
     VCFValue filt;
     VCFValue info;
     VCFValue format;
+
     VCFInfo vcfInfo;
 
     VCFValue self;       // a self value points to itself

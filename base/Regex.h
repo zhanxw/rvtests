@@ -13,62 +13,83 @@ public:
     /**
      * read pattern like "=Synonymous,=Indel"
      */
-    void readPattern(const char* argRegex) {
+    int readPattern(const char* argRegex) {
+        if (this->initialized){
+            regfree(&this->pattern);
+            this->initialized == false;
+        }
         int cflags = 0;
         int ret = regcomp(& this->pattern, argRegex, 0);
         if (ret) {
             regerror(ret, & this->pattern, error_buf, ERROR_BUF_LEN);
             fputs(error_buf, stderr);
-            exit(1);
+            return -1;
         }
         this->initialized = true;
-        
+        return 0;
     };
     void readPattern(std::string& argRegex) {
         readPattern(argRegex.c_str());
     };
     /**
+     * @return true if matches.
      */
     bool match(const char* text) {
-        if (!this->initialized) return true;
-        int eflags = REG_STARTEND;
-        int ret = regexec(&this->pattern, text, 0, 0, eflags);
+        if (!this->initialized) {
+            fprintf(stderr, "Uninitialized regex!\n");
+            return false;
+        }
+        if (text[0] == '\0') 
+            return false;
+        int ret = regexec(&this->pattern, text, 1, &this->matchResult, 0);
         if (ret == 0) {
-            //printf("Match: %s\n", text);
+            /* printf("Match: %s\n", text); */
             return true;
         } else if (ret == REG_NOMATCH){
-            //printf("Nomatch: %s\n", text);
+            // printf("Nomatch: %s\n", text);
             return false;
         } else {
             regerror(ret, & this->pattern, error_buf, ERROR_BUF_LEN);
             fputs(error_buf, stderr);
-            exit(1);
+            return false;
         }
         return false;
     };
 
     /**
-     * @return if any pattern matches the text, will return true
+     * @return if any pattern matches the @param text[begin...end], will return true
+     * @param begin: inclusive
+     * @param end: exclusive
      */
     bool match(const char* text, int begin, int end) {
-        if (!this->initialized) return true;
-
-        size_t nmatch = 1;
-        regmatch_t pmatch[nmatch];
-        pmatch[0].rm_so = begin;
-        pmatch[0].rm_eo = end;
+        if (!this->initialized) {
+            fprintf(stderr, "Uninitialized regex!\n");
+            return false;
+        }
+        if (begin == end){
+            //empty string
+            return false;
+        };
+        /* size_t nmatch = 1; */
+        /* regmatch_t pmatch[nmatch]; */
+        this->matchResult.rm_so = begin;
+        this->matchResult.rm_eo = end;
         int eflags = REG_STARTEND;
-        int ret = regexec(&this->pattern, text, 0, pmatch, eflags);
+        int ret = regexec(&this->pattern, text + begin, 1, &this->matchResult, eflags);
         if (ret == 0) {
-            //printf("Match: %s\n", text);
-            return true;
+            // check range
+            if (this->matchResult.rm_eo <= end) {
+                return true;
+            } else {
+                return false;
+            }
         } else if (ret == REG_NOMATCH){
             //printf("Nomatch: %s\n", text);
             return false;
         } else {
             regerror(ret, & this->pattern, error_buf, ERROR_BUF_LEN);
             fputs(error_buf, stderr);
-            exit(1);
+            return false;
         }
         return false;
     };
@@ -83,9 +104,8 @@ public:
 private:
     bool initialized;
     regex_t pattern;
-    unsigned int numPattern;
     char error_buf[ERROR_BUF_LEN];
-
+    regmatch_t matchResult;
 };
 
 #endif /* _REGEX_H_ */

@@ -137,6 +137,7 @@ public:
                         // get range
                         std::string r;
                         this->range.obtainRange(rangeIdx, &r);
+                        fprintf(stderr, "Process region %s...\n", r.c_str());
                         // parse range
                         int tid, beg, end;
                         if (ti_parse_region(tabixHandle->idx, r.c_str(), &tid, &beg, &end) != 0){

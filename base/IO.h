@@ -541,7 +541,7 @@ class BufferedFileWriter: public AbstractFileWriter{
     };
     void close() {
         this->flush();
-        this->f->close();
+        //this->f->close();
     };
     int write(const char* s){
         int nbyte = 0;

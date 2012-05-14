@@ -130,7 +130,7 @@ void RangeList::addRangeFile(const char* argRangeFile){
     while ( lr.readLineBySep(&sa, "\t ")) {
         if (sa.size() == 0) continue;
         if (sa.size() == 1){
-            fprintf(stderr, "Wrong --rangeFile: %s\n", argRangeFile);
+            fprintf(stderr, "Wrong format for --rangeFile: %s, shoudl be: chr beg end \n", argRangeFile);
             return;
         } else if (sa.size() == 2)
             this->rangeCollection.addRange(sa[0].c_str(), (unsigned int) atoi(sa[1]), (unsigned int) atoi(sa[1]));

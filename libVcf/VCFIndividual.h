@@ -56,7 +56,7 @@ public:
     void include() {this->inUse = true;};
     void exclude() {this->inUse = false;};
     bool isInUse() {return this->inUse;};
-    const VCFValue& operator [] (const unsigned int i) const {
+    const VCFValue& operator [] (const unsigned int i) const __attribute__ ((deprecated)) {
         if (i >= fd.size()){
             FATAL("index out of bound!");
         }

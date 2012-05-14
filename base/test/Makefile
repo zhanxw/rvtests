@@ -1,4 +1,4 @@
-EXE = testLogger testIO testRangeList testUtils testRegex
+EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix
 all: $(EXE)
 debug: all
 
@@ -23,7 +23,8 @@ check:
 	./testRangeList > testRangeList_output && \
 	diff testRangeList_output testRangeList_output.correct && \
 	./testUtils && \
-	./testRegex
+	./testRegex && \
+	./testSimpleMatrix
 
 #diff -q t1.output t1.correct
 

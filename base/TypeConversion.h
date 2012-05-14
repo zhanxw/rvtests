@@ -72,6 +72,15 @@ inline int atoi(const std::string& s) {
     return result;
 };
 
+inline double atof(const std::string& s) {
+    double result;
+    bool ret = str2double(s.c_str(), & result);
+    if (!ret) {
+        return 0.0;
+    }
+    return result;
+};
+
 /**
  * convert @param chrom to integer for easier comparisons
  * leading "chr" will not be considered

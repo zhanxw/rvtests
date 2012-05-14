@@ -1,5 +1,6 @@
 /**
    immediately TODO:
+   14. for vcflib, getInfoTag(), also return how many tags are there.
    5. loading phenotype and covariate (need tests now).
    6. Test CMC
    7. Test VT (combine Collapsor and ModelFitter)
@@ -86,6 +87,7 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Site Filter")
         ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
         ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+        ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
 
         // ADD_INT_PARAMETER(pl, siteMinDepth, "--siteDepthMin", "Specify minimum depth(inclusive) to be incluced in analysis");
         // ADD_INT_PARAMETER(pl, siteMaxDepth, "--siteDepthMax", "Specify maximum depth(inclusive) to be incluced in analysis");

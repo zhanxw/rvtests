@@ -90,7 +90,33 @@ inline double atof(const std::string& s) {
  * chrOther -> 1000 + ASCII('O')
  * chr -> -1
  */
+<<<<<<< HEAD
 
 extern int chrom2int(const std::string& chrom);
+=======
+extern bool hasLeadingChr(const std::string& );
+inline int chrom2int(const std::string& chrom) {
+    int b = 0;
+    if (hasLeadingChr(chrom))
+        b = 3;
+    int e;
+    e = chrom.find('_', b);
+    std::string t = chrom.substr(b, e - b);
+    if (t.size() == 0) return -1;
+    int ret;
+    if (str2int(t.c_str(), &ret)){
+        if (e == chrom.npos ){
+            return ret;
+        } else {
+            return (ret + 100);
+        }
+    } else {
+        if ( t == "X" ) return 23;
+        if ( t== "Y" ) return 24;
+        if ( t== "MT" ) return 25;
+        return 1000 + int(t[0]);
+    }
+}
+>>>>>>> 4f3ace15dde1c583220b7f36cd802b07a42b3c1c
 
 #endif /* _TYPECONVERSION_H_ */

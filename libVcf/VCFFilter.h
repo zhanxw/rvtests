@@ -5,57 +5,50 @@
 
 /**
  * Our VCF library support the following filters (in additional to sampler filter and range filter).
- * 
+ *
  */
 class VCFFilter{
-  public:
-  VCFFilter():
-        // Site filter
-        depthFromInfo(true),      // read depth from INFO field
-        siteDepthMin(-1),
-        siteDepthMax(-1),
-        siteQualMin(-1),
+public:
+VCFFilter():
+  // Site filter
+  depthFromInfo(true),      // read depth from INFO field
+      siteDepthMin(-1),
+      siteDepthMax(-1),
+      siteQualMin(-1),
 
-        freqFromInfo(true),      // read AF from INFO field
-        siteFreqMin(-1.0),
-        siteFreqMax(-1.0),
-        siteMACMin(-1),
+      freqFromInfo(true),      // read AF from INFO field
+      siteFreqMin(-1.0),
+      siteFreqMax(-1.0),
+      siteMACMin(-1),
 
-        annoRegex(NULL),
-        onlyVariantSite(false),
-            
-        // individual filter
-        indvDepthMin(-1),
-        indvDepthMax(-1),
-        indvQualMin(-1)
-    {
-        this->annoRegex = new Regex;
-    };
-    virtual ~VCFFilter() {
-        if (this->annoRegex) {
-            delete this->annoRegex;
-            this->annoRegex = NULL;
-        }
-    };
-        
-  private:
-    // thresholds
-    bool depthFromInfo;
-    int siteDepthMin;
-    int siteDepthMax;
-    int siteQualMin;
+      // annoRegex(NULL),
+      onlyVariantSite(false),
 
-    bool freqFromInfo;
-    double siteFreqMin;
-    double siteFreqMax;
-    int siteMACMin;
+      // individual filter
+      indvDepthMin(-1),
+      indvDepthMax(-1),
+      indvQualMin(-1)
+      {
+      };
 
-    Regex annoRegex;          // for filter ANNO
-    bool onlyVariantSite;     // only extract sites that are polymorphism
+private:
+  // thresholds
+  bool depthFromInfo;
+  int siteDepthMin;
+  int siteDepthMax;
+  int siteQualMin;
 
-    int indvDepthMin;
-    int indvDepthMax;
-    int indvQualMin;
+  bool freqFromInfo;
+  double siteFreqMin;
+  double siteFreqMax;
+  int siteMACMin;
+
+  Regex annoRegex;          // for filter ANNO
+  bool onlyVariantSite;     // only extract sites that are polymorphism
+
+  int indvDepthMin;
+  int indvDepthMax;
+  int indvQualMin;
 };
 
 

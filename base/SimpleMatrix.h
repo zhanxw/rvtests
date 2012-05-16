@@ -2,8 +2,8 @@
 #define _SIMPLEMATRIX_H_
 
 #include <vector>
-
-#include "TypeConversion.h"
+#include <string>
+#include <stdio.h>
 
 class SimpleMatrix{
 public:

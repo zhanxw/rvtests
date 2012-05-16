@@ -32,7 +32,15 @@ inline std::string chopChr(const std::string& s) {
 };
 
 // @return true: if @param s has leading "chr", "CHR", "Chr"...
-extern bool hasLeadingChr(const std::string& s);
+inline bool hasLeadingChr(const std::string& s) {
+    if (s.size() > 3 && 
+        (s[0] == 'c' || s[0] == 'C') &&
+        (s[1] == 'h' || s[1] == 'H') &&
+        (s[2] == 'r' || s[2] == 'R')){
+        return true;
+    }
+    return false;
+};
 
 // remove the leading and trailing white spaces 
 inline std::string stringStrip(const std::string& s){

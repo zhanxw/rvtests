@@ -1,5 +1,6 @@
 #include "SimpleMatrix.h"
 #include "IO.h"
+#include "TypeConversion.h"
 
 /**
  * @return 0: success

@@ -7,6 +7,9 @@
 #include "Logger.h"
 #include "VCFFilter.h"
 
+/**
+ * parse is equivalent to copy, meaning we will copy the content so speed up later reference by const char*
+ */
 class VCFInputFile{
 public:
     VCFInputFile (const char* fn):

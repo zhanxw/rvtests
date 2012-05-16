@@ -1,6 +1,12 @@
 #ifndef _VCFVALUE_H_
 #define _VCFVALUE_H_
 
+#include "Exception.h"
+#include "TypeConversion.h"
+#include "VCFConstant.h"
+#include <string>
+#include <cassert>
+
 /**
  * the versatile format to store value for VCF file.
  */
@@ -8,21 +14,33 @@ class VCFValue{
 public:
     int beg; // inclusive
     int end; // exclusive, and beg <= end
-    char* line;
+    const char* line;
+VCFValue():line(NULL), beg(0), end(0){};
 public:
-    int toInt() const{ 
+    int toInt() const{
+      if (!line) return 0;
         return atoi(line+beg);
     };
     void toInt(int* i) const {
-        *i = atoi(line+beg);
+      if (!line) {
+        *i = 0;
+        return;
+      }
+      *i = atoi(line+beg);
     };
     double toDouble() const {
+      if (!line) return 0.0;
         return atof(line+beg);        
     };
     void toDouble(double* d) const {
+      if (!line) {
+        *d = 0.0;
+        return ;
+      }
         *d = strtod(line+beg, 0);
     };
-    const char* toStr() {
+    const char* toStr() const {
+      if (!line) return "";
         return (line + beg);
         /* this->retStr.clear(); */
         /* for (int i = beg; i < end; i++){ */
@@ -30,13 +48,18 @@ public:
         /* } */
         /* return (this->retStr.c_str()); */
     };
-    void toStr(std::string* s) const { 
+    void toStr(std::string* s) const {
+      if (!line) {
+        s->clear();
+        return;
+      }
         s->clear();
         for (int i = beg; i < end; i++){
             s->push_back(line[i]);
         }
     };
     void output(FILE* fp) const {
+      if (!line) return;
         for (int i = beg; i < end; ++i) {
             fputc(line[i], fp);
         }
@@ -107,7 +130,7 @@ public:
     /**
      * @return 0, a sub-range has successfully stored in @param result
      */
-    inline int parseTill(const char c, int beg, VCFValue* result){
+    inline int parseTill(const char c, int beg, VCFValue* result) const{
         assert(result);
         if (beg < this->beg || beg >= this->end) return -1;
 

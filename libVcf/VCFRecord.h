@@ -15,6 +15,7 @@ public:
     };
 
     void parse(char* line, int len){
+      this->vcfInfo.reset();
         this->self.line = line;
         this->self.beg = 0;
         this->self.end = len;
@@ -45,7 +46,7 @@ public:
 
         assert(this->self.parseTill('\t', this->filt.end + 1, &this->info) == 0);
         line[this->info.end] = '\0';
-        this->vcfInfo.parse(&this->info); // lazy parse inside VCFInfo
+        this->vcfInfo.parse(this->info); // lazy parse inside VCFInfo
 
         assert(this->self.parseTill('\t', this->info.end + 1, &this->format) == 0);
         line[this->format.end] = '\0';
@@ -56,8 +57,7 @@ public:
         int end = this->format.end;
         VCFValue indv;
         while( this->self.parseTill('\t', end + 1, &indv) == 0) {
-            p->setSelf(indv);
-            p->parse();
+            p->parse(indv);
             end = indv.end;
 
             if (indv.end == this->self.end) {
@@ -164,8 +164,11 @@ public:
         }
         this->hasAccess = false;
     };
-    const char* getInfoTag(const char* tag) {
-        return this->vcfInfo.getTag(tag);
+    VCFInfo& getVCFInfo() {
+      return this->vcfInfo;
+    };
+    const VCFValue& getInfoTag(const char* tag, bool* exists) {
+      return this->vcfInfo.getTag(tag, exists);
     };
     void output(FILE* fp) const{
         this->self.output(fp);
@@ -179,7 +182,7 @@ public:
     const char* getAlt() { return this->alt.toStr(); };
     const char* getQual() { return this->qual.toStr(); };
     const char* getFilt() { return this->filt.toStr(); };
-    const char* getInfo() { return this->vcfInfo.getOrigString(); };
+    const char* getInfo() { return this->vcfInfo.toStr(); };
     const char* getFormat() { return this->format.toStr(); };
 
     VCFPeople& getPeople(){

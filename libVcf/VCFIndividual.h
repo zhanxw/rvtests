@@ -4,11 +4,6 @@
 #include "VCFFunction.h"
 #include "VCFValue.h"
 
-#if 0
-extern int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret); 
-extern int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret);
-#endif
-
 // we assume format are always  GT:DP:GQ:GL
 class VCFIndividual{
 public:
@@ -22,33 +17,40 @@ public:
      *     0 1 2  3
      *     A B C \t
      * beg = 0, end = 3 (line[end] = '\t' or line[end] = '\0')
+     *
+     * @return 
      */
-    int parse(const char* line, const int beg) {
+    void parse() {
         // need to consider missing genotype
         // need to consider missing field
         
         // skip to next 
         if (!this->isInUse()) {
-            return parseTillChar('\t', line, beg, & this->data);
+            return;
         }
-        
-        this->data.line = line;
-        this->data.beg = beg;
         
         this->fd.clear();
+
         VCFValue v;
-        v.line = line;
-        v.beg = beg;
-        v.end = beg;
-        while (line[v.end] != '\0') { // parse individual values
-            v.end = parseTillChar(":\t\0", line, v.beg, &v);
+        int beg = this->self.beg ;
+
+        while(this->self.parseTill(':', beg, &v) == 0) {
+            v.line[v.end] = '\0';
             fd.push_back(v);
-            if (line[v.end] == '\t' || line[v.end] == '\0')
-                break;
-            v.beg = v.end + 1;
+            beg = v.end + 1;
+        };
+        /* while (line[v.end] != '\0') { // parse individual values */
+        /*     v.end = parseTillChar(":\t\0", line, v.beg, &v); */
+        /*     fd.push_back(v); */
+        /*     if (line[v.end] == '\t' || line[v.end] == '\0') */
+        /*         break; */
+        /*     v.beg = v.end + 1; */
+        /* } */
+        /* this->data.end = v.end; */
+        /* return this->data.end; */
+        if (fd.size() == 0) {
+            fprintf(stderr, "very strange!!");
         }
-        this->data.end = v.end;
-        return this->data.end;
     };
 
     const std::string& getName() const {return this->name;};
@@ -68,12 +70,36 @@ public:
         }
         return (this->fd[i]);
     };
-    VCFValue& getData() {return this->data;};
-private:
+    VCFValue& getSelf() {return this->self;};
+    void rebuildString(std::string* s) {
+        assert(s);
+        s->clear();
+        for (int i = 0; i < fd.size(); i++){
+            if (i)
+                s->push_back(':');
+            *s += this->fd[i].toStr();
+        }
+    };
+    void setSelf(const VCFValue& v) {
+        this->self = v;
+    };
+    const VCFValue& getSelf() const{
+        return this->self;
+    };
+    /**
+     * dump the content of VCFIndividual column
+     */
+    void output(FILE* fp) const{
+        for (unsigned int i = 0; i < fd.size(); ++i){
+            if (i)
+                fputc(':', fp);
+            this->fd[i].output(fp);
+        }
+    };
+  private:
+    VCFValue self;            // whole field for the individual
     bool inUse;
-    std::string name;
-
-    VCFValue data;            // whole field for the individual
+    std::string name;         // id name
     std::vector<VCFValue> fd; // each field separated by ':'
 }; // end VCFIndividual
 

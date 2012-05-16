@@ -4,6 +4,7 @@
 #include "VCFData.h"
 #include "MathMatrix.h"
 #include "regression/LogisticRegression.h"
+#include "regression/LogisticRegressionScoreTest.h"
 #include "regression/LinearRegression.h"
 #include "regression/Skat.h"
 #include "regression/Table2by2.h"

@@ -2,58 +2,78 @@
 #define _VCFRECORD_H_
 
 #include "VCFFunction.h"
-#include "VCFRecord.h"
 #include "VCFIndividual.h"
 #include "VCFInfo.h"
 #include "OrderedMap.h"
 
 typedef OrderedMap<int, VCFIndividual*> VCFPeople;
+
 class VCFRecord{
 public:
     VCFRecord(){
         this->hasAccess = false;
     };
 
-    int parse(const char* line){
-        this->line = line;
+    void parse(char* line, int len){
+        this->self.line = line;
+        this->self.beg = 0;
+        this->self.end = len;
+
+        // this->line = line;
         // go through VCF sites (first 9 columns)
-        int beg = 0;
-        int end = 0;
-        end = parseTillChar('\t', line, beg, &this->chrom);
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->pos);
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->id);
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->ref);
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->alt);
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->qual);
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->filt);
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->info);
+
+        assert(this->self.parseTill('\t', &this->chrom) == 0);
+        line[this->chrom.end] = '\0';
+
+        assert(this->self.parseTill('\t', this->chrom.end + 1, &this->pos) == 0);
+        line[this->pos.end] = '\0';
+
+        assert(this->self.parseTill('\t', this->pos.end + 1, &this->id) == 0);
+        line[this->id.end] = '\0';
+
+        assert(this->self.parseTill('\t', this->id.end + 1, &this->ref) == 0);
+        line[this->ref.end] = '\0';
+
+        assert(this->self.parseTill('\t', this->ref.end + 1, &this->alt) == 0);
+        line[this->alt.end] = '\0';
+
+        assert(this->self.parseTill('\t', this->alt.end + 1, &this->qual) == 0);
+        line[this->qual.end] = '\0';
+
+        assert(this->self.parseTill('\t', this->qual.end + 1, &this->filt) == 0);
+        line[this->filt.end] = '\0';
+
+        assert(this->self.parseTill('\t', this->filt.end + 1, &this->info) == 0);
+        line[this->info.end] = '\0';
         this->vcfInfo.parse(&this->info); // lazy parse inside VCFInfo
-        beg = end + 1;
-        end = parseTillChar('\t', line, beg, &this->format);
+
+        assert(this->self.parseTill('\t', this->info.end + 1, &this->format) == 0);
+        line[this->format.end] = '\0';
         
         // now comes each individual genotype
         int idx = 0; // peopleIdx
         VCFIndividual* p = this->allIndv[idx]; 
-        
-        while (line[end] != '\0') {
-            beg = end + 1;
-            end = p->parse(line, beg);
-            if (line[end] == '\0') {
+        int end = this->format.end;
+        VCFValue indv;
+        while( this->self.parseTill('\t', end + 1, &indv) == 0) {
+            p->setSelf(indv);
+            p->parse();
+            end = indv.end;
+
+            if (indv.end == this->self.end) {
                 break;
             }
+            // check next individual
             idx ++ ;
             if (idx >= this->allIndv.size()){
-                FATAL("VCF header and VCF content do not match!");
+                FATAL("VCF header have LESS people than VCF content!");
             }
             p = this->allIndv[idx];
-        }
+        };
+        
+        if (idx + 1 > this->allIndv.size()) {
+            FATAL("VCF header have MORE people than VCF content!");
+        };
     };
     void createIndividual(const std::string& line){
         std::vector<std::string> sa;
@@ -147,19 +167,23 @@ public:
     const char* getInfoTag(const char* tag) {
         return this->vcfInfo.getTag(tag);
     };
+    void output(FILE* fp) const{
+        this->self.output(fp);
+        fputc('\n', fp);
+    };
 public:
     const char* getChrom() { return this->chrom.toStr(); };
-    const int getPos()  { return this->pos.toInt(); };
+    const int   getPos()  { return this->pos.toInt(); };
     const char* getID() { return this->id.toStr(); };
     const char* getRef() { return this->ref.toStr(); };
     const char* getAlt() { return this->alt.toStr(); };
     const char* getQual() { return this->qual.toStr(); };
     const char* getFilt() { return this->filt.toStr(); };
-    const char* getInfo() { return this->info.toStr(); };
+    const char* getInfo() { return this->vcfInfo.getOrigString(); };
     const char* getFormat() { return this->format.toStr(); };
-    const char* getLine() {return this->line;};
+
     VCFPeople& getPeople(){
-        if (!hasAccess) {
+        if (!this->hasAccess) {
             this->selectedIndv.clear();
             for (int i = 0; i < this->allIndv.size(); i++){
                 if (allIndv[i]->isInUse()) {
@@ -170,37 +194,44 @@ public:
         }
         return this->selectedIndv;
     };
+    /**
+     * You want to know tag "GQ" where FORMAT column is "GT:GQ:PL"
+     * then call getFormatIndx("GQ") will @return 1 (0-based index)
+     * @return -1 when not found
+     */
     int getFormatIndex(const char* s){
         int b = this->format.beg;
         int e = this->format.end;
-        int l = strlen(s);
         int idx = 0;
 
         // locate first field
         while ( b < e) {
             // check match
             bool match = true;
-            for (int i = 0; i < l ; i++) {
-                if (line[b + i]  != s[i]) {
+            for (int i = 0; s[i] != '\0' ; i++) {
+                if (this->format.line[b + i]  != s[i]) {
                     match = false;
                     break;
                 }
             }
             if (match) return idx;
-            else {
-                // skip to next field
-                idx++;
-                while ( line[b++] != ':') {
-                    if (b >= e) {
-                        return -1;
-                    }
+
+            // skip to next field
+            idx++;
+            while ( this->format.line[b++] != ':') {
+                if (b >= e) {
+                    return -1;
                 }
             }
         }
     };
+    const VCFValue& getSelf() const{
+        return this->self;
+    };
 private:
     VCFPeople allIndv;      // all individual
     VCFPeople selectedIndv; // user-selected individual
+
     VCFValue chrom;
     VCFValue pos;
     VCFValue id;
@@ -210,8 +241,11 @@ private:
     VCFValue filt;
     VCFValue info;
     VCFValue format;
-    const char* line; // points to data line
+
     VCFInfo vcfInfo;
+
+    VCFValue self;       // a self value points to itself
+    // const char* line; // points to data line
 
     // indicates if getPeople() has been called
     bool hasAccess;

@@ -23,7 +23,7 @@ inline bool str2int(const char* input, int* output) {
     long val;
     errno = 0;
     val = strtol(input, &endptr, 10);
-    
+
     if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
         || (errno != 0 && val == 0)) {
         perror("strtol");
@@ -46,7 +46,7 @@ inline bool str2double(const char* input, double* output) {
 
     errno = 0;
     val = strtod(input, &endptr);
-    
+
     if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL))
         || (errno != 0 && val == 0.)) {
         perror("strtod");
@@ -62,11 +62,35 @@ inline bool str2double(const char* input, double* output) {
 }
 
 inline int atoi(const std::string& s) {
-    int result; 
+    int result;
     bool ret = str2int(s.c_str(), & result);
     if (!ret) {
         return 0;
-    } 
+    }
     return result;
 };
+
+inline double atof(const std::string& s) {
+    double result;
+    bool ret = str2double(s.c_str(), & result);
+    if (!ret) {
+        return 0.0;
+    }
+    return result;
+};
+
+/**
+ * convert @param chrom to integer for easier comparisons
+ * leading "chr" will not be considered
+ * chr6 -> 6
+ * chr6_abc -> 6 + 100
+ * chrX -> 23
+ * chrY -> 24
+ * chrMT -> 25
+ * chrOther -> 1000 + ASCII('O')
+ * chr -> -1
+ */
+
+extern int chrom2int(const std::string& chrom);
+
 #endif /* _TYPECONVERSION_H_ */

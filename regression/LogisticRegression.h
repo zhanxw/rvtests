@@ -31,7 +31,7 @@ class LogisticRegression
     double GetDeviance(Matrix & X, Vector & y);
     double GetDeviance(Matrix & X, Vector & succ, Vector& total);
 	Vector & GetAsyPvalue();
-	Vector & GetCovEst()    {return this->B;};
+	Vector & GetCovEst()    {return this->B;}; // coef estimation of the model
     Vector & GetPredicted() {return this->p;}; // predicted probability \hat{p}
     Vector & GetVariance()  {return this->V;}; // predicted variance ( \hat{p} * (1- \hat{p}) 
 	Matrix & GetCovB()      {return this->covB;} ;
@@ -52,38 +52,6 @@ class LogisticRegression
     Matrix Dtwo;
 	Matrix XtV;
 
-};
-
-class LogisticRegressionScoreTest{
-  public:
-    LogisticRegressionScoreTest();
-    /**
-     * @param colToTest: 0-based
-     */
-	bool FitLogisticModel(Matrix &X, Vector &y, int colToTest, int nRound);
-
-    bool FitNullModel(Matrix& Xnull, Vector& y, int nRound);
-    bool TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol);
-
-    /**
-     * Test H0: \beta = 0  (\beta is multiple dimension).
-     * y ~ \beta * Xcol + \gamma * Xnull  
-     */
-    bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
-    
-    
-    // fit y~1+ beta*x  (no covariate)
-    bool TestCovariate(Vector& x, Vector& y);
-    /**
-     * Test y~ 1 + \beta * X (no covariate)
-     */
-    bool TestCovariate(Matrix& x, Vector& y);
-
-    double GetPvalue() const {return this->pvalue;};
-  private:
-	void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol); 
-	double pvalue;
-    LogisticRegression lr;
 };
 #endif
 

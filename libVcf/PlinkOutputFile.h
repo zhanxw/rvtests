@@ -2,7 +2,9 @@
 #define _PLINKOUTPUTFILE_H_
 
 #include "VCFUtil.h"
-#include "MathMatrix.h"
+
+class Matrix;
+
 /****************************/
 /*    Binary PLINK format   */
 /****************************/
@@ -27,6 +29,12 @@
 class PlinkOutputFile{
 public:
     PlinkOutputFile(const char* fnPrefix) {
+        init(fnPrefix);
+    };
+    PlinkOutputFile(const std::string& fnPrefix) {
+        init(fnPrefix.c_str());
+    };
+    void init(const char* fnPrefix) {
         std::string prefix = fnPrefix;
         this->fpBed = fopen( (prefix + ".bed").c_str(), "wb");
         this->fpBim = fopen( (prefix + ".bim").c_str(), "wt");
@@ -171,38 +179,7 @@ public:
         };
     };
     // NOTE: m should be: marker x people
-    void writeBED(Matrix* mat){ 
-        int nPeople = mat->cols;
-        int nMarker = mat->rows;
-        unsigned char c = 0;
-        int offset;
-        for (int m = 0; m < nMarker; m++){
-            for (int i = 0; i < nPeople ; i ++) {
-                offset = i & (4 - 1);
-                int geno = (int)((*mat)[m][i]);
-                switch(geno){
-                case HOM_REF:
-                    setGenotype(&c, offset, HET); // het: 0b01                
-                    break;
-                case HET:
-                    setGenotype(&c, offset, HET); // het: 0b01
-                    break;
-                case HOM_ALT:
-                    setGenotype(&c, offset, HOM_ALT); // hom alt: 0b11
-                    break;
-                default:
-                    setGenotype(&c, offset, MISSING); // missing
-                    break;
-                }
-            }
-            if ( offset == 3) { // 3: 4 - 1, so every 4 genotype we will flush 
-                fwrite(&c, sizeof(char), 1, this->fpBed);
-                c = 0;
-            }
-        };
-        if (nPeople % 4 != 0 )
-            fwrite(&c, sizeof(char), 1, this->fpBed);
-    };
+    void writeBED(Matrix* mat, int nPeople, int nMarker);
 private:
     // we reverse the two bits as defined in PLINK format, 
     // so we can process 2-bit at a time.

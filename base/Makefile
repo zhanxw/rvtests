@@ -8,10 +8,10 @@ endif
 
 LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
-BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils
+BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger RangeList SimpleMatrix
 OBJ = $(BASE:=.o)
 
-DEFAULT_CXXFLAGS = -I. -I../statgen -I../pcre/include
+DEFAULT_CXXFLAGS = -I. -I../third/tabix
 
 .PHONY: all release debug
 all: release

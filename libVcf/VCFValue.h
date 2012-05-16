@@ -8,7 +8,7 @@ class VCFValue{
 public:
     int beg; // inclusive
     int end; // exclusive, and beg <= end
-    const char* line;
+    char* line;
 public:
     int toInt() const{ 
         return atoi(line+beg);
@@ -17,29 +17,28 @@ public:
         *i = atoi(line+beg);
     };
     double toDouble() const {
-        return atoi(line+beg);        
+        return atof(line+beg);        
     };
     void toDouble(double* d) const {
         *d = strtod(line+beg, 0);
     };
-    /* std::string toStr() const {  */
-    /*     std::string s; */
-    /*     for (int i = beg; i < end; i++){ */
-    /*         s.push_back(line[i]); */
-    /*     } */
-    /*     return s; */
-    /* }; */
     const char* toStr() {
-        this->retStr.clear();
-        for (int i = beg; i < end; i++){
-            this->retStr.push_back(line[i]);
-        }
-        return (this->retStr.c_str());
+        return (line + beg);
+        /* this->retStr.clear(); */
+        /* for (int i = beg; i < end; i++){ */
+        /*     this->retStr.push_back(line[i]); */
+        /* } */
+        /* return (this->retStr.c_str()); */
     };
     void toStr(std::string* s) const { 
         s->clear();
         for (int i = beg; i < end; i++){
             s->push_back(line[i]);
+        }
+    };
+    void output(FILE* fp) const {
+        for (int i = beg; i < end; ++i) {
+            fputc(line[i], fp);
         }
     };
 public:
@@ -104,8 +103,27 @@ public:
     bool isHaploid(){
         return (end - beg == 1);
     };
-  private:
-    std::string retStr; // this held for the return value;
+    
+    /**
+     * @return 0, a sub-range has successfully stored in @param result
+     */
+    inline int parseTill(const char c, int beg, VCFValue* result){
+        assert(result);
+        if (beg < this->beg || beg >= this->end) return -1;
+
+        result->line = this->line;
+        result->beg = beg;
+        result->end = beg;
+        while( this->line[result->end] != c && result->end < this->end) {
+            result->end++;
+        }
+        return 0;
+    };
+    int parseTill(const char c, VCFValue* result){
+        return parseTill(c, this->beg, result);
+    };
+  /* private: */
+  /*   std::string retStr; // this held for the return value; */
 };
 
 #endif /* _VCFVALUE_H_ */

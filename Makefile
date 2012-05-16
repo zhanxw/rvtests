@@ -11,6 +11,26 @@ $(DIR_EXEC_DBG):
 	mkdir -p $@
 
 ##################################################
+# Third-party libs.
+TABIX_INC = third/tabix
+TABIX_LIB = third/tabix/libtabix.a
+
+EIGEN_INC = third/eigen
+EIGEN_LIB =  # Eigen are header files only
+
+PCRE_INC = third/pcre/include
+PCRE_LIB = third/pcre/lib/libpcreposix.a third/pcre/lib/libpcre.a
+
+$(TABIX_INC) $(TABIX_LIB):
+	(cd third; make tabix)
+$(EIGEN_INC) $(EIGEN_LIB):
+	(cd third; make eigen)
+$(PCRE_INC) $(PCRE_LIB):
+	(cd third; make pcre)
+
+THIRD_INC = $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC)
+THIRD_LIB = $(TABIX_LIB) $(PCRE_LIB)
+##################################################
 # Our libs.
 BASE_INC = ./base
 BASE_LIB = ./base/lib-base.a
@@ -36,7 +56,7 @@ $(VCF_LIB):
 	(cd libVcf; make)
 $(VCF_LIB_DBG):
 	(cd libVcf; make debug)
-$(REGRESSION_LIB):
+$(REGRESSION_LIB): $(EIGEN_INC)
 	(cd regression; make)
 $(REGRESSION_LIB_DBG):
 	(cd regression; make debug)
@@ -46,30 +66,10 @@ $(GONCALO_LIB_DBG):
 	(cd libsrc; make debug)
 
 ##################################################
-# Third-party libs.
-TABIX_INC = third/tabix
-TABIX_LIB = third/tabix/libtabix.a
-
-EIGEN_INC = third/eigen
-EIGEN_LIB =  # Eigen are header files only
-
-PCRE_INC = third/pcre/include
-PCRE_LIB = third/pcre/lib/libpcre.a third/pcre/lib/libpcreposix.a
-
-$(TABIX_INC) $(TABIX_LIB):
-	(cd third; make tabix)
-$(EIGEN_INC) $(EIGEN_LIB):
-	(cd third; make eigen)
-$(PCRE_INC) $(PCRE_LIB):
-	(cd third; make pcre)
-
-THIRD_INC = $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC)
-THIRD_LIB = $(TABIX_LIB) $(PCRE_LIB)
-##################################################
 
 INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
-LIB = $(THIRD_LIB) $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) 
-LIB_DBG = $(THIRD_LIB) $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG)
+LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
+LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE))
 CXX_LIB = $(LIB) -lz -lbz2 -lm -lgsl -lblas
 CXX_LIB_DBG = $(LIB_DBG) -lz -lbz2 -lm -lgsl -lblas
@@ -188,7 +188,6 @@ autoTest2: rvtest
 DATE=$(shell date '+%m%d')
 tar:
 	tar zvchf rvtest.$(DATE).tgz *.h Main.cpp tabix*tar.bz2 
-
 
 # arg: Argument.h Argument.cpp
 # 	g++ -g -o Argument Argument.cpp

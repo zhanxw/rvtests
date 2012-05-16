@@ -8,7 +8,7 @@
 #include <math.h> // for HUGE_VALH, HUGE_VALL
 #include <sstream>
 
-#include "Utils.h"
+//#include "Utils.h"
 
 // convert double/int/byte to string type
 template<class T>
@@ -92,8 +92,8 @@ inline double atof(const std::string& s) {
  * chrOther -> 1000 + ASCII('O')
  * chr -> -1
  */
-
-static int chrom2int(const std::string& chrom) {
+extern bool hasLeadingChr(const std::string& );
+inline int chrom2int(const std::string& chrom) {
     int b = 0;
     if (hasLeadingChr(chrom))
         b = 3;

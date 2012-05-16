@@ -12,6 +12,7 @@
 #include "Utils.h"
 #include "VCFUtil.h"
 #include "StringHash.h"
+#include "Error.h"
 #include <deque>
 
 #define DEBUG_Youna 0

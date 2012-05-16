@@ -1,7 +1,11 @@
 #ifndef _SIMPLEMATRIX_H_
 #define _SIMPLEMATRIX_H_
 
-#include "TypeConversion.h"
+#include <vector>
+#include <string>
+#include <stdio.h>
+
+//#include "TypeConversion.h"
 
 class SimpleMatrix{
 public:

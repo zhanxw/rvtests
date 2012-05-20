@@ -137,7 +137,7 @@ public:
         if (!this->ti_line) { // last time does not read a valid line
           // get range
           char rangeBuffer[128];
-          snprintf(rangeBuffer, 128, "%s:%d-%d\n", this->rangeIterator.getChrom().c_str(),
+          snprintf(rangeBuffer, 128, "%s:%u-%u", this->rangeIterator.getChrom().c_str(),
                   this->rangeIterator.getBegin(), this->rangeIterator.getEnd());
           rangeBuffer[127] = '\0';
 

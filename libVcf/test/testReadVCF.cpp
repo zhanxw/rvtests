@@ -20,7 +20,7 @@ int main() {
             // get GT index. if you are sure the index will not change, call this function only once!
             int GTidx = r.getFormatIndex("GT");
             if (GTidx >= 0) 
-                printf("%s ", (*indv)[0].toStr());  // [0] meaning the first field of each individual
+              printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
             else 
                 fprintf(stderr, "Cannot find GT field!\n");
         }

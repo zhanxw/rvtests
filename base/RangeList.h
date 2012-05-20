@@ -29,6 +29,9 @@ struct PositionPair{
   bool operator!= (const PositionPair o){
     return (begin != o.begin || end != o.end);
   }
+  bool isInRange(const unsigned int p) const{
+    return ( begin <= p && p < end);
+  }
 };
 
 inline bool PositionPairCompare(const PositionPair& p1, const PositionPair& p2){
@@ -111,21 +114,48 @@ RangeCollection():_size(0){};
   };
 
   /**
-   * @return true if @param chr and @param pos (chr:pos) is within region
+   * @return true if @param chr and @param pos (chr:pos) is within region( inclusive-exclusive region)
+   * e.g 1:100 is in 1:100-101 but 1:101 not in 1:100-101
    */
   bool isInRange(const std::string& chr, unsigned int pos){
     if (rangeMap.find(chr) == rangeMap.end()) return false;
     std::vector<PositionPair>& r = rangeMap[chr];
-    PositionPair p(pos, pos);
-    unsigned int low = lower_bound(r.begin(), r.end(), p, PositionPairCompare) - r.begin();
-    unsigned int up = upper_bound(r.begin(), r.end(), p, PositionPairCompare) - r.begin();
-    for (unsigned int i = low; i < up; i++){
-      PositionPair& pp = r[i];
-      if (pp.begin <= pos && pp.end <= pos) {
-        return true;
+    if (r.size() == 0) return false;
+    // we have regions [a1, b1), [a2, b2) .... [an, bn], note regions are not overlapping
+    // first we first a region i such that ai <= pos
+    // then we find region j such that pos < aj
+    PositionPair p(pos, pos + 1);
+    std::vector<PositionPair>::const_iterator i = lower_bound(r.begin(), r.end(), p, PositionPairCompare);
+    // Doc: Returns an iterator pointing to the first element in the sorted range [first,last) which does not compare less than value.
+    // so the iterator points to the first element >= p.
+    if (i == r.end()) {
+      -- i;
+      return i->isInRange(pos);
+    } else {
+      if (i->begin == p.begin) 
+        return i->isInRange(pos);
+      else {
+        -- i;
+        return i->isInRange(pos);
       }
-    };
+    }
     return false;
+    /* a */
+
+    /* unsigned int low = lower_bound(r.begin(), r.end(), p, PositionPairCompare) - r.begin(); */
+    /* unsigned int up = upper_bound(r.begin(), r.end(), p, PositionPairCompare) - r.begin(); */
+        
+    /* fprintf(stderr, "\n%s\n ", upper_bound(r.begin(), r.end(), p, PositionPairCompare) ==  r.begin() ? "equal": "differ"); */
+    /* fprintf(stderr, "%s\n", upper_bound(r.begin(), r.end(), p, PositionPairCompare) ==  r.end()  ? "equal": "differ"); */
+    /* fprintf(stderr, "%s\n", PositionPairCompare(p, r[0])  ? "equal": "differ");         */
+    
+    /* for (unsigned int i = low; i <= up; i++){ */
+    /*   PositionPair& pp = r[i]; */
+    /*   if (pp.begin <= pos && pos < pp.end ) { */
+    /*     return true; */
+    /*   } */
+    /* }; */
+    /* return false; */
   };
   void clear() {
     this->chrVector.clear();

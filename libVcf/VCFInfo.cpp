@@ -1,4 +1,4 @@
-#include "VCFInfo.h"
+/#include "VCFInfo.h"
 
 const VCFValue VCFInfo::defaultValue;
 

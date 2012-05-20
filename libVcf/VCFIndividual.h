@@ -43,7 +43,10 @@ public:
       beg = v.end + 1;
       fd.push_back(v);
     }
-
+    if (ret == 1) {
+      this->parsed[v.end] = '\0';
+      fd.push_back(v);
+    }
     if (fd.size() == 0) {
       fprintf(stderr, "Empty individual column - very strange!!");
     }
@@ -61,12 +64,30 @@ public:
     }
     return (this->fd[i]);
   };
-  VCFValue& operator [] (const unsigned int i) {
+  VCFValue& operator [] (const unsigned int i) __attribute__ ((deprecated)) {
     if (i >= fd.size()){
       FATAL("index out of bound!");
     }
     return (this->fd[i]);
   };
+  const VCFValue& get(unsigned int i, bool* isMissing) const {
+    if (i >= fd.size()) {
+      *isMissing = true;
+      return VCFIndividual::defaultVCFValue;
+    }
+    *isMissing = this->fd[i].isMissing();
+    return (this->fd[i]);
+  };
+  /**
+   * @return VCFValue without checking missingness
+   */
+  const VCFValue& justGet(unsigned int i) {
+    if (i >= fd.size()) {
+      return VCFIndividual::defaultVCFValue;
+    }
+    return (this->fd[i]);
+  };
+  
   VCFValue& getSelf() {return this->self;};
   void rebuildString(std::string* s) {
     assert(s);
@@ -96,6 +117,7 @@ private:
   VCFValue self;            // whole field for the individual (unparsed)
   VCFBuffer parsed;       // store parsed string (where \0 added)
   std::vector<VCFValue> fd; // each field separated by ':'
+  static VCFValue defaultVCFValue;
 }; // end VCFIndividual
 
 #endif /* _VCFINDIVIDUAL_H_ */

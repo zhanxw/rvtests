@@ -74,7 +74,8 @@ int parseRangeFormat(const std::string& s, std::string* chr, unsigned int* begin
   *begin = b;
 
   if (s[i] == '\0'){ // 1:100 meaning from 1:100- 1:(max_pos)
-    *end = UINT_MAX;
+    *end = 1 << 29;  /// this is copied from tabix index.c ti_parse_region
+    // fprintf(stderr, "UINT_MAX = %u", UINT_MAX);
     return 0;
   }
 
@@ -87,7 +88,7 @@ int parseRangeFormat(const std::string& s, std::string* chr, unsigned int* begin
   }
   *end = e;
 
-  fprintf(stderr, "parse result: %s %d %d\n", chr->c_str(), *begin, *end);
+  // fprintf(stderr, "parse result: %s %d %d\n", chr->c_str(), *begin, *end);
   return 0;
 }
 

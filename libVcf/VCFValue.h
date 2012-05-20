@@ -67,7 +67,7 @@ public:
     };
 public:
     // try to convert to genotype
-    int getGenotype(){
+    int getGenotype() const{
         int g = 0;
         int p = beg;
         if (line[p] == '.') 
@@ -93,7 +93,7 @@ public:
         
         return g;
     };
-    int getAllele1(){
+    int getAllele1() const{
         int g = 0;
         int p = beg;
         if (line[p] == '.') 
@@ -104,7 +104,7 @@ public:
             g += line[p] - '0';
         return g;
     };
-    int getAllele2(){
+    int getAllele2() const{
         int g = 0;
         int p = beg + 2;
         if (p >= end) 
@@ -117,17 +117,29 @@ public:
             g += line[p] - '0';
         return g;
     };
-    bool isPhased(){
+    bool isPhased() const{
         if (end - beg != 3) return false;
         int p = beg + 1;
         if (line[p] == '/') return false;
         if (line[p] == '|') return true;
         return false;
     };
-    bool isHaploid(){
+    bool isHaploid() const{
         return (end - beg == 1);
     };
-
+    bool isMissingGenotype() const{
+      if (!line) return true;
+      for (int i = beg; i < end; i++){
+        if (line[i] == '.') return true;
+      }
+      return false;
+    };
+    /**
+     * Just test if the current VCFValue is missing, not if the genotype is missing
+     */
+    bool isMissing() const{
+      return (beg == end) || line == NULL;
+    };
     /**
      * Use @param s , search from @param beg, till @param c.
      * Store the search results in (*this).

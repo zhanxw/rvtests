@@ -49,7 +49,18 @@ int main(int argc, char *argv[])
       RangeList rl;
       rl.addRangeList("1:0");
       assert (rl.isInRange("1", 0) == true );
+      assert (rl.isInRange("1", 1) == true );
       assert (rl.isInRange("1", 254000000) == true );
     }
+
+    {
+      RangeList rl;
+      rl.addRangeList("1:10-100");
+      assert (rl.isInRange("1", 9) == false );      
+      assert (rl.isInRange("1", 10) == true );
+      assert (rl.isInRange("1", 99) == true );
+      assert (rl.isInRange("1", 100) == false );
+    }
+    
     return 0;
 }

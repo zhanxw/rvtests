@@ -1,6 +1,9 @@
 #ifndef _VCFHEADER_H_
 #define _VCFHEADER_H_
 
+#include "Utils.h"
+#include <vector>
+
 class VCFHeader{
   public:
     void push_back(const std::string& s){

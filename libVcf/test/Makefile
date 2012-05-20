@@ -1,4 +1,4 @@
-EXE = testReadVCF testReadVCFInfo #t1 testVCFExtract testReadVCF
+EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange # t1 testVCFExtract testReadVCF
 all: $(EXE)
 debug: all
 
@@ -30,6 +30,9 @@ check3:
 check4:
 	./testReadVCFInfo > testReadVCFInfo.output
 	diff -q testReadVCFInfo.output testReadVCFInfo.output.correct
+check5:
+	./testReadVCFByIndividual > testReadVCFByIndividual.output
+	diff -q testReadVCFByIndividual.output testReadVCFByIndividual.output.correct
 
 clean:
 	-rm -f $(EXE) *.d *.output

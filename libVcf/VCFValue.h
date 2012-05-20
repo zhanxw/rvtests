@@ -4,6 +4,7 @@
 #include "Exception.h"
 #include "TypeConversion.h"
 #include "VCFConstant.h"
+#include "VCFBuffer.h"
 #include <string>
 #include <cassert>
 
@@ -126,25 +127,47 @@ public:
     bool isHaploid(){
         return (end - beg == 1);
     };
-    
-    /**
-     * @return 0, a sub-range has successfully stored in @param result
-     */
-    inline int parseTill(const char c, int beg, VCFValue* result) const{
-        assert(result);
-        if (beg < this->beg || beg >= this->end) return -1;
 
-        result->line = this->line;
-        result->beg = beg;
-        result->end = beg;
-        while( this->line[result->end] != c && result->end < this->end) {
-            result->end++;
+    /**
+     * Use @param s , search from @param beg, till @param c.
+     * Store the search results in (*this).
+     * @return 0 when success find @param c inside @param s
+     * @return 1 when not find c, but reached the end of @param s
+     * @return -1: error
+     */
+    int parseTill(const VCFBuffer& s, int beg, char c) {
+      if (beg >= s.size()) return -1;
+      this->line = s.c_str();
+      this->beg = beg;
+      this->end = beg;
+      while (this->end < s.size()) {
+        if (s[this->end] == c) {
+          return 0;
         }
-        return 0;
+        ++this->end;
+      }
+      return 1;
     };
-    int parseTill(const char c, VCFValue* result){
-        return parseTill(c, this->beg, result);
-    };
+
+              
+    /* /\** */
+    /*  * @return 0, a sub-range has successfully stored in @param result */
+    /*  *\/ */
+    /* inline int parseTill(const char c, int beg, VCFValue* result) const{ */
+    /*     assert(result); */
+    /*     if (beg < this->beg || beg >= this->end) return -1; */
+
+    /*     result->line = this->line; */
+    /*     result->beg = beg; */
+    /*     result->end = beg; */
+    /*     while( this->line[result->end] != c && result->end < this->end) { */
+    /*         result->end++; */
+    /*     } */
+    /*     return 0; */
+    /* }; */
+    /* int parseTill(const char c, VCFValue* result){ */
+    /*     return parseTill(c, this->beg, result); */
+    /* }; */
   /* private: */
   /*   std::string retStr; // this held for the return value; */
 };

@@ -3,6 +3,9 @@
 
 #include "VCFFunction.h"
 #include "VCFValue.h"
+#include "VCFBuffer.h"
+
+#include <vector>
 
 // we assume format are always  GT:DP:GQ:GL
 class VCFIndividual{
@@ -29,23 +32,20 @@ public:
     this->self = vcfValue;
     this->parsed = vcfValue.toStr();
 
-    VCFValue toParse = vcfValue;    
-    toParse.line = this->parsed.c_str();
-    toParse.beg = 0;
-    toParse.end = this->parsed.size();
-    
     // need to consider missing field
     this->fd.clear();
 
     VCFValue v;
-    int beg = toParse.beg ;
-    while(toParse.parseTill(':', beg, &v) == 0) {
+    int beg = 0;
+    int ret;
+    while( (ret = v.parseTill(this->parsed, beg, ':')) == 0){
       this->parsed[v.end] = '\0';
-      fd.push_back(v);
       beg = v.end + 1;
-    };
+      fd.push_back(v);
+    }
+
     if (fd.size() == 0) {
-      fprintf(stderr, "very strange!!");
+      fprintf(stderr, "Empty individual column - very strange!!");
     }
   };
 
@@ -94,7 +94,7 @@ private:
   bool inUse;
   std::string name;         // id name
   VCFValue self;            // whole field for the individual (unparsed)
-  std::string parsed;       // store parsed string (where \0 added)
+  VCFBuffer parsed;       // store parsed string (where \0 added)
   std::vector<VCFValue> fd; // each field separated by ':'
 }; // end VCFIndividual
 

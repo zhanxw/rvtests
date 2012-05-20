@@ -110,6 +110,9 @@ RangeCollection():_size(0){};
     (*range) += toString(end);
   };
 
+  /**
+   * @return true if @param chr and @param pos (chr:pos) is within region
+   */
   bool isInRange(const std::string& chr, unsigned int pos){
     if (rangeMap.find(chr) == rangeMap.end()) return false;
     std::vector<PositionPair>& r = rangeMap[chr];
@@ -255,6 +258,8 @@ RangeList(): isSorted(false) {};
 
   class iterator{
  public:
+ iterator(): rangeCollection(NULL), chromIndex(-1), inChromRegionSize(-1) 
+    {};
  iterator(const RangeCollection& rc, int chrIdx, int inChrIdx):
     rangeCollection(&rc),
         chromIndex(chrIdx),

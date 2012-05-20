@@ -44,5 +44,12 @@ int main(int argc, char *argv[])
             fprintf(stdout, "%s:%d-%d\n", iter.getChrom().c_str(), iter.getBegin(), iter.getEnd());
         };
     }
+
+    {
+      RangeList rl;
+      rl.addRangeList("1:0");
+      assert (rl.isInRange("1", 0) == true );
+      assert (rl.isInRange("1", 254000000) == true );
+    }
     return 0;
 }

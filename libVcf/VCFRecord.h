@@ -1,10 +1,16 @@
 #ifndef _VCFRECORD_H_
 #define _VCFRECORD_H_
 
+#include "VCFBuffer.h"
 #include "VCFFunction.h"
+#include "VCFHeader.h"
 #include "VCFIndividual.h"
 #include "VCFInfo.h"
 #include "OrderedMap.h"
+#include "Utils.h"
+#include "IO.h"
+#include "RangeList.h"
+#include "Exception.h"
 
 typedef OrderedMap<int, VCFIndividual*> VCFPeople;
 
@@ -14,67 +20,85 @@ public:
     this->hasAccess = false;
   };
 
-  void parse(char* line, int len){
+  /**
+   * Parse will first make a copy then tokenized the copied one
+   */
+  void parse(const std::string vcfLine){
     this->vcfInfo.reset();
-    this->self.line = line;
+    this->parsed = vcfLine.c_str();
+    this->self.line = this->parsed.c_str();
     this->self.beg = 0;
-    this->self.end = len;
+    this->self.end = this->parsed.size();
 
     // this->line = line;
     // go through VCF sites (first 9 columns)
 
-    assert(this->self.parseTill('\t', &this->chrom) == 0);
-    line[this->chrom.end] = '\0';
+    assert(this->chrom.parseTill(this->parsed, 0, '\t') == 0);
+    this->parsed[this->chrom.end] = '\0';
 
-    assert(this->self.parseTill('\t', this->chrom.end + 1, &this->pos) == 0);
-    line[this->pos.end] = '\0';
+    assert(this->pos.parseTill(this->parsed, this->chrom.end + 1, '\t') == 0);
+    this->parsed[this->pos.end] = '\0';
 
-    assert(this->self.parseTill('\t', this->pos.end + 1, &this->id) == 0);
-    line[this->id.end] = '\0';
+    assert(this->id.parseTill(this->parsed, this->pos.end + 1, '\t') == 0);
+    this->parsed[this->id.end] = '\0';
 
-    assert(this->self.parseTill('\t', this->id.end + 1, &this->ref) == 0);
-    line[this->ref.end] = '\0';
+    assert(this->ref.parseTill(this->parsed, this->id.end + 1, '\t') == 0);
+    this->parsed[this->ref.end] = '\0';
 
-    assert(this->self.parseTill('\t', this->ref.end + 1, &this->alt) == 0);
-    line[this->alt.end] = '\0';
+    assert(this->alt.parseTill(this->parsed, this->ref.end + 1, '\t') == 0);
+    this->parsed[this->alt.end] = '\0';
 
-    assert(this->self.parseTill('\t', this->alt.end + 1, &this->qual) == 0);
-    line[this->qual.end] = '\0';
+    assert(this->qual.parseTill(this->parsed, this->alt.end + 1, '\t') == 0);
+    this->parsed[this->qual.end] = '\0';
 
-    assert(this->self.parseTill('\t', this->qual.end + 1, &this->filt) == 0);
-    line[this->filt.end] = '\0';
+    assert(this->filt.parseTill(this->parsed, this->qual.end + 1, '\t') == 0);
+    this->parsed[this->filt.end] = '\0';
 
-    assert(this->self.parseTill('\t', this->filt.end + 1, &this->info) == 0);
-    line[this->info.end] = '\0';
+    assert(this->info.parseTill(this->parsed, this->filt.end + 1, '\t') == 0);
+    this->parsed[this->info.end] = '\0';
     this->vcfInfo.parse(this->info); // lazy parse inside VCFInfo
 
-    assert(this->self.parseTill('\t', this->info.end + 1, &this->format) == 0);
-    line[this->format.end] = '\0';
+    assert(this->format.parseTill(this->parsed, this->info.end + 1, '\t') == 0);
+    this->parsed[this->format.end] = '\0';
 
     // now comes each individual genotype
     int idx = 0; // peopleIdx
-    VCFIndividual* p = this->allIndv[idx];
-    int end = this->format.end;
+    VCFIndividual* p;
     VCFValue indv;
-    while( this->self.parseTill('\t', end + 1, &indv) == 0) {
-      p->parse(indv);
-      end = indv.end;
+    int beg = this->format.end + 1;
+    int ret;
+    while(  (ret = indv.parseTill(this->parsed, beg, '\t')) == 0) {
+      if (idx >= this->allIndv.size()) {
+        fprintf(stderr, "Expected %d individual but already have %d individual\n", this->allIndv.size(), idx);
+        fprintf(stderr, "VCF header have LESS people than VCF content!");
+        return;
+      }
 
-      if (indv.end == this->self.end) {
-        fprintf(stderr, "indv.end = %d, self.end = %d\n", indv.end, this->self.end);
-        break;
-      }
-      // check next individual
-      idx ++ ;
-      if (idx >= this->allIndv.size()){
-        fprintf(stderr, "Idx = %d, allIndv.size() = %d \n", idx, this->allIndv.size());
-        FATAL("VCF header have LESS people than VCF content!");
-      }
+      this->parsed[indv.end] = '\0';
       p = this->allIndv[idx];
-    };
+      p->parse(indv);
 
-    if (idx + 1 > this->allIndv.size()) {
+      beg = indv.end + 1;
+      idx ++;
+    }
+
+    // if ret == 1 menas reaches end of this->parsed
+    if (ret != 1) {
+      fprintf(stderr, "Parsing error in line: %s\n", this->self.toStr());
+      return;
+    } else {
+      this->parsed[indv.end] = '\0';
+      p = this->allIndv[idx];
+      p->parse(indv);
+      idx ++ ;
+    }
+
+    if (idx > this->allIndv.size()) {
+      fprintf(stderr, "Expected %d individual but only have %d individual\n", this->allIndv.size(), idx);
       FATAL("VCF header have MORE people than VCF content!");
+    } else if (idx < this->allIndv.size()) {
+      fprintf(stderr, "Expected %d individual but already have %d individual\n", this->allIndv.size(), idx);
+      FATAL("VCF header have LESS people than VCF content!");
     };
   };
   void createIndividual(const std::string& line){
@@ -255,6 +279,8 @@ private:
   // indicates if getPeople() has been called
   bool hasAccess;
 
+  // store parsed results
+  VCFBuffer parsed;
 }; // VCFRecord
 
 #endif /* _VCFRECORD_H_ */

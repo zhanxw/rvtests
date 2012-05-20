@@ -1,4 +1,4 @@
-EXE = testReadVCF testReadVCFInfo #t1 testVCFExtract testReadVCF
+EXE = testReadVCF testReadVCFInfo t1 #testVCFExtract testReadVCF
 all: $(EXE)
 debug: all
 

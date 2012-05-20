@@ -7,7 +7,7 @@
 #include "Exception.h"
 #include "IO.h"
 
-class Matrix;
+class SimpleMatrix;
 
 class PlinkInputFile{
 public:
@@ -104,8 +104,8 @@ public:
     };
 
     // @param m: people by marker matrix
-    int readIntoMatrix(Matrix* mat); 
-    int readIntoMatrix(Matrix* mat, std::vector<std::string>* peopleNames, std::vector<std::string>* markerNames); 
+    int readIntoMatrix(SimpleMatrix* mat); 
+    int readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* peopleNames, std::vector<std::string>* markerNames); 
 
     int getMarkerIdx(const std::string& m){
         if (this->snp2Idx.find(m) == this->snp2Idx.end()){

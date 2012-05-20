@@ -1,9 +1,8 @@
 #include "PlinkInputFile.h"
-
-#include "../libsrc/MathMatrix.h"
+#include "SimpleMatrix.h"
 
 // @param m: people by marker matrix
-int PlinkInputFile::readIntoMatrix(Matrix* mat) {
+int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) {
     assert(mat);
 
     // read bed
@@ -14,7 +13,7 @@ int PlinkInputFile::readIntoMatrix(Matrix* mat) {
         // unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
         unsigned char mask = 0x3; // 0b0000011
         unsigned char c;
-        (*mat).Dimension( numPeople, numMarker );
+        (*mat).resize( numPeople, numMarker );
         for (int m = 0; m < numMarker; m++){
             for (int p = 0; p < numPeople; p++) {
                 int offset = p & (4 - 1);
@@ -48,7 +47,7 @@ int PlinkInputFile::readIntoMatrix(Matrix* mat) {
     } else { // Indv_Major_Mode
         unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
         unsigned char c;
-        (*mat).Dimension( numPeople, numMarker );
+        (*mat).resize( numPeople, numMarker );
         for (int p = 0; p < numPeople; p++) {
             for (int m = 0; m < numMarker; m++){
                 int offset = m & (4 - 1);
@@ -79,14 +78,14 @@ int PlinkInputFile::readIntoMatrix(Matrix* mat) {
     }
 };
 
-int PlinkInputFile::readIntoMatrix(Matrix* mat, std::vector<std::string>* peopleNames, std::vector<std::string>* markerNames) {
+int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* peopleNames, std::vector<std::string>* markerNames) {
     assert (mat);
 
     // read bed
     int numPeople = getNumIndv();
     int numMarker = getNumMarker();
 
-    mat->Dimension( peopleNames == NULL ? numPeople: peopleNames->size(),
+    mat->resize( peopleNames == NULL ? numPeople: peopleNames->size(),
                     markerNames == NULL ? numMarker: markerNames->size());
 
     // get people index
@@ -121,7 +120,7 @@ int PlinkInputFile::readIntoMatrix(Matrix* mat, std::vector<std::string>* people
     int markerToRead = markerIdx.size();
 
     unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
-    (*mat).Dimension( peopleToRead, markerToRead);
+    (*mat).resize( peopleToRead, markerToRead);
     if (snpMajorMode) {
         for (int p = 0; p < peopleToRead; p++) {
             for (int m = 0; m < markerToRead; m++) {

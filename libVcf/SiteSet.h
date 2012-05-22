@@ -6,8 +6,13 @@
 //#include <map>
 #include <unordered_set>
 #include <unordered_map>
+#include <cmath>
+
 class SiteSet{
 public:
+  SiteSet() {
+    this->site.rehash(ceil(32/this->site.max_load_factor()));
+  }
   // Load plain position file
   // column 1: chrom, column 2: pos
   int loadSiteFile(const char* fileName);
@@ -31,6 +36,9 @@ public:
   };
 
   void loadSite(const char* chrom, int pos) {
+    if (site.find(chrom) == site.end()) {
+      site[chrom].rehash( ceil(1000000/site[chrom].max_load_factor()) );
+    }
     site[chrom].insert(pos);
   };
   void loadSite(const std::string& chrom, int pos) {

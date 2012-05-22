@@ -114,6 +114,14 @@ inline int stringNaturalTokenize(const std::string& str, const std::string& deli
     return result->size();
 };
 
+inline void stringJoin(const std::vector<std::string>& array, const char delim, std::string* res){
+  res->clear();
+  for (unsigned int i = 0; i < array.size(); i++) {
+    (*res) += array[i];
+    if (i) (*res) += delim;
+  }
+};
+
 /**
  * print out the content for debug only
  */

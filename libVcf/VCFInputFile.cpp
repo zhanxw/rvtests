@@ -1,5 +1,6 @@
 #include "VCFInputFile.h"
-
+#include "Utils.h"
+#include "IO.h"
 // use current subset of included people
 // to reconstruct a new VCF header line
 void VCFInputFile::rewriteVCFHeader() {
@@ -30,3 +31,32 @@ void VCFInputFile::clearRange() {
   this->range.clear();
   this->ti_line = 0;
 };
+
+int VCFInputFile::updateId(const char* fn){
+  // load conversion table
+  LineReader lr(fn);
+  std::map<std::string, std::string> tbl;
+  std::vector<std::string> fd;
+  while(lr.readLineBySep(&fd, "\t ")){
+    if (tbl.find(fd[0]) != tbl.end()) {
+      fprintf(stderr, "Duplicated original ids: %s\n", fd[0].c_str());
+    };
+    tbl[fd[0]] = fd[1];
+  }
+
+  // rewrite each people's name
+  std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+  VCFPeople& people = this->record.getPeople();
+  int n = 0;
+  for (int i = 0; i <people.size(); i++ ){
+    if (tbl.find(people[i]->getName()) != tbl.end()) {
+      ++n;
+      people[i]->setName(tbl[people[i]->getName()]);
+    }
+  }
+  this->rewriteVCFHeader();
+
+  // return result
+  return n;
+
+}

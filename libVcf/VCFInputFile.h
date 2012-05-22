@@ -206,6 +206,11 @@ public:
   void excludeAllPeople(){
     this->record.excludeAllPeople();
   };
+  /**
+   * @return number of ids have been changed.
+   */
+  int updateId(const char* fn);
+
   VCFRecord& getVCFRecord() {return this->record;};
   const char* getLine() const {return this->line.c_str();};
 

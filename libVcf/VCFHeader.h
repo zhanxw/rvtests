@@ -33,6 +33,7 @@ class VCFHeader{
             fprintf(fp, "%s\n", data[i].c_str());
         }
     };
+
   private:
     std::vector<std::string> data;
 };

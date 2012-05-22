@@ -72,7 +72,7 @@ class Variant{
     putchar('\n');
   };
   void print(const char* filt, const SiteSet& hapmapSites) const{
-    printf("%50s", filt);
+    printf("%40s", filt);
     putchar('\t');
     print(hapmapSites);
   }
@@ -194,12 +194,11 @@ int main(int argc, char** argv){
 
   //////////////////////////////////////////////////////////////////////
   std::string title = "Summarize per combined filter";
-  int pad = (150 - title.size() ) /2 ;
+  int pad = (170 - title.size() ) /2 ;
   std::string outTitle = std::string(pad, '-') + title + std::string(pad, '-');
   puts(outTitle.c_str());
-  printf("%50s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall");
-
+  printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
+         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
   std::map<std::string, Variant> indvFreq;
   Variant pass;
   Variant fail;
@@ -224,11 +223,11 @@ int main(int argc, char** argv){
   };
   //////////////////////////////////////////////////////////////////////
   title = "Summarize per individual filter";
-  pad = (150 - title.size() ) /2 ;
+  pad = (170 - title.size() ) /2 ;
   outTitle = std::string(pad, '-') + title + std::string(pad, '-');
   puts(outTitle.c_str());
-  printf("%50s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall");
+  printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
+         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
   for (std::map<std::string, Variant>::iterator i = indvFreq.begin() ; i != indvFreq.end(); ++i ){
     const std::string& filt = i->first;
     const Variant& v = i->second;
@@ -236,15 +235,17 @@ int main(int argc, char** argv){
   }
   //////////////////////////////////////////////////////////////////////
   title = "Summarize per pass/fail filter";
-  pad = (150 - title.size() ) /2 ;
+  pad = (170 - title.size() ) /2 ;
   outTitle = std::string(pad, '-') + title + std::string(pad, '-');
   puts(outTitle.c_str());
-  printf("%50s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall");
+  printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
+         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
 
   pass.print("PASS", hmSet);
   fail.print("FAIL", hmSet);
   total.print("TOTAL", hmSet);
 
+  currentTime = time(0);
+  fprintf(stderr, "Analysis end at: %s", ctime(&currentTime));  
   return 0;
 };

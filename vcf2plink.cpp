@@ -33,6 +33,9 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Site Filter")
         ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
         ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+        ADD_PARAMETER_GROUP(pl, "Other Function")        
+        ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")
+        ADD_STRING_PARAMETER(pl, updateId, "--update-id", "Update VCF sample id using given file (column 1 and 2 are old and new id).")
         END_PARAMETER_LIST(pl)
         ;    
 
@@ -81,37 +84,42 @@ int main(int argc, char** argv){
         vout = new VCFOutputFile("temp.vcf");
     }
 
+    if (FLAG_updateId != "") {
+      int ret = vin.updateId(FLAG_updateId.c_str());
+      fprintf(stdout, "%d samples have updated id.\n", ret);
+    }
+    
     if (vout) vout->writeHeader(vin.getVCFHeader());
     if (pout) pout->writeHeader(vin.getVCFHeader());
     int lineNo = 0;
+    int nonVariantSite = 0;
     while (vin.readRecord()){
         lineNo ++;
         VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
         VCFIndividual* indv;
+        if (FLAG_variantOnly) {
+          bool hasVariant = false;
+          int geno;
+          int GTidx = r.getFormatIndex("GT");
+          for (int i = 0; i < people.size() ;i ++) {
+            indv = people[i];
+            geno = indv->justGet(0).getGenotype();
+            if (geno != 0 && geno != MISSING_GENOTYPE)
+              hasVariant = true;
+          }
+          if (!hasVariant) {
+            nonVariantSite++;
+            continue;
+          }
+        }
         if (vout) vout->writeRecord(& r);
         if (pout) pout ->writeRecord(& r);
-
-#if 0
-        printf("%s:%d\t", r.getChrom(), r.getPos());
-
-        // e.g.: get TAG from INFO field
-        // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
-
-        // e.g.: Loop each (selected) people in the same order as in the VCF 
-        for (int i = 0; i < people.size(); i++) {
-            indv = people[i];
-            // get GT index. if you are sure the index will not change, call this function only once!
-            int GTidx = r.getFormatIndex("GT");
-            if (GTidx >= 0) 
-                printf("%s ", (*indv)[0].toStr());  // [0] meaning the first field of each individual
-            else 
-                fprintf(stderr, "Cannot find GT field!\n");
-        }
-        printf("\n");
-#endif
     };
     fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+    if (FLAG_variantOnly) {
+      fprintf(stdout, "Skipped %d non-variant VCF records\n", nonVariantSite);
+    }
     if (vout) delete vout;
     if (pout) delete pout;
 

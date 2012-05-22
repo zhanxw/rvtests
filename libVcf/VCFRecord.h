@@ -126,9 +126,22 @@ public:
   // Code related with include/exclude people
   void includePeople(const std::string& name){
     if (name.size() == 0) return;
+
+    // tokenize @param name by ','
+    int beg = 0;
+    int end = name.find(',');
+    std::string s;
+    while (end != std::string::npos) {
+      s = name.substr(beg, end - beg);
+      beg = end + 1;
+      end = name.find(',', beg);
+      this->includePeople(s);
+    }
+    s = name.substr(beg, end);
+    fprintf(stderr, "Include sample %s.\n", s.c_str());
     for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
-      if (p->getName() == name) {
+      if (p->getName() == s) {
         p->include();
       }
     }

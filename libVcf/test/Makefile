@@ -1,4 +1,4 @@
-EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange testReadMissing t1 # testVCFExtract testReadVCF
+EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange testReadMissing testPlinkInputFile # testVCFExtract testReadVCF
 all: $(EXE)
 debug: all
 
@@ -19,9 +19,8 @@ $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
 check: check1 check2 check3
 check1:
-	./t1 > t1.output
-	diff -q t1.output t1.correct
-	rm t1.output
+	./testPlinkInputFile > testPlinkInputFile.output
+	diff -q testPlinkInputFile.output testPlinkInputFile.output.correct
 check2:
 	./testVCFExtract
 check3:

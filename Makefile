@@ -1,6 +1,6 @@
 all: release
 EXEC = rvtest
-UTIL_EXEC = vcf2plink # plink2vcf vcf2merlin vcf2ld_window vcf2ld_neighbor
+UTIL_EXEC = vcf2plink vcfSummary # plink2vcf vcf2merlin vcf2ld_window vcf2ld_neighbor
 
 DIR_EXEC = ./executable
 DIR_EXEC_DBG = ./executable/dbg
@@ -77,7 +77,7 @@ CXX_LIB_DBG = $(LIB_DBG) -lz -lbz2 -lm -lgsl -lblas
 lib: $(CXX_LIB)
 lib-dbg: $(CXX_LIB_DBG)
 
-DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
+DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x #-Wall
 
 .PHONY: release debug lib lib-dbg
 

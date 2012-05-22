@@ -3,7 +3,7 @@ all: release
 
 LIB = lib-vcf.a
 LIB_DBG = lib-dbg-vcf.a
-BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile VCFIndividual # VCFExtractor
+BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile VCFIndividual SiteSet # VCFExtractor
 OBJ = $(BASE:=.o)
 
 TABIX_INC = ../third/tabix
@@ -12,7 +12,7 @@ TABIX_LIB = ../third/tabix/libtabix.a
 $(TABIX_INC) $(TABIX_LIB):
 	(cd ../third; make tabix)
 
-DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -I. -I../base -I${TABIX_INC}
+DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I../base -I${TABIX_INC}
 
 # 'make release' will: clean current build; build with -O4 flags;
 # NOTE: don't use -j flag!

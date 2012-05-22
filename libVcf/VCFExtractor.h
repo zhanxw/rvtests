@@ -1,6 +1,5 @@
 #include "VCFUtil.h"
 #include "Regex.h"
-//#include "MathMatrix.h"
 #include <string>
 
 class VCFExtractor{
@@ -302,7 +301,7 @@ public:
 
     // code to extract data
 
-    int extractGenoType(Matrix* m) {
+    int extractGenoType(SimpleMatrix* m) {
         assert(m);
         int nr = this->geno.rows;
         int nc = this->geno.cols;
@@ -365,5 +364,5 @@ private:
     std::vector<std::string> id;
 
     // get extract genotypes
-    Matrix geno;
+    SimpleMatrix geno;
 };

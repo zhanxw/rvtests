@@ -93,6 +93,9 @@ public:
         
         return g;
     };
+    /**
+     * @return 0 or 1 or 2 as genotype
+     */
     int getAllele1() const{
         int g = 0;
         int p = beg;

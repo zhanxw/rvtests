@@ -74,16 +74,17 @@ CXX_INCLUDE = $(addprefix -I, $(INCLUDE))
 CXX_LIB = $(LIB) -lz -lbz2 -lm -lgsl -lblas
 CXX_LIB_DBG = $(LIB_DBG) -lz -lbz2 -lm -lgsl -lblas
 
-lib: $(CXX_LIB)
-lib-dbg: $(CXX_LIB_DBG)
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x #-Wall
 
-.PHONY: release debug lib lib-dbg
+.PHONY: release debug
+
+lib: $(LIB)
+lib-dbg: $(LIB_DBG)
 
 release: CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS)
 release: $(DIR_EXEC)/$(EXEC) util
-$(DIR_EXEC)/$(EXEC): lib \
+$(DIR_EXEC)/$(EXEC): $(LIB) \
                      Main.o \
                      VCFData.o \
                      Collapsor.h ModelFitter.h \
@@ -92,7 +93,7 @@ $(DIR_EXEC)/$(EXEC): lib \
 
 debug: CXX_FLAGS = -g -O0 $(DEFAULT_CXXFLAGS) 
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
-$(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
+$(DIR_EXEC_DBG)/$(EXEC): $(LIB_DBG) \
                          Main.o \
                          VCFData.o \
                          Collapsor.h ModelFitter.h \
@@ -117,8 +118,9 @@ define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): $$(SRC) lib | $(DIR_EXEC)
-	g++ -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
+  $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS)
+  $$(TAR): $$(SRC) $(LIB) | $(DIR_EXEC)
+	g++ -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
 endef
 $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util, $(s))))
 
@@ -127,14 +129,17 @@ define BUILD_util_dbg
   TAR := $(DIR_EXEC_DBG)/$(notdir $(basename $(1)))
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): $$(SRC) lib-dbg | $(DIR_EXEC_DBG)
-	g++ -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB_DBG)
+  $$(TAR): CXX_FLAGS = -O0 -ggbd $(DEFAULT_CXXFLAGS)
+  $$(TAR): $$(SRC) $(LIB_DBG) | $(DIR_EXEC_DBG)
+	g++ -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB_DBG)
 endef
 $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util_dbg, $(s))))
 
 
 clean: 
-	rm -rf *.o *.d $(EXEC)
+	rm -rf *.o *.d $(EXEC) \
+        $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC)) \
+        $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
 
 deepclean: clean
 	(cd base; make clean)

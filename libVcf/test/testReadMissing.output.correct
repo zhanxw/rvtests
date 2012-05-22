@@ -1,0 +1,30 @@
+Check whether field is missing for each individual
+....M	.MMMM	....M	....M	....M	....M	
+.MMMM	.MMMM	.MMMM	.MMMM	.MMMM	.MMMM	
+....M	....M	....M	....M	....M	....M	
+....M	....M	....M	....M	....M	....M	
+....M	....M	....M	....M	....M	....M	
+....M	....M	....M	....M	....M	....M	
+....M	....M	....M	....M	....M	....M	
+....M	....M	....M	....M	....M	....M	
+....M	....M	....M	....M	....M	....M	
+....M	....M	....M	....M	....M	....M	
+....M	....M	....M	....M	....M	.MMMM	
+. - Individual's column is not missing
+M - Individual's column is missing
+
+Check whether genotype is missing for each individual
+.	M	.	.	.	.	
+M	M	M	M	M	M	
+.	.	.	.	.	.	
+.	.	.	.	.	.	
+.	.	.	.	.	.	
+.	.	.	.	.	.	
+.	.	.	.	.	.	
+.	.	.	.	.	.	
+.	.	.	.	.	.	
+.	.	.	.	.	.	
+.	.	.	.	.	M	
+. - Individual's genotype column is not missing
+M - Individual's genotype column is missing
+

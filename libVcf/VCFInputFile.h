@@ -19,8 +19,16 @@ public:
   } Mode;
 
 public:
-  VCFInputFile (const char* fn):
-  fp(NULL), tabixHandle(NULL), mode(LINE_MODE){
+  VCFInputFile (const std::string& fn) {
+    init(fn.c_str());
+  }
+  VCFInputFile (const char* fn) {
+    init(fn);
+  }
+  void init(const char* fn) {
+    this->fp = NULL;
+    this->tabixHandle = NULL;
+    this->mode = LINE_MODE;
     bool headerLoaded;
 
     this->fileName = fn;
@@ -138,7 +146,7 @@ public:
           // get range
           char rangeBuffer[128];
           snprintf(rangeBuffer, 128, "%s:%u-%u", this->rangeIterator.getChrom().c_str(),
-                  this->rangeIterator.getBegin(), this->rangeIterator.getEnd());
+                   this->rangeIterator.getBegin(), this->rangeIterator.getEnd());
           rangeBuffer[127] = '\0';
 
           // parse range

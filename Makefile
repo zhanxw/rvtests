@@ -1,6 +1,6 @@
 all: release
 EXEC = rvtest
-UTIL_EXEC = vcf2plink vcfSummary # plink2vcf vcf2merlin vcf2ld_window vcf2ld_neighbor
+UTIL_EXEC = vcf2plink vcfSummary vcfConcordance # plink2vcf vcf2merlin vcf2ld_window vcf2ld_neighbor
 
 DIR_EXEC = ./executable
 DIR_EXEC_DBG = ./executable/dbg
@@ -129,7 +129,7 @@ define BUILD_util_dbg
   TAR := $(DIR_EXEC_DBG)/$(notdir $(basename $(1)))
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): CXX_FLAGS = -O0 -ggbd $(DEFAULT_CXXFLAGS)
+  $$(TAR): CXX_FLAGS = -O0 -ggdb $(DEFAULT_CXXFLAGS)
   $$(TAR): $$(SRC) $(LIB_DBG) | $(DIR_EXEC_DBG)
 	g++ -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB_DBG)
 endef

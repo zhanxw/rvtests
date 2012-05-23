@@ -33,7 +33,11 @@ class VCFHeader{
             fprintf(fp, "%s\n", data[i].c_str());
         }
     };
-
+    int getPeopleNumber() const {
+        const std::string ln = this->data[this->data.size() - 1];
+        std::vector<std::string> fd;
+        return stringTokenize(ln, "\t", &fd) - 9;
+    };
   private:
     std::vector<std::string> data;
 };

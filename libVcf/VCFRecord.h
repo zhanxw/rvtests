@@ -216,6 +216,7 @@ public:
 public:
   const char* getChrom() { return this->chrom.toStr(); };
   const int   getPos()  { return this->pos.toInt(); };
+  const char* getPosStr()  { return this->pos.toStr(); };
   const char* getID() { return this->id.toStr(); };
   const char* getRef() { return this->ref.toStr(); };
   const char* getAlt() { return this->alt.toStr(); };

@@ -136,6 +136,13 @@ void printComparision(AllConcordanceType& data) {
     printf("Nonref-Concordance= %10.2f \t DiscoveryRate = %10.2f \n", 
            1.0 * nonRefConcordNum / nonRefConcordDom,
            1.0 * discoveredVariant / (discoveredVariant + undiscoveredVariant));
+    for (int i = 1; i <= 4; i++ ) {
+        for (int j = 1; j <= 4; j++ ){
+            printf(" %d" , c[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
   }
   return;
 };
@@ -218,7 +225,6 @@ int main(int argc, char** argv){
     clearGenotype(&data);
   }
 
-  VCFInputFile** compareVcfs = new VCFInputFile* [FLAG_REMAIN_ARG.size()];
   for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
     delete compareVcfs[i];
   }

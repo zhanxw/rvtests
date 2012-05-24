@@ -42,15 +42,15 @@ int main() {
     printf( "%s\t%d\t%f\t%s\n", inHapMap?"inHapmap":"notHapMap", dp, cbr, anno.c_str());
         
     // (2) access by tag
-    bool tagExists;
-    info.getTag("HM3", &tagExists);
-    inHapMap = tagExists;
-    dp       = info.getTag("DP", &tagExists).toInt();
-    cbr      = info.getTag("CBR", &tagExists).toDouble();
-    anno     = info.getTag("ANNO", &tagExists).toStr();
-    fake     = info.getTag("FAKE", &tagExists).toStr();
+    bool tagMissing;
+    info.getTag("HM3", &tagMissing);
+    inHapMap = tagMissing;
+    dp       = info.getTag("DP", &tagMissing).toInt();
+    cbr      = info.getTag("CBR", &tagMissing).toDouble();
+    anno     = info.getTag("ANNO", &tagMissing).toStr();
+    fake     = info.getTag("FAKE", &tagMissing).toStr();
     printf( "%s:%d\t", r.getChrom(), r.getPos());
-    assert(fake == "" && tagExists == false);
+    assert(fake == "" && tagMissing == true);
 
     printf( "%s\t%d\t%f\t%s\n", inHapMap?"inHapmap":"notHapMap", dp, cbr, anno.c_str());
 

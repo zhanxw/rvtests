@@ -2,9 +2,9 @@
 
 const VCFValue VCFInfo::defaultValue;
 
-const VCFValue& VCFInfo::getTag(const char* tag, bool* exists){
+const VCFValue& VCFInfo::getTag(const char* tag, bool* isMissing){
   if (!tag || tag[0] == '\0') {
-    *exists = false;
+    *isMissing = true;
     return VCFInfo::defaultValue;
   }
 
@@ -13,10 +13,10 @@ const VCFValue& VCFInfo::getTag(const char* tag, bool* exists){
 
   std::string s = tag;
   if (!this->data.find(s) ) {
-    *exists = false;
+    *isMissing = true;
     return VCFInfo::defaultValue;
   } else {
-    *exists = true;
+    *isMissing = false;
     return this->data[s];
   };
 };

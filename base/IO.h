@@ -340,8 +340,14 @@ BufferedReader(const char* fileName, int bufferCapacity):
 // }
 */
 class LineReader{
-  public:
-    LineReader(const char* fileName){
+public:
+  LineReader(const std::string& fileName){
+    init(fileName.c_str());
+  }
+  LineReader(const char* fileName){
+    init(fileName);
+  }
+  void init(const char* fileName) {
 #ifdef IO_DEBUG
         fprintf(stderr, "LineReader open %s\n", fileName);
 #endif

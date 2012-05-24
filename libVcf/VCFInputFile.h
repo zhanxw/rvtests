@@ -221,7 +221,7 @@ public:
 
   VCFRecord& getVCFRecord() {return this->record;};
   const char* getLine() const {return this->line.c_str();};
-
+  const char* getFileName() const {return this->fileName.c_str();};
 private:
   // disable copy-constructor
   VCFInputFile(const VCFInputFile& v){};

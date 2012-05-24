@@ -13,7 +13,13 @@ public:
 
   void reset() { this-> hasParsed = false;};
 
-  const VCFValue& getTag(const char* tag, bool* exists) ;
+  /**
+   * Check whethere VCF INFO column has @param tag
+   * Set @param isMissing to whether this @param tag is missing
+   * @return VCFValue of the value of given tag
+   * e.g. get("DP", &isMissing) for INFO="DP=3", will return VCFValue of "3" and isMissing = false
+   */
+  const VCFValue& getTag(const char* tag, bool* isMissing) ;
 
   void at(unsigned int idx, std::string* key, VCFValue* value) const {
     if (idx >= this->data.size()) {

@@ -26,8 +26,6 @@ int main(int argc, char** argv){
     BEGIN_PARAMETER_LIST(pl)
         ADD_PARAMETER_GROUP(pl, "Input/Output")
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-        ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
-        ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -79,18 +77,6 @@ int main(int argc, char** argv){
     vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
     
     // let's write it out.
-    VCFOutputFile* vout = NULL;
-    PlinkOutputFile* pout = NULL;
-    if (FLAG_outVcf.size() > 0) {
-        vout = new VCFOutputFile(FLAG_outVcf.c_str());
-    };
-    if (FLAG_outPlink.size() > 0) {
-        pout = new PlinkOutputFile(FLAG_outPlink.c_str());
-    };
-    if (!vout && !pout) {
-        vout = new VCFOutputFile("temp.vcf");
-    }
-
     if (FLAG_updateId != "") {
       int ret = vin.updateId(FLAG_updateId.c_str());
       fprintf(stdout, "%d samples have updated id.\n", ret);
@@ -124,22 +110,27 @@ int main(int argc, char** argv){
       }
       range += it->second;
     };
-    // fprintf(stdout, "range = %s\n", range.c_str());
+    //fprintf(stdout, "range = %s\n", range.c_str());
     vin.setRangeList(range.c_str());
 
     Regex regex;
     if (FLAG_annoType.size()) {
       regex.readPattern(FLAG_annoType);
     }
-    
-    // real working park
-    if (vout) vout->writeHeader(vin.getVCFHeader());
-    if (pout) pout->writeHeader(vin.getVCFHeader());
-    int lineNo = 0;
-    int nonVariantSite = 0;
+
+    // print header
+    std::vector<std::string> names;
+    vin.getVCFHeader()->getPeopleName(&names);
+    printf("CHROM\tPOS");
+    for (unsigned int i = 0; i < names.size(); i++){
+      printf("\t%s", names[i].c_str());
+    }
+    printf("\n");
+      
+    // real working part
+    bool nonVariantSite;
     while (vin.readRecord()){
-        lineNo ++;
-        VCFRecord& r = vin.getVCFRecord(); 
+      VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
         VCFIndividual* indv;
         if (FLAG_variantOnly) {
@@ -172,17 +163,17 @@ int main(int argc, char** argv){
           }
         }
         
-        if (vout) vout->writeRecord(& r);
-        if (pout) pout ->writeRecord(& r);
+        fprintf(stdout, "%s\t%s", r.getChrom(), r.getPosStr());
+
+        for (int i = 0; i < people.size(); i++) {
+          indv = people[i];
+          fprintf(stdout, "\t%d", indv->justGet(0).getGenotype());
+        }
+        fprintf(stdout, "\n");
     };
-    fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
-    if (FLAG_variantOnly) {
-      fprintf(stdout, "Skipped %d non-variant VCF records\n", nonVariantSite);
-    }
-
-    if (vout) delete vout;
-    if (pout) delete pout;
-
+    
+    currentTime = time(0);
+    fprintf(stderr, "Analysis ens at: %s", ctime(&currentTime));
     
     return 0; 
 };

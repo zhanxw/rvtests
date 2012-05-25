@@ -30,35 +30,61 @@ public:
     this->self.beg = 0;
     this->self.end = this->parsed.size();
 
-    // this->line = line;
     // go through VCF sites (first 9 columns)
-
-    assert(this->chrom.parseTill(this->parsed, 0, '\t') == 0);
+    int ret;
+    if ( (ret = this->chrom.parseTill(this->parsed, 0, '\t')) ) {
+      fprintf(stderr, "Error when parsing CHROM [ %s ]", vcfLine.c_str());
+      return ;
+    }
     this->parsed[this->chrom.end] = '\0';
-
-    assert(this->pos.parseTill(this->parsed, this->chrom.end + 1, '\t') == 0);
+    
+    if ( (ret = (this->pos.parseTill(this->parsed, this->chrom.end + 1, '\t') ))) {
+      fprintf(stderr, "Error when parsing POS [ %s ]", vcfLine.c_str());
+      return ;
+    }
     this->parsed[this->pos.end] = '\0';
 
-    assert(this->id.parseTill(this->parsed, this->pos.end + 1, '\t') == 0);
+    if ( (ret = (this->id.parseTill(this->parsed, this->pos.end + 1, '\t') ))) {
+      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      return ;
+    }
     this->parsed[this->id.end] = '\0';
 
-    assert(this->ref.parseTill(this->parsed, this->id.end + 1, '\t') == 0);
+    if ( (ret = (this->ref.parseTill(this->parsed, this->id.end + 1, '\t') ))) {
+      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      return ;
+    }
     this->parsed[this->ref.end] = '\0';
 
-    assert(this->alt.parseTill(this->parsed, this->ref.end + 1, '\t') == 0);
+    if ( (ret = (this->alt.parseTill(this->parsed, this->ref.end + 1, '\t') ))) {
+      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      return ;
+    }      
     this->parsed[this->alt.end] = '\0';
 
-    assert(this->qual.parseTill(this->parsed, this->alt.end + 1, '\t') == 0);
+    if ( (ret = (this->qual.parseTill(this->parsed, this->alt.end + 1, '\t') ))) {
+      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      return ;
+    }      
     this->parsed[this->qual.end] = '\0';
 
-    assert(this->filt.parseTill(this->parsed, this->qual.end + 1, '\t') == 0);
+    if ( (ret = (this->filt.parseTill(this->parsed, this->qual.end + 1, '\t') ))) {
+      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      return ;
+    }      
     this->parsed[this->filt.end] = '\0';
 
-    assert(this->info.parseTill(this->parsed, this->filt.end + 1, '\t') == 0);
+    if ( (ret = (this->info.parseTill(this->parsed, this->filt.end + 1, '\t') ))) {
+      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      return ;
+    }      
     this->parsed[this->info.end] = '\0';
     this->vcfInfo.parse(this->info); // lazy parse inside VCFInfo
 
-    assert(this->format.parseTill(this->parsed, this->info.end + 1, '\t') == 0);
+    if ( (ret = (this->format.parseTill(this->parsed, this->info.end + 1, '\t') ))){
+      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      return ;
+    }      
     this->parsed[this->format.end] = '\0';
 
     // now comes each individual genotype
@@ -66,11 +92,10 @@ public:
     VCFIndividual* p;
     VCFValue indv;
     int beg = this->format.end + 1;
-    int ret;
     while(  (ret = indv.parseTill(this->parsed, beg, '\t')) == 0) {
       if (idx >= this->allIndv.size()) {
         fprintf(stderr, "Expected %d individual but already have %d individual\n", this->allIndv.size(), idx);
-        fprintf(stderr, "VCF header have LESS people than VCF content!");
+        fprintf(stderr, "VCF header have LESS people than VCF content!\n");
         return;
       }
 

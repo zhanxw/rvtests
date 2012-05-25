@@ -1,8 +1,7 @@
 #include "PlinkOutputFile.h"
+#include "SimpleMatrix.h"
 
-#include "../libsrc/MathMatrix.h"
-
-void PlinkOutputFile::writeBED(Matrix* mat, int nPeople, int nMarker){
+void PlinkOutputFile::writeBED(SimpleMatrix* mat, int nPeople, int nMarker){
     /* int nPeople = mat->cols; */
     /* int nMarker = mat->rows; */
     unsigned char c = 0;

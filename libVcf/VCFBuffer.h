@@ -43,6 +43,11 @@ VCFBuffer():buf(NULL), len(0), bufLen(0) {};
   };
   const char* c_str() const {return  this->buf;};
   size_t size() const {return this->len;};
+  void dump(int firstNumChar) const {
+    for (int i = 0; i < firstNumChar; i++) {
+      fprintf(stderr, "%d: %c (%d)\n", i, buf[i], buf[i]);
+    }
+  }
 private:
   VCFBuffer(VCFBuffer& b);
   VCFBuffer& operator=(const VCFBuffer& b);

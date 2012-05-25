@@ -3,7 +3,7 @@
 
 #include "VCFUtil.h"
 
-class Matrix;
+class SimpleMatrix;
 
 /****************************/
 /*    Binary PLINK format   */
@@ -179,7 +179,7 @@ public:
     };
   };
   // NOTE: m should be: marker x people
-  void writeBED(Matrix* mat, int nPeople, int nMarker);
+  void writeBED(SimpleMatrix* mat, int nPeople, int nMarker);
 private:
   // we reverse the two bits as defined in PLINK format,
   // so we can process 2-bit at a time.

@@ -48,7 +48,8 @@ public:
       fd.push_back(v);
     }
     if (fd.size() == 0) {
-      fprintf(stderr, "Empty individual column - very strange!!");
+      fprintf(stderr, "Empty individual column - very strange!!\n");
+      fprintf(stderr, "vcfValue = %s\n", vcfValue.toStr());
     }
   };
 

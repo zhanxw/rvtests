@@ -3,7 +3,6 @@
 
 #include "tabix.h"
 #include "VCFRecord.h"
-#include "Logger.h"
 #include "VCFFilter.h"
 
 

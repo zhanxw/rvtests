@@ -546,15 +546,17 @@ int main(int argc, char** argv){
         indv = people[i];
         // get GT index. if you are sure the index will not change, call this function only once!
         int GTidx = r.getFormatIndex("GT");
-        if (GTidx >= 0)
+        if (GTidx >= 0) {
           //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
           genotype[i][0] = indv->justGet(GTidx).getGenotype();
-        else {
+          // // fprintf(stderr, "%d ", int(genotype[i][0]));
+        } else {
           fprintf(stderr, "Cannot find GT field at line %d!\n", lineNo);
           continue;
         }
       }
-
+      
+      
       // impute missing genotypes
       imputeGenotype(&genotype, &random);
 

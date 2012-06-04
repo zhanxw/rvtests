@@ -130,7 +130,7 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp) {
-    fprintf(fp, "Beta\tSE\tPvalue");
+    fprintf(fp, "Beta\tSE\tPvalue\n");
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
@@ -158,9 +158,9 @@ public:
   void writeOutput(FILE* fp) {
     if (fitOK) {
       double se = sqrt(lr.GetCovB()[0][0]);
-      fprintf(fp, "%.3lf\t%.3lf\t%.3lf", lr.GetCovEst()[0], se, lr.GetAsyPvalue()[0]);
+      fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", lr.GetCovEst()[0], se, lr.GetAsyPvalue()[0]);
     } else{
-      fputs("NA\tNA\tNA", fp);
+      fputs("NA\tNA\tNA\n", fp);
     }
   };
 private:

@@ -26,6 +26,7 @@ class LogisticRegression
     LogisticRegression();
     ~LogisticRegression();
 
+    bool FitLogisticModel(Matrix & X, Matrix & y, int rnrounds); // return false if not converging
     bool FitLogisticModel(Matrix & X, Vector & y, int rnrounds); // return false if not converging
     bool FitLogisticModel(Matrix & X, Vector & succ, Vector& total, int nrrounds);
     double GetDeviance(Matrix & X, Vector & y);

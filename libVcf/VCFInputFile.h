@@ -119,6 +119,11 @@ public:
     this->range.addRange(chrom, begin, end);
     this->setRangeMode();
   };
+  void setRange(const RangeList& rl) {
+    this->clearRange();
+    this->range = rl;
+    this->setRangeMode();
+  };
   void setRangeList(const char* l){
     if (!l || strlen(l) == 0)
       return;

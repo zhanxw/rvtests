@@ -1,8 +1,8 @@
 #ifndef _MODELFITTER_H_
 #define _MODELFITTER_H_
 
-#include "VCFData.h"
 #include "MathMatrix.h"
+
 #include "regression/LogisticRegression.h"
 #include "regression/LogisticRegressionScoreTest.h"
 #include "regression/LinearRegression.h"
@@ -18,7 +18,7 @@ public:
     // write result header
     virtual void writeHeader(FILE* fp) = 0;
     // fitting model
-    virtual int fit(VCFData& data) = 0;
+    virtual int fit(Matrix& phenotype, Matrix& genotype) = 0;
     // write model output
     virtual void writeOutput(FILE* fp) = 0;
 
@@ -31,6 +31,7 @@ protected:
     std::string modelName;
 }; // end ModelFitter
 
+#if 0
 class SingleVariantHeader: public ModelFitter{
 public:
     SingleVariantHeader() {
@@ -119,6 +120,9 @@ private:
     int numVariant;
 }; // CollapsingHeader
 
+#endif
+
+
 class SingleVariantWaldTest: public ModelFitter{
 public:
     // write result header
@@ -126,6 +130,12 @@ public:
         fprintf(fp, "Beta\tSE\tPvalue");
     };
     // fitting model
+    int fit(Matrix& phenotype, Matrix& genotype) {
+        cbind(&X, &genotype, NULL, true);
+        fitOK = lr.FitLogisticModel(X, phenotype, 100);
+        return (fitOK ? 0 : 1);
+    };
+#if 0
     int fit(VCFData& data) {
         if (data.covariate && data.covariate->cols > 0)
             cbind(&X, data.genotype, data.covariate, true);
@@ -135,6 +145,7 @@ public:
         fitOK = lr.FitLogisticModel(X, *data.extractPhenotype(), 100);
         return (fitOK ? 0 : 1);
     };
+#endif
     // write model output
     void writeOutput(FILE* fp) {
         if (fitOK) {
@@ -186,6 +197,19 @@ public:
         fprintf(fp, "Pvalue");
     };
     // fitting model
+    int fit(Matrix& phenotype, Matrix& genotype) {
+        Matrix intercept(genotype.rows, 1);
+        Vector pheno(phenotype.rows);
+        for (int i = 0; i< phenotype.rows; i++){
+            intercept[i][0] = 1.0;
+            pheno[i] = phenotype[i][0];
+        }
+        fitOK = lrst.FitNullModel(intercept, pheno, 100);
+        if (!fitOK) return -1;
+        fitOK = lrst.TestCovariate(intercept, pheno, genotype);
+        return (fitOK ? 0 : -1);
+    };
+#if 0
     int fit(VCFData& data) {
         if (data.covariate && data.covariate->cols > 0) {
             fitOK = lrst.FitNullModel( *data.covariate, *data.extractPhenotype(), 100);
@@ -202,6 +226,7 @@ public:
         }
         return 0;
     };
+#endif
     // write model output
     void writeOutput(FILE* fp) {
         if (fitOK)
@@ -214,6 +239,7 @@ private:
     bool fitOK;
 }; // SingleVariantScoreTest
 
+#if 0
 class CMCTest: public ModelFitter{
 public:
     // write result header
@@ -624,5 +650,5 @@ private:
     bool fitOK;
     double pValue;
 }; // SkatTest
-
+#endif 
 #endif /* _MODELFITTER_H_ */

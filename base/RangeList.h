@@ -46,7 +46,10 @@ inline bool PositionPairCompare(const PositionPair& p1, const PositionPair& p2){
 class RangeCollection{
 public:
 RangeCollection():_size(0){};
-  void addRange(const std::string& chr, unsigned int begin, unsigned int end) {
+  void addRange(const std::string& chr, unsigned int begin, unsigned int end) {  
+    this->addRange(chr.c_str(), begin, end);
+  }
+  void addRange(const char* chr, unsigned int begin, unsigned int end) {
     // if chr not exists
     // add chr to the chrVector
     // std::string c = chopChr(chr);
@@ -273,9 +276,12 @@ RangeList(): isSorted(false) {};
   /// argRangeList is a string indicating the range
   void addRangeList(const char* argRangeList);
   void addRangeFile(const char* argRangeFile);
-  void addRange(const std::string& chr, unsigned int begin, unsigned int end) {
+  void addRange(const char* chr, unsigned int begin, unsigned int end) {
     this->isSorted = false;
     this->rangeCollection.addRange(chr, begin, end);
+  };
+  void addRange(const std::string& chr, unsigned int begin, unsigned int end) {
+    this->addRange(chr.c_str(), begin, end);
   };
   bool isInRange(const std::string& chr, unsigned int pos) {
     return this->rangeCollection.isInRange(chr, pos);

@@ -120,6 +120,13 @@ void LogisticRegression::reset(Matrix& X){
 
 }
 
+bool LogisticRegression::FitLogisticModel(Matrix & X, Matrix & y, int rnrounds) {
+    Vector v(X.rows);
+    for (int i = 0; i < X.rows; ++i){
+        v[i] = X[i][0];
+    }
+};
+
 bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& total, int nrrounds){
     this-> reset(X);
 	int rounds = 0;

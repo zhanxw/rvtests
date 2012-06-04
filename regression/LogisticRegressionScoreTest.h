@@ -14,6 +14,7 @@
 class LogisticRegressionScoreTest{
   public:
     LogisticRegressionScoreTest();
+
     /**
      * @param colToTest: 0-based
      */

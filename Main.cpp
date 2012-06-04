@@ -178,7 +178,7 @@ void imputeGenotype(Matrix* genotype, Random* r) {
       if (m[i][j] >= 0) {
         ac += m[i][j];
         an += 2;
-      } 
+      }
     }
     double p = 1.0 * ac / an;
     double pRef = p * p;
@@ -203,7 +203,7 @@ void imputeGenotype(Matrix* genotype, Random* r) {
 void toMatrix(const std::vector<double>& v, Matrix* m) {
   m->Dimension(v.size(), 1);
   for (int i = 0; i < v.size(); i++) {
-    m[0][1] = v[i];
+    (*m)[i][0] = v[i];
   }
 };
 
@@ -222,7 +222,7 @@ int loadGeneFile(const char* fn, std::map<std::string, RangeList>* geneList) {
     int beg = atoi(fd[4]);
     int end = atoi(fd[5]);
     m[ fd[0] ].addRange (chr.c_str(), beg, end);
-  }  
+  }
   return m.size();
 };
 
@@ -305,6 +305,8 @@ int main(int argc, char** argv){
   }
 
   REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+  if (!FLAG_outPrefix.size())
+    FLAG_outPrefix = "rvtest";
 
   const char* fn = FLAG_inVcf.c_str();
   VCFInputFile* pVin = new VCFInputFile(fn);
@@ -414,7 +416,7 @@ int main(int argc, char** argv){
   }
   if (phenotypeInOrder.size() != phenotype.size()) {
     fprintf(stderr, "Drop %d sample from phenotype file since mismatch their VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
-  }    
+  }
 
   // prepare each model
   if (FLAG_modelSingle.size() && (FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size())) {
@@ -431,80 +433,80 @@ int main(int argc, char** argv){
   //     collapsor.setSetFileName(FLAG_set.c_str());
   //     model.push_back (new CollapsingHeader);
   // }
-  bool singelVariantTestMode = false;
+  bool singleVariantTestMode = false;
   if (FLAG_modelSingle != "") {
-    singelVariantTestMode = true;
-      stringTokenize(FLAG_modelSingle, ",", &argModelName);
-      for (int i = 0; i < argModelName.size(); i++ ){
-          if (argModelName[i] == "wald") {
-              model.push_back( new SingleVariantWaldTest );
-          } else if (argModelName[i] == "score") {
-              model.push_back( new SingleVariantScoreTest );
-          } else if (argModelName[i] == "fisher") {
-              //model.push_back( new SingleVariantScoreTest );
-              // TODO: add fisher test
-          } else {
-              fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
-              abort();
-          };
-      }
+    singleVariantTestMode = true;
+    stringTokenize(FLAG_modelSingle, ",", &argModelName);
+    for (int i = 0; i < argModelName.size(); i++ ){
+      if (argModelName[i] == "wald") {
+        model.push_back( new SingleVariantWaldTest<LinearRegression> );
+      } else if (argModelName[i] == "score") {
+        model.push_back( new SingleVariantScoreTest<LinearRegressionScoreTest> );
+      } else if (argModelName[i] == "fisher") {
+        //model.push_back( new SingleVariantScoreTest );
+        // TODO: add fisher test
+      } else {
+        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+        abort();
+      };
+    }
   };
-  
+
 #if 0
   if (FLAG_modelBurden != "") {
-      stringTokenize(FLAG_modelBurden, ",", &argModelName);
-      for (int i = 0; i < argModelName.size(); i++ ){
-          if (argModelName[i] == "cmc") {
-              model.push_back( new CMCTest );
-          } else if (argModelName[i] == "zeggini") {
-              model.push_back( new ZegginiTest );
-          } else if (argModelName[i] == "mb") {
-              model.push_back( new MadsonBrowningTest );
-              // NOTE: use may use different frequency (not freq from control),
-              // so maybe print a warning here?
-          } else if (argModelName[i] == "exactCMC") {
-              model.push_back( new CMCFisherExactTest );
-          } else {
-              fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
-              abort();
-          };
-      }
+    stringTokenize(FLAG_modelBurden, ",", &argModelName);
+    for (int i = 0; i < argModelName.size(); i++ ){
+      if (argModelName[i] == "cmc") {
+        model.push_back( new CMCTest );
+      } else if (argModelName[i] == "zeggini") {
+        model.push_back( new ZegginiTest );
+      } else if (argModelName[i] == "mb") {
+        model.push_back( new MadsonBrowningTest );
+        // NOTE: use may use different frequency (not freq from control),
+        // so maybe print a warning here?
+      } else if (argModelName[i] == "exactCMC") {
+        model.push_back( new CMCFisherExactTest );
+      } else {
+        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+        abort();
+      };
+    }
   };
   if (FLAG_modelVT != "") {
-      stringTokenize(FLAG_modelVT, ",", &argModelName);
-      for (int i = 0; i < argModelName.size(); i++ ){
-          if (argModelName[i] == "cmc") {
-              model.push_back( new VariableThresholdCMCTest );
-          } else if (argModelName[i] == "zeggini") {
-              //model.push_back( new VariableThresholdFreqTest );
-              // TODO
-          } else if (argModelName[i] == "mb") {
-              model.push_back( new VariableThresholdFreqTest );
-          } else if (argModelName[i] == "skat") {
-              //model.push_back( new VariableThresholdFreqTest );
-          } else {
-              fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
-              abort();
-          };
-      }
+    stringTokenize(FLAG_modelVT, ",", &argModelName);
+    for (int i = 0; i < argModelName.size(); i++ ){
+      if (argModelName[i] == "cmc") {
+        model.push_back( new VariableThresholdCMCTest );
+      } else if (argModelName[i] == "zeggini") {
+        //model.push_back( new VariableThresholdFreqTest );
+        // TODO
+      } else if (argModelName[i] == "mb") {
+        model.push_back( new VariableThresholdFreqTest );
+      } else if (argModelName[i] == "skat") {
+        //model.push_back( new VariableThresholdFreqTest );
+      } else {
+        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+        abort();
+      };
+    }
   };
   if (FLAG_modelKernel != "") {
-      stringTokenize(FLAG_modelKernel, ",", &argModelName);
-      for (int i = 0; i < argModelName.size(); i++ ){
-          if (argModelName[i] == "skat") {
-              model.push_back( new SkatTest );
-          } else {
-              fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
-              abort();
-          };
-      }
+    stringTokenize(FLAG_modelKernel, ",", &argModelName);
+    for (int i = 0; i < argModelName.size(); i++ ){
+      if (argModelName[i] == "skat") {
+        model.push_back( new SkatTest );
+      } else {
+        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+        abort();
+      };
+    }
   };
-  
+
 #endif
 
 
   std::map<std::string, RangeList> geneRange;
-  if (!FLAG_geneFile.size()) {
+  if (FLAG_geneFile.size()) {
     int ret = loadGeneFile(FLAG_geneFile.c_str(), &geneRange);
     if (ret < 0 || geneRange.size() == 0) {
       fprintf(stderr, "Error loading gene file!\n");
@@ -529,15 +531,16 @@ int main(int argc, char** argv){
   Matrix genotype;
   Random random;
 
-  if (singelVariantTestMode) {
+  if (singleVariantTestMode) {
     int lineNo = 0;
     while (vin.readRecord()) {
       lineNo ++;
+      fprintf(stderr, "Processing line %d...\r", lineNo);
       VCFRecord& r = vin.getVCFRecord();
       VCFPeople& people = r.getPeople();
       VCFIndividual* indv;
-      
-      genotype.Dimension(people.size(), 1);    
+
+      genotype.Dimension(people.size(), 1);
       // e.g.: Loop each (selected) people in the same order as in the VCF
       for (int i = 0; i < people.size(); i++) {
         indv = people[i];
@@ -551,40 +554,40 @@ int main(int argc, char** argv){
           continue;
         }
       }
-    }
-    
-    // impute missing genotypes
-    imputeGenotype(&genotype, &random);
 
-    for (int m = 0; m < model.size(); m++) {
-      model[m]->reset();
-      model[m]->fit(phenotypeMatrix, genotype);
-      model[m]->writeOutput(fOuts[m]);
-    };
+      // impute missing genotypes
+      imputeGenotype(&genotype, &random);
+
+      for (int m = 0; m < model.size(); m++) {
+        model[m]->reset();
+        model[m]->fit(phenotypeMatrix, genotype);
+        model[m]->writeOutput(fOuts[m]);
+      };
+    }
 
   } else {
-  std::map<std::string, RangeList>::const_iterator it = geneRange.begin();
-  for ( ; it != geneRange.end(); ++it){
-    vin.setRange(it->second);
-    int ret = extractGenotype(vin, &genotype);
-    if (ret < 0) {
-      fprintf(stderr, "Extract genotype failed for gene %s!\n", it->first.c_str());
-      continue;
-    };
-    if (genotype.rows == 0) {
-      fprintf(stderr, "Gene %s has 0 variants, skipping\n", it->first.c_str());
-      continue;
-    };
+    std::map<std::string, RangeList>::const_iterator it = geneRange.begin();
+    for ( ; it != geneRange.end(); ++it){
+      vin.setRange(it->second);
+      int ret = extractGenotype(vin, &genotype);
+      if (ret < 0) {
+        fprintf(stderr, "Extract genotype failed for gene %s!\n", it->first.c_str());
+        continue;
+      };
+      if (genotype.rows == 0) {
+        fprintf(stderr, "Gene %s has 0 variants, skipping\n", it->first.c_str());
+        continue;
+      };
 
-    // impute missing genotypes
-    imputeGenotype(&genotype, &random);
+      // impute missing genotypes
+      imputeGenotype(&genotype, &random);
 
-    for (int m = 0; m < model.size(); m++) {
-      model[m]->reset();
-      model[m]->fit(phenotypeMatrix, genotype);
-      model[m]->writeOutput(fOuts[m]);
-    };
-  }
+      for (int m = 0; m < model.size(); m++) {
+        model[m]->reset();
+        model[m]->fit(phenotypeMatrix, genotype);
+        model[m]->writeOutput(fOuts[m]);
+      };
+    }
   }
 
   for (int m = 0; m < model.size() ; ++m ) {

@@ -1,6 +1,6 @@
 all: release
 EXEC = rvtest
-UTIL_EXEC = vcf2plink vcfSummary vcfConcordance vcf2geno # plink2vcf vcf2merlin vcf2ld_window vcf2ld_neighbor
+UTIL_EXEC = vcf2plink vcfSummary vcfConcordance vcf2geno plink2vcf vcfExtractSite  # vcf2merlin vcf2ld_window vcf2ld_neighbor
 
 DIR_EXEC = ./executable
 DIR_EXEC_DBG = ./executable/dbg
@@ -91,7 +91,7 @@ $(DIR_EXEC)/$(EXEC): $(LIB) \
                      |$(DIR_EXEC)
 	g++ -o $@ Main.o VCFData.o $(CXX_FLAGS) $(CXX_LIB)
 
-debug: CXX_FLAGS = -g -O0 $(DEFAULT_CXXFLAGS) 
+debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS) 
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
 $(DIR_EXEC_DBG)/$(EXEC): $(LIB_DBG) \
                          Main.o \
@@ -104,11 +104,11 @@ $(DIR_EXEC_DBG)/$(EXEC): $(LIB_DBG) \
 ##################################################
 -include VCFData.d
 VCFData.o: VCFData.cpp VCFData.h
-	g++ -MMD -c $(CXXFLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+	g++ -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 -include Main.d
 Main.o: Main.cpp
-	g++ -MMD -c $(CXXFLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+	g++ -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 
 ##################################################

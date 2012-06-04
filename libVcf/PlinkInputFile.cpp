@@ -6,9 +6,9 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) {
     assert(mat);
 
     // read bed
-    int numPeople = getNumIndv();
-    int numMarker = getNumMarker();
-
+    int numPeople = this->getNumIndv();
+    int numMarker = this->getNumMarker();
+    fprintf(stderr, "%d people, %d marker\n", numPeople, numMarker);
     if (snpMajorMode) {
         // unsigned char mask[] = { 0x3, 0xc, 0x30, 0xc0 }; //0b11, 0b1100, 0b110000, 0b11000000
         unsigned char mask = 0x3; // 0b0000011
@@ -76,6 +76,7 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) {
             }
         }
     }
+    return this->getNumMarker() * this->getNumIndv();
 };
 
 int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* peopleNames, std::vector<std::string>* markerNames) {
@@ -181,4 +182,5 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* 
             }
         }
     }
+    return this->getNumMarker() * this->getNumIndv();    
 };

@@ -33,56 +33,56 @@ public:
     // go through VCF sites (first 9 columns)
     int ret;
     if ( (ret = this->chrom.parseTill(this->parsed, 0, '\t')) ) {
-      fprintf(stderr, "Error when parsing CHROM [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing CHROM [ %s ]\n", vcfLine.c_str());
       return ;
     }
     this->parsed[this->chrom.end] = '\0';
     
     if ( (ret = (this->pos.parseTill(this->parsed, this->chrom.end + 1, '\t') ))) {
-      fprintf(stderr, "Error when parsing POS [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing POS [ %s ]\n", vcfLine.c_str());
       return ;
     }
     this->parsed[this->pos.end] = '\0';
 
     if ( (ret = (this->id.parseTill(this->parsed, this->pos.end + 1, '\t') ))) {
-      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing ID [ %s ]\n", vcfLine.c_str());
       return ;
     }
     this->parsed[this->id.end] = '\0';
 
     if ( (ret = (this->ref.parseTill(this->parsed, this->id.end + 1, '\t') ))) {
-      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing REF [ %s ]\n", vcfLine.c_str());
       return ;
     }
     this->parsed[this->ref.end] = '\0';
 
     if ( (ret = (this->alt.parseTill(this->parsed, this->ref.end + 1, '\t') ))) {
-      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing ALT [ %s ]\n", vcfLine.c_str());
       return ;
     }      
     this->parsed[this->alt.end] = '\0';
 
     if ( (ret = (this->qual.parseTill(this->parsed, this->alt.end + 1, '\t') ))) {
-      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing QUAL [ %s ]\n", vcfLine.c_str());
       return ;
     }      
     this->parsed[this->qual.end] = '\0';
 
     if ( (ret = (this->filt.parseTill(this->parsed, this->qual.end + 1, '\t') ))) {
-      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing FILTER [ %s ]\n", vcfLine.c_str());
       return ;
     }      
     this->parsed[this->filt.end] = '\0';
 
     if ( (ret = (this->info.parseTill(this->parsed, this->filt.end + 1, '\t') ))) {
-      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing INFO [ %s ]\n", vcfLine.c_str());
       return ;
     }      
     this->parsed[this->info.end] = '\0';
     this->vcfInfo.parse(this->info); // lazy parse inside VCFInfo
 
     if ( (ret = (this->format.parseTill(this->parsed, this->info.end + 1, '\t') ))){
-      fprintf(stderr, "Error when parsing ID [ %s ]", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing FORMAT [ %s ]\n", vcfLine.c_str());
       return ;
     }      
     this->parsed[this->format.end] = '\0';
@@ -234,6 +234,9 @@ public:
   const VCFValue& getInfoTag(const char* tag, bool* exists) {
     return this->vcfInfo.getTag(tag, exists);
   };
+  /**
+   * Output this->self, it may contain '\0'
+   */
   void output(FILE* fp) const{
     this->self.output(fp);
     fputc('\n', fp);
@@ -312,7 +315,7 @@ private:
 
   VCFInfo vcfInfo;
 
-  VCFValue self;       // a self value points to itself
+  VCFValue self;       // a self value points to itself, it contain parsed information
   // const char* line; // points to data line
 
   // indicates if getPeople() has been called

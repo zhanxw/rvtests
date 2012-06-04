@@ -48,6 +48,13 @@ public:
   
 };
 
+void dump(const StringArray& a) {
+  for (int i = 0; i < a.size(); i++) {
+    fprintf(stderr, "[ %d ] = \"%s\", ", i, a[i].c_str());
+  }
+  fprintf(stderr, "\n");
+}
+
 int loadGenotype(VCFInputFile& vin, AllConcordanceType* input, int idx) {
     AllConcordanceType& data = *input;
     std::string key;
@@ -86,7 +93,7 @@ int loadGenotype(VCFInputFile& vin, AllConcordanceType* input, int idx) {
         }
     }
   };
-  fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+  fprintf(stderr, "Total %d VCF records have read successfully\n", lineNo);
   return lineNo;
 };
 
@@ -250,9 +257,13 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
 
 size_t set_union(const StringArray& input, 
                StringArray* output) {
-  output->resize(input.size());
+  // sort input
+  StringArray tmp = input;
+  sort(tmp.begin(), tmp.end());
+
+  output->resize(tmp.size());
   StringArray::iterator i;
-  i = set_union(input.begin(), input.end(), input.end(), input.end(), output->begin());
+  i = set_union(tmp.begin(), tmp.end(), tmp.end(), tmp.end(), output->begin());
   output->resize( i - output->begin());
   return output->size();
 };
@@ -260,9 +271,14 @@ size_t set_union(const StringArray& input,
 size_t set_intersection(const StringArray& input1, 
                         const StringArray& input2, 
                         StringArray* output) {
-  output->resize(std::max(input1.size(), input2.size()));
+  StringArray t1 = input1;
+  StringArray t2 = input2;
+  sort(t1.begin(), t1.end());
+  sort(t2.begin(), t2.end());
+  
+  output->resize(std::max(t1.size(), t2.size()));
   StringArray::iterator i;
-  i = set_intersection(input1.begin(), input1.end(), input2.begin(), input2.end(), output->begin());
+  i = set_intersection(t1.begin(), t1.end(), t2.begin(), t2.end(), output->begin());
   output->resize( i - output->begin());
   return output->size();
 };

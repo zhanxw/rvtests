@@ -439,9 +439,9 @@ int main(int argc, char** argv){
     stringTokenize(FLAG_modelSingle, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
       if (argModelName[i] == "wald") {
-        model.push_back( new SingleVariantWaldTest<LinearRegression> );
+        model.push_back( new SingleVariantWaldTest);
       } else if (argModelName[i] == "score") {
-        model.push_back( new SingleVariantScoreTest<LinearRegressionScoreTest> );
+        model.push_back( new SingleVariantScoreTest);
       } else if (argModelName[i] == "fisher") {
         //model.push_back( new SingleVariantScoreTest );
         // TODO: add fisher test

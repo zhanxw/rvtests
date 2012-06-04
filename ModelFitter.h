@@ -123,10 +123,139 @@ private:
 
 #endif
 
-template<class T>
 class SingleVariantWaldTest: public ModelFitter{
 public:
   SingleVariantWaldTest(){
+    this->modelName = "SingleWald";
+  };
+  // write result header
+  void writeHeader(FILE* fp) {
+    fprintf(fp, "Beta\tSE\tPvalue");
+  };
+  // fitting model
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i < phenotype.rows; i++) {
+      pheno[i] = phenotype[i][0];
+    }
+    cbind(&X, &genotype, NULL, true);
+    fitOK = lr.FitLinearModel(X, pheno);
+    return (fitOK ? 0 : 1);
+  };
+#if 0
+  int fit(VCFData& data) {
+    if (data.covariate && data.covariate->cols > 0)
+      cbind(&X, data.genotype, data.covariate, true);
+    else
+      cbind(&X, data.genotype, NULL, true);
+
+    fitOK = lr.FitLogisticModel(X, *data.extractPhenotype(), 100);
+    return (fitOK ? 0 : 1);
+  };
+#endif
+  // write model output
+  void writeOutput(FILE* fp) {
+    if (fitOK) {
+      double se = sqrt(lr.GetCovB()[0][0]);
+      fprintf(fp, "%.3lf\t%.3lf\t%.3lf", lr.GetCovEst()[0], se, lr.GetAsyPvalue()[0]);
+    } else{
+      fputs("NA\tNA\tNA", fp);
+    }
+  };
+private:
+  void cbind(Matrix* out, Matrix* a, Matrix* b, bool addIntercept) {
+    assert(out && a);
+
+    int totalCol = a->cols + (b ? b->cols : 0) + (addIntercept ? 1 : 0);
+    if (b)
+      assert ( a->rows == b->rows);
+    out->Dimension(a->rows, totalCol);
+
+    for (int r = 0; r < a->rows; r ++ ){
+      int beginCol = 0;
+      for (int c = 0; c < a->cols; c++) {
+        (*out)[r][c] = (*a)[r][c];
+      }
+      beginCol += a->cols;
+
+      if (b) {
+        for (int c = 0; c < b->cols; c++) {
+          (*out)[r][c] = (*a)[r][beginCol + c];
+        }
+        beginCol += b->cols;
+      }
+
+      if (addIntercept) {
+        (*out)[r][beginCol] = 1.0;
+      }
+    }
+  };
+private:
+  Matrix X; // geno + 1 + covariate
+  LinearRegression lr;
+  bool fitOK;
+
+}; // SingleVariantWaldTest
+
+class SingleVariantScoreTest: public ModelFitter{
+public:
+  SingleVariantScoreTest(){
+    this->modelName = "SingleScore";
+  };
+                      
+  // write result header
+  void writeHeader(FILE* fp) {
+    fprintf(fp, "Pvalue\n");
+  };
+  // fitting model
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    Matrix intercept;
+    intercept.Dimension(genotype.rows, 1);
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i< phenotype.rows; i++){
+      intercept[i][0] = 1.0;
+      pheno[i] = phenotype[i][0];
+    }
+    fitOK = lrst.FitNullModel(intercept, pheno);
+    if (!fitOK) return -1;
+    fitOK = lrst.TestCovariate(intercept, pheno, genotype);
+    return (fitOK ? 0 : -1);
+  };
+#if 0
+  int fit(VCFData& data) {
+    if (data.covariate && data.covariate->cols > 0) {
+      fitOK = lrst.FitNullModel( *data.covariate, *data.extractPhenotype(), 100);
+      if (!fitOK)
+        return -1;
+
+      fitOK = lrst.TestCovariate( *data.covariate, *data.extractPhenotype(), *data.collapsedGenotype);
+      if (!fitOK)
+        return -1;
+    } else {
+      fitOK = lrst.TestCovariate( *data.collapsedGenotype, *data.extractPhenotype());
+      if (!fitOK)
+        return -1;
+    }
+    return 0;
+  };
+#endif
+  // write model output
+  void writeOutput(FILE* fp) {
+    if (fitOK)
+      fprintf(fp, "%.3f\n", lrst.GetPvalue());
+    else
+      fputs("NA\n", fp);
+  };
+private:
+  LinearRegressionScoreTest lrst;
+  bool fitOK;
+}; // SingleVariantScoreTest
+
+class SingleVariantLogisticWaldTest: public ModelFitter{
+public:
+  SingleVariantLogisticWaldTest(){
     this->modelName = "SingleWald";
   };
   // write result header
@@ -189,16 +318,14 @@ private:
   };
 private:
   Matrix X; // geno + 1 + covariate
-  //LogisticRegression lr;
-  T lr;
+  LogisticRegression lr;
   bool fitOK;
 
-}; // SingleVariantWaldTest
+}; // SingleVariantLogisticWaldTest
 
-template <class T>
-class SingleVariantScoreTest: public ModelFitter{
+class SingleVariantLogisticScoreTest: public ModelFitter{
 public:
-  SingleVariantScoreTest(){
+  SingleVariantLogisticScoreTest(){
     this->modelName = "SingleScore";
   };
                       
@@ -247,10 +374,9 @@ public:
       fputs("NA\n", fp);
   };
 private:
-  //LogisticRegressionScoreTest lrst;
-  T lrst;
+  LogisticRegressionScoreTest lrst;
   bool fitOK;
-}; // SingleVariantScoreTest
+}; // SingleVariantLogisticScoreTest
 
 #if 0
 class CMCTest: public ModelFitter{

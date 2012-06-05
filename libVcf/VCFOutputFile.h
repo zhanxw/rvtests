@@ -45,11 +45,10 @@ public:
                          r->getInfo(),
                          r->getFormat());
         VCFPeople& p = r->getPeople();
-        std::string s;
+        //std::string s;
         for (int i = 0; i < p.size() ; i ++ ) {
             VCFIndividual* indv = p[i];
-            indv->rebuildString(&s);
-            this->fp->printf("\t%s", s.c_str());
+            this->fp->printf("\t%s", indv->getSelf().toStr());
         }
         this->fp->printf("\n");
     };

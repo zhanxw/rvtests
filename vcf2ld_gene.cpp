@@ -132,44 +132,9 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
 };
 
 /**
- * @return 0 for success
- * extract genotypes to @param g (people by marker).
- * Missing is -9
- */
-int extractGenotype(VCFInputFile& vin, Matrix* g){
-  Matrix m;
-  int row = 0;
-  while (vin.readRecord()){
-    VCFRecord& r = vin.getVCFRecord();
-    VCFPeople& people = r.getPeople();
-    VCFIndividual* indv;
-
-    m.Dimension(row + 1, people.size());
-
-    // e.g.: Loop each (selected) people in the same order as in the VCF
-    for (int i = 0; i < people.size(); i++) {
-      indv = people[i];
-      // get GT index. if you are sure the index will not change, call this function only once!
-      int GTidx = r.getFormatIndex("GT");
-      if (GTidx >= 0)
-        //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
-        m[row][i] = indv->justGet(GTidx).getGenotype();
-      else {
-        fprintf(stderr, "Cannot find GT field!\n");
-        return -1;
-      }
-    }
-    ++ row;
-  }
-  // now transpose (marker by people -> people by marker)
-  g->Transpose(m);
-  return 0;
-};
-
-/**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
  */
-void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
+void imputeGenotype(Matrix* genotype, Random* r) {
   Matrix& m = *genotype;
   for (int i = 0; i < m.rows; i++ ) {
     int ac = 0;
@@ -197,30 +162,6 @@ void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
     }
   }
 };
-
-/**
- * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
- */
-void imputeGenotypeToMean(Matrix* genotype) {
-  Matrix& m = *genotype;
-  for (int i = 0; i < m.rows; i++ ) {
-    int ac = 0;
-    int an = 0;
-    for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] >= 0) {
-        ac += m[i][j];
-        an += 2;
-      }
-    }
-    double p = 1.0 * ac / an;
-    for (int j = 0; j < m.cols; j++){
-      if (m[i][j] < 0) {
-        m[i][j] = p;
-      }
-    }
-  }
-};
-
 /**
  * convert the vector @param v to Matrix format @param m
  */
@@ -231,8 +172,8 @@ void toMatrix(const std::vector<double>& v, Matrix* m) {
   }
 };
 
-int loadGeneFile(const char* fn, std::map<std::string, RangeList>* geneList) {
-  std::map<std::string, RangeList>& m = *geneList;
+int loadGeneFile(const char* fn, OrderedMap<std::string, RangeList>* geneList) {
+  OrderedMap<std::string, RangeList>& m = *geneList;
   LineReader lr(fn);
   int lineNo = 0;
   std::vector< std::string> fd;
@@ -242,12 +183,40 @@ int loadGeneFile(const char* fn, std::map<std::string, RangeList>* geneList) {
       fprintf(stderr, "skip %d line (short of columns).\n", lineNo);
       continue;
     }
-    std::string& chr = fd[2];
+    std::string chr = chopChr(fd[2]);
     int beg = atoi(fd[4]);
     int end = atoi(fd[5]);
     m[ fd[0] ].addRange (chr.c_str(), beg, end);
   }
   return m.size();
+};
+
+double calculateR2(Matrix& genotype, const int i, const int j){
+  int m[3][3] = {0};
+  for (int c = 0; c < genotype.rows; c++) {
+    int g1 = (int)genotype[c][i];
+    int g2 = (int)genotype[c][j];
+    if (g1 >= 0 && g2 >= 0) {
+      if (g1 <=2 && g2 <= 2) {
+        m[g1][g2] ++;
+      } else {
+        fprintf(stderr, "Strange genotype for i = %d, j = %d, genotype = %d, %d\n", i, j, g1, g2);
+        continue;
+      }
+    }
+  };
+  int numer = m[1][1] + 2 * (m[1][2] + m[2][1]) + 4 * m[2][2];
+  int m1_ = m[1][0] + m[1][1] + m[1][2];
+  int m2_ = m[2][0] + m[2][1] + m[2][2];
+  int m_1 = m[0][1] + m[1][1] + m[2][1];
+  int m_2 = m[0][2] + m[1][2] + m[2][2];
+  int denom =  (m1_ + 4 * m2_) * (m_1 + 4* m_2);
+  
+  if (denom == 0) {
+    return -100.0;
+  };
+  
+  return  numer/ sqrt( double(denom));
 };
 
 int main(int argc, char** argv){
@@ -285,28 +254,20 @@ int main(int argc, char** argv){
       // ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field")
       // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any valid Python expression, will output if eval is > 0")
 
-      ADD_PARAMETER_GROUP(pl, "Association Functions")
-      // ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
-      ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
-      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
-      ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC")
-      ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
-      ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT")
-      ADD_STRING_PARAMETER(pl, rangeToTest, "--set", "specify set file (for burden tests)")
+      ADD_PARAMETER_GROUP(pl, "Gene Parameter")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, geneToTest, "--gene", "specify which genes to test")
-
-      //ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
-
+      
+      
       ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
       /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
       // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
-      ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
-      ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
+      // ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
+      // ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
       /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
       /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
       ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
-      ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
+      // ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
       END_PARAMETER_LIST(pl)
       ;
@@ -406,50 +367,6 @@ int main(int argc, char** argv){
   // site: DP, MAC, MAF (T3, T5)
   // indv: GD, GQ
 
-  // if (FLAG_cov != "") {
-  //     if (data.loadCovariate(FLAG_cov.c_str()) < 0) {
-  //         fprintf(stderr, "Loading covariate failed!\n");
-  //         return -1;
-  //     };
-  // }
-
-
-  std::map< std::string, double> phenotype;
-  if (FLAG_pheno == "") {
-    fprintf(stderr, "Cannot do association when phenotype is missing!\n");
-    return -1;
-  } else {
-    int ret = loadPedPhenotype(FLAG_pheno.c_str(), &phenotype);
-    if (ret < 0) {
-      fprintf(stderr, "Loading phenotype failed!\n");
-      return -1;
-    } else {
-      fprintf(stdout, "Loaded %zu sample pheontypes.\n", phenotype.size());
-    }
-  };
-
-  // rearrange phenotypes
-  std::vector<std::string> vcfSampleNames;
-  vin.getVCFHeader()->getPeopleName(&vcfSampleNames);
-  std::vector<std::string> vcfSampleToDrop;
-  std::vector<double> phenotypeInOrder;
-  rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeInOrder);
-  if (vcfSampleToDrop.size()) {
-    fprintf(stderr, "Drop %zu sample from VCF file since mismatch their phenotypes\n", vcfSampleToDrop.size());
-    vin.excludePeople(vcfSampleToDrop);
-  }
-  if (phenotypeInOrder.size() != phenotype.size()) {
-    fprintf(stderr, "Drop %d sample from phenotype file since mismatch their VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
-  }
-
-  // prepare each model
-  if (FLAG_modelSingle.size() && (FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size())) {
-    fprintf(stderr, "Cannot support both single variant and region based tests\n");
-    abort();
-  }
-
-  std::vector< ModelFitter* > model;
-  std::vector< std::string> argModelName;
 
   // if (FLAG_rangeToTest == "") {
   //     model.push_back (new SingleVariantHeader);
@@ -457,258 +374,86 @@ int main(int argc, char** argv){
   //     collapsor.setSetFileName(FLAG_set.c_str());
   //     model.push_back (new CollapsingHeader);
   // }
-  bool singleVariantTestMode = false;
-  if (FLAG_modelSingle != "") {
-    singleVariantTestMode = true;
-    stringTokenize(FLAG_modelSingle, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
-      if (argModelName[i] == "wald") {
-        model.push_back( new SingleVariantWaldTest);
-      } else if (argModelName[i] == "score") {
-        model.push_back( new SingleVariantScoreTest);
-      } else if (argModelName[i] == "fisher") {
-        //model.push_back( new SingleVariantScoreTest );
-        // TODO: add fisher test
-      } else {
-        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
-        abort();
-      };
-    }
-  };
 
-#if 0
-  if (FLAG_modelBurden != "") {
-    stringTokenize(FLAG_modelBurden, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
-      if (argModelName[i] == "cmc") {
-        model.push_back( new CMCTest );
-      } else if (argModelName[i] == "zeggini") {
-        model.push_back( new ZegginiTest );
-      } else if (argModelName[i] == "mb") {
-        model.push_back( new MadsonBrowningTest );
-        // NOTE: use may use different frequency (not freq from control),
-        // so maybe print a warning here?
-      } else if (argModelName[i] == "exactCMC") {
-        model.push_back( new CMCFisherExactTest );
-      } else {
-        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
-        abort();
-      };
-    }
-  };
-  if (FLAG_modelVT != "") {
-    stringTokenize(FLAG_modelVT, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
-      if (argModelName[i] == "cmc") {
-        model.push_back( new VariableThresholdCMCTest );
-      } else if (argModelName[i] == "zeggini") {
-        //model.push_back( new VariableThresholdFreqTest );
-        // TODO
-      } else if (argModelName[i] == "mb") {
-        model.push_back( new VariableThresholdFreqTest );
-      } else if (argModelName[i] == "skat") {
-        //model.push_back( new VariableThresholdFreqTest );
-      } else {
-        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
-        abort();
-      };
-    }
-  };
-  if (FLAG_modelKernel != "") {
-    stringTokenize(FLAG_modelKernel, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
-      if (argModelName[i] == "skat") {
-        model.push_back( new SkatTest );
-      } else {
-        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
-        abort();
-      };
-    }
-  };
-
-#endif
-
-  std::map<std::string, RangeList> geneRange;
+  OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
     int ret = loadGeneFile(FLAG_geneFile.c_str(), &geneRange);
     if (ret < 0 || geneRange.size() == 0) {
       fprintf(stderr, "Error loading gene file!\n");
       return -1;
     } else {
-      fprintf(stderr, "Loaded %zu genes!\n", geneRange.size());
+      fprintf(stderr, "Loaded %u genes!\n", geneRange.size());
     }
-  }
+  } else {
+    fprintf(stderr, "--geneFile is required to calculate R^2 per gene!\n");
+    abort();
+  };
 
-  Matrix phenotypeMatrix;
-  toMatrix(phenotypeInOrder, &phenotypeMatrix);
+  std::string s = FLAG_outPrefix;
+  FILE* fout = fopen( ( s + ".r2" ).c_str(), "wt");
+  FILE* flog = fopen( ( s + ".log" ).c_str(), "wt");
 
-  FILE** fOuts = new FILE*[model.size()];
-  for (int i = 0; i < model.size(); ++i) {
-    std::string s = FLAG_outPrefix;
-    s += ".";
-    s += model[i]->getModelName();
-    s += ".assoc";
-    fOuts[i] = fopen(s.c_str(), "wt");
-  }
 
-  Matrix genotype;
+  std::string chrom; 
+  std::vector<int> pos; // store positions
+  Matrix genotype; // marker by people
 
-  if (singleVariantTestMode) {
-    int lineNo = 0;
-    char buf[1000] = {0}; // we put site sinformation here
-    while (vin.readRecord()) {
-      lineNo ++;
-      if (lineNo % 1000 == 0) 
-        fprintf(stderr, "Processing line %d...\r", lineNo);
+  std::string geneName;
+  RangeList rangeList;
+  for ( int i = 0; i < geneRange.size(); ++i){
+    geneRange.at(i, &geneName, &rangeList);
+
+    vin.setRange(rangeList);
+    pos.clear();
+    
+    // extract genotypes
+    int row = 0;
+    while (vin.readRecord()){
       VCFRecord& r = vin.getVCFRecord();
       VCFPeople& people = r.getPeople();
       VCFIndividual* indv;
 
-      sprintf(buf,
-              "%s\t%d\t%s\t%s\t",
-              r.getChrom(),
-              r.getPos(),
-              r.getRef(),
-              r.getAlt()
-              );
-      
-      genotype.Dimension(people.size(), 1);
+      chrom = r.getChrom();
+      pos.push_back(r.getPos());
+      fprintf(stderr, "read %s:%d\n", chrom.c_str(), pos.back());
+      genotype.Dimension(row + 1, people.size());
+
       // e.g.: Loop each (selected) people in the same order as in the VCF
       for (int i = 0; i < people.size(); i++) {
         indv = people[i];
         // get GT index. if you are sure the index will not change, call this function only once!
         int GTidx = r.getFormatIndex("GT");
-        if (GTidx >= 0) {
+        if (GTidx >= 0)
           //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
-          genotype[i][0] = indv->justGet(GTidx).getGenotype();
-          // // fprintf(stderr, "%d ", int(genotype[i][0]));
-        } else {
-          fprintf(stderr, "Cannot find GT field at line %d!\n", lineNo);
-          continue;
-        }
+          genotype[row][i] = indv->justGet(GTidx).getGenotype();
       }
-      
-      // impute missing genotypes
-      imputeGenotypeToMean(&genotype);
-
-      for (int m = 0; m < model.size(); m++) {
-        model[m]->reset();
-        fputs(buf, fOuts[m]);
-        model[m]->fit(phenotypeMatrix, genotype);
-        model[m]->writeOutput(fOuts[m]);
-      };
+      ++ row;
     }
 
-  } else {
-    std::map<std::string, RangeList>::const_iterator it = geneRange.begin();
-    for ( ; it != geneRange.end(); ++it){
-      vin.setRange(it->second);
-      int ret = extractGenotype(vin, &genotype);
-      if (ret < 0) {
-        fprintf(stderr, "Extract genotype failed for gene %s!\n", it->first.c_str());
-        continue;
-      };
-      if (genotype.rows == 0) {
-        fprintf(stderr, "Gene %s has 0 variants, skipping\n", it->first.c_str());
-        continue;
-      };
-      
-      // impute missing genotypes
-      imputeGenotypeToMean(&genotype);
+    if (genotype.rows == 0) {
+      fprintf(stderr, "Gene %s has 0 variants, skipping\n", geneName.c_str());
+      fprintf(flog, "Gene %s has 0 variants, skipping\n", geneName.c_str());      
+      continue;
+    };
 
-      for (int m = 0; m < model.size(); m++) {
-        model[m]->reset();
-        model[m]->fit(phenotypeMatrix, genotype);
-        model[m]->writeOutput(fOuts[m]);
-      };
+    
+    // print
+    if (!pos.size()) continue;
+    fprintf(fout, "%s\t%d\t%d\t%s\t", chrom.c_str(), pos.front(), pos.back(), geneName.c_str());
+
+    for (int i = 0; i < pos.size(); i++){
+      fprintf(fout, "%d,", pos[i]);
     }
+    fprintf(fout, "\t");
+    for (int i = 0; i < pos.size(); i++) {
+      for (int j = i + 1; j < pos.size(); j++) {
+        fprintf(fout, "%.2f,", calculateR2(genotype, i, j));
+      }
+    }
+    fprintf(fout, "\n");
   }
 
-  for (int m = 0; m < model.size() ; ++m ) {
-    fclose(fOuts[m]);
-  }
-  delete[] fOuts;
-  // // iterator this range
-
-  // // Vector* pheno;
-  // // pheno = data.extractPhenotype();
-  // double freqUpper, freqLower;
-  // if (FLAG_freqUpper == 0) {
-  //     freqUpper = 1.0;
-  // } else {
-  //     freqUpper = FLAG_freqUpper;
-  // };
-  // if (FLAG_freqLower == 0) {
-  //     freqLower = -1.0;
-  // } else {
-  //     freqLower = FLAG_freqLower;
-  // }
-
-  // // load all ranges
-
-  // // prepare output file
-  // // for each range, load genotype
-  // // do test
-
-  // // finish
-
-
-  // Collapsor collapsor;
-  // if (FLAG_set == "") {
-  //     // single variant test for each marker
-  //     // collapsor.setCollapsingStrategy(Collapsor::NAIVE);
-  // } else {
-  //     // single variant test for a set of markers using collapsing
-  //     collapsor.setSetFileName(FLAG_set.c_str());
-  // }
-
-  // // TODO quantative trait models will be added later.
-  // if (!data.isCaseControlPhenotype()) {
-  //     fprintf(stderr, "Phenotype is not case control data, however, we will dichotomized it using threshold 0.0 .\n");
-  //     data.dichotomizedPhenotype(0.0);
-  // }
-
-
-  // // output part
-  // FILE* fout = fopen("results.txt", "w");
-  // fputs("MarkerName\t", fout);
-  // for (int m = 0; m < model.size(); m++){
-  //     if (m) fputc('\t', fout);
-  //     model[m]->writeHeader(fout);
-  // }
-  // fputc('\n', fout);
-
-  // collapsor.setFrequencyCutoff( (FLAG_freqFromControl ? FREQ_CONTORL_ONLY : FREQ_ALL), freqLower, freqUpper);
-
-  // while(collapsor.iterateSet(vin, &data)){ // now data.collapsedGenotype have all available genotypes
-  //                                          // need to collapsing it carefully.
-  //     // parallel part
-  //     for (int m = 0; m < model.size(); m++){
-  //         model[m]->reset();
-  //         model[m]->fit(data);
-  //         // output raw data
-  //         if (FLAG_outputRaw != "") {
-  //             std::string& setName = collapsor.getCurrentSetName();
-  //             std::string out = FLAG_outputRaw + "." + setName;
-  //             data.writeRawData(out.c_str());
-  //         }
-  //     };
-
-  //     // output part
-  //     fputs(collapsor.getCurrentSetName().c_str(), fout);
-  //     fputc('\t', fout);
-  //     for (int m = 0; m < model.size(); m++){
-  //         if (m) fputc('\t', fout);
-  //         model[m]->writeOutput(fout);
-  //     };
-  //     fputc('\n', fout);
-  // }
-
-  // // clean up code
-  // for (int m = 0; m < model.size(); m++){
-  //     delete model[m];
-  // };
-  // fclose(fout);
+  fclose(fout);
 
   currentTime = time(0);
   fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));

@@ -234,11 +234,12 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
     SVD svd;
     svd.InvertInPlace(ZZ);
     
+    // Z = - SZ * (ZZ^-1) * ZS
     Matrix ZS;
     ZS.Transpose(SZ);
-    SZ.AddMultiple(0.0, ZZ);
-    SZ.AddMultiple(0.0, ZS);
-    
+    Matrix tmp;
+    tmp.Product(SZ, ZZ);
+    SZ.Product(tmp, ZS);
     SZ.Negate();
     SS.Add(SZ);
 

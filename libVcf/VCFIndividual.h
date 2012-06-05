@@ -90,15 +90,6 @@ public:
   };
   
   VCFValue& getSelf() {return this->self;};
-  void rebuildString(std::string* s) {
-    assert(s);
-    s->clear();
-    for (int i = 0; i < fd.size(); i++){
-      if (i)
-        s->push_back(':');
-      *s += this->fd[i].toStr();
-    }
-  };
   const VCFValue& getSelf() const{
     return this->self;
   };

@@ -5,7 +5,7 @@ SRC = *cpp *h
 
 release: lib-goncalo.a
 lib-goncalo.a: $(SRC)
-	g++ -O4 -c *.cpp
+	g++ -O4 -DNDEBUG -c *.cpp
 	-rm $@
 	ar -cqs lib-goncalo.a *.o
 debug: lib-dbg-goncalo.a

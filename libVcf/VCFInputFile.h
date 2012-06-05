@@ -139,10 +139,21 @@ public:
     this->range = rl;
     this->setRangeMode();
   };
+
+  ///
+  void reportReadError(const std::string& line) {
+    if (line.size() > 50) {
+      fprintf(stderr, "Error line [ %s ... ]", line.substr(0, 50).c_str());
+    } else {
+      fprintf(stderr, "Error line [ %s ]", line.c_str());
+    }
+  }
+
   /**
    * @return true: a valid VCFRecord
    */
   bool readRecord(){
+    int ret;
     // load contents
     if (this->mode == VCFInputFile::RANGE_MODE) {
       while (this->rangeIterator != this->rangeEnd) {
@@ -156,13 +167,23 @@ public:
           // parse range
           int tid, beg, end, len;
           if (ti_parse_region(tabixHandle->idx, rangeBuffer, &tid, &beg, &end) != 0){
-            FATAL("Cannot ti_parse_region");
+            fprintf(stderr, "Maybe non-existing range: %s, pass....\n", rangeBuffer);
+            // continue to next rangeIdx
+            ti_iter_destroy(this->iter);
+            this->iter = 0;
+            ++ this->rangeIterator;
+            continue;
+            // FATAL("Cannot ti_parse_region");
           }
           this->iter =  ti_queryi(tabixHandle, tid, beg, end);
           this->ti_line = ti_read(this->tabixHandle, iter, &len);
           if (this->ti_line) { // s is valid
             this->line = ti_line;
-            this->record.parse(this->line);
+            ret = this->record.parse(this->line);
+            if (ret) {
+              reportReadError(this->line);
+              
+            }
             return true;
           } else{
             // continue to next rangeIdx
@@ -179,15 +200,21 @@ public:
             continue;
           } else {
             this->line = ti_line;
-            this->record.parse(this->line);
+            ret = this->record.parse(this->line);
+            if (ret) {
+              reportReadError(this->line);
+            }
             return true;
           }
         }
       } // end while
       return false;
     } else { // go line by line
-      if (this->fp->readLine(&line)){
-        this->record.parse(this->line);
+      if (this->fp->readLine(&this->line)){
+        ret = this->record.parse(this->line);
+        if (ret) {
+          reportReadError(this->line);
+        }
         return true;
       } else {
         return false; // reach file end

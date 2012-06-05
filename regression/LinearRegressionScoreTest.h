@@ -33,8 +33,8 @@ class LinearRegressionScoreTest{
     bool TestCovariate(Matrix& x, Vector& y);
 
     double GetPvalue() const {return this->pvalue;};
-
   private:
+
     void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
     double pvalue;
     LinearRegression lr;

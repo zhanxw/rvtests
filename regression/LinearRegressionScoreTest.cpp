@@ -130,6 +130,7 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
  * U = \sum_i (Y_i - \hat{\gamma}^T Z_i ) * S_i
  * V = \hat{\sigma}^2 ( \sum _i S_i S_i^T - (\sum Z_i S_i^T) T  inv(\sum Z_i Z_i^T) (\sum Z_i S_i^T)
  * U^T*inv(V)*U is the score test statistic
+ * Hypothese: test efficients of Xcol are all Zero
  */
 bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol){
     if (Xnull.rows != y.Length() || y.Length() != Xcol.rows){
@@ -159,12 +160,13 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
     // inverse in place ZZ
     SVD svd;
     svd.InvertInPlace(ZZ);
-    
+
+    // Z = - SZ * (ZZ^-1) * ZS
     Matrix ZS;
     ZS.Transpose(SZ);
-    SZ.AddMultiple(0.0, ZZ);
-    SZ.AddMultiple(0.0, ZS);
-    
+    Matrix tmp;
+    tmp.Product(SZ, ZZ);
+    SZ.Product(tmp, ZS);
     SZ.Negate();
     SS.Add(SZ);
 
@@ -179,7 +181,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
     
     S /= this->lr.GetSigma2();
 
-    this->pvalue = chidist(S, n); // use chisq to inverse
+    this->pvalue = chidist(S, m); // use chisq to inverse, here chidist = P(X > S) where X ~ chi(m)
     return true;
 };
 

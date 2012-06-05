@@ -1,6 +1,6 @@
 all: release
 EXEC = rvtest
-UTIL_EXEC = vcf2plink vcfSummary vcfConcordance vcf2geno plink2vcf vcfExtractSite  # vcf2merlin vcf2ld_window vcf2ld_neighbor
+UTIL_EXEC = vcf2plink vcfSummary vcfConcordance vcf2geno plink2vcf vcfExtractSite vcf2ld_gene  vcfSummaryLite# vcf2merlin vcf2ld_window vcf2ld_neighbor
 
 DIR_EXEC = ./executable
 DIR_EXEC_DBG = ./executable/dbg
@@ -82,30 +82,24 @@ DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x #-Wall
 lib: $(LIB)
 lib-dbg: $(LIB_DBG)
 
-release: CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS)
+release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(DIR_EXEC)/$(EXEC) util
 $(DIR_EXEC)/$(EXEC): $(LIB) \
                      Main.o \
-                     VCFData.o \
                      Collapsor.h ModelFitter.h \
                      |$(DIR_EXEC)
-	g++ -o $@ Main.o VCFData.o $(CXX_FLAGS) $(CXX_LIB)
+	g++ -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB)
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS) 
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
 $(DIR_EXEC_DBG)/$(EXEC): $(LIB_DBG) \
                          Main.o \
-                         VCFData.o \
                          Collapsor.h ModelFitter.h \
                          | $(DIR_EXEC_DBG)
-	g++ -o $@ Main.o VCFData.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
+	g++ -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
 
 
 ##################################################
--include VCFData.d
-VCFData.o: VCFData.cpp VCFData.h
-	g++ -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
-
 -include Main.d
 Main.o: Main.cpp
 	g++ -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__

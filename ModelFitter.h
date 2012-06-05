@@ -206,6 +206,7 @@ public:
                       
   // write result header
   void writeHeader(FILE* fp) {
+    // fprintf(fp, "Beta\tSE\tPvalue\n");
     fprintf(fp, "Pvalue\n");
   };
   // fitting model

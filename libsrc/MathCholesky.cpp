@@ -75,7 +75,9 @@ bool Cholesky::TryDecompose(Matrix & A)
          if (i == j)
             if (sum <= 0.0)
 	      {
-		printf("sum < = 0.0");
+#ifndef NDEBUG            
+            printf("%s:%d sum < = 0.0\n", __FILE__, __LINE__);
+#endif
 		return false;
 	      }
             else

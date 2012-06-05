@@ -23,7 +23,7 @@ public:
   /**
    * Parse will first make a copy then tokenized the copied one
    */
-  void parse(const std::string vcfLine){
+  int parse(const std::string vcfLine){
     this->vcfInfo.reset();
     this->parsed = vcfLine.c_str();
     this->self.line = this->parsed.c_str();
@@ -34,56 +34,56 @@ public:
     int ret;
     if ( (ret = this->chrom.parseTill(this->parsed, 0, '\t')) ) {
       fprintf(stderr, "Error when parsing CHROM [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }
     this->parsed[this->chrom.end] = '\0';
     
     if ( (ret = (this->pos.parseTill(this->parsed, this->chrom.end + 1, '\t') ))) {
       fprintf(stderr, "Error when parsing POS [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }
     this->parsed[this->pos.end] = '\0';
 
     if ( (ret = (this->id.parseTill(this->parsed, this->pos.end + 1, '\t') ))) {
       fprintf(stderr, "Error when parsing ID [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }
     this->parsed[this->id.end] = '\0';
 
     if ( (ret = (this->ref.parseTill(this->parsed, this->id.end + 1, '\t') ))) {
       fprintf(stderr, "Error when parsing REF [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }
     this->parsed[this->ref.end] = '\0';
 
     if ( (ret = (this->alt.parseTill(this->parsed, this->ref.end + 1, '\t') ))) {
       fprintf(stderr, "Error when parsing ALT [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }      
     this->parsed[this->alt.end] = '\0';
 
     if ( (ret = (this->qual.parseTill(this->parsed, this->alt.end + 1, '\t') ))) {
       fprintf(stderr, "Error when parsing QUAL [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }      
     this->parsed[this->qual.end] = '\0';
 
     if ( (ret = (this->filt.parseTill(this->parsed, this->qual.end + 1, '\t') ))) {
       fprintf(stderr, "Error when parsing FILTER [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }      
     this->parsed[this->filt.end] = '\0';
 
     if ( (ret = (this->info.parseTill(this->parsed, this->filt.end + 1, '\t') ))) {
       fprintf(stderr, "Error when parsing INFO [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }      
     this->parsed[this->info.end] = '\0';
     this->vcfInfo.parse(this->info); // lazy parse inside VCFInfo
 
     if ( (ret = (this->format.parseTill(this->parsed, this->info.end + 1, '\t') ))){
       fprintf(stderr, "Error when parsing FORMAT [ %s ]\n", vcfLine.c_str());
-      return ;
+      return -1;
     }      
     this->parsed[this->format.end] = '\0';
 
@@ -96,7 +96,7 @@ public:
       if (idx >= this->allIndv.size()) {
         fprintf(stderr, "Expected %d individual but already have %d individual\n", this->allIndv.size(), idx);
         fprintf(stderr, "VCF header have LESS people than VCF content!\n");
-        return;
+        return -1;
       }
 
       this->parsed[indv.end] = '\0';
@@ -110,7 +110,7 @@ public:
     // if ret == 1 menas reaches end of this->parsed
     if (ret != 1) {
       fprintf(stderr, "Parsing error in line: %s\n", this->self.toStr());
-      return;
+      return -1;
     } else {
       this->parsed[indv.end] = '\0';
       p = this->allIndv[idx];
@@ -119,12 +119,15 @@ public:
     }
 
     if (idx > this->allIndv.size()) {
-      fprintf(stderr, "Expected %d individual but only have %d individual\n", this->allIndv.size(), idx);
-      FATAL("VCF header have MORE people than VCF content!");
-    } else if (idx < this->allIndv.size()) {
       fprintf(stderr, "Expected %d individual but already have %d individual\n", this->allIndv.size(), idx);
-      FATAL("VCF header have LESS people than VCF content!");
+      REPORT("VCF header have MORE people than VCF content!");
+    } else if (idx < this->allIndv.size()) {
+      fprintf(stderr, "Expected %d individual but only have %d individual\n", this->allIndv.size(), idx);
+      REPORT("VCF header have LESS people than VCF content!");
+      return -1;
     };
+
+    return 0;
   };
   void createIndividual(const std::string& line){
     std::vector<std::string> sa;
@@ -315,14 +318,13 @@ private:
 
   VCFInfo vcfInfo;
 
-  VCFValue self;       // a self value points to itself, it contain parsed information
-  // const char* line; // points to data line
-
   // indicates if getPeople() has been called
   bool hasAccess;
 
   // store parsed results
   VCFBuffer parsed;
+  VCFValue self;       // a self value points to itself, it contain parsed information
+
 }; // VCFRecord
 
 #endif /* _VCFRECORD_H_ */

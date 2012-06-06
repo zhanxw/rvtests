@@ -41,6 +41,15 @@ public:
             df = NULL;
         }
     };
+    /**
+     * _G suffix: Data structure for Goncalo
+     * y phenotype
+     * y0 nul model fitted phenotype
+     * X covariate
+     * v variance
+     * G genotype
+     * w weight for G
+     */
     int CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
                         Matrix & G_G, Vector &w_G);
     double GetPvalue() {return this->pValue;};

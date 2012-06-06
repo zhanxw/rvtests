@@ -231,8 +231,25 @@ void toMatrix(const std::vector<double>& v, Matrix* m) {
   }
 };
 
-int loadGeneFile(const char* fn, std::map<std::string, RangeList>* geneList) {
-  std::map<std::string, RangeList>& m = *geneList;
+/**
+ * Convert a @param string separated by @param sep to set (stored in @param s)
+ */
+void makeSet(const char* str, char sep, std::set<std::string>* s) {
+  s->clear();
+  if (!str || strlen(str) == 0)
+    return;
+  
+  std::vector<std::string> fd;
+  stringTokenize(str, ",", &fd);
+  for (int i = 0; i < fd.size(); i++)
+    s->insert(fd[i]);
+}
+
+int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, RangeList>* geneMap) {
+  std::set<std::string> geneSet;
+  makeSet(gene, ',', &geneSet);
+  
+  OrderedMap<std::string, RangeList>& m = *geneMap;
   LineReader lr(fn);
   int lineNo = 0;
   std::vector< std::string> fd;
@@ -242,7 +259,11 @@ int loadGeneFile(const char* fn, std::map<std::string, RangeList>* geneList) {
       fprintf(stderr, "skip %d line (short of columns).\n", lineNo);
       continue;
     }
+
     std::string& chr = fd[2];
+    if (geneSet.size() && geneSet.find(chr)== geneSet.end())
+      continue;
+    
     int beg = atoi(fd[4]);
     int end = atoi(fd[5]);
     m[ fd[0] ].addRange (chr.c_str(), beg, end);
@@ -294,7 +315,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT")
       ADD_STRING_PARAMETER(pl, rangeToTest, "--set", "specify set file (for burden tests)")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
-      ADD_STRING_PARAMETER(pl, geneToTest, "--gene", "specify which genes to test")
+      ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
 
       //ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
 
@@ -457,9 +478,8 @@ int main(int argc, char** argv){
   //     collapsor.setSetFileName(FLAG_set.c_str());
   //     model.push_back (new CollapsingHeader);
   // }
-  bool singleVariantTestMode = false;
+  
   if (FLAG_modelSingle != "") {
-    singleVariantTestMode = true;
     stringTokenize(FLAG_modelSingle, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
       if (argModelName[i] == "wald") {
@@ -476,7 +496,6 @@ int main(int argc, char** argv){
     }
   };
 
-#if 0
   if (FLAG_modelBurden != "") {
     stringTokenize(FLAG_modelBurden, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
@@ -500,12 +519,13 @@ int main(int argc, char** argv){
     stringTokenize(FLAG_modelVT, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
       if (argModelName[i] == "cmc") {
-        model.push_back( new VariableThresholdCMCTest );
+        model.push_back( new VariableThreshold );
       } else if (argModelName[i] == "zeggini") {
         //model.push_back( new VariableThresholdFreqTest );
         // TODO
       } else if (argModelName[i] == "mb") {
-        model.push_back( new VariableThresholdFreqTest );
+        //////////!!!
+        // model.push_back( new VariableThresholdFreqTest );
       } else if (argModelName[i] == "skat") {
         //model.push_back( new VariableThresholdFreqTest );
       } else {
@@ -514,6 +534,7 @@ int main(int argc, char** argv){
       };
     }
   };
+#if 0
   if (FLAG_modelKernel != "") {
     stringTokenize(FLAG_modelKernel, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
@@ -528,14 +549,14 @@ int main(int argc, char** argv){
 
 #endif
 
-  std::map<std::string, RangeList> geneRange;
+  OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
-    int ret = loadGeneFile(FLAG_geneFile.c_str(), &geneRange);
+    int ret = loadGeneFile(FLAG_geneFile.c_str(), FLAG_gene.c_str(), &geneRange);
     if (ret < 0 || geneRange.size() == 0) {
-      fprintf(stderr, "Error loading gene file!\n");
+      fprintf(stderr, "Error loading gene file or gene file is empty!\n");
       return -1;
     } else {
-      fprintf(stderr, "Loaded %zu genes!\n", geneRange.size());
+      fprintf(stderr, "Loaded %u genes!\n", geneRange.size());
     }
   }
 
@@ -550,12 +571,25 @@ int main(int argc, char** argv){
     s += ".assoc";
     fOuts[i] = fopen(s.c_str(), "wt");
   }
-
+  FILE* fLog = fopen( (FLAG_outPrefix + ".log").c_str(), "wt");
+  
   Matrix genotype;
 
-  if (singleVariantTestMode) {
+  // determine VCF file reading pattern
+  // current support:
+  // * line by line ( including range selection)
+  // * gene by gene
+  // will support range by range
+  
+  if (!geneRange.size()) {
+    char buf[1000]; // we put site sinformation here
+    sprintf(buf, "CHROM\tPOS\tREF\tALT\t");
+    // output headers
+    for (int m = 0; m < model.size(); m++) {
+      model[m]->writeHeader(fOuts[m], buf);
+    };
+
     int lineNo = 0;
-    char buf[1000] = {0}; // we put site sinformation here
     while (vin.readRecord()) {
       lineNo ++;
       if (lineNo % 1000 == 0) 
@@ -593,23 +627,35 @@ int main(int argc, char** argv){
 
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
-        fputs(buf, fOuts[m]);
         model[m]->fit(phenotypeMatrix, genotype);
-        model[m]->writeOutput(fOuts[m]);
+        model[m]->writeOutput(fOuts[m], buf);
       };
     }
 
   } else {
-    std::map<std::string, RangeList>::const_iterator it = geneRange.begin();
-    for ( ; it != geneRange.end(); ++it){
-      vin.setRange(it->second);
+  char buf[1000] = {0}; // we put site sinformation here
+  sprintf(buf, "GENE\t");
+  // output headers
+  for (int m = 0; m < model.size(); m++) {
+    model[m]->writeHeader(fOuts[m], buf);
+  };
+
+    
+    std::string geneName;
+    RangeList rangeList;
+    for ( int i = 0; i < geneRange.size(); ++i){
+      geneRange.at(i, &geneName, &rangeList);
+      vin.setRange(rangeList);
+
+      sprintf(buf, "%s\t", geneName.c_str());
+      
       int ret = extractGenotype(vin, &genotype);
       if (ret < 0) {
-        fprintf(stderr, "Extract genotype failed for gene %s!\n", it->first.c_str());
+        fprintf(stderr, "Extract genotype failed for gene %s!\n", geneName.c_str());
         continue;
       };
       if (genotype.rows == 0) {
-        fprintf(stderr, "Gene %s has 0 variants, skipping\n", it->first.c_str());
+        fprintf(fLog, "Gene %s has 0 variants, skipping\n", geneName.c_str());
         continue;
       };
       
@@ -619,7 +665,7 @@ int main(int argc, char** argv){
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
         model[m]->fit(phenotypeMatrix, genotype);
-        model[m]->writeOutput(fOuts[m]);
+        model[m]->writeOutput(fOuts[m], buf);
       };
     }
   }
@@ -709,7 +755,7 @@ int main(int argc, char** argv){
   //     delete model[m];
   // };
   // fclose(fout);
-
+  fclose(fLog);
   currentTime = time(0);
   fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));
 

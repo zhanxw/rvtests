@@ -10,6 +10,20 @@
 #include "regression/Skat.h"
 #include "regression/Table2by2.h"
 
+// various collapsing method
+// they all take people by marker matrix
+// and they won't take special care of missing genotypes
+double getMarkerFrequency(Matrix& in, int col);
+
+void cmcCollapse(Matrix* in, Matrix* out);
+void zegginiCollapse(Matrix* in, Matrix* out);
+void madsonbrowningCollapse(Matrix* in, Matrix* out);
+
+void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq);
+#if 0
+void progressiveCMCCollapse(Matrix* in, Matrix* out, std::vector<double>* freq);
+void progressiveMadsonBrowningCollapse(Matrix* in, Matrix* out, std::vector<double>* freq);
+#endif
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
@@ -17,19 +31,31 @@
 class ModelFitter{
 public:
   // write result header
-  virtual void writeHeader(FILE* fp) = 0;
+  virtual void writeHeader(FILE* fp, const char* prependString) = 0;
   // fitting model
   virtual int fit(Matrix& phenotype, Matrix& genotype) = 0;
   // write model output
-  virtual void writeOutput(FILE* fp) = 0;
+  virtual void writeOutput(FILE* fp, const char* prependString) = 0;
 
   ModelFitter(){
     this->modelName = "Unassigned_Model_Name";
+    this->binaryOutcome = false; // default: using continuous outcome
   };
   const std::string& getModelName() const { return this->modelName; };
-  virtual void reset() {}; // for particular class to call
+  virtual void reset() {}; // for particular class to call when fitting repeatedly
+  // virtual void needFittingCovariate();
+  bool isBinaryOutcome() const{
+    return this->binaryOutcome;
+  }
+  void setBinaryOutcome() {
+    this->binaryOutcome = true;
+  };
+  void setContinuousOutcome() {
+    this->binaryOutcome = false;
+  };
 protected:
   std::string modelName;
+  bool binaryOutcome;
 }; // end ModelFitter
 
 #if 0
@@ -129,7 +155,8 @@ public:
     this->modelName = "SingleWald";
   };
   // write result header
-  void writeHeader(FILE* fp) {
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     fprintf(fp, "Beta\tSE\tPvalue\n");
   };
   // fitting model
@@ -155,7 +182,8 @@ public:
   };
 #endif
   // write model output
-  void writeOutput(FILE* fp) {
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     if (fitOK) {
       double se = sqrt(lr.GetCovB()[0][0]);
       fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", lr.GetCovEst()[0], se, lr.GetAsyPvalue()[0]);
@@ -203,10 +231,10 @@ public:
   SingleVariantScoreTest(){
     this->modelName = "SingleScore";
   };
-                      
+
   // write result header
-  void writeHeader(FILE* fp) {
-    // fprintf(fp, "Beta\tSE\tPvalue\n");
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     fprintf(fp, "Pvalue\n");
   };
   // fitting model
@@ -243,7 +271,8 @@ public:
   };
 #endif
   // write model output
-  void writeOutput(FILE* fp) {
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     if (fitOK)
       fprintf(fp, "%.3f\n", lrst.GetPvalue());
     else
@@ -260,7 +289,8 @@ public:
     this->modelName = "SingleWald";
   };
   // write result header
-  void writeHeader(FILE* fp) {
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     fprintf(fp, "Beta\tSE\tPvalue");
   };
   // fitting model
@@ -269,6 +299,7 @@ public:
     fitOK = lr.FitLogisticModel(X, phenotype, 100);
     return (fitOK ? 0 : 1);
   };
+
 #if 0
   int fit(VCFData& data) {
     if (data.covariate && data.covariate->cols > 0)
@@ -281,7 +312,8 @@ public:
   };
 #endif
   // write model output
-  void writeOutput(FILE* fp) {
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     if (fitOK) {
       double se = sqrt(lr.GetCovB()[0][0]);
       fprintf(fp, "%.3lf\t%.3lf\t%.3lf", lr.GetCovEst()[0], se, lr.GetAsyPvalue()[0]);
@@ -329,9 +361,10 @@ public:
   SingleVariantLogisticScoreTest(){
     this->modelName = "SingleScore";
   };
-                      
+
   // write result header
-  void writeHeader(FILE* fp) {
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     fprintf(fp, "Pvalue\n");
   };
   // fitting model
@@ -368,7 +401,8 @@ public:
   };
 #endif
   // write model output
-  void writeOutput(FILE* fp) {
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     if (fitOK)
       fprintf(fp, "%.3f\n", lrst.GetPvalue());
     else
@@ -379,259 +413,340 @@ private:
   bool fitOK;
 }; // SingleVariantLogisticScoreTest
 
-#if 0
+
 class CMCTest: public ModelFitter{
 public:
+  CMCTest() {
+    this->modelName = "CMC";
+  };
   // write result header
-  void writeHeader(FILE* fp) {
-    fprintf(fp, "CMC.Pvalue");
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()) {
+      fprintf(fp, "NumVariant\tCMC.Pvalue\n");
+    } else {
+      fprintf(fp, "NumVariant\tNonRefSite\tCMC.Pvalue\n");      
+    }
   };
   // fitting model
-  int fit(VCFData& data) {
-    // collapsing
-    cmcCollapse(&data, &g);
-
-    // fit model
-    if (data.covariate && data.covariate->cols > 0) {
-      fitOK = lrst.FitNullModel( *data.covariate, *data.extractPhenotype(), 100);
-      if (!fitOK)
-        return -1;
-
-      fitOK = lrst.TestCovariate( *data.covariate, *data.extractPhenotype(), *data.collapsedGenotype);
-      if (!fitOK)
-        return -1;
-    } else {
-      fitOK = lrst.TestCovariate( *data.collapsedGenotype, *data.extractPhenotype());
-      if (!fitOK)
-        return -1;
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    this->numVariant = genotype.cols;
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
     }
-    return 0;
+    Matrix intercept;
+    intercept.Dimension(genotype.rows, 1);
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i< phenotype.rows; i++){
+      intercept[i][0] = 1.0;
+      pheno[i] = phenotype[i][0];
+    }
+    
+    cmcCollapse(&genotype, &collapsedGenotype);
+    
+    if (isBinaryOutcome()) {
+      fitOK = logistic.FitNullModel(intercept, pheno, 100);
+      if (!fitOK) return -1;
+      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      return (fitOK ? 0 : -1);
+    } else {
+      fitOK = linear.FitNullModel(intercept, pheno);
+      if (!fitOK) return -1;
+      fitOK = linear.TestCovariate(intercept, pheno, collapsedGenotype);
+      return (fitOK ? 0 : -1);
+    }
   };
+  
   // write model output
-  void writeOutput(FILE* fp) {
-    if (fitOK)
-      fprintf(fp, "%.3f", lrst.GetPvalue());
-    else
-      fputs("NA", fp);
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (!fitOK) {
+      fprintf(fp, "%d\tNA\n", this->numVariant);
+    } else {
+      if (isBinaryOutcome()) {
+        fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
+      } else {
+        fprintf(fp, "%d\t%d\t%f\n", this->numVariant, this->totalNonRefSite(), linear.GetPvalue());
+      }      
+    };
   };
 private:
-  Matrix g;
-  LogisticRegressionScoreTest lrst;
+  int totalNonRefSite(){
+    double s = 0.0;
+    for (int i = 0; i < collapsedGenotype.rows; ++i) {
+      s += collapsedGenotype[i][0];
+    }
+    return (int)(s);
+  }
+  
+  
+  Matrix collapsedGenotype;
+  LogisticRegressionScoreTest logistic;
+  LinearRegressionScoreTest linear;
   bool fitOK;
+  int numVariant;
 }; // CMCTest
 
 class CMCFisherExactTest: public ModelFitter{
 public:
+  CMCFisherExactTest() {
+    this->modelName = "CMCFisherExact";
+  };
   // write result header
-  void writeHeader(FILE* fp) {
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     fputs("exactCMC.N00\t", fp);
     fputs("exactCMC.N01\t", fp);
     fputs("exactCMC.N10\t", fp);
     fputs("exactCMC.N11\t", fp);
     fputs("exactCMC.PvalueTwoSide\t", fp);
     fputs("exactCMC.PvalueLess\t", fp);
-    fputs("exactCMC.PvalueGreater", fp);
+    fputs("exactCMC.PvalueGreater\n", fp);
   };
   // fitting model
-  int fit(VCFData& data) {
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return 1;
+    };
+
     // collapsing
-    cmcCollapse(&data, &g);
+    cmcCollapse(&genotype, &collapsedGenotype);
 
     // fit model
     // step 1, fit two by two table
-    Vector & p = (*data.extractPhenotype());
-    int numPeople = g.rows;
+    int numPeople = collapsedGenotype.rows;
     for (int i = 0; i < numPeople; i++) {
-      int geno = g[i][0];
-      int pheno = p[i];
-      assert(0 <= geno && geno <= 1);
-      assert(0 <= pheno && pheno <= 1);
+      int geno = collapsedGenotype[i][0];
+      int pheno = phenotype[i][0];
+      if ( !(0 <= geno && geno <= 1) ) continue;
+      if ( !(0 <= pheno && pheno <= 1)) continue;
       model.Increment(geno, pheno);
     }
 
     // step 2, calculate pvalue
     model.UpdateMarginSum();
     model.FullFastFisherExactTest();
+
+    this->fitOK = true;
   };
   // write model output
-  void writeOutput(FILE* fp) {
-    fprintf(fp, "%d\t", model.Get00());
-    fprintf(fp, "%d\t", model.Get01());
-    fprintf(fp, "%d\t", model.Get10());
-    fprintf(fp, "%d\t", model.Get11());
-
-    fprintf(fp, "%.3lf\t", model.getPExactTwoSided());
-    fprintf(fp, "%.3lf\t", model.getPExactOneSidedLess());
-    fprintf(fp, "%.3lf"  , model.getPExactOneSidedGreater());
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (fitOK) {
+      fprintf(fp, "%d\t", model.Get00());
+      fprintf(fp, "%d\t", model.Get01());
+      fprintf(fp, "%d\t", model.Get10());
+      fprintf(fp, "%d\t", model.Get11());
+      
+      fprintf(fp, "%lf\t", model.getPExactTwoSided());
+      fprintf(fp, "%lf\t", model.getPExactOneSidedLess());
+      fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater());
+    } else {
+      fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n");
+    }
   };
   void reset() {
     model.reset();
   };
 private:
-  Matrix g;
+  Matrix collapsedGenotype;
   Table2by2 model;
+  bool fitOK;
 }; // CMCFisherExactTest
 
 
 class ZegginiTest: public ModelFitter{
 public:
+  ZegginiTest(){
+    this->modelName = "ZegginiTest";
+  };
   // write result header
-  void writeHeader(FILE* fp) {
-    fprintf(fp, "Zeggini.Pvalue");
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "NumVariant\tZeggini.Pvalue\n");
   };
   // fitting model
-  int fit(VCFData& data) {
-    // collapsing
-    zegginiCollapse(&data, &g);
-
-    // fit model
-    if (data.covariate && data.covariate->cols > 0) {
-      fitOK = lrst.FitNullModel( *data.covariate, *data.extractPhenotype(), 100);
-      if (!fitOK)
-        return -1;
-
-      fitOK = lrst.TestCovariate( *data.covariate, *data.extractPhenotype(), *data.collapsedGenotype);
-      if (!fitOK)
-        return -1;
-    } else {
-      fitOK = lrst.TestCovariate( *data.collapsedGenotype, *data.extractPhenotype());
-      if (!fitOK)
-        return -1;
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    this->numVariant = genotype.cols;
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
     }
-    return 0;
+    Matrix intercept;
+    intercept.Dimension(genotype.rows, 1);
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i< phenotype.rows; i++){
+      intercept[i][0] = 1.0;
+      pheno[i] = phenotype[i][0];
+    }
+    
+    zegginiCollapse(&genotype, &collapsedGenotype);
+    
+    if (isBinaryOutcome()) {
+      fitOK = logistic.FitNullModel(intercept, pheno, 100);
+      if (!fitOK) return -1;
+      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      return (fitOK ? 0 : -1);
+    } else {
+      fitOK = linear.FitNullModel(intercept, pheno);
+      if (!fitOK) return -1;
+      fitOK = linear.TestCovariate(intercept, pheno, collapsedGenotype);
+      return (fitOK ? 0 : -1);
+    }
   };
   // write model output
-  void writeOutput(FILE* fp) {
-    if (fitOK)
-      fprintf(fp, "%.3f", lrst.GetPvalue());
-    else
-      fputs("NA", fp);
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (!fitOK) {
+      fprintf(fp, "%d\tNA\n", this->numVariant);
+    } else {
+      if (isBinaryOutcome()) {
+        fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
+      } else {
+        fprintf(fp, "%d\t%f\n", this->numVariant, linear.GetPvalue());
+      }      
+    };
   };
 private:
-  Matrix g;
-  LogisticRegressionScoreTest lrst;
+  Matrix collapsedGenotype;
+  LogisticRegressionScoreTest logistic;
+  LinearRegressionScoreTest linear;
   bool fitOK;
+  int numVariant;
 }; // ZegginiTest
 
 class MadsonBrowningTest: public ModelFitter{
 public:
+  MadsonBrowningTest() {
+    this->modelName = "MadsonBrowningTest";
+  }
   // write result header
-  void writeHeader(FILE* fp) {
-    fprintf(fp, "MB.Pvalue");
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "NumVariant\tMB.Pvalue\n");
   };
   // fitting model
-  int fit(VCFData& data) {
-    // collapsing
-    madsonbrowningCollapse(&data, &g);
-
-    // fit model
-    if (data.covariate && data.covariate->cols > 0) {
-      fitOK = lrst.FitNullModel( *data.covariate, *data.extractPhenotype(), 100);
-      if (!fitOK)
-        return -1;
-
-      fitOK = lrst.TestCovariate( *data.covariate, *data.extractPhenotype(), *data.collapsedGenotype);
-      if (!fitOK)
-        return -1;
-    } else {
-      fitOK = lrst.TestCovariate( *data.collapsedGenotype, *data.extractPhenotype());
-      if (!fitOK)
-        return -1;
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    this->numVariant = genotype.cols;
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
     }
-    return 0;
+    Matrix intercept;
+    intercept.Dimension(genotype.rows, 1);
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i< phenotype.rows; i++){
+      intercept[i][0] = 1.0;
+      pheno[i] = phenotype[i][0];
+    }
+    
+    madsonbrowningCollapse(&genotype, &collapsedGenotype);
+    
+    if (isBinaryOutcome()) {
+      fitOK = logistic.FitNullModel(intercept, pheno, 100);
+      if (!fitOK) return -1;
+      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      return (fitOK ? 0 : -1);
+    } else {
+      fitOK = linear.FitNullModel(intercept, pheno);
+      if (!fitOK) return -1;
+      fitOK = linear.TestCovariate(intercept, pheno, collapsedGenotype);
+      return (fitOK ? 0 : -1);
+    }
   };
+
   // write model output
-  void writeOutput(FILE* fp) {
-    if (fitOK)
-      fprintf(fp, "%.3f", lrst.GetPvalue());
-    else
-      fputs("NA", fp);
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (!fitOK) {
+      fprintf(fp, "%d\tNA\n", this->numVariant);
+    } else {
+      if (isBinaryOutcome()) {
+        fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
+      } else {
+        fprintf(fp, "%d\t%f\n", this->numVariant, linear.GetPvalue());
+      }      
+    };
   };
 private:
-  Matrix g;
-  LogisticRegressionScoreTest lrst;
+  Matrix collapsedGenotype;
+  LogisticRegressionScoreTest logistic;
+  LinearRegressionScoreTest linear;
   bool fitOK;
+  int numVariant;
 }; // MadsonBrowningTest
 
-class VariableThresholdCMCTest: public ModelFitter{
+class VariableThreshold: public ModelFitter{
 public:
+VariableThreshold():model(NULL),modelLen(0),modelCapacity(0){
+    this->modelName = "VariableThreshold";
+    this->resize(32);
+  };
+  void resize(int n) {
+    if (n < modelCapacity) {
+      this->modelLen = n;
+      return;
+    }
+    
+    if (!model)
+      delete[] model;
+    
+    model =  new CMCTest[n];
+    this->modelLen = n;
+    this->modelCapacity = n;
+  };
   // write result header
-  void writeHeader(FILE* fp) {
-    fprintf(fp, "VT.FreqCutoff\tVT.PermPvalue");
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    model[0].writeHeader(fp, "FreqThreshold\t");
   };
   // fitting model
-  int fit(VCFData& data) {
-    // arrange frequency
-    for (int i = 0; i < data.collapsedMarkerFreq.size(); i++ ){
-      order[ data.collapsedMarkerFreq[i] ] = i;
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    
+    if (genotype.cols > modelLen) {
+      resize(genotype.cols);
+      reset();
     }
 
-    // collapsing using CMC
-    progressiveCMCCollapse(&data, &g, -1); // clear matrix
-
-    // fit null model
-    if (data.covariate && data.covariate->cols > 0) {
-      fitOK = lrst.FitNullModel( *data.covariate, *data.extractPhenotype(), 100);
-      if (!fitOK)
-        return -1;
-    }
-
-    for ( order_it = order.begin();
-          order_it != order.end();
-          order_it++ ){
-      progressiveCMCCollapse(&data, &g, order_it->second);
-      outFreq.push_back(order_it->first);
-
-      if (data.covariate && data.covariate->cols > 0) {
-        fitOK = lrst.TestCovariate( *data.covariate, *data.extractPhenotype(), g);
-        if (!fitOK) {
-          pvalue.push_back( -1.0);
-          continue;
-        }
-      } else {
-        fitOK = lrst.TestCovariate( *data.collapsedGenotype, *data.extractPhenotype());
-        if (!fitOK) {
-          pvalue.push_back(-1.0);
-          continue;
-        }
+    rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
+    for (int i = genotype.cols - 1; i >=0; --i){
+      sortedGenotype.Dimension( genotype.rows, i + 1);
+      if ( model[i].fit(phenotype, sortedGenotype) ) {
+        fitOK = false;
       }
-      pvalue.push_back(lrst.GetPvalue());
-    } //
+    }
 
     return 0;
   };
   // write model output
-  void writeOutput(FILE* fp) {
-    assert(outFreq.size() == pvalue.size());
-
-    for (int i = 0; i < outFreq.size(); i++) {
-      if (i) fputc(',', fp);
-      fprintf(fp, "%.3lf", outFreq[i]);
-    }
-    fputc('\t', fp);
-    for (int i = 0; i < pvalue.size(); i++) {
-      if (i) fputc(',', fp);
-      if (pvalue[i] > 0)
-        fprintf(fp, "%.3lf", pvalue[i]);
-      else
-        fputs("NA", fp);
+  void writeOutput(FILE* fp, const char* prependString) {
+    char buf[1000];
+    // fputs(prependString, fp);
+    for (int i = 0; i < freq.size(); i ++ ){
+      sprintf(buf, "%s\t%f\t", prependString, freq[i]);
+      model[i].writeOutput(fp, buf);
     }
   };
   void reset() {
-    this->outFreq.clear();
-    this->pvalue.clear();
-    this->order.clear();
+    fitOK = true;
+    for (int i = 0; i < this->modelLen; i++)
+      model[i].reset();
   };
 private:
-  Matrix g;
-  LogisticRegressionScoreTest lrst;
-  std::vector<double> outFreq;
-  std::vector<double> pvalue;
-  std::map<double, int> order;
-  std::map<double, int>::const_iterator order_it;
+  Matrix sortedGenotype;
+  std::vector<double> freq;
   bool fitOK;
+  CMCTest* model;
+  int modelLen;
+  int modelCapacity;
 }; // VariableThresholdCMCTest
 
+#if 0
 class VariableThresholdFreqTest: public ModelFitter{
 public:
   // write result header
@@ -710,7 +825,9 @@ private:
   std::map<double, int>::const_iterator order_it;
   bool fitOK;
 }; // VariableThresholdFreqTest
+#endif
 
+#if 0
 class SkatTest: public ModelFitter{
 public:
   // write result header
@@ -791,4 +908,235 @@ private:
   double pValue;
 }; // SkatTest
 #endif
+
+
+// Implementation of various collpasing methods
+/**
+ * @return Madson-Browning definition of alleleFrequency
+ */
+double getMarkerFrequency(Matrix& in, int col){
+  int& numPeople = in.rows;
+  int ac = 0;
+  int an = 0;
+  for (int p = 0; p < numPeople; p++) {
+    if (in[p][col] >= 0) {
+      ac += in[p][col];
+      an += 2;
+    }
+  }
+  double freq = 1.0 * (ac + 1) / (an + 1);
+  return freq;
+};
+
+
+void cmcCollapse(Matrix* d, Matrix* out){
+  assert(out);
+  Matrix& in = (*d);
+  int numPeople = in.rows;
+  int numMarker = in.cols;
+
+  out->Dimension(numPeople, 1);
+  out->Zero();
+  for (int p = 0; p < numPeople; p++){
+    for (int m = 0; m < numMarker; m++) {
+      int g = (int)(in[p][m]);
+      if (g > 0) {
+        (*out)[p][0] = 1.0;
+        break;
+      }
+    };
+  };
+};
+
+void zegginiCollapse(Matrix* d, Matrix* out){
+  assert(out);
+  Matrix& in = (*d);
+  int numPeople = in.rows;
+  int numMarker = in.cols;
+
+  out->Dimension(numPeople, 1);
+  out->Zero();
+  for (int p = 0; p < numPeople; p++){
+    for (int m = 0; m < numMarker; m++) {
+      int g = (int)(in[p][m]);
+      if (g > 0) { // genotype is non-reference
+        (*out)[p][0] += 1.0;
+        break;
+      }
+    };
+  };
+};
+
+void madsonbrowningCollapse(Matrix* d, Matrix* out){
+  assert(out);
+  Matrix& in = (*d);
+  int& numPeople = in.rows;
+  int numMarker = in.cols;
+
+  out->Dimension(numPeople, 1);
+  out->Zero();
+
+
+  for (int m = 0; m < numMarker; m++) {
+    // calculate weight
+    double freq = getMarkerFrequency(in, m);    
+    double weight = 1.0 / sqrt(freq * (1.0-freq));
+
+    for (int p = 0; p < numPeople; p++) {
+      out[p][0] += in[p][m] * weight;
+    }
+  };
+};
+
+template<class T>
+class OrderFunction {
+public:
+ OrderFunction(T& t): v(t) {};
+  bool operator() (int i, int j)  {
+    return v[i] < v[j];
+  };
+  const T& v;
+};
+
+/**
+ * @param freq: 0.3, 0.2, 0.1, 0.4
+ * will return
+ * @param ord:  3, 2, 1, 4
+ */
+void order(std::vector<double>& freq, std::vector<int>* ord) {
+  ord->resize(freq.size());
+  for (int i = 0; i < freq.size(); ++i)
+    (*ord)[i] = i;
+  
+  OrderFunction< std::vector<double> > func(freq);
+  std::sort(ord->begin(), ord->end(), func);
+};
+
+/**
+ * Collapsing @param d to @param out, the order of columns in @param out is the same as @param freq
+ * which is the frequency upper bounds, and @param freq will be increase frequency.
+ * e.g.
+ * @param in P by 3 matrix, then @param out will be 3 columns too
+ * if @param freq = (0.1, 0.2, 0.3) meaning
+ * @param out column 0 using 0.1 frequency upper bound, and the smallest frequency of marker is 0.1
+ * @param out column 1 using 0.2 frequency upper bound, and the second largest frequency of marker is 0.2
+ * @param out column 2 using 0.3 frequency upper bound, and the largest frequency of marker is 0.3
+ */
+void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq) {
+  assert(out && freq);
+  out->Dimension(in.rows, in.cols);
+  
+  const int& numPeople = in.rows;
+  const int& numMarker = in.cols;
+  freq->resize(numMarker);
+
+  /* out->Dimension(numPeople, numMarker); */
+  /* if (col < 0) { */
+  /*   out->Zero(); */
+  /*   return; */
+  /* } */
+
+  for (int m = 0; m < numMarker; ++m){
+    (*freq)[m] = getMarkerFrequency(in, m);
+  }
+
+  std::vector<int> ord;
+  order(*freq, &ord);
+  std::sort(freq->begin(), freq->end());
+  
+  for (int m = 0; m < numMarker; ++m){
+    const int& col = ord[m];
+    for (int p = 0; p < numPeople; ++p) {
+      (*out)[p][m] = in[p][col];
+    }
+  }
+};
+
+void progressiveCMCCollapse(Matrix* d, Matrix* out, std::vector<double>* freq) {
+  assert(out && freq);
+  Matrix& in = (*d);
+  out->Dimension(in.rows, in.cols);
+  
+  const int& numPeople = in.rows;
+  const int& numMarker = in.cols;
+  freq->resize(numMarker);
+
+  /* out->Dimension(numPeople, numMarker); */
+  /* if (col < 0) { */
+  /*   out->Zero(); */
+  /*   return; */
+  /* } */
+
+  for (int m = 0; m < numMarker; ++m){
+    (*freq)[m] = getMarkerFrequency(in, m);
+  }
+
+  std::vector<int> ord;
+  order(*freq, &ord);
+  std::sort(freq->begin(), freq->end());
+  
+  for (int m = 0; m < numMarker; ++m){
+    const int& col = ord[m];    
+    if (m == 0) {
+      for (int p = 0; p < numPeople; ++p) {
+        if (in[p][col] > 0) {
+          (*out)[p][m] = 1;
+        }        
+      }
+    } else { //
+      for (int p = 0; p < numPeople; ++p) {
+        if ((*out)[p][m-1] > 0) {
+          (*out)[p][m] = 1;
+          continue;
+        };
+        if (in[p][col] > 0) {
+          (*out)[p][m] = 1;
+          continue;
+        }        
+      }
+    }
+  }
+
+};
+
+void progressiveMadsonBrowningCollapse(Matrix* d, Matrix* out, std::vector<double>* freq) {
+  assert(out);
+  Matrix& in = (*d);
+  out->Dimension(in.rows, in.cols);
+  
+  int numPeople = in.rows;
+  int numMarker = in.cols;
+  freq->resize(numMarker);
+
+  /* out->Dimension(numPeople, 1); */
+  /* if (col < 0) { */
+  /*   out->Zero(); */
+  /*   return; */
+  /* } */
+
+  for (int m = 0; m < numMarker; ++m){
+    (*freq)[m] = getMarkerFrequency(in, m);
+  }
+
+  std::vector<int> ord;
+  order(*freq, &ord);
+  std::sort(freq->begin(), freq->end());
+  
+  double weight;
+  for (int m = 0; m < numMarker; ++m){
+    const int& col = ord[m];
+    weight = 1.0 / sqrt (  (*freq)[m] * (1.0 - (*freq)[m])) ;
+    
+    if (m == 0) {
+      for (int p = 0; p < numPeople; ++p) {
+        (*out)[p][m] = weight * in[p][col];
+      }
+    } else { //
+      for (int p = 0; p < numPeople; ++p) {
+        (*out)[p][m] = (*out)[p][m-1] + weight * in[p][col];
+      }
+    }
+  }
+};
+
 #endif /* _MODELFITTER_H_ */

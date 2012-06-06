@@ -1,5 +1,16 @@
 #include "LinearRegression.h"
 
+bool LinearRegression::FitLinearModel(Matrix & X, Matrix & y){
+    if (y.cols != 1) {
+        fprintf(stderr, "%s:%d Use first column of y\n", __FILE__, __LINE__);
+    }
+    Vector v(X.rows);
+    for (int i = 0; i < X.rows; ++i){
+        v[i] = X[i][0];
+    }
+    return this->FitLinearModel(X, v);
+}
+
 bool LinearRegression::FitLinearModel(Matrix & X, Vector & y){
     Matrix Xt;
     Xt.Transpose(X);

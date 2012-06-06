@@ -425,7 +425,7 @@ public:
     if (isBinaryOutcome()) {
       fprintf(fp, "NumVariant\tCMC.Pvalue\n");
     } else {
-      fprintf(fp, "NumVariant\tNonRefSite\tCMC.Pvalue\n");      
+      fprintf(fp, "NumVariant\tNonRefSite\tCMC.Pvalue\n");
     }
   };
   // fitting model
@@ -443,9 +443,9 @@ public:
       intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
-    
+
     cmcCollapse(&genotype, &collapsedGenotype);
-    
+
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(intercept, pheno, 100);
       if (!fitOK) return -1;
@@ -458,7 +458,7 @@ public:
       return (fitOK ? 0 : -1);
     }
   };
-  
+
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
@@ -469,7 +469,7 @@ public:
         fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
       } else {
         fprintf(fp, "%d\t%d\t%f\n", this->numVariant, this->totalNonRefSite(), linear.GetPvalue());
-      }      
+      }
     };
   };
 private:
@@ -480,8 +480,8 @@ private:
     }
     return (int)(s);
   }
-  
-  
+
+
   Matrix collapsedGenotype;
   LogisticRegressionScoreTest logistic;
   LinearRegressionScoreTest linear;
@@ -540,7 +540,7 @@ public:
       fprintf(fp, "%d\t", model.Get01());
       fprintf(fp, "%d\t", model.Get10());
       fprintf(fp, "%d\t", model.Get11());
-      
+
       fprintf(fp, "%lf\t", model.getPExactTwoSided());
       fprintf(fp, "%lf\t", model.getPExactOneSidedLess());
       fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater());
@@ -583,9 +583,9 @@ public:
       intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
-    
+
     zegginiCollapse(&genotype, &collapsedGenotype);
-    
+
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(intercept, pheno, 100);
       if (!fitOK) return -1;
@@ -608,7 +608,7 @@ public:
         fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
       } else {
         fprintf(fp, "%d\t%f\n", this->numVariant, linear.GetPvalue());
-      }      
+      }
     };
   };
 private:
@@ -644,9 +644,9 @@ public:
       intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
-    
+
     madsonbrowningCollapse(&genotype, &collapsedGenotype);
-    
+
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(intercept, pheno, 100);
       if (!fitOK) return -1;
@@ -670,7 +670,7 @@ public:
         fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
       } else {
         fprintf(fp, "%d\t%f\n", this->numVariant, linear.GetPvalue());
-      }      
+      }
     };
   };
 private:
@@ -692,10 +692,10 @@ VariableThreshold():model(NULL),modelLen(0),modelCapacity(0){
       this->modelLen = n;
       return;
     }
-    
+
     if (!model)
       delete[] model;
-    
+
     model =  new CMCTest[n];
     this->modelLen = n;
     this->modelCapacity = n;
@@ -707,7 +707,7 @@ VariableThreshold():model(NULL),modelLen(0),modelCapacity(0){
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
-    
+
     if (genotype.cols > modelLen) {
       resize(genotype.cols);
       reset();
@@ -827,72 +827,67 @@ private:
 }; // VariableThresholdFreqTest
 #endif
 
-#if 0
 class SkatTest: public ModelFitter{
 public:
   // write result header
-  void writeHeader(FILE* fp) {
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
     fprintf(fp, "SKAT.Pvalue");
   };
   // fitting model
-  int fit(VCFData& data) {
+  int fit(Matrix& phenotype, Matrix& genotype) {
     // fill it wegith
-    Vector weight;
-    weight.Dimension(data.collapsedGenotype->cols);
-    for (int i = 0; i < data.collapsedMarkerFreq.size(); i++) {
-      if (data.collapsedMarkerFreq[i] > 1e-30) { // avoid dividing zero
-        weight[i] = 1 / ( data.collapsedMarkerFreq[i]  * ( 1.0 - data.collapsedMarkerFreq[i] ));
+    weight.Dimension(genotype.cols);
+    for (int i = 0; i < weight.Length(); i++) {
+      double freq = getMarkerFrequency(genotype, i);
+      if (freq > 1e-30) { // avoid dividing zero
+        weight[i] = 1.0 / (freq * (1.0 - freq));
       } else {
         weight[i] = 0.0;
       }
     };
 
     // get ynulll
-    if (data.collapsedGenotype && data.collapsedGenotype->cols> 0 && (data.covariate && data.covariate->cols > 0)) {
-      fitOK = lr.FitLogisticModel(*data.covariate, *data.extractPhenotype(), 100);
-      if (!fitOK) {
-        return -1;
-      }
-      ynull = lr.GetPredicted();
-      v = lr.GetVariance();
+    // ynull is mean of y (removing genotypes) in model Ynull ~ X (aka Ynull ~ X + 0.0 * G )
+    X.Dimension(genotype.rows, 1);
+    for (int i = 0; i < genotype.rows; ++i) {
+      X[i][0] = 1.0;
+    }
+    if (isBinaryOutcome()) {
+      fitOK = logistic.FitLogisticModel(X, phenotype, 100);
+      if (!fitOK) {                                                                                                          
+        return -1;                                                                                                           
+      }                                                                                                                      
+      ynull = logistic.GetPredicted();                                                                                             
+      v = logistic.GetVariance();         
     } else {
-      Vector* p = data.extractPhenotype();
-      double avg = p->Average();
-      ynull.Dimension(p->Length());
-      v.Dimension(p->Length());
-      for (int i = 0; i < p->Length(); i++) {
-        ynull[i] = avg;
-        v[i] = avg * (1 - avg);
+      fitOK = linear.FitLinearModel(X, phenotype);
+      if (!fitOK) {                                                                                                          
+        return -1;                                                                                                           
+      }                                                                                                                      
+      ynull = linear.GetPredicted();                                                                                             
+      Matrix vmat = linear.GetCovB();         
+      v.Dimension(genotype.rows);
+      for (int i = 0; i < genotype.rows; ++i) {
+        v[i] = vmat[i][i];
       }
     }
-    // get X
-    if (data.covariate && data.covariate->cols > 0) {
-      X.Dimension(data.covariate->rows, data.covariate->cols + 1);
-      for (int i = 0; i < data.covariate->rows; i ++ ){
-        for (int j = 0; j < data.covariate->cols; j ++ ) {
-          X[i][j] = (*data.covariate)[i][j];
-        }
-        X[i][data.covariate->cols] = 1;
-      }
-    } else {
-      X.Dimension(data.collapsedGenotype->rows, 1);
-      for (int i = 0; i < data.collapsedGenotype->rows; i++) {
-        X[i][0] = 1.0;
-      }
-
-    };
 
     // get Pvalue
-    skat.CalculatePValue(*data.extractPhenotype(), ynull, X, v, *data.collapsedGenotype, weight);
+    skat.CalculatePValue(phenotype, ynull, X, v, genotype, weight);
     this->pValue = skat.GetPvalue();
     return 0;
   };
   // write model output
-  void writeOutput(FILE* fp) {
-    if (fitOK)
-      fprintf(fp, "%.3f", this->pValue);
-    else {
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (!fitOK){
       fputs("NA", fp);
+    } else {
+      if (isBinaryOutcome() ) {
+        fprintf(fp, "%.3f", this->pValue);
+      } else {
+      }
     }
   };
 
@@ -901,13 +896,13 @@ private:
   Matrix X; // n by (p+1) matrix, people by covariate (note intercept is needed);
   Vector v;
   Vector weight;
-  LogisticRegression lr;
+  LogisticRegression logistic;
+  LinearRegression linear;
   Vector ynull;
   Skat skat;
   bool fitOK;
   double pValue;
 }; // SkatTest
-#endif
 
 
 // Implementation of various collpasing methods
@@ -979,7 +974,7 @@ void madsonbrowningCollapse(Matrix* d, Matrix* out){
 
   for (int m = 0; m < numMarker; m++) {
     // calculate weight
-    double freq = getMarkerFrequency(in, m);    
+    double freq = getMarkerFrequency(in, m);
     double weight = 1.0 / sqrt(freq * (1.0-freq));
 
     for (int p = 0; p < numPeople; p++) {
@@ -991,7 +986,7 @@ void madsonbrowningCollapse(Matrix* d, Matrix* out){
 template<class T>
 class OrderFunction {
 public:
- OrderFunction(T& t): v(t) {};
+OrderFunction(T& t): v(t) {};
   bool operator() (int i, int j)  {
     return v[i] < v[j];
   };
@@ -1007,7 +1002,7 @@ void order(std::vector<double>& freq, std::vector<int>* ord) {
   ord->resize(freq.size());
   for (int i = 0; i < freq.size(); ++i)
     (*ord)[i] = i;
-  
+
   OrderFunction< std::vector<double> > func(freq);
   std::sort(ord->begin(), ord->end(), func);
 };
@@ -1025,7 +1020,7 @@ void order(std::vector<double>& freq, std::vector<int>* ord) {
 void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq) {
   assert(out && freq);
   out->Dimension(in.rows, in.cols);
-  
+
   const int& numPeople = in.rows;
   const int& numMarker = in.cols;
   freq->resize(numMarker);
@@ -1043,7 +1038,7 @@ void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* 
   std::vector<int> ord;
   order(*freq, &ord);
   std::sort(freq->begin(), freq->end());
-  
+
   for (int m = 0; m < numMarker; ++m){
     const int& col = ord[m];
     for (int p = 0; p < numPeople; ++p) {
@@ -1056,7 +1051,7 @@ void progressiveCMCCollapse(Matrix* d, Matrix* out, std::vector<double>* freq) {
   assert(out && freq);
   Matrix& in = (*d);
   out->Dimension(in.rows, in.cols);
-  
+
   const int& numPeople = in.rows;
   const int& numMarker = in.cols;
   freq->resize(numMarker);
@@ -1074,14 +1069,14 @@ void progressiveCMCCollapse(Matrix* d, Matrix* out, std::vector<double>* freq) {
   std::vector<int> ord;
   order(*freq, &ord);
   std::sort(freq->begin(), freq->end());
-  
+
   for (int m = 0; m < numMarker; ++m){
-    const int& col = ord[m];    
+    const int& col = ord[m];
     if (m == 0) {
       for (int p = 0; p < numPeople; ++p) {
         if (in[p][col] > 0) {
           (*out)[p][m] = 1;
-        }        
+        }
       }
     } else { //
       for (int p = 0; p < numPeople; ++p) {
@@ -1092,7 +1087,7 @@ void progressiveCMCCollapse(Matrix* d, Matrix* out, std::vector<double>* freq) {
         if (in[p][col] > 0) {
           (*out)[p][m] = 1;
           continue;
-        }        
+        }
       }
     }
   }
@@ -1103,7 +1098,7 @@ void progressiveMadsonBrowningCollapse(Matrix* d, Matrix* out, std::vector<doubl
   assert(out);
   Matrix& in = (*d);
   out->Dimension(in.rows, in.cols);
-  
+
   int numPeople = in.rows;
   int numMarker = in.cols;
   freq->resize(numMarker);
@@ -1121,12 +1116,12 @@ void progressiveMadsonBrowningCollapse(Matrix* d, Matrix* out, std::vector<doubl
   std::vector<int> ord;
   order(*freq, &ord);
   std::sort(freq->begin(), freq->end());
-  
+
   double weight;
   for (int m = 0; m < numMarker; ++m){
     const int& col = ord[m];
     weight = 1.0 / sqrt (  (*freq)[m] * (1.0 - (*freq)[m])) ;
-    
+
     if (m == 0) {
       for (int p = 0; p < numPeople; ++p) {
         (*out)[p][m] = weight * in[p][col];

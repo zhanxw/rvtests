@@ -13,6 +13,7 @@ class LinearRegression{
     LinearRegression() {};
     ~LinearRegression() {};
 
+    bool FitLinearModel(Matrix & X, Matrix & y); // return false if not converging
     bool FitLinearModel(Matrix & X, Vector & y); // return false if not converging
     /// double GetDeviance(Matrix & X, Vector & y);
 	Vector & GetAsyPvalue();

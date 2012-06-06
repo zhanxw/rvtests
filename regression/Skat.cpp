@@ -33,6 +33,18 @@ using namespace std;
 
 #endif
 
+int Skat::CalculatePValue(Matrix & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
+                          Matrix & G_G, Vector &w_G) {
+    if (y_G.cols != 1) {
+        fprintf(stderr, "%s:%d Use first column of y\n", __FILE__, __LINE__);
+    }
+    Vector v(X_G.rows);
+    for (int i = 0; i < X_G.rows; ++i){
+        v[i] = X_G[i][0];
+    }
+    return this->CalculatePValue(v, y0_G, X_G, v_G, G_G, w_G);
+}
+
 int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
                           Matrix & G_G, Vector &w_G) {
     // Eigen::VectorXf y;

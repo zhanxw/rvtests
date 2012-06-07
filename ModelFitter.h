@@ -1,7 +1,10 @@
 #ifndef _MODELFITTER_H_
 #define _MODELFITTER_H_
 
-#include "MathMatrix.h"
+#include "libsrc/MathMatrix.h"
+
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
 #include "regression/LogisticRegression.h"
 #include "regression/LogisticRegressionScoreTest.h"
@@ -9,6 +12,7 @@
 #include "regression/LinearRegressionScoreTest.h"
 #include "regression/Skat.h"
 #include "regression/Table2by2.h"
+#include "regression/kbac/kbac_interface.h"
 
 // various collapsing method
 // they all take people by marker matrix
@@ -829,11 +833,17 @@ private:
 
 class SkatTest: public ModelFitter{
 public:
+  SkatTest() {
+    this->modelName = "Skat";
+  };
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "SKAT.Pvalue");
+    fprintf(fp, "SKAT.Pvalue\n");
   };
+  void reset() {
+    this->skat.Reset();
+  }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
     // fill it wegith
@@ -841,7 +851,9 @@ public:
     for (int i = 0; i < weight.Length(); i++) {
       double freq = getMarkerFrequency(genotype, i);
       if (freq > 1e-30) { // avoid dividing zero
-        weight[i] = 1.0 / (freq * (1.0 - freq));
+        weight[i] =  gsl_ran_beta_pdf(freq, 1.0, 25.0);  /// use beta(MAF, 1, 25)
+        weight[i] *= weight[i];
+        // fprintf(stderr, "weight(%d, %d, %f ) = %f\n", 1, 25, freq, weight[i]);
       } else {
         weight[i] = 0.0;
       }
@@ -866,10 +878,9 @@ public:
         return -1;                                                                                                           
       }                                                                                                                      
       ynull = linear.GetPredicted();                                                                                             
-      Matrix vmat = linear.GetCovB();         
       v.Dimension(genotype.rows);
       for (int i = 0; i < genotype.rows; ++i) {
-        v[i] = vmat[i][i];
+        v[i] = linear.GetSigma2();
       }
     }
 
@@ -882,11 +893,12 @@ public:
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!fitOK){
-      fputs("NA", fp);
+      fputs("NA\n", fp);
     } else {
       if (isBinaryOutcome() ) {
-        fprintf(fp, "%.3f", this->pValue);
+        fprintf(fp, "%f\n", this->pValue);
       } else {
+        fprintf(fp, "%f\n", this->pValue);        
       }
     }
   };
@@ -900,6 +912,118 @@ private:
   LinearRegression linear;
   Vector ynull;
   Skat skat;
+  bool fitOK;
+  double pValue;
+}; // SkatTest
+
+class KbacTest: public ModelFitter{
+public:
+KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL) {
+    this->modelName = "KBAC";
+  };
+  ~KbacTest() {
+    if (this->xdatIn) delete[] this->xdatIn;
+    if (this->ydatIn) delete[] this->ydatIn;
+    if (this->mafIn) delete[] this->mafIn;
+  };
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "KBAC.Pvalue\n");
+  };
+  void reset() {
+    clear_kbac_test();
+  }
+  // fitting model
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    if (!isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+
+    this->resize(genotype.rows, genotype.cols);
+    this->nn = 0;
+    this->qq = 1;
+    this->aa = 0.05;
+    this->mafUpper = 1.0;
+
+    for (int j = 0; j < genotype.cols; ++j) {
+      for (int i = 0; i < genotype.rows; ++i) {
+        xdatIn[j * genotype.cols + i] = genotype[i][j];
+      }
+    }
+    for (int i = 0; i < genotype.rows; ++i ) {
+      ydatIn[i] = phenotype[i][0];
+    }
+    for (int j = 0; j < genotype.cols; ++j ) {
+      mafIn[j] = getMarkerFrequency(genotype, j);
+    }
+    
+    /**
+     * nn: number of permutation
+     * qq: quiet
+     * aa: alpha level
+     * mafUpper: MAF upper threshold
+     * xdatIn: genotype matrix
+     * ydatIn: phenotype matrix
+     * mafIn:  allele frequency for each marker of x
+     * xcol: number of column of genotype
+     * ylen: length of y
+     */
+    set_up_kbac_test(&nn, &qq, &aa, &mafUpper, xdatIn, ydatIn, mafIn,  &xcol, &ylen);
+    /**
+     * pvalue: results are here
+     * twosided: two sided tests or one sided test
+     */
+    do_kbac_test(&pValue, &twosided);
+    
+    return 0;
+  };
+  // write model output
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (!fitOK){
+      fputs("NA\n", fp);
+    } else {
+      if (isBinaryOutcome() ) {
+        fprintf(fp, "%f\n", this->pValue);
+      } else {
+        fprintf(fp, "%f\n", this->pValue);        
+      }
+    }
+  };
+  void resize(int numPeople, int numMarker) {
+    bool resized = false;
+    if (numPeople > this->ylen) {
+      delete[] this->ydatIn;
+      this->ydatIn = new double[ numPeople];
+      this->ylen = numPeople;
+      resized = true;
+    } 
+    if (numMarker > this->xcol) {
+      delete[] this->mafIn;
+      this->mafIn = new double[ numMarker];
+      this->xcol = numMarker;
+      resized = true;
+    }
+
+    if (resized) {
+      delete[] this->xdatIn;
+      this->xdatIn = new double[ numPeople * numMarker ];
+    }
+  };
+private:
+  int nn;
+  int qq;
+  double aa;
+  double mafUpper;
+  double* xdatIn;
+  double* ydatIn;
+  double* mafIn;
+  int xcol;
+  int ylen;
+
+  int twosided;
   bool fitOK;
   double pValue;
 }; // SkatTest

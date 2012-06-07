@@ -1,6 +1,6 @@
 # download all third party library and compile them
-.PHONY: tabix goncalo pcre eigen
-all: tabix goncalo pcre eigen
+# .PHONY: tabix goncalo pcre eigen
+all: tabix pcre eigen
 
 tabix: tabix-0.2.5.tar.bz2
 	-mv tabix-0.2.5.tar.bz2* tabix-0.2.5.tar.bz2
@@ -13,11 +13,25 @@ pcre: pcre-8.21.tar.gz
 	tar zvxf pcre-8.21.tar.gz
 	-(DIR=`pwd`; cd pcre-8.21; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
 
-#wget http://bitbucket.org/eigen/eigen/get/3.0.4.tar.bz2
+gsl: gsl-1.15.tar.gz
+	tar zvxf gsl-1.15.tar.gz
+	-(DIR=`pwd`; cd gsl-1.15; ./configure --prefix="$${DIR}"/gsl; make -j; make install)
+
 eigen: eigen-3.0.4.tar.bz2
 	tar jvxf eigen-3.0.4.tar.bz2
 	-mv eigen-eigen-13a11181fc5a eigen-3.04
 	ln -s -f eigen-3.04 eigen
+
+
+######################################################################
+# download sources
+eigen-3.04.tar.gz2:
+	echo "obtain Eigen..."
+	wget http://bitbucket.org/eigen/eigen/get/3.0.4.tar.bz2
+
+gsl-1.15.tar.gz:
+	echo "obtain GSL"
+	wget http://mirrors.kernel.org/gnu/gsl/gsl-1.15.tar.gz
 
 clean:
 	-cd tabix && make clean

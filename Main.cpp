@@ -1,15 +1,18 @@
 /**
    immediately TODO:
-   14. for vcflib, getInfoTag(), also return how many tags are there.
    5. loading phenotype and covariate (need tests now).
    6. Test CMC
-   7. Test VT (combine Collapsor and ModelFitter)
-   11. Fast VCF Individual inner field retrieve
+   7. Test VT
    12. Add support multi-thread
    13. Add optional weight
+
    14. support VCF specify given locations
    15. region class support union, support region names
 
+   16. add KBAC
+   17. add permutation tests
+   18. add binary phenotype support
+   
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -22,6 +25,8 @@
    1. fix suppport PLINK output
    1. handle different format GT:GD:DP ... // use getFormatIndex()
    8. Test permutation test
+   11. Fast VCF Individual inner field retrieve
+   14. for vcflib, getInfoTag(), also return how many tags are there.
 
    futher TODO:
    12. Design command line various models (collapsing method, freq-cutoff)
@@ -260,13 +265,30 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
       continue;
     }
 
-    std::string& chr = fd[2];
-    if (geneSet.size() && geneSet.find(chr)== geneSet.end())
+    std::string& geneName = fd[0];
+    if (geneSet.size() && geneSet.find(geneName)== geneSet.end())
       continue;
     
+    std::string& chr = fd[2];
     int beg = atoi(fd[4]);
     int end = atoi(fd[5]);
-    m[ fd[0] ].addRange (chr.c_str(), beg, end);
+    m[ geneName ].addRange (chr.c_str(), beg, end);
+  }
+  return m.size();
+};
+
+int loadRangeFile(const char* fn, OrderedMap<std::string, RangeList>* rangeMap) {
+  OrderedMap<std::string, RangeList>& m = *rangeMap;
+  LineReader lr(fn);
+  int lineNo = 0;
+  std::vector< std::string> fd;
+  while (lr.readLineBySep(&fd, "\t ")){
+    ++ lineNo;
+    if (fd.size() < 6) {
+      fprintf(stderr, "skip %d line (short of columns).\n", lineNo);
+      continue;
+    }
+    m[ fd[0] ].addRangeList (fd[1].c_str());
   }
   return m.size();
 };
@@ -312,7 +334,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
-      ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT")
+      ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
       ADD_STRING_PARAMETER(pl, rangeToTest, "--set", "specify set file (for burden tests)")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
@@ -463,6 +485,7 @@ int main(int argc, char** argv){
     fprintf(stderr, "Drop %d sample from phenotype file since mismatch their VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
   }
 
+  ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
   if (FLAG_modelSingle.size() && (FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size())) {
     fprintf(stderr, "Cannot support both single variant and region based tests\n");
@@ -534,20 +557,19 @@ int main(int argc, char** argv){
       };
     }
   };
-#if 0
   if (FLAG_modelKernel != "") {
     stringTokenize(FLAG_modelKernel, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
       if (argModelName[i] == "skat") {
         model.push_back( new SkatTest );
+      } else if (argModelName[i] == "kbac") {
+        model.push_back( new KbacTest );
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
         abort();
       };
     }
   };
-
-#endif
 
   OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
@@ -560,6 +582,7 @@ int main(int argc, char** argv){
     }
   }
 
+  
   Matrix phenotypeMatrix;
   toMatrix(phenotypeInOrder, &phenotypeMatrix);
 
@@ -581,7 +604,7 @@ int main(int argc, char** argv){
   // * gene by gene
   // will support range by range
   
-  if (!geneRange.size()) {
+  if (!geneRange.size()) { // use line by line mode
     char buf[1000]; // we put site sinformation here
     sprintf(buf, "CHROM\tPOS\tREF\tALT\t");
     // output headers
@@ -633,14 +656,12 @@ int main(int argc, char** argv){
     }
 
   } else {
-  char buf[1000] = {0}; // we put site sinformation here
-  sprintf(buf, "GENE\t");
-  // output headers
-  for (int m = 0; m < model.size(); m++) {
-    model[m]->writeHeader(fOuts[m], buf);
-  };
-
-    
+    char buf[1000] = {0}; // we put site sinformation here
+    sprintf(buf, "GENE\t");
+    // output headers
+    for (int m = 0; m < model.size(); m++) {
+      model[m]->writeHeader(fOuts[m], buf);
+    };
     std::string geneName;
     RangeList rangeList;
     for ( int i = 0; i < geneRange.size(); ++i){
@@ -732,6 +753,7 @@ int main(int argc, char** argv){
   //     for (int m = 0; m < model.size(); m++){
   //         model[m]->reset();
   //         model[m]->fit(data);
+
   //         // output raw data
   //         if (FLAG_outputRaw != "") {
   //             std::string& setName = collapsor.getCurrentSetName();
@@ -740,21 +762,6 @@ int main(int argc, char** argv){
   //         }
   //     };
 
-  //     // output part
-  //     fputs(collapsor.getCurrentSetName().c_str(), fout);
-  //     fputc('\t', fout);
-  //     for (int m = 0; m < model.size(); m++){
-  //         if (m) fputc('\t', fout);
-  //         model[m]->writeOutput(fout);
-  //     };
-  //     fputc('\n', fout);
-  // }
-
-  // // clean up code
-  // for (int m = 0; m < model.size(); m++){
-  //     delete model[m];
-  // };
-  // fclose(fout);
   fclose(fLog);
   currentTime = time(0);
   fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));

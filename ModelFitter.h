@@ -12,7 +12,7 @@
 #include "regression/LinearRegressionScoreTest.h"
 #include "regression/Skat.h"
 #include "regression/Table2by2.h"
-#include "regression/kbac/kbac_interface.h"
+#include "regression/kbac_interface.h"
 
 // various collapsing method
 // they all take people by marker matrix

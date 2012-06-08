@@ -12,5 +12,4 @@
 #include "VCFOutputFile.h"
 #include "PlinkOutputFile.h"
 
-
 #endif /* _VCFUTIL_H_ */

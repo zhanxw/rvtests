@@ -61,11 +61,13 @@ public:
     this->ti_line = 0;
   };
   ~VCFInputFile(){
+    this->close();
+  };
+  void close() {
     closeIndex();
     this->record.deleteIndividual();
     if (this->fp) delete this->fp;
   };
-
   VCFHeader* getVCFHeader() {
     this->rewriteVCFHeader();
     return &this->header;
@@ -148,7 +150,12 @@ public:
       fprintf(stderr, "Error line [ %s ]", line.c_str());
     }
   }
-
+  /**
+   * Check with VCFFilter to see if the current read line passed
+   */
+  virtual bool passFilter() const{
+    return true;
+  };
   /**
    * @return true: a valid VCFRecord
    */
@@ -182,8 +189,9 @@ public:
             ret = this->record.parse(this->line);
             if (ret) {
               reportReadError(this->line);
-              
             }
+            if (!this->passFilter())
+              continue;
             return true;
           } else{
             // continue to next rangeIdx
@@ -204,20 +212,26 @@ public:
             if (ret) {
               reportReadError(this->line);
             }
+            if (!this->passFilter())
+              continue;
             return true;
           }
         }
       } // end while
       return false;
     } else { // go line by line
-      if (this->fp->readLine(&this->line)){
-        ret = this->record.parse(this->line);
-        if (ret) {
-          reportReadError(this->line);
+      while (true) {
+        if (this->fp->readLine(&this->line)){
+          ret = this->record.parse(this->line);
+          if (ret) {
+            reportReadError(this->line);
+          }
+          if (!this->passFilter())
+            continue;
+          return true;
+        } else {
+          return false; // reach file end
         }
-        return true;
-      } else {
-        return false; // reach file end
       }
     }
   };

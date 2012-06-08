@@ -11,23 +11,24 @@ class VCFFilter{
 public:
 VCFFilter():
   // Site filter
-  depthFromInfo(false),      // read depth from INFO field
+  siteDepthFromInfo(false),      // read depth from INFO field
       siteDepthMin(-1),
       siteDepthMax(-1),
       siteQualMin(-1),
 
-      freqFromInfo(false),      // read AF from INFO field
+      siteFreqFromInfo(false),      // read AF from INFO field
       siteFreqMin(-1.0),
       siteFreqMax(-1.0),
       siteMACMin(-1),
 
-      annoRegex(NULL),
       onlyVariantSite(false),
 
+#if 0
       // individual filter
       indvDepthMin(-1),
       indvDepthMax(-1),
       indvQualMin(-1) {
+#endif
   };
 
   // setter function
@@ -44,7 +45,7 @@ VCFFilter():
     this->siteQualMin = q;
   }
   void setUseFreqFromInfo() {
-    this->freqFromInfo = true;
+    this->siteFreqFromInfo = true;
   };
   void setSiteFreqMin(double f) {
     this->siteFreqMin = f;
@@ -96,26 +97,28 @@ VCFFilter():
     if ( this->siteMACMin > 0 && this->siteMACMin > n) return false;
     return true;
   };
-  
+
   bool requiredAnnotation() const {
     return this->annoRegex.isInitialized();
   }
-  bool matchAnnotatoin(const char* s) const {
+  bool matchAnnotatoin(const char* s) {
     return this->annoRegex.match(s);
   }
   bool isVariantSiteOnly() const {
     return this->onlyVariantSite;
   };
+
+#if 0
   bool individualDepthOK(int d) const {
-    if (this->individualDepthMin > 0  && this->individualDepthMin > d) return false;
-    if (this->individualDepthMax > 0  && this->individualDepthMax < d) return false;
+    if (this->indvDepthMin > 0  && this->indvDepthMin > d) return false;
+    if (this->indvDepthMax > 0  && this->indvDepthMax < d) return false;
     return true;
   };
   bool individualQualOK(double q) const {
-    if ( this->individualQualMin > 0 && this->individualQualMin <= q) return false;
+    if ( this->indvQualMin > 0 && this->indvQualMin <= q) return false;
     return true;
   };
-  
+#endif
 private:
   // thresholds
   bool siteDepthFromInfo;
@@ -131,9 +134,11 @@ private:
   Regex  annoRegex;          // for filter ANNO
   bool   onlyVariantSite;     // only extract sites that are polymorphism
 
+#if 0
   int    indvDepthMin;
   int    indvDepthMax;
   int    indvQualMin;
+#endif
 };
 
 #endif /* _VCFFILTER_H_ */

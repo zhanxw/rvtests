@@ -91,17 +91,55 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
       continue;
     }
     std::string& pid = fd[1];
-    v = atof(fd[5]);
     if (pheno.count(pid) == 0) {
-      pheno[pid] = v;
+      // check missing
+      if (str2double(fd[5].c_str(), &v)) {
+        pheno[pid] = v;
+      } else {
+        fprintf(stderr, "Missing or invalid phenotype, skipping line %d ... ", lineNo);
+      }
     } else {
-      fprintf(stderr, "line %s have duplicated id, skipping\n", pid.c_str());
+      fprintf(stderr, "line %s have duplicated id, skipped...\n", pid.c_str());
       continue;
     }
   }
   return pheno.size();
 };
 
+/**
+ * @return true if @param phenotype is either:  1: unaffected, 2: affected,  -9, 0: missing
+ */
+bool isBinaryPhenotype(const std::vector<double>& phenotype){
+  int nCase = 0;
+  int nControl = 0;
+  int nMissing = 0;
+  for (int i = 0; i < phenotype.size(); ++i) {
+    double d = phenotype[i];
+    double p;
+    // check fraction part of phenotype
+    if ( modf(d, &p)  != 0.0)
+      return false;
+
+    int t = (int)(p);
+    switch(t){
+      case 0:
+      case -9:
+        nMissing ++;
+        continue;
+      case 1:
+        nControl ++;
+        continue;
+      case 2:
+        nCase ++;
+        continue;
+      default:
+        return false;
+    }
+  }
+  fprintf(stderr, "Loaded %d case, %d control, and %d missing phenotypes.\n", nCase, nControl, nMissing);
+  return true;
+}
+                       
 /**
  * Test whether x contain unique elements
  */
@@ -470,7 +508,7 @@ int main(int argc, char** argv){
       fprintf(stdout, "Loaded %zu sample pheontypes.\n", phenotype.size());
     }
   };
-
+  
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;
   vin.getVCFHeader()->getPeopleName(&vcfSampleNames);
@@ -485,6 +523,11 @@ int main(int argc, char** argv){
     fprintf(stderr, "Drop %d sample from phenotype file since mismatch their VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
   }
 
+  bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
+  if (binaryPhenotype) {
+    fprintf(stderr, "-- Enabling binary phenotype mode -- \n");
+  }
+  
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
   if (FLAG_modelSingle.size() && (FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size())) {
@@ -571,6 +614,11 @@ int main(int argc, char** argv){
     }
   };
 
+  for (int i = 0; i < model.size(); i++){
+    if (binaryPhenotype)
+      model[i]->setBinaryOutcome();
+  }
+  
   OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
     int ret = loadGeneFile(FLAG_geneFile.c_str(), FLAG_gene.c_str(), &geneRange);

@@ -34,6 +34,7 @@ inline bool str2int(const char* input, int* output) {
         // no digits found
         return false;
     }
+
     *output = val;
     return true;
 }

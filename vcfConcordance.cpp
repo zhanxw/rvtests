@@ -24,7 +24,7 @@ typedef std::map<std::string, ConcordanceType> AllConcordanceType;
 typedef std::vector< std::string > StringArray;
 
 class Value{
-public:
+ public:
   const static int HOMREF = 1;
   const static int HET = 2;
   const static int HOMALT = 3;
@@ -45,7 +45,7 @@ public:
   };
  public:
   int geno[2]; // VALUE
-  
+
 };
 
 void dump(const StringArray& a) {
@@ -56,8 +56,8 @@ void dump(const StringArray& a) {
 }
 
 int loadGenotype(VCFInputFile& vin, AllConcordanceType* input, int idx) {
-    AllConcordanceType& data = *input;
-    std::string key;
+  AllConcordanceType& data = *input;
+  std::string key;
   int lineNo = 0;
   while (vin.readRecord()){
     lineNo ++;
@@ -72,25 +72,25 @@ int loadGenotype(VCFInputFile& vin, AllConcordanceType* input, int idx) {
     int GTidx = r.getFormatIndex("GT");
     if (GTidx < 0) continue;
     for (int i = 0; i < people.size(); ++i) {
-        indv = people[i];
-        const VCFValue& v = indv->justGet(GTidx);
-        int a1 = v.getAllele1();
-        int a2 = v.getAllele2();
-        if (a1 == MISSING_GENOTYPE || a2 == MISSING_GENOTYPE) {
-            data[indv->getName()][key][idx] = Value::MISSING;
-        } else if (a1 == 0) {
-            if (a2 == 0) {
-                data[indv->getName()][key][idx] = Value::HOMREF;
-            } else if (a2 == 1) {
-                data[indv->getName()][key][idx] = Value::HET;
-            }
-        } else if (a1 == 1) {
-            if (a2 == 0) {
-                data[indv->getName()][key][idx] = Value::HET;
-            } else if (a2 == 1) {
-                data[indv->getName()][key][idx] = Value::HOMALT;
-            }
+      indv = people[i];
+      const VCFValue& v = indv->justGet(GTidx);
+      int a1 = v.getAllele1();
+      int a2 = v.getAllele2();
+      if (a1 == MISSING_GENOTYPE || a2 == MISSING_GENOTYPE) {
+        data[indv->getName()][key][idx] = Value::MISSING;
+      } else if (a1 == 0) {
+        if (a2 == 0) {
+          data[indv->getName()][key][idx] = Value::HOMREF;
+        } else if (a2 == 1) {
+          data[indv->getName()][key][idx] = Value::HET;
         }
+      } else if (a1 == 1) {
+        if (a2 == 0) {
+          data[indv->getName()][key][idx] = Value::HET;
+        } else if (a2 == 1) {
+          data[indv->getName()][key][idx] = Value::HOMALT;
+        }
+      }
     }
   };
   fprintf(stderr, "Total %d VCF records have read successfully\n", lineNo);
@@ -103,7 +103,7 @@ void clearGenotype(AllConcordanceType* input) {
        iter != data.end();
        iter ++) {
     ConcordanceType& v = iter->second;
-    for (ConcordanceType::iterator i = v.begin(); 
+    for (ConcordanceType::iterator i = v.begin();
          i != v.end();
          i++) {
       i->second.clearComparison();
@@ -116,7 +116,7 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
   for (unsigned int i = 0; i < names.size(); i++){
     nameSet.insert(names[i]);
   }
-  
+
   for (AllConcordanceType::iterator iter = data.begin();
        iter != data.end();
        iter ++) {
@@ -124,7 +124,7 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
       // fprintf(stderr, "Skip people [ %s ] as it is not in reference VCF\n", iter->first.c_str());
       continue;
     }
-    
+
     // count type (fill in 4 by 4 matrix) , we intentionally left row 0 and column 0 unused.
     int c[5][5] = {0}; // concordance matrix
 
@@ -152,16 +152,16 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
 
     // outputs
     // printf("Comparison for people %s\n", iter->first.c_str());
-    int nonRefConcordNum = c[Value::HET][Value::HET] + 
+    int nonRefConcordNum = c[Value::HET][Value::HET] +
                            c[Value::HOMALT][Value::HOMALT];
     int nonRefConcordDom = nonRefConcordNum +
-                           c[Value::HOMREF][Value::HET] + 
-                           c[Value::HOMREF][Value::HOMALT] + 
-                           c[Value::HET][Value::HOMREF] + 
+                           c[Value::HOMREF][Value::HET] +
+                           c[Value::HOMREF][Value::HOMALT] +
+                           c[Value::HET][Value::HOMREF] +
                            c[Value::HET][Value::HOMALT] +
-                           c[Value::HOMALT][Value::HET] + 
+                           c[Value::HOMALT][Value::HET] +
                            c[Value::HOMALT][Value::HOMREF];
-    // printf("Nonref-Concordance= %10f \t DiscoveryRate = %10f \n", 
+    // printf("Nonref-Concordance= %10f \t DiscoveryRate = %10f \n",
     //        1.0 * nonRefConcordNum / nonRefConcordDom,
     //        1.0 * discoveredVariant / (discoveredVariant + undiscoveredVariant));
     // printf("%d\t%d\n", discoveredVariant, undiscoveredVariant);
@@ -183,12 +183,12 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
 
     // following counts does not take 'missing' (bottom row and right most column)
     // overlap: 3 (homref, het, homalt) by 3 matrix
-    int overlap = c[Value::HOMREF][Value::HOMREF] + c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] + 
-                  c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] + 
+    int overlap = c[Value::HOMREF][Value::HOMREF] + c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
+                  c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
                   c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
     // stdTotal: 3 (homref, het, homalt) by 4 matrix
     int stdTotal = c[Value::HOMREF][Value::UNDEF] + c[Value::HOMREF][Value::HOMREF] + c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
-                   c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] + 
+                   c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
                    c[Value::HOMALT][Value::UNDEF] + c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
     // inputTotal: 4 (undef, hom, het, homalt) by 3 matrix
     int inputTotal = c[Value::UNDEF][Value::HOMREF] + c[Value::UNDEF][Value::HET] + c[Value::UNDEF][Value::HOMALT] +
@@ -198,37 +198,37 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
     // 8 cells in overlap, removing bottom top one
     int nonRefOverlap = overlap - c[Value::HOMREF][Value::HOMREF];
     // stdVariant: 2 (het, homalt) by 4 matrix
-    int stdVariant = c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] + 
+    int stdVariant = c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
                      c[Value::HOMALT][Value::UNDEF] + c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
-    // inputTotal: 4 (undef, hom, het, homalt) by 2 matrix    
+    // inputTotal: 4 (undef, hom, het, homalt) by 2 matrix
     int inputVariant = c[Value::UNDEF][Value::HET] + c[Value::UNDEF][Value::HOMALT] +
                        c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
                        c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
                        c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
     // stdVariantInInput: 2 (het, homalt) by 3 matrix (homref, het, homalt)
-    int stdVariantInInput = c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] + 
+    int stdVariantInInput = c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
                             c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
     // stdOnly: 3 by 1 matrix
     int stdOnly = c[Value::HOMREF][Value::UNDEF] + c[Value::HET][Value::UNDEF] + c[Value::HOMALT][Value::UNDEF] ;
     // inputOnly: 1 by 3 matrix
     int inputOnly = c[Value::UNDEF][Value::HOMREF] +  c[Value::UNDEF][Value::HET] + c[Value::UNDEF][Value::HOMALT] ;
 
-  printf("File\t"
-         "PeopleId\t"
-         "Overlap\t"
-         "Std_total\t"
-         "Input_total\t"
-         "Std_only\t"
-         "Input_only\t"
-         "nonRefConcord_overlap\t"
-         "Std_variants\t"
-         "Input_variants\t"
-         "Std_variants_in_Input\t"
-         "Ptg_Std_variants_in_Input\t"
-         "HomR/HomR\tHomR/Het\tHomR/HomA\t"
-         "Het/HomR\tHet/Het\tHet/HomA\t"
-         "HomA/HomR\tHomA/Het\tHomA/HomA\n");
-    
+    // printf("File\t"
+    //        "PeopleId\t"
+    //        "Overlap\t"
+    //        "Std_total\t"
+    //        "Input_total\t"
+    //        "Std_only\t"
+    //        "Input_only\t"
+    //        "nonRefConcord_overlap\t"
+    //        "Std_variants\t"
+    //        "Input_variants\t"
+    //        "Std_variants_in_Input\t"
+    //        "Ptg_Std_variants_in_Input\t"
+    //        "HomR/HomR\tHomR/Het\tHomR/HomA\t"
+    //        "Het/HomR\tHet/Het\tHet/HomA\t"
+    //        "HomA/HomR\tHomA/Het\tHomA/HomA\n");
+
     printf("%s\t", vin.getFileName());
     printf("%s\t", iter->first.c_str());
     printf("%d\t", overlap);
@@ -236,11 +236,11 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
     printf("%d\t", inputTotal);
     printf("%d\t", stdOnly);
     printf("%d\t", inputOnly);
-    
+
     printf("%.6f\t", 1.0 * nonRefConcordNum / nonRefConcordDom);
     printf("%d\t", stdVariant);
     printf("%d\t", inputVariant);
-    printf("%d\t", stdVariantInInput);    
+    printf("%d\t", stdVariantInInput);
     printf("%.6f\t", 1.0 * stdVariantInInput / stdVariant);
     printf("%d\t", c[Value::HOMREF][Value::HOMREF]);
     printf("%d\t", c[Value::HOMREF][Value::HET]);
@@ -255,8 +255,8 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
   return;
 };
 
-size_t set_union(const StringArray& input, 
-               StringArray* output) {
+size_t set_union(const StringArray& input,
+                 StringArray* output) {
   // sort input
   StringArray tmp = input;
   sort(tmp.begin(), tmp.end());
@@ -268,14 +268,14 @@ size_t set_union(const StringArray& input,
   return output->size();
 };
 
-size_t set_intersection(const StringArray& input1, 
-                        const StringArray& input2, 
+size_t set_intersection(const StringArray& input1,
+                        const StringArray& input2,
                         StringArray* output) {
   StringArray t1 = input1;
   StringArray t2 = input2;
   sort(t1.begin(), t1.end());
   sort(t2.begin(), t2.end());
-  
+
   output->resize(std::max(t1.size(), t2.size()));
   StringArray::iterator i;
   i = set_intersection(t1.begin(), t1.end(), t2.begin(), t2.end(), output->begin());
@@ -308,25 +308,25 @@ int main(int argc, char** argv){
   VCFInputFile vin(fn);
   StringArray refPeople;
   vin.getVCFHeader()->getPeopleName(&refPeople);
-  
+
   VCFInputFile** compareVcfs = new VCFInputFile* [FLAG_REMAIN_ARG.size()];
   StringArray comparePeopleNames;
   for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
-      compareVcfs[i] = new VCFInputFile(FLAG_REMAIN_ARG[i]);
-      StringArray names;
-      compareVcfs[i]->getVCFHeader()->getPeopleName(&names);
-      for (unsigned int j = 0; j < names.size(); j++) {
-          comparePeopleNames.push_back(names[j]);
-      };
+    compareVcfs[i] = new VCFInputFile(FLAG_REMAIN_ARG[i]);
+    StringArray names;
+    compareVcfs[i]->getVCFHeader()->getPeopleName(&names);
+    for (unsigned int j = 0; j < names.size(); j++) {
+      comparePeopleNames.push_back(names[j]);
+    };
   };
   StringArray unionPeopleNames;
   StringArray commonNames;
   set_union(comparePeopleNames, &unionPeopleNames);
   set_intersection(refPeople, unionPeopleNames, &commonNames);
- 
+
   vin.excludeAllPeople();
   vin.includePeople(commonNames);
-  
+
   // set range filters here
   // e.g.
   // vin.setRangeList("1:69500-69600");
@@ -350,7 +350,7 @@ int main(int argc, char** argv){
          "HomR/HomR\tHomR/Het\tHomR/HomA\t"
          "Het/HomR\tHet/Het\tHet/HomA\t"
          "HomA/HomR\tHomA/Het\tHomA/HomA\n");
-  
+
   for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
     fprintf(stderr, "Process %s ... \n", FLAG_REMAIN_ARG[i].c_str());
     compareVcfs[i]->setRangeList(FLAG_rangeList.c_str());

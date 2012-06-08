@@ -101,6 +101,9 @@ public:
             regfree(&pattern);
         this->initialized = false;
     }
+    bool isInitialized() const {
+      return this->initialized;
+    }
 private:
     bool initialized;
     regex_t pattern;

@@ -39,7 +39,7 @@ int VCFInputFile::updateId(const char* fn){
   std::vector<std::string> fd;
   while(lr.readLineBySep(&fd, "\t ")){
     if (tbl.find(fd[0]) != tbl.end()) {
-      fprintf(stderr, "Duplicated original ids: %s\n", fd[0].c_str());
+      fprintf(stderr, "Duplicated original ids: [ %s ], replace it to new id anyway.\n", fd[0].c_str());
     };
     tbl[fd[0]] = fd[1];
   }

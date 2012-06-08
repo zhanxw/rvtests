@@ -1029,7 +1029,14 @@ OrderFunction(T& t): v(t) {};
 /**
  * @param freq: 0.3, 0.2, 0.1, 0.4
  * will return
- * @param ord:  3, 2, 1, 4
+ * @param ord:  2, 1, 0, 3
+ * 
+ * algorithm:
+ * make a pair like this: (0.3, 0), (0.2, 1), (0.1, 2), (0.4, 3)
+ * sort by first element:
+ * (0.1, 2), (0.2, 1), (0.3, 0), (0.4, 3)
+ * extract second element:
+ * 2, 1, 0, 3
  */
 void order(std::vector<double>& freq, std::vector<int>* ord) {
   ord->resize(freq.size());

@@ -47,6 +47,9 @@
 #include <vector>
 #include <algorithm>
 
+#include <gsl/gsl_cdf.h>
+
+
 #include "Logger.h"
 #include "Utils.h"
 #include "VCFUtil.h"
@@ -55,6 +58,7 @@
 #include "Random.h"
 
 #include "ModelFitter.h"
+
 
 // #include "Analysis.h"
 
@@ -331,6 +335,56 @@ int loadRangeFile(const char* fn, OrderedMap<std::string, RangeList>* rangeMap) 
   return m.size();
 };
 
+double pnorm(double x) {
+  return gsl_cdf_gaussian_P(x, 1.0);
+};
+double qnorm(double x) {
+  return gsl_cdf_gaussian_Pinv(x, 1.0);
+};
+  
+void inverseNormal(std::vector<double>* y){
+
+  FILE* f = fopen("tmp", "wt");
+  // for (unsigned int i = 0; i < (*y).size() ; i++) 
+  //   fprintf(f, "%f\n", (*y)[i]);
+    
+  if (!y || !y->size()) return;
+  const int n = y->size();
+  FILE* f0 = fopen("tmp0", "wt");
+  for (unsigned int i = 0; i < n ; i++)  
+    fprintf(f0, "%f\n", (*y)[i]);
+
+  
+  std::vector<int> ord;
+  order(*y, &ord);
+
+  // for (unsigned int i = 0; i < (*y).size() ; i++) 
+  //   fprintf(f, "%d\n", ord[i]);
+  
+  for (unsigned int i = 0; i < n; i++) 
+    (*y)[i] = ord[i];
+  order(*y, &ord);
+
+  // for (unsigned int i = 0; i < (*y).size() ; i++) 
+  //   fprintf(f, "%d\n", ord[i]);
+
+  double a;
+  if ( n <= 10) {
+    a = 0.375;
+  } else {
+    a = 0.5;
+  }
+  for (unsigned int i = 0; i < n ; i++) 
+    (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + 1 - 2 * a));
+
+  for (unsigned int i = 0; i < n ; i++)  
+    fprintf(f, "%f\n", (*y)[i]);
+  fclose(f);
+  fclose(f0);
+  fprintf(stderr, "done inverse normal\n");
+};
+
+
 int main(int argc, char** argv){
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
@@ -376,7 +430,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, rangeToTest, "--set", "specify set file (for burden tests)")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
-
+      ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
       //ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
 
       ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
@@ -520,13 +574,22 @@ int main(int argc, char** argv){
     vin.excludePeople(vcfSampleToDrop);
   }
   if (phenotypeInOrder.size() != phenotype.size()) {
-    fprintf(stderr, "Drop %d sample from phenotype file since mismatch their VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
+    fprintf(stderr, "Drop %d sample from phenotype fil since mismatch their VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
   }
 
   bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
   if (binaryPhenotype) {
     fprintf(stderr, "-- Enabling binary phenotype mode -- \n");
   }
+
+  if (FLAG_inverseNormal) {
+    if (binaryPhenotype){
+      fprintf(stderr, "WARNING: Skip transforming binary phenotype using --inverseNormal!\n");
+    } else {
+      fprintf(stderr, "Apply inverse normal transformation.\n");
+      inverseNormal(&phenotypeInOrder);
+    }
+  };
   
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model

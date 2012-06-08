@@ -7,9 +7,9 @@
  * Our VCF library support the following filters (in additional to sampler filter and range filter).
  *
  */
-class VCFFilter{
+class VCFSiteFilter{
 public:
-VCFFilter():
+VCFSiteFilter():
   // Site filter
   siteDepthFromInfo(false),      // read depth from INFO field
       siteDepthMin(-1),
@@ -21,7 +21,7 @@ VCFFilter():
       siteFreqMax(-1.0),
       siteMACMin(-1),
 
-      onlyVariantSite(false),
+      onlyVariantSite(false) {
 
 #if 0
       // individual filter
@@ -44,7 +44,7 @@ VCFFilter():
   void setSiteQualMin(int q) {
     this->siteQualMin = q;
   }
-  void setUseFreqFromInfo() {
+  void setUseSiteFreqFromInfo() {
     this->siteFreqFromInfo = true;
   };
   void setSiteFreqMin(double f) {
@@ -62,6 +62,7 @@ VCFFilter():
   void setVariantSiteOnly() {
     this->onlyVariantSite = true;
   };
+#if 0
   void setIndividualDepthMin(int d) {
     this->indvDepthMin = d;
   };
@@ -71,8 +72,22 @@ VCFFilter():
   void setIndividualQualMin(int q) {
     this->indvQualMin = q;
   };
+#endif
 
-  // checking functions
+  // checking whether to check functions
+  bool checkSiteDepth() const {
+    return (this->siteDepthMin > 0 || this->siteDepthMax > 0);
+  };
+  bool checkSiteQual() const {
+    return (this->siteQualMin > 0);
+  };
+  bool checkSiteFreq() const {
+    return (this->siteFreqMin > 0 || this->siteFreqMax > 0);
+  };
+  bool checkSiteMAC() const {
+    return (this->siteMACMin > 0);
+  };
+  // checking functions for each criterias
   bool useSiteDepthFromInfo() const {
     return this->siteDepthFromInfo;
   }
@@ -81,7 +96,7 @@ VCFFilter():
     if (this->siteDepthMax > 0  && this->siteDepthMax < d) return false;
     return true;
   };
-  bool siteQualOK(double q) const {
+  bool siteQualOK(int q) const {
     if ( this->siteQualMin > 0 && this->siteQualMin > q) return false;
     return true;
   };

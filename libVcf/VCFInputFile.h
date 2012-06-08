@@ -5,8 +5,6 @@
 #include "VCFRecord.h"
 #include "VCFFilter.h"
 
-
-
 /**
  * parse is equivalent to copy, meaning we will copy the content so speed up later reference by const char*
  */
@@ -66,7 +64,10 @@ public:
   void close() {
     closeIndex();
     this->record.deleteIndividual();
-    if (this->fp) delete this->fp;
+    if (this->fp) {
+      delete this->fp;
+      this->fp = NULL;
+    }
   };
   VCFHeader* getVCFHeader() {
     this->rewriteVCFHeader();
@@ -153,7 +154,7 @@ public:
   /**
    * Check with VCFFilter to see if the current read line passed
    */
-  virtual bool passFilter() const{
+  virtual bool passFilter() {
     return true;
   };
   /**
@@ -275,7 +276,6 @@ private:
 private:
   VCFHeader header;
   VCFRecord record;
-  VCFFilter filter;
 
   LineReader* fp;
   tabix_t * tabixHandle;

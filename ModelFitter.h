@@ -148,10 +148,12 @@ public:
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "Pvalue\n");
+    fprintf(fp, "NSample\tAF\tPvalue\n");
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
+    nSample = genotype.rows;
+    af = getMarkerFrequency(genotype, 0);
     Matrix intercept;
     intercept.Dimension(genotype.rows, 1);
     Vector pheno;
@@ -187,11 +189,13 @@ public:
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (fitOK)
-      fprintf(fp, "%.3f\n", lrst.GetPvalue());
+      fprintf(fp, "%d\t%.3f\t%g\n", nSample, af, lrst.GetPvalue());
     else
       fputs("NA\n", fp);
   };
 private:
+  double af;
+  int nSample;
   LinearRegressionScoreTest lrst;
   bool fitOK;
 }; // SingleVariantScoreTest

@@ -12,7 +12,7 @@
    16. add KBAC
    17. add permutation tests
    18. add binary phenotype support
-   
+
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -143,7 +143,7 @@ bool isBinaryPhenotype(const std::vector<double>& phenotype){
   fprintf(stderr, "Loaded %d case, %d control, and %d missing phenotypes.\n", nCase, nControl, nMissing);
   return true;
 }
-                       
+
 /**
  * Test whether x contain unique elements
  */
@@ -285,7 +285,7 @@ void makeSet(const char* str, char sep, std::set<std::string>* s) {
   s->clear();
   if (!str || strlen(str) == 0)
     return;
-  
+
   std::vector<std::string> fd;
   stringTokenize(str, ",", &fd);
   for (int i = 0; i < fd.size(); i++)
@@ -295,7 +295,7 @@ void makeSet(const char* str, char sep, std::set<std::string>* s) {
 int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, RangeList>* geneMap) {
   std::set<std::string> geneSet;
   makeSet(gene, ',', &geneSet);
-  
+
   OrderedMap<std::string, RangeList>& m = *geneMap;
   LineReader lr(fn);
   int lineNo = 0;
@@ -310,7 +310,7 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
     std::string& geneName = fd[0];
     if (geneSet.size() && geneSet.find(geneName)== geneSet.end())
       continue;
-    
+
     std::string& chr = fd[2];
     int beg = atoi(fd[4]);
     int end = atoi(fd[5]);
@@ -341,32 +341,16 @@ double pnorm(double x) {
 double qnorm(double x) {
   return gsl_cdf_gaussian_Pinv(x, 1.0);
 };
-  
-void inverseNormal(std::vector<double>* y){
 
-  FILE* f = fopen("tmp", "wt");
-  // for (unsigned int i = 0; i < (*y).size() ; i++) 
-  //   fprintf(f, "%f\n", (*y)[i]);
-    
+void inverseNormal(std::vector<double>* y){
   if (!y || !y->size()) return;
   const int n = y->size();
-  FILE* f0 = fopen("tmp0", "wt");
-  for (unsigned int i = 0; i < n ; i++)  
-    fprintf(f0, "%f\n", (*y)[i]);
-
-  
   std::vector<int> ord;
   order(*y, &ord);
 
-  // for (unsigned int i = 0; i < (*y).size() ; i++) 
-  //   fprintf(f, "%d\n", ord[i]);
-  
-  for (unsigned int i = 0; i < n; i++) 
+  for (unsigned int i = 0; i < n; i++)
     (*y)[i] = ord[i];
   order(*y, &ord);
-
-  // for (unsigned int i = 0; i < (*y).size() ; i++) 
-  //   fprintf(f, "%d\n", ord[i]);
 
   double a;
   if ( n <= 10) {
@@ -374,14 +358,10 @@ void inverseNormal(std::vector<double>* y){
   } else {
     a = 0.5;
   }
-  for (unsigned int i = 0; i < n ; i++) 
+  for (unsigned int i = 0; i < n ; i++)
     (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + 1 - 2 * a));
 
-  for (unsigned int i = 0; i < n ; i++)  
-    fprintf(f, "%f\n", (*y)[i]);
-  fclose(f);
-  fclose(f0);
-  fprintf(stderr, "done inverse normal\n");
+  fprintf(stderr, "Done: inverse normal transformation finished.\n");
 };
 
 
@@ -562,7 +542,7 @@ int main(int argc, char** argv){
       fprintf(stdout, "Loaded %zu sample pheontypes.\n", phenotype.size());
     }
   };
-  
+
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;
   vin.getVCFHeader()->getPeopleName(&vcfSampleNames);
@@ -590,7 +570,7 @@ int main(int argc, char** argv){
       inverseNormal(&phenotypeInOrder);
     }
   };
-  
+
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
   if (FLAG_modelSingle.size() && (FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size())) {
@@ -607,7 +587,7 @@ int main(int argc, char** argv){
   //     collapsor.setSetFileName(FLAG_set.c_str());
   //     model.push_back (new CollapsingHeader);
   // }
-  
+
   if (FLAG_modelSingle != "") {
     stringTokenize(FLAG_modelSingle, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
@@ -681,7 +661,7 @@ int main(int argc, char** argv){
     if (binaryPhenotype)
       model[i]->setBinaryOutcome();
   }
-  
+
   OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
     int ret = loadGeneFile(FLAG_geneFile.c_str(), FLAG_gene.c_str(), &geneRange);
@@ -693,7 +673,6 @@ int main(int argc, char** argv){
     }
   }
 
-  
   Matrix phenotypeMatrix;
   toMatrix(phenotypeInOrder, &phenotypeMatrix);
 
@@ -705,8 +684,9 @@ int main(int argc, char** argv){
     s += ".assoc";
     fOuts[i] = fopen(s.c_str(), "wt");
   }
+
   FILE* fLog = fopen( (FLAG_outPrefix + ".log").c_str(), "wt");
-  
+
   Matrix genotype;
 
   // determine VCF file reading pattern
@@ -714,33 +694,39 @@ int main(int argc, char** argv){
   // * line by line ( including range selection)
   // * gene by gene
   // will support range by range
-  
+  std::string buf; // we put site sinformation here
+  buf.resize(1024);
+
   if (!geneRange.size()) { // use line by line mode
-    char buf[1000]; // we put site sinformation here
-    sprintf(buf, "CHROM\tPOS\tREF\tALT\t");
+    
+    buf = "CHROM\tPOS\tREF\tALT\t";
     // output headers
     for (int m = 0; m < model.size(); m++) {
-      model[m]->writeHeader(fOuts[m], buf);
+      model[m]->writeHeader(fOuts[m], buf.c_str());
     };
 
     int lineNo = 0;
     while (vin.readRecord()) {
       lineNo ++;
-      if (lineNo % 1000 == 0) 
+      if (lineNo % 1000 == 0) {
         fprintf(stderr, "Processing line %d...\r", lineNo);
+      };
+      
       VCFRecord& r = vin.getVCFRecord();
       VCFPeople& people = r.getPeople();
       VCFIndividual* indv;
 
-      sprintf(buf,
-              "%s\t%d\t%s\t%s\t",
-              r.getChrom(),
-              r.getPos(),
-              r.getRef(),
-              r.getAlt()
-              );
-      
+      buf = r.getChrom();
+      buf += '\t';
+      buf += r.getPosStr();
+      buf += '\t';
+      buf += r.getRef();
+      buf += '\t';
+      buf += r.getAlt();
+      buf += '\t';
+
       genotype.Dimension(people.size(), 1);
+
       // e.g.: Loop each (selected) people in the same order as in the VCF
       for (int i = 0; i < people.size(); i++) {
         indv = people[i];
@@ -755,23 +741,27 @@ int main(int argc, char** argv){
           continue;
         }
       }
-      
+
       // impute missing genotypes
       imputeGenotypeToMean(&genotype);
 
+      // fit each model
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
         model[m]->fit(phenotypeMatrix, genotype);
-        model[m]->writeOutput(fOuts[m], buf);
+        model[m]->writeOutput(fOuts[m], buf.c_str());
       };
-    }
 
-  } else {
-    char buf[1000] = {0}; // we put site sinformation here
-    sprintf(buf, "GENE\t");
+      if (lineNo >= 2) {
+        fprintf(stderr, "end line by line\n");
+        break;
+      }
+    }
+  } else { // read by gene mode
+    buf = "GENE\t";
     // output headers
     for (int m = 0; m < model.size(); m++) {
-      model[m]->writeHeader(fOuts[m], buf);
+      model[m]->writeHeader(fOuts[m], buf.c_str());
     };
     std::string geneName;
     RangeList rangeList;
@@ -779,8 +769,9 @@ int main(int argc, char** argv){
       geneRange.at(i, &geneName, &rangeList);
       vin.setRange(rangeList);
 
-      sprintf(buf, "%s\t", geneName.c_str());
-      
+      buf = geneName;
+      buf += '\t';
+
       int ret = extractGenotype(vin, &genotype);
       if (ret < 0) {
         fprintf(stderr, "Extract genotype failed for gene %s!\n", geneName.c_str());
@@ -790,22 +781,22 @@ int main(int argc, char** argv){
         fprintf(fLog, "Gene %s has 0 variants, skipping\n", geneName.c_str());
         continue;
       };
-      
+
       // impute missing genotypes
       imputeGenotypeToMean(&genotype);
 
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
         model[m]->fit(phenotypeMatrix, genotype);
-        model[m]->writeOutput(fOuts[m], buf);
+        model[m]->writeOutput(fOuts[m], buf.c_str());
       };
     }
   }
-
   for (int m = 0; m < model.size() ; ++m ) {
     fclose(fOuts[m]);
   }
   delete[] fOuts;
+
   // // iterator this range
 
   // // Vector* pheno;
@@ -874,8 +865,10 @@ int main(int argc, char** argv){
   //     };
 
   fclose(fLog);
+
+  fprintf(stderr, "analysis finished");
   currentTime = time(0);
-  fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));
+  fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
   return 0;
 };

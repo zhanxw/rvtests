@@ -302,7 +302,8 @@ double Table2by2::logHypergeometricProb(double *logFacs){
 }
 
 void Table2by2::FullFastFisherExactTest(){
-	double *storeLogFacs = new double[m_sum];
+	double* storeLogFacs = new double[m_sum + 1];
+    
 	// calculate and store all the factorials
 	initLogFacs(storeLogFacs);
 
@@ -340,7 +341,7 @@ void Table2by2::FullFastFisherExactTest(){
 	pExactTwoSided = exp(logpValue);
 	pExactOneSidedLess = exp(logpValueLess);
 	pExactOneSidedGreater = exp(logpValueGreater);
-	delete [] storeLogFacs;
+    delete[] storeLogFacs;
 }
 
 

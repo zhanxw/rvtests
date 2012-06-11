@@ -49,7 +49,6 @@
 
 #include <gsl/gsl_cdf.h>
 
-
 #include "Logger.h"
 #include "Utils.h"
 #include "VCFUtil.h"
@@ -311,7 +310,7 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
     if (geneSet.size() && geneSet.find(geneName)== geneSet.end())
       continue;
 
-    std::string& chr = fd[2];
+    std::string chr = chopChr(fd[2]);
     int beg = atoi(fd[4]);
     int end = atoi(fd[5]);
     m[ geneName ].addRange (chr.c_str(), beg, end);
@@ -752,10 +751,6 @@ int main(int argc, char** argv){
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
 
-      if (lineNo >= 2) {
-        fprintf(stderr, "end line by line\n");
-        break;
-      }
     }
   } else { // read by gene mode
     buf = "GENE\t";

@@ -1015,7 +1015,7 @@ void madsonbrowningCollapse(Matrix* d, Matrix* out){
     double weight = 1.0 / sqrt(freq * (1.0-freq));
 
     for (int p = 0; p < numPeople; p++) {
-      out[p][0] += in[p][m] * weight;
+      (*out)[p][0] += in[p][m] * weight;
     }
   };
 };

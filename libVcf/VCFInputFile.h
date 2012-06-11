@@ -175,7 +175,9 @@ public:
           // parse range
           int tid, beg, end, len;
           if (ti_parse_region(tabixHandle->idx, rangeBuffer, &tid, &beg, &end) != 0){
+#ifndef NDEBUG            
             fprintf(stderr, "Maybe non-existing range: %s, pass....\n", rangeBuffer);
+#endif
             // continue to next rangeIdx
             ti_iter_destroy(this->iter);
             this->iter = 0;

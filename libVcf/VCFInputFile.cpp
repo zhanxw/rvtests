@@ -25,9 +25,11 @@ void VCFInputFile::setRangeMode() {
   
 };
 void VCFInputFile::clearRange() {
+#ifndef NDEBUG
   if (this->range.size()) {
-    fprintf(stdout, "Clear existing %zu range.\n", this->range.size());
+    fprintf(stderr, "Clear existing %zu range.\n", this->range.size());
   }
+#endif
   this->range.clear();
   this->ti_line = 0;
 };

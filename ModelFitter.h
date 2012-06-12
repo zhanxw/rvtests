@@ -92,6 +92,10 @@ public:
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
     copyPhenotype(phenotype, &this->Y);
     copyGenotypeWithIntercept(genotype, &this->X);
 
@@ -140,6 +144,10 @@ public:
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
     nSample = genotype.rows;
     af = getMarkerFrequency(genotype, 0);
     Matrix intercept;
@@ -740,7 +748,7 @@ public:
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "Q\tPvalue\n");
+    fprintf(fp, "NMARKER\tQ\tPvalue\n");
   };
   void reset() {
     this->skat.Reset();
@@ -748,9 +756,11 @@ public:
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
     // fill it wegith
+    // NOTE: our frequency calculation is slightly different than SKAT, so we will need to adjust it back
     weight.Dimension(genotype.cols);
     for (int i = 0; i < weight.Length(); i++) {
       double freq = getMarkerFrequency(genotype, i);
+      freq = (freq * (genotype.rows * 2 + 1) -1 ) / (genotype.rows *2 );
       if (freq > 1e-30) { // avoid dividing zero
         weight[i] =  gsl_ran_beta_pdf(freq, 1.0, 25.0);  /// use beta(MAF, 1, 25)
         weight[i] *= weight[i];
@@ -794,18 +804,17 @@ public:
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!fitOK){
-      fputs("NA\tNA\n", fp);
+      fprintf(fp, "%d\tNA\tNA\n", this->weight.Length());
     } else {
       if (isBinaryOutcome() ) {
-        fprintf(fp, "%f\t%f\n", this->skat.GetQ(), this->pValue);
+        fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);
       } else {
-        fprintf(fp, "%f\t%f\n", this->skat.GetQ(), this->pValue);        
+        fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);        
       }
     }
   };
 
 private:
-  Matrix* geno;
   Matrix X; // n by (p+1) matrix, people by covariate (note intercept is needed);
   Vector v;
   Vector weight;
@@ -815,11 +824,12 @@ private:
   Skat skat;
   bool fitOK;
   double pValue;
+  int nMarker;
 }; // SkatTest
 
 class KbacTest: public ModelFitter{
 public:
-KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL) {
+KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
     this->modelName = "KBAC";
   };
   ~KbacTest() {
@@ -833,7 +843,7 @@ KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL) {
     fprintf(fp, "KBAC.Pvalue\n");
   };
   void reset() {
-    clear_kbac_test();
+    // clear_kbac_test();
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
@@ -876,8 +886,10 @@ KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL) {
      * pvalue: results are here
      * twosided: two sided tests or one sided test
      */
-    do_kbac_test(&pValue, &twosided);
+    do_kbac_test(&this->pValue, &twosided);
     
+    clear_kbac_test();
+    this->fitOK = true;
     return 0;
   };
   // write model output
@@ -927,7 +939,7 @@ private:
   int twosided;
   bool fitOK;
   double pValue;
-}; // SkatTest
+}; // KbacTest
 
 class DumpModel: public ModelFitter{
 public:
@@ -937,6 +949,9 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp, const char* prependString) { // e.g. column headers.
+    fputs(prependString, fp);
+    fprintf(fp, "FileName");
+    
     this->header = prependString;
   }
   // fitting model
@@ -946,47 +961,47 @@ public:
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString){
-    fputs(prependString, fp);
-    
-    std::string fn = prefix + "_" + prependString + ".data";
+    std::string fn = this->prefix + "\t" + prependString + "data";
     for (int i = 0; i < fn.size(); ++i) {
-      if (fn[i] == '\t') fn[i] = '_';
+      if (fn[i] == '\t') fn[i] = '.';
     }
+
+    fputs(prependString, fp);
+    fprintf(fp, "%s\n", fn.c_str());
 
     // write header
     FILE* fDump= fopen(fn.c_str(), "wt");
-    fprintf(fp, "%s\t", this->header.c_str());
+    fprintf(fDump, "%s\t", this->header.c_str());
     if (phenotype.cols == 1)  {
-      fprintf(fp, "Y");
+      fprintf(fDump, "Y");
     } else {
       for (int i = 0; i < phenotype.cols; i++) {
-        if (i) fprintf(fp, "\t");
-        fprintf(fp, "Y%d", i);
+        if (i) fprintf(fDump, "\t");
+        fprintf(fDump, "Y%d", i);
       }
     }
     for (int i = 0; i < genotype.cols; i++) {
-      fprintf(fp, "\tX%d", i);
+      fprintf(fDump, "\tX%d", i);
     };
-    fprintf(fp, "\n");
+    fprintf(fDump, "\n");
 
     // write content
     for (int i = 0; i < phenotype.rows; ++i) {
+      fputs(prependString, fDump);
       for (int j = 0; j < phenotype.cols; ++j) {
-        if (j) fprintf(fp, "\t");        
-        fprintf(fp, "%f", phenotype[i][j]);
+        if (j) fprintf(fDump, "\t");        
+        fprintf(fDump, "%f", phenotype[i][j]);
       }
       for (int j = 0; j < genotype.cols; ++j) {
-        fprintf(fp, "\t%f", genotype[i][j]);
+        fprintf(fDump, "\t%f", genotype[i][j]);
       }
+      fprintf(fDump, "\n");
     };
     fclose(fDump);
 
-    fprintf(fp, "%s\n", fn.c_str());
   };
 
   void reset() {
-    this->prefix.clear();
-    this->header.clear();
   }; // for particular class to call when fitting repeatedly
 private:
   Matrix phenotype;

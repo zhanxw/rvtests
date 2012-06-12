@@ -9,9 +9,7 @@
    14. support VCF specify given locations
    15. region class support union, support region names
 
-   16. add KBAC
    17. add permutation tests
-   18. add binary phenotype support
 
    DONE:
    2. support access INFO tag
@@ -27,12 +25,14 @@
    8. Test permutation test
    11. Fast VCF Individual inner field retrieve
    14. for vcflib, getInfoTag(), also return how many tags are there.
+   16. add KBAC
+   18. add binary phenotype support
+   12. Design command line various models (collapsing method, freq-cutoff)
+   4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
 
    futher TODO:
-   12. Design command line various models (collapsing method, freq-cutoff)
 
    Not sure if worthy to do:
-   4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
 
 */
 
@@ -344,7 +344,78 @@ void imputeGenotypeToMean(Matrix* genotype) {
 };
 
 /**
- * convert the vector @param v to Matrix format @param m
+ * @return true if any of the markers (@param col) of @param genotype is missing
+ */
+bool hasMissingMarker(Matrix& genotype, int col) {
+  if (col >= genotype.cols || col < 0) {
+    fprintf(stderr, "Invalid check of missing marker.\n");
+    return false;
+  }
+  
+  for (int r = 0; r < genotype.rows; ++r) {
+    if (genotype[r][col] < 0)
+      return true;
+  }
+  return false;
+};
+
+/**
+ * Remove columns of markers in @param genotype where there are missing genotypes
+ */
+void removeMissingMarker(Matrix* genotype) {
+  Matrix& g = *genotype;
+  int col = 0;
+  while (col < g.cols) {
+    if (hasMissingMarker(g, col)) {
+      // move last column to this column
+      const int lastCol = g.cols - 1 ;
+      for (int r = 0; r < g.rows; ++r){
+        g[r][col] = g[r][lastCol];
+      }
+      g.Dimension(g.rows, lastCol);
+      continue;
+    };
+    ++ col;
+  };
+};
+/**
+ * @return true if markers on @param col of @param genotype is monomorphic (genotypes are all the same)
+ */
+bool isMonomorphicMarker(Matrix& genotype, int col) {
+  if (col >= genotype.cols || col < 0) {
+    fprintf(stderr, "Invalid check of monomorhpic marker.\n");
+    return false;
+  }
+  
+  for (int r = 1; r < genotype.rows; ++r) {
+    if (genotype[r][col] != genotype[0][col])
+      return false;
+  }
+  return true;
+};
+
+/**
+ * remove monomorphic columns of @param genotype 
+ */
+void removeMonomorphicSite(Matrix* genotype) {
+  Matrix& g = *genotype;
+  int col = 0;
+  while (col < g.cols) {
+    if (isMonomorphicMarker(g, col)) {
+      // move last column to this column
+      const int lastCol = g.cols - 1 ;
+      for (int r = 0; r < g.rows; ++r){
+        g[r][col] = g[r][lastCol];
+      }
+      g.Dimension(g.rows, lastCol);
+      continue;
+    };
+    ++ col;
+  };
+};
+
+/**
+ * convert the vector @param v to column Matrix format @param m
  */
 void toMatrix(const std::vector<double>& v, Matrix* m) {
   m->Dimension(v.size(), 1);
@@ -458,8 +529,8 @@ void inverseNormal(std::vector<double>* y){
 
 
 int main(int argc, char** argv){
-  time_t currentTime = time(0);
-  fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
+  time_t startTime = time(0);
+  fprintf(stderr, "Analysis started at: %s", ctime(&startTime));
 
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
@@ -483,13 +554,11 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
-      // ADD_INT_PARAMETER(pl, siteMinDepth, "--siteDepthMin", "Specify minimum depth(inclusive) to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, siteMaxDepth, "--siteDepthMax", "Specify maximum depth(inclusive) to be incluced in analysis");
+      ADD_INT_PARAMETER(pl, siteDepthMin, "--siteDepthMin", "Specify minimum depth(inclusive) to be incluced in analysis");
+      ADD_INT_PARAMETER(pl, siteDepthMax, "--siteDepthMax", "Specify maximum depth(inclusive) to be incluced in analysis");
       // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis");
-      // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
-      // ADD_STRING_PARAMETER(pl, annoGene, "--annoGene", "Specify gene name that is followed by ANNO= in the VCF INFO field")
-      // ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field")
+      ADD_INT_PARAMETER(pl, siteMACMin,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis");
+      ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field, regular expression is allowed ")
       // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any valid Python expression, will output if eval is > 0")
 
       ADD_PARAMETER_GROUP(pl, "Association Functions")
@@ -559,7 +628,18 @@ int main(int argc, char** argv){
   vin.excludePeople(FLAG_peopleExcludeID.c_str());
   vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
 
-
+  if (FLAG_siteDepthMin > 0) {
+    vin.setSiteDepthMin(FLAG_siteDepthMin);
+    fprintf(stderr, "Set site depth minimum to %d\n", FLAG_siteDepthMin);
+  };
+  if (FLAG_siteDepthMax > 0) {
+    vin.setSiteDepthMax(FLAG_siteDepthMax);
+    fprintf(stderr, "Set site depth maximum to %d\n", FLAG_siteDepthMax);
+  };
+  if (FLAG_siteMACMin > 0) {
+    vin.setSiteMACMin(FLAG_siteMACMin);
+    fprintf(stderr, "Set site minimum MAC to %d\n", FLAG_siteDepthMax);
+  };
   if (FLAG_freqUpper > 0) {
     vin.setSiteFreqMax(FLAG_freqUpper);
     fprintf(stderr, "Set upper frequency limit to %f\n", FLAG_freqUpper);
@@ -807,6 +887,9 @@ int main(int argc, char** argv){
         continue;
       };
 
+      // remove monomorphic site
+      removeMonomorphicSite(&genotype);
+      
       // impute missing genotypes
       imputeGenotypeToMean(&genotype);
 
@@ -817,7 +900,7 @@ int main(int argc, char** argv){
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
     }
-  } else if (rangeMode != "Single" && singleVariantMode) {
+  } else if (rangeMode != "Single" && singleVariantMode) { // read by gene/range model, single variant test
     buf = rangeMode;
     buf += '\t';
     buf += "CHROM\tPOS\tREF\tALT\t";
@@ -848,6 +931,9 @@ int main(int argc, char** argv){
           continue;
         };
 
+        // remove monomorphic site
+        removeMonomorphicSite(&genotype);
+
         // impute missing genotypes
         imputeGenotypeToMean(&genotype);
 
@@ -858,12 +944,10 @@ int main(int argc, char** argv){
         };
       }
     }
-  } else if (rangeMode != "Single" && groupVariantMode) {// read by gene mode
+  } else if (rangeMode != "Single" && groupVariantMode) {// read by gene/range mode, group variant test
     buf = rangeMode;
     buf += '\t';
-    if (singleVariantMode) {
-      buf += "CHROM\tPOS\tREF\tALT\t";
-    }
+    
     // output headers
     for (int m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf.c_str());
@@ -887,6 +971,9 @@ int main(int argc, char** argv){
         continue;
       };
 
+      // remove monomorphic site
+      removeMonomorphicSite(&genotype);
+      
       // impute missing genotypes
       imputeGenotypeToMean(&genotype);
 
@@ -909,9 +996,9 @@ int main(int argc, char** argv){
 
   fclose(fLog);
 
-  fprintf(stderr, "analysis finished");
-  currentTime = time(0);
-  fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
-
+  time_t endTime = time(0);
+  fprintf(stderr, "Analysis ends at: %s", ctime(&endTime));
+  int elapsedSecond = (int) (endTime - startTime);
+  fprintf(stderr, "Analysis took %d seconds\n", elapsedSecond);
   return 0;
 };

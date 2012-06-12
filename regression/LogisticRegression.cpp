@@ -126,7 +126,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Matrix & y, int rnrounds) 
     }
     Vector v(X.rows);
     for (int i = 0; i < X.rows; ++i){
-        v[i] = X[i][0];
+        v[i] = y[i][0];
     }
     return this->FitLogisticModel(X, v, rnrounds);
 };

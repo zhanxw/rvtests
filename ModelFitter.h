@@ -24,14 +24,10 @@ void zegginiCollapse(Matrix* in, Matrix* out);
 void madsonbrowningCollapse(Matrix* in, Matrix* out);
 
 void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq);
-#if 0
-void progressiveCMCCollapse(Matrix* in, Matrix* out, std::vector<double>* freq);
-void progressiveMadsonBrowningCollapse(Matrix* in, Matrix* out, std::vector<double>* freq);
-#endif
+
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
-
 class ModelFitter{
 public:
   // write result header
@@ -62,6 +58,28 @@ protected:
   bool binaryOutcome;
 }; // end ModelFitter
 
+void copyPhenotype(Matrix& in, Vector* o){
+  Vector& out = *o;
+  out.Dimension(in.rows);
+  for (int i = 0; i <in.rows; ++i){
+    out[i] = in[i][0];
+  }
+};
+
+/**
+ * copy @param in to @param o, with first column being intercept
+ */
+void copyGenotypeWithIntercept(Matrix& in, Matrix* o){
+  Matrix& out = *o;
+  out.Dimension(in.rows, in.cols+1);
+  for (int i = 0; i <in.rows; ++i){
+    out[i][0] = 1.0;
+    for (int j = 0; j < in.cols; ++j) {
+      out[i][j + 1] = in[i][j];
+    }
+  }
+};
+
 class SingleVariantWaldTest: public ModelFitter{
 public:
   SingleVariantWaldTest(){
@@ -74,69 +92,39 @@ public:
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
-    Vector pheno;
-    pheno.Dimension(phenotype.rows);
-    for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
-    }
-    cbind(&X, &genotype, NULL, true);
-    fitOK = lr.FitLinearModel(X, pheno);
-    return (fitOK ? 0 : 1);
-  };
-#if 0
-  int fit(VCFData& data) {
-    if (data.covariate && data.covariate->cols > 0)
-      cbind(&X, data.genotype, data.covariate, true);
-    else
-      cbind(&X, data.genotype, NULL, true);
+    copyPhenotype(phenotype, &this->Y);
+    copyGenotypeWithIntercept(genotype, &this->X);
 
-    fitOK = lr.FitLogisticModel(X, *data.extractPhenotype(), 100);
+    if (!isBinaryOutcome()) {
+      fitOK = linear.FitLinearModel(this->X, this->Y);
+    } else {
+      fitOK = logistic.FitLogisticModel(this->X, this->Y, 100);
+    }
     return (fitOK ? 0 : 1);
   };
-#endif
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    if (fitOK) {
-      double se = sqrt(lr.GetCovB()[0][0]);
-      fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", lr.GetCovEst()[0], se, lr.GetAsyPvalue()[0]);
-    } else{
+    if (!fitOK) {
       fputs("NA\tNA\tNA\n", fp);
-    }
-  };
-private:
-  void cbind(Matrix* out, Matrix* a, Matrix* b, bool addIntercept) {
-    assert(out && a);
-
-    int totalCol = a->cols + (b ? b->cols : 0) + (addIntercept ? 1 : 0);
-    if (b)
-      assert ( a->rows == b->rows);
-    out->Dimension(a->rows, totalCol);
-
-    for (int r = 0; r < a->rows; r ++ ){
-      int beginCol = 0;
-      for (int c = 0; c < a->cols; c++) {
-        (*out)[r][c] = (*a)[r][c];
-      }
-      beginCol += a->cols;
-
-      if (b) {
-        for (int c = 0; c < b->cols; c++) {
-          (*out)[r][c] = (*a)[r][beginCol + c];
-        }
-        beginCol += b->cols;
-      }
-
-      if (addIntercept) {
-        (*out)[r][beginCol] = 1.0;
+    } else {
+      if (!isBinaryOutcome()) {
+        double se = sqrt(linear.GetCovB()[1][1]);
+        fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", linear.GetCovEst()[1], se, linear.GetAsyPvalue()[1]);
+      } else {        
+        double se = sqrt(logistic.GetCovB()[0][0]);
+        fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", logistic.GetCovEst()[1], se, logistic.GetAsyPvalue()[1]);
       }
     }
   };
 private:
-  Matrix X; // geno + 1 + covariate
-  LinearRegression lr;
+  Matrix X; // 1 + geno
+  Vector Y; // phenotype
+  LinearRegression linear;
+  LogisticRegression logistic;
+  int nCov;
+  int nGeno;
   bool fitOK;
-
 }; // SingleVariantWaldTest
 
 class SingleVariantScoreTest: public ModelFitter{
@@ -752,7 +740,7 @@ public:
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "SKAT.Pvalue\n");
+    fprintf(fp, "Q\tPvalue\n");
   };
   void reset() {
     this->skat.Reset();
@@ -806,12 +794,12 @@ public:
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!fitOK){
-      fputs("NA\n", fp);
+      fputs("NA\tNA\n", fp);
     } else {
       if (isBinaryOutcome() ) {
-        fprintf(fp, "%f\n", this->pValue);
+        fprintf(fp, "%f\t%f\n", this->skat.GetQ(), this->pValue);
       } else {
-        fprintf(fp, "%f\n", this->pValue);        
+        fprintf(fp, "%f\t%f\n", this->skat.GetQ(), this->pValue);        
       }
     }
   };
@@ -941,7 +929,75 @@ private:
   double pValue;
 }; // SkatTest
 
+class DumpModel: public ModelFitter{
+public:
+  DumpModel(const char* prefix) {
+    this->prefix = prefix;
+    this->modelName = "DumpData";
+  };
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) { // e.g. column headers.
+    this->header = prependString;
+  }
+  // fitting model
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    this->phenotype = phenotype;
+    this->genotype = genotype;
+  };
+  // write model output
+  void writeOutput(FILE* fp, const char* prependString){
+    fputs(prependString, fp);
+    
+    std::string fn = prefix + "_" + prependString + ".data";
+    for (int i = 0; i < fn.size(); ++i) {
+      if (fn[i] == '\t') fn[i] = '_';
+    }
 
+    // write header
+    FILE* fDump= fopen(fn.c_str(), "wt");
+    fprintf(fp, "%s\t", this->header.c_str());
+    if (phenotype.cols == 1)  {
+      fprintf(fp, "Y");
+    } else {
+      for (int i = 0; i < phenotype.cols; i++) {
+        if (i) fprintf(fp, "\t");
+        fprintf(fp, "Y%d", i);
+      }
+    }
+    for (int i = 0; i < genotype.cols; i++) {
+      fprintf(fp, "\tX%d", i);
+    };
+    fprintf(fp, "\n");
+
+    // write content
+    for (int i = 0; i < phenotype.rows; ++i) {
+      for (int j = 0; j < phenotype.cols; ++j) {
+        if (j) fprintf(fp, "\t");        
+        fprintf(fp, "%f", phenotype[i][j]);
+      }
+      for (int j = 0; j < genotype.cols; ++j) {
+        fprintf(fp, "\t%f", genotype[i][j]);
+      }
+    };
+    fclose(fDump);
+
+    fprintf(fp, "%s\n", fn.c_str());
+  };
+
+  void reset() {
+    this->prefix.clear();
+    this->header.clear();
+  }; // for particular class to call when fitting repeatedly
+private:
+  Matrix phenotype;
+  Matrix genotype;
+  std::string prefix;
+  std::string header;
+}; // end DumpModel
+
+
+
+//////////////////////////////////////////////////////////////////////
 // Implementation of various collpasing methods
 /**
  * @return Madson-Browning definition of alleleFrequency
@@ -993,7 +1049,6 @@ void zegginiCollapse(Matrix* d, Matrix* out){
       int g = (int)(in[p][m]);
       if (g > 0) { // genotype is non-reference
         (*out)[p][0] += 1.0;
-        break;
       }
     };
   };
@@ -1012,8 +1067,10 @@ void madsonbrowningCollapse(Matrix* d, Matrix* out){
   for (int m = 0; m < numMarker; m++) {
     // calculate weight
     double freq = getMarkerFrequency(in, m);
+    if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
     double weight = 1.0 / sqrt(freq * (1.0-freq));
-
+    // fprintf(stderr, "freq = %f\n", freq);
+    
     for (int p = 0; p < numPeople; p++) {
       (*out)[p][0] += in[p][m] * weight;
     }

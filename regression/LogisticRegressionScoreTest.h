@@ -38,9 +38,11 @@ class LogisticRegressionScoreTest{
     bool TestCovariate(Matrix& x, Vector& y);
 
     double GetPvalue() const {return this->pvalue;};
+    double GetStat() const {return this->stat;};
   private:
 	void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol); 
 	double pvalue;
+    double stat;
     LogisticRegression lr;
 };
 

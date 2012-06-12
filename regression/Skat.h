@@ -55,7 +55,10 @@ public:
     int CalculatePValue(Matrix & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
                         Matrix & G_G, Vector &w_G);
 
-    double GetPvalue() {return this->pValue;};
+    double GetPvalue() const {return this->pValue;};
+
+    double GetQ() const {return this->Q;};
+    
 private:
     //Eigen::MatrixXf K;        // G * W * G'
     Eigen::MatrixXf K_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt

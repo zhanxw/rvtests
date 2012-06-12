@@ -389,5 +389,6 @@ private:
   bool isSorted;
 };
 
+extern int parseRangeFormat(const std::string& s, std::string* chr, unsigned int* begin, unsigned int* end);
 
 #endif /* _RANGELIST_H_ */

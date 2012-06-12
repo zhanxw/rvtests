@@ -9,6 +9,7 @@
 #include "VCFFunction.h"
 #include "VCFHeader.h"
 #include "VCFInputFile.h"
+#include "VCFExtractor.h"
 #include "VCFOutputFile.h"
 #include "PlinkOutputFile.h"
 

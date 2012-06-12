@@ -7,32 +7,6 @@
 
 #define ZBOUND 1e-30
 
-#if 0
-#include <ctime>
-#include <iostream>
-#include <fstream>
-
-
-void TIME() {
-  time_t t  = time(0);
-  printf("Time: %s\n", ctime(&t));
-}
-
-
-void outputMat(Eigen::MatrixXf m, const char* outName) {
-  TIME();
-  fputs(outName, stdout);
-  fputc('\n', stdout);
-  std::ofstream ofs(outName);
-  ofs << m;
-  ofs.close();
-  TIME();
-};
-
-using namespace std;
-
-#endif
-
 int Skat::CalculatePValue(Matrix & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
                           Matrix & G_G, Vector &w_G) {
   if (y_G.cols != 1) {

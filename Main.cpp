@@ -69,7 +69,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      Feburary 2012                     ...   \n"
+      "      ...      June 2012                         ...   \n"
       "       ..............................................  \n"
       "                                                       \n"
       ;
@@ -144,6 +144,41 @@ bool isBinaryPhenotype(const std::vector<double>& phenotype){
 }
 
 /**
+ * Convert binary phenotype 1,2 (PLINK format) to 0,1 (logistic regression)
+ */
+bool convertBinaryPhenotype(std::vector<double>* p){
+  std::vector<double>& phenotype = *p;
+  int nCase = 0;
+  int nControl = 0;
+  int nMissing = 0;
+  for (int i = 0; i < phenotype.size(); ++i) {
+    double d = phenotype[i];
+    double p;
+    // check fraction part of phenotype
+    if ( modf(d, &p)  != 0.0)
+      return false;
+
+    int t = (int)(p);
+    switch(t){
+      case 0:
+      case -9:
+        phenotype[i] = -1.0;
+        continue;
+      case 1:
+        phenotype[i] = 0.0;
+        ;
+        continue;
+      case 2:
+        phenotype[i] = 1.0;
+        continue;
+      default:
+        return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Test whether x contain unique elements
  */
 bool isUnique(const std::vector<std::string>& x) {
@@ -182,7 +217,8 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
  * extract genotypes to @param g (people by marker).
  * Missing is -9
  */
-int extractGenotype(VCFInputFile& vin, Matrix* g){
+int extractGenotype(VCFExtractor* v, Matrix* g){
+  VCFExtractor& vin = *v;
   Matrix m;
   int row = 0;
   while (vin.readRecord()){
@@ -212,6 +248,46 @@ int extractGenotype(VCFInputFile& vin, Matrix* g){
   return 0;
 };
 
+int extractSiteGenotype(VCFExtractor* v, Matrix* g, std::string* b){
+  VCFExtractor& vin = *v;
+  Matrix& genotype = *g;
+  std::string& buf = *b;
+
+  bool hasRead = vin.readRecord();
+  if (!hasRead)
+    return -2;
+
+  VCFRecord& r = vin.getVCFRecord();
+  VCFPeople& people = r.getPeople();
+  VCFIndividual* indv;
+
+  buf += r.getChrom();
+  buf += '\t';
+  buf += r.getPosStr();
+  buf += '\t';
+  buf += r.getRef();
+  buf += '\t';
+  buf += r.getAlt();
+  buf += '\t';
+
+  genotype.Dimension(people.size(), 1);
+
+  // e.g.: Loop each (selected) people in the same order as in the VCF
+  for (int i = 0; i < people.size(); i++) {
+    indv = people[i];
+    // get GT index. if you are sure the index will not change, call this function only once!
+    int GTidx = r.getFormatIndex("GT");
+    if (GTidx >= 0) {
+      //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
+      genotype[i][0] = indv->justGet(GTidx).getGenotype();
+      // // fprintf(stderr, "%d ", int(genotype[i][0]));
+    } else {
+      fprintf(stderr, "Cannot find GT field when read genotype: %s!\n", indv->getSelf().toStr());
+      return -1;
+    }
+  }
+  return 0;
+}
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
  */
@@ -318,6 +394,23 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
   return m.size();
 };
 
+
+int appendListToRange(const std::string& FLAG_setList,   OrderedMap<std::string, RangeList>* geneRange){
+  std::vector<std::string>fd;
+  int ret = stringNaturalTokenize(FLAG_setList, ',', &fd);
+  std::string chr;
+  unsigned int beg, end;
+  for (int i = 0; i <fd.size() ; ++i){
+    if (!parseRangeFormat(fd[i], &chr, &beg, &end)) {
+      fprintf(stderr, "Cannot parse range: %s\n", fd[i].c_str());
+      continue;
+    }
+
+    (*geneRange)[fd[i]].addRange(chr.c_str(), beg, end);
+  };
+  return ret;
+};
+
 int loadRangeFile(const char* fn, OrderedMap<std::string, RangeList>* rangeMap) {
   OrderedMap<std::string, RangeList>& m = *rangeMap;
   LineReader lr(fn);
@@ -406,9 +499,12 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
-      ADD_STRING_PARAMETER(pl, rangeToTest, "--set", "specify set file (for burden tests)")
+      // ADD_STRING_PARAMETER(pl, rangeToTest, "--set", "specify set file (for burden tests)")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
+      ADD_STRING_PARAMETER(pl, setList, "--setList", "specify a list to test (for burden tests)")
+      ADD_STRING_PARAMETER(pl, setFile, "--setFile", "specify a list file (for burden tests, first 4 columns: chr beg end setName)")
+      ADD_STRING_PARAMETER(pl, set, "--set", "specify which set to test (4th column)")
       ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
       //ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
 
@@ -420,7 +516,7 @@ int main(int argc, char** argv){
       /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
       /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
       ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
-      ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
+      ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
       END_PARAMETER_LIST(pl)
       ;
@@ -447,8 +543,8 @@ int main(int argc, char** argv){
     FLAG_outPrefix = "rvtest";
 
   const char* fn = FLAG_inVcf.c_str();
-  VCFInputFile* pVin = new VCFInputFile(fn);
-  VCFInputFile& vin = *pVin;
+  VCFExtractor* pVin = new VCFExtractor(fn);
+  VCFExtractor& vin = *pVin;
 
   // set range filters here
   vin.setRangeList(FLAG_rangeList.c_str());
@@ -463,58 +559,15 @@ int main(int argc, char** argv){
   vin.excludePeople(FLAG_peopleExcludeID.c_str());
   vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
 
-  //    // conversion part
-  //     VCFOutputFile* vout = NULL;
-  //     if (FLAG_outVcf) {
-  //         vout = new VCFOutputFile( (FLAG_outPrefix + ".vcf").c_str());
-  //         if (!vout) {
-  //             fprintf(stderr, "Cannot create VCF file.\n");
-  //             exit(1);
-  //         }
-  //     }
-  //     PlinkOutputFile* pout = NULL;
-  //     if (FLAG_outPlink) {
-  //         pout = new PlinkOutputFile( FLAG_outPrefix.c_str() );
-  //     }
-  //     if (vout || pout || FLAG_outStdout) {
-  //         if (vout) vout->writeHeader(vin.getVCFHeader());
-  //         if (pout) pout->writeHeader(vin.getVCFHeader());
-  //         if (FLAG_outStdout) vin.getVCFHeader()->output(stdout);
 
-  //         int lineNo = 0;
-  //         while (vin.readRecord()){
-  //             lineNo ++;
-  //             VCFRecord& r = vin.getVCFRecord();
-  //             VCFPeople& people = r.getPeople();
-  //             VCFIndividual* indv;
-  //             if (vout) vout->writeRecord(& r);
-  //             if (pout) pout->writeRecord(& r);
-  //             if (FLAG_outStdout) r.output(stdout);
-  // #if 0
-  //             printf("%s:%d\t", r.getChrom(), r.getPos());
-
-  //             // e.g.: get TAG from INFO field
-  //             // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
-
-  //             // e.g.: Loop each (selected) people in the same order as in the VCF
-  //             for (int i = 0; i < people.size(); i++) {
-  //                 indv = people[i];
-  //                 // get GT index. if you are sure the index will not change, call this function only once!
-  //                 int GTidx = r.getFormatIndex("GT");
-  //                 if (GTidx >= 0)
-  //                     printf("%s ", (*indv)[0].toStr());  // [0] meaning the first field of each individual
-  //                 else
-  //                     fprintf(stderr, "Cannot find GT field!\n");
-  //             }
-  //             printf("\n");
-  // #endif
-  //         };
-  //         fprintf(stderr, "Total %d VCF records have converted successfully\n", lineNo);
-  //         if (vout) delete vout;
-  //         if (pout) delete pout;
-  //     }
-
-  // now let's finish some statistical tests
+  if (FLAG_freqUpper > 0) {
+    vin.setSiteFreqMax(FLAG_freqUpper);
+    fprintf(stderr, "Set upper frequency limit to %f\n", FLAG_freqUpper);
+  }
+  if (FLAG_freqLower > 0) {
+    vin.setSiteFreqMin(FLAG_freqLower);
+    fprintf(stderr, "Set upper frequency limit to %f\n", FLAG_freqLower);
+  }
 
   // add filters. e.g. put in VCFInputFile is a good method
   // site: DP, MAC, MAF (T3, T5)
@@ -526,7 +579,6 @@ int main(int argc, char** argv){
   //         return -1;
   //     };
   // }
-
 
   std::map< std::string, double> phenotype;
   if (FLAG_pheno == "") {
@@ -559,6 +611,7 @@ int main(int argc, char** argv){
   bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
   if (binaryPhenotype) {
     fprintf(stderr, "-- Enabling binary phenotype mode -- \n");
+    convertBinaryPhenotype(&phenotypeInOrder);
   }
 
   if (FLAG_inverseNormal) {
@@ -572,7 +625,9 @@ int main(int argc, char** argv){
 
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
-  if (FLAG_modelSingle.size() && (FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size())) {
+  bool singleVariantMode = FLAG_modelSingle.size();
+  bool groupVariantMode =(FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size());
+  if ( singleVariantMode && groupVariantMode ) {
     fprintf(stderr, "Cannot support both single variant and region based tests\n");
     abort();
   }
@@ -656,20 +711,13 @@ int main(int argc, char** argv){
     }
   };
 
+  if (FLAG_outputRaw) {
+    model.push_back( new DumpModel(FLAG_outPrefix.c_str()));
+  }
+  
   for (int i = 0; i < model.size(); i++){
     if (binaryPhenotype)
       model[i]->setBinaryOutcome();
-  }
-
-  OrderedMap<std::string, RangeList> geneRange;
-  if (FLAG_geneFile.size()) {
-    int ret = loadGeneFile(FLAG_geneFile.c_str(), FLAG_gene.c_str(), &geneRange);
-    if (ret < 0 || geneRange.size() == 0) {
-      fprintf(stderr, "Error loading gene file or gene file is empty!\n");
-      return -1;
-    } else {
-      fprintf(stderr, "Loaded %u genes!\n", geneRange.size());
-    }
   }
 
   Matrix phenotypeMatrix;
@@ -686,60 +734,78 @@ int main(int argc, char** argv){
 
   FILE* fLog = fopen( (FLAG_outPrefix + ".log").c_str(), "wt");
 
-  Matrix genotype;
-
   // determine VCF file reading pattern
   // current support:
   // * line by line ( including range selection)
   // * gene by gene
-  // will support range by range
+  // * range by range
+  std::string rangeMode = "Single";
+  if (FLAG_geneFile.size() && (FLAG_setFile.size() || FLAG_setList.size())) {
+    fprintf(stderr, "Cannot specify both gene file and set file.\n");
+    abort();
+  }
+
+  OrderedMap<std::string, RangeList> geneRange;
+  if (FLAG_geneFile.size()) {
+    rangeMode = "Gene";
+    int ret = loadGeneFile(FLAG_geneFile.c_str(), FLAG_gene.c_str(), &geneRange);
+    if (ret < 0 || geneRange.size() == 0) {
+      fprintf(stderr, "Error loading gene file or gene list is empty!\n");
+      return -1;
+    } else {
+      fprintf(stderr, "Loaded %u genes!\n", geneRange.size());
+    }
+  }
+
+  if (FLAG_setFile.size()) {
+    rangeMode = "Range";
+    int ret = loadGeneFile(FLAG_setFile.c_str(), FLAG_set.c_str(), &geneRange);
+    if (ret < 0 || FLAG_set.size() == 0) {
+      fprintf(stderr, "Error loading set file or set list is empty!\n");
+      return -1;
+    } else {
+      fprintf(stderr, "Loaded %u genes!\n", geneRange.size());
+    }
+  }
+  if (FLAG_setList.size()) {
+    rangeMode = "Range";
+    int ret = appendListToRange(FLAG_setList, &geneRange);
+    if (ret < 0) {
+      fprintf(stderr, "Error loading set list or set list is empty!\n");
+      return -1;
+    };
+  }
+
+
+  Matrix genotype;
   std::string buf; // we put site sinformation here
   buf.resize(1024);
 
-  if (!geneRange.size()) { // use line by line mode
-    
+  // we have three modes:
+  // * single variant reading, single variant test
+  // * range variant reading, single variant test
+  // * range variant reading, group variant test
+  if (rangeMode == "Single" && singleVariantMode) { // use line by line mode
     buf = "CHROM\tPOS\tREF\tALT\t";
     // output headers
     for (int m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf.c_str());
     };
 
-    int lineNo = 0;
-    while (vin.readRecord()) {
-      lineNo ++;
-      if (lineNo % 1000 == 0) {
-        fprintf(stderr, "Processing line %d...\r", lineNo);
-      };
-      
-      VCFRecord& r = vin.getVCFRecord();
-      VCFPeople& people = r.getPeople();
-      VCFIndividual* indv;
-
-      buf = r.getChrom();
-      buf += '\t';
-      buf += r.getPosStr();
-      buf += '\t';
-      buf += r.getRef();
-      buf += '\t';
-      buf += r.getAlt();
-      buf += '\t';
-
-      genotype.Dimension(people.size(), 1);
-
-      // e.g.: Loop each (selected) people in the same order as in the VCF
-      for (int i = 0; i < people.size(); i++) {
-        indv = people[i];
-        // get GT index. if you are sure the index will not change, call this function only once!
-        int GTidx = r.getFormatIndex("GT");
-        if (GTidx >= 0) {
-          //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
-          genotype[i][0] = indv->justGet(GTidx).getGenotype();
-          // // fprintf(stderr, "%d ", int(genotype[i][0]));
-        } else {
-          fprintf(stderr, "Cannot find GT field at line %d!\n", lineNo);
-          continue;
-        }
+    while (true) {
+      buf.clear();
+      int ret = extractSiteGenotype(&vin, &genotype, &buf);
+      if (ret == -2) { // reach file end
+        break;
       }
+      if (ret < 0) {
+        fprintf(stderr, "Extract genotype failed at site: %s!\n", buf.c_str());
+        continue;
+      };
+      if (genotype.rows == 0) {
+        fprintf(fLog, "Extract [ %s ] has 0 variants, skipping\n", buf.c_str());
+        continue;
+      };
 
       // impute missing genotypes
       imputeGenotypeToMean(&genotype);
@@ -750,24 +816,68 @@ int main(int argc, char** argv){
         model[m]->fit(phenotypeMatrix, genotype);
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
-
     }
-  } else { // read by gene mode
-    buf = "GENE\t";
+  } else if (rangeMode != "Single" && singleVariantMode) {
+    buf = rangeMode;
+    buf += '\t';
+    buf += "CHROM\tPOS\tREF\tALT\t";
     // output headers
     for (int m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf.c_str());
     };
     std::string geneName;
     RangeList rangeList;
-    for ( int i = 0; i < geneRange.size(); ++i){
+    for ( int i = 0; i < geneRange.size(); ++i) {
+      geneRange.at(i, &geneName, &rangeList);
+      vin.setRange(rangeList);
+
+      while (true) {
+        buf = geneName;
+        buf += '\t';
+
+        int ret;
+        ret = extractSiteGenotype(&vin, &genotype, &buf);
+        if (ret == -2) // reach end of this region
+          break;
+        if (ret < 0) {
+          fprintf(stderr, "Extract genotype failed for gene %s!\n", geneName.c_str());
+          continue;
+        };
+        if (genotype.rows == 0) {
+          fprintf(fLog, "Gene %s has 0 variants, skipping\n", geneName.c_str());
+          continue;
+        };
+
+        // impute missing genotypes
+        imputeGenotypeToMean(&genotype);
+
+        for (int m = 0; m < model.size(); m++) {
+          model[m]->reset();
+          model[m]->fit(phenotypeMatrix, genotype);
+          model[m]->writeOutput(fOuts[m], buf.c_str());
+        };
+      }
+    }
+  } else if (rangeMode != "Single" && groupVariantMode) {// read by gene mode
+    buf = rangeMode;
+    buf += '\t';
+    if (singleVariantMode) {
+      buf += "CHROM\tPOS\tREF\tALT\t";
+    }
+    // output headers
+    for (int m = 0; m < model.size(); m++) {
+      model[m]->writeHeader(fOuts[m], buf.c_str());
+    };
+    std::string geneName;
+    RangeList rangeList;
+    for ( int i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
       vin.setRange(rangeList);
 
       buf = geneName;
       buf += '\t';
 
-      int ret = extractGenotype(vin, &genotype);
+      int ret = extractGenotype(&vin, &genotype);
       if (ret < 0) {
         fprintf(stderr, "Extract genotype failed for gene %s!\n", geneName.c_str());
         continue;
@@ -786,78 +896,16 @@ int main(int argc, char** argv){
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
     }
+  } else{
+    fprintf(stderr, "Unsupported reading mode and test modes!\n");
+    abort();
   }
+
+  // resource cleaning up
   for (int m = 0; m < model.size() ; ++m ) {
     fclose(fOuts[m]);
   }
   delete[] fOuts;
-
-  // // iterator this range
-
-  // // Vector* pheno;
-  // // pheno = data.extractPhenotype();
-  // double freqUpper, freqLower;
-  // if (FLAG_freqUpper == 0) {
-  //     freqUpper = 1.0;
-  // } else {
-  //     freqUpper = FLAG_freqUpper;
-  // };
-  // if (FLAG_freqLower == 0) {
-  //     freqLower = -1.0;
-  // } else {
-  //     freqLower = FLAG_freqLower;
-  // }
-
-  // // load all ranges
-
-  // // prepare output file
-  // // for each range, load genotype
-  // // do test
-
-  // // finish
-
-
-  // Collapsor collapsor;
-  // if (FLAG_set == "") {
-  //     // single variant test for each marker
-  //     // collapsor.setCollapsingStrategy(Collapsor::NAIVE);
-  // } else {
-  //     // single variant test for a set of markers using collapsing
-  //     collapsor.setSetFileName(FLAG_set.c_str());
-  // }
-
-  // // TODO quantative trait models will be added later.
-  // if (!data.isCaseControlPhenotype()) {
-  //     fprintf(stderr, "Phenotype is not case control data, however, we will dichotomized it using threshold 0.0 .\n");
-  //     data.dichotomizedPhenotype(0.0);
-  // }
-
-
-  // // output part
-  // FILE* fout = fopen("results.txt", "w");
-  // fputs("MarkerName\t", fout);
-  // for (int m = 0; m < model.size(); m++){
-  //     if (m) fputc('\t', fout);
-  //     model[m]->writeHeader(fout);
-  // }
-  // fputc('\n', fout);
-
-  // collapsor.setFrequencyCutoff( (FLAG_freqFromControl ? FREQ_CONTORL_ONLY : FREQ_ALL), freqLower, freqUpper);
-
-  // while(collapsor.iterateSet(vin, &data)){ // now data.collapsedGenotype have all available genotypes
-  //                                          // need to collapsing it carefully.
-  //     // parallel part
-  //     for (int m = 0; m < model.size(); m++){
-  //         model[m]->reset();
-  //         model[m]->fit(data);
-
-  //         // output raw data
-  //         if (FLAG_outputRaw != "") {
-  //             std::string& setName = collapsor.getCurrentSetName();
-  //             std::string out = FLAG_outputRaw + "." + setName;
-  //             data.writeRawData(out.c_str());
-  //         }
-  //     };
 
   fclose(fLog);
 

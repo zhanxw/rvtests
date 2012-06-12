@@ -2,6 +2,10 @@
 
 LinearRegressionScoreTest::LinearRegressionScoreTest():pvalue(0.0){};
 
+/**
+ * this procedure is essentially:
+ * m += v1 * t(v2)
+ */
 static void MatrixPlusEqualV1andV2T(Matrix& m, Vector& v1, Vector& v2){
     if (m.rows != v1.Length() || m.cols != v2.Length()){
         fprintf(stderr, "Dimension does not match!");

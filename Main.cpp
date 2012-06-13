@@ -662,6 +662,10 @@ int main(int argc, char** argv){
     vin.setSiteMACMin(FLAG_siteMACMin);
     fprintf(stderr, "Set site minimum MAC to %d\n", FLAG_siteDepthMax);
   };
+  if (FLAG_annoType != "") {
+    vin.setAnnoType(FLAG_annoType.c_str());
+    fprintf(stderr, "Set annotype type filter to %s\n", FLAG_annoType.c_str());
+  };
   if (FLAG_freqUpper > 0) {
     vin.setSiteFreqMax(FLAG_freqUpper);
     fprintf(stderr, "Set upper frequency limit to %f\n", FLAG_freqUpper);

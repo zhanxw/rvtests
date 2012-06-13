@@ -707,11 +707,11 @@ int main(int argc, char** argv){
   std::vector<double> phenotypeInOrder;
   rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeInOrder);
   if (vcfSampleToDrop.size()) {
-    fprintf(stderr, "Drop %zu sample from VCF file since mismatch their phenotypes\n", vcfSampleToDrop.size());
+    fprintf(stderr, "Drop %zu sample from VCF file since we don't have their phenotypes\n", vcfSampleToDrop.size());
     vin.excludePeople(vcfSampleToDrop);
   }
   if (phenotypeInOrder.size() != phenotype.size()) {
-    fprintf(stderr, "Drop %d sample from phenotype fil since mismatch their VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
+    fprintf(stderr, "Drop %d sample from phenotype file since we don't have their genotpyes from VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
   }
 
   bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
@@ -801,7 +801,10 @@ int main(int argc, char** argv){
       }
 
       if (modelName == "cmc") {
-        model.push_back( new VariableThreshold );
+        model.push_back( new VariableThresholdCMC );
+      } else if (modelName == "price") {
+        model.push_back( new VariableThresholdPrice(10000) );
+        // TODO
       } else if (modelName == "zeggini") {
         //model.push_back( new VariableThresholdFreqTest );
         // TODO

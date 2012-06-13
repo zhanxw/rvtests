@@ -28,6 +28,9 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out);
 
 void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq);
 
+void permute(Vector* v);
+void centerVector(Vector* v);
+
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
@@ -647,10 +650,168 @@ private:
   int numVariant;
 }; // FpTest
 
-class VariableThreshold: public ModelFitter{
+/**
+ * Implementation of Alkes Price's VT
+ */
+class VariableThresholdPrice: public ModelFitter{
 public:
-VariableThreshold():model(NULL),modelLen(0),modelCapacity(0){
-    this->modelName = "VariableThreshold";
+VariableThresholdPrice(int nPerm): nPerm(nPerm) {
+    this->modelName = "VariableThresholdPrice";
+  };
+  // fitting model
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
+    convertToReferenceAlleleCount(&sortedGenotype);
+    collapseGenotype(&sortedGenotype);
+    transpose(&sortedGenotype); // now each row is a collapsed genoype at certain frequency cutoff 
+    copyPhenotype(phenotype, &this->phenotype);
+
+    this->zmax = 100.0;
+    double z;
+    
+    if (isBinaryOutcome()) {
+      for (int i = 0; i < sortedGenotype.rows; ++i) {
+        z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[i]);
+        if ( z > this->zmax) {
+          zmax = z;
+          this->optimalFreq = freq[i];
+        }
+      }
+      
+      // begin permutation
+      for (int i = 0; i < nPerm; ++i) {
+        permute(&this->phenotype);
+        ++actualPerm;
+        for (int j = 0; j < sortedGenotype.rows; ++j){
+          z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[j]);
+          if (z > this->zmax) {
+            ++ this->numX;
+          };
+        }
+      };
+      
+    } else {
+      centerVector(&this->phenotype);
+      for (int i = 0; i < sortedGenotype.rows; ++i) {
+        z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[i]);
+        if ( z > this->zmax){
+          zmax = z;
+          this->optimalFreq = freq[i];
+        }
+      }
+      
+      // begin permutation
+      for (int i = 0; i < nPerm; ++i) {
+        permute(&this->phenotype);
+        ++actualPerm;
+        for (int j = 0; j < sortedGenotype.rows; ++j){
+          z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[j]);
+          if (z > this->zmax) {
+            ++ this->numX;
+          };
+        }
+      };
+    };
+
+    fitOK = true;
+    return 0;
+  };
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fputs("NumPerm\tActualPerm\tOptimalFreq\tZmax\tNumX\tPvalue\n", fp);
+  };
+  // write model output
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "%d\t%d\t%g\t%g\t%d\t%g\n",
+            this->nPerm,
+            this->actualPerm,
+            this->optimalFreq,
+            this->zmax,
+            this->numX,
+            this->calculatePvalue()
+            );
+  };
+  void reset() {
+    fitOK = true;
+    this->zmax = 100.0;
+    this->pvalue = 100.0;
+    this->actualPerm = 0;
+    this->numX = 0;
+  };
+private:
+  /**
+   * Convert genotype back to reference allele count
+   * e.g. genotype 2 is reference allele count 0
+   */
+  void convertToReferenceAlleleCount(Matrix* g){
+    Matrix& m = *g;
+    for (int i = 0; i < m.rows; ++i) {
+      for (int j = 0; j < m.cols; ++j) {
+        m[i][j] = 2 - m[i][j];
+      }
+    }
+  };
+  /**
+   * @param g is people by marker matrix
+   * we will collpase left to right, column by column
+   * it is mimic the behavior of setting different frequency cutoff
+   */
+  void collapseGenotype(Matrix* g){
+    Matrix& m = *g;
+    for (int i = 0; i < m.rows; ++i) {
+      for (int j = 1; j < m.cols; ++j) {
+        m[i][j] += m[i][j-1];
+      }
+    }
+  }
+  void transpose(Matrix* g) {
+    Matrix tmp = *g;
+    g->Transpose(tmp);
+  };
+  double calculateZForBinaryTrait(Vector& y, Vector& x){
+    double ret = 0;
+    int n = y.Length();
+    for (int i = 0; i < n; ++i) {
+      if (y[i]) ret += x[i];
+    }
+    return ret;
+  };
+  double calculateZForContinuousTrait(Vector& y, Vector& x){
+    double ret = 0;
+    int n = y.Length();
+    for (int i = 0; i < n; ++i) {
+      ret += x[i] * y[i];
+    }
+    return ret;
+  };
+  double calculatePvalue() {
+    return (1.0 + numX) / (1.0 + actualPerm);
+  };
+private:
+  Matrix sortedGenotype;
+  std::vector<double> freq;
+  bool fitOK;
+  Vector phenotype;
+  double zmax;
+  double pvalue;
+  int nPerm;
+  int actualPerm;
+  int numX; // x is the number of permutation for which Zmax is higher in unpermuted data than permutated data.
+  double optimalFreq; // the frequency cutoff in unpermutated data which give smallest pvalue
+}; // VariableThresholdPrice
+
+
+/**
+ * This is variable threshold applying CMC test
+ * NOTE: p-value is analytical (No permutation)
+ *       Be cautious about the type-1 error
+ */
+class VariableThresholdCMC: public ModelFitter{
+public:
+VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
+    this->modelName = "VariableThresholdCMC";
     this->resize(32);
   };
   void resize(int n) {
@@ -1241,9 +1402,9 @@ void order(std::vector<double>& freq, std::vector<int>* ord) {
  * e.g.
  * @param in P by 3 matrix, then @param out will be 3 columns too
  * if @param freq = (0.1, 0.2, 0.3) meaning
- * @param out column 0 using 0.1 frequency upper bound, and the smallest frequency of marker is 0.1
- * @param out column 1 using 0.2 frequency upper bound, and the second largest frequency of marker is 0.2
- * @param out column 2 using 0.3 frequency upper bound, and the largest frequency of marker is 0.3
+ * @param out column 0 using 0.1 frequency upper bound, and the smallest frequency of marker is 0.1 (@param freq[0])
+ * @param out column 1 using 0.2 frequency upper bound, and the second largest frequency of marker is 0.2 (@param freq[1])
+ * @param out column 2 using 0.3 frequency upper bound, and the largest frequency of marker is 0.3 (@param freq[2])
  */
 void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq) {
   assert(out && freq);
@@ -1361,5 +1522,29 @@ void progressiveMadsonBrowningCollapse(Matrix* d, Matrix* out, std::vector<doubl
     }
   }
 };
+
+void permute(Vector* vec){
+  Vector& v = *vec;
+  int n = v.Length();
+  double tmp;
+  for (int i = n - 1; i >= 1; --i) {
+    // pick j from 0 <= j <= i
+    int j = rand() % (i+1);
+    if (i != j) {
+      tmp = v[i];
+      v[i] = v[j];
+      v[j] = tmp;
+    }
+  }
+};
+
+void centerVector(Vector* v){
+  double avg = v->Average();
+  int n = v->Length();
+  for (int i = 0; i < n; ++i) {
+    (*v)[i] -= avg;
+  };
+};
+
 
 #endif /* _MODELFITTER_H_ */

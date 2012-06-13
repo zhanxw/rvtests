@@ -8,6 +8,7 @@
 
 #include "regression/LogisticRegression.h"
 #include "regression/LogisticRegressionScoreTest.h"
+#include "regression/LogisticRegressionPermutationTest.h"
 #include "regression/LinearRegression.h"
 #include "regression/LinearRegressionScoreTest.h"
 #include "regression/Skat.h"
@@ -18,10 +19,12 @@
 // they all take people by marker matrix
 // and they won't take special care of missing genotypes
 double getMarkerFrequency(Matrix& in, int col);
+double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col);
 
-void cmcCollapse(Matrix* in, Matrix* out);
-void zegginiCollapse(Matrix* in, Matrix* out);
-void madsonbrowningCollapse(Matrix* in, Matrix* out);
+void cmcCollapse(Matrix& in, Matrix* out);
+void zegginiCollapse(Matrix& in, Matrix* out);
+void fpCollapse(Matrix& in, Matrix* out);
+void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out);
 
 void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq);
 
@@ -295,24 +298,6 @@ public:
     fitOK = lrst.TestCovariate(intercept, pheno, genotype);
     return (fitOK ? 0 : -1);
   };
-#if 0
-  int fit(VCFData& data) {
-    if (data.covariate && data.covariate->cols > 0) {
-      fitOK = lrst.FitNullModel( *data.covariate, *data.extractPhenotype(), 100);
-      if (!fitOK)
-        return -1;
-
-      fitOK = lrst.TestCovariate( *data.covariate, *data.extractPhenotype(), *data.collapsedGenotype);
-      if (!fitOK)
-        return -1;
-    } else {
-      fitOK = lrst.TestCovariate( *data.collapsedGenotype, *data.extractPhenotype());
-      if (!fitOK)
-        return -1;
-    }
-    return 0;
-  };
-#endif
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
@@ -357,7 +342,7 @@ public:
       pheno[i] = phenotype[i][0];
     }
 
-    cmcCollapse(&genotype, &collapsedGenotype);
+    cmcCollapse(genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(intercept, pheno, 100);
@@ -394,7 +379,6 @@ private:
     return (int)(s);
   }
 
-
   Matrix collapsedGenotype;
   LogisticRegressionScoreTest logistic;
   LinearRegressionScoreTest linear;
@@ -426,7 +410,7 @@ public:
     };
 
     // collapsing
-    cmcCollapse(&genotype, &collapsedGenotype);
+    cmcCollapse(genotype, &collapsedGenotype);
 
     // fit model
     // step 1, fit two by two table
@@ -497,7 +481,7 @@ public:
       pheno[i] = phenotype[i][0];
     }
 
-    zegginiCollapse(&genotype, &collapsedGenotype);
+    zegginiCollapse(genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(intercept, pheno, 100);
@@ -534,13 +518,16 @@ private:
 
 class MadsonBrowningTest: public ModelFitter{
 public:
-  MadsonBrowningTest() {
+MadsonBrowningTest(int nPerm): nPerm(nPerm) {
     this->modelName = "MadsonBrowningTest";
   }
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "NumVariant\tMB.Pvalue\n");
+    if (isBinaryOutcome()) 
+      fprintf(fp, "NumVariant\tEarlyStop\tActualPerm\tOneSideLargeP\tOndeSideLessP\tTwoSideP\n");
+    else
+      fprintf(fp, "NumVariant\tNA\n");
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
@@ -558,7 +545,73 @@ public:
       pheno[i] = phenotype[i][0];
     }
 
-    madsonbrowningCollapse(&genotype, &collapsedGenotype);
+    madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
+
+    if (isBinaryOutcome()) {
+      fitOK = logistic.FitLogisticModel(collapsedGenotype, 1, pheno, this->nPerm,0.0001);
+      if (!fitOK) return -1;
+    } else {
+      fitOK = false;
+      return -1;
+    }
+  };
+
+  // write model output
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()) {
+      if (fitOK){
+        fprintf(fp, "%d\t%s\t%d\t%g\t%g\t%g\n",
+                this->numVariant,
+                logistic.isEarlyStop() ? "Y":"N",
+                logistic.getActualPerm(),
+                logistic.getOneSidePvalueLarge(),
+                logistic.getOneSidePvalueLess(),
+                logistic.getTwoSidedPvalue());
+      } else {
+        fprintf(fp, "%d\tNA\tNA\tNA\tNA\tNA\n", this->numVariant);
+      }
+    } else {
+      fprintf(fp, "%d\tNA\n", this->numVariant);
+    }
+  };
+private:
+  Matrix collapsedGenotype;
+  LogisticRegressionPermutationTest logistic;
+  bool fitOK;
+  int numVariant;
+  int nPerm;
+}; // MadsonBrowningTest
+
+// Danyu Lin's method, using 1/sqrt(p(1-p)) as weight
+// where p is estimated from all samples
+class FpTest: public ModelFitter{
+public:
+  FpTest() {
+    this->modelName = "FpTest";
+  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "NumVariant\tFp.Pvalue\n");
+  };
+  // fitting model
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    this->numVariant = genotype.cols;
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
+    Matrix intercept;
+    intercept.Dimension(genotype.rows, 1);
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i< phenotype.rows; i++){
+      intercept[i][0] = 1.0;
+      pheno[i] = phenotype[i][0];
+    }
+
+    fpCollapse(genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(intercept, pheno, 100);
@@ -592,7 +645,7 @@ private:
   LinearRegressionScoreTest linear;
   bool fitOK;
   int numVariant;
-}; // MadsonBrowningTest
+}; // FpTest
 
 class VariableThreshold: public ModelFitter{
 public:
@@ -1031,10 +1084,23 @@ double getMarkerFrequency(Matrix& in, int col){
   return freq;
 };
 
+double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col){
+  int& numPeople = in.rows;
+  int ac = 0;
+  int an = 0;
+  for (int p = 0; p < numPeople; p++) {
+    if (pheno[p] == 1) continue;
+    if (in[p][col] >= 0) {
+      ac += in[p][col];
+      an += 2;
+    }
+  }
+  double freq = 1.0 * (ac + 1) / (an + 1);
+  return freq;
+};
 
-void cmcCollapse(Matrix* d, Matrix* out){
+void cmcCollapse(Matrix& in, Matrix* out){
   assert(out);
-  Matrix& in = (*d);
   int numPeople = in.rows;
   int numMarker = in.cols;
 
@@ -1051,9 +1117,8 @@ void cmcCollapse(Matrix* d, Matrix* out){
   };
 };
 
-void zegginiCollapse(Matrix* d, Matrix* out){
+void zegginiCollapse(Matrix& in, Matrix* out){
   assert(out);
-  Matrix& in = (*d);
   int numPeople = in.rows;
   int numMarker = in.cols;
 
@@ -1069,7 +1134,54 @@ void zegginiCollapse(Matrix* d, Matrix* out){
   };
 };
 
-void madsonbrowningCollapse(Matrix* d, Matrix* out){
+/**
+ * @param genotype : people by marker matrix
+ * @param phenotype: binary trait (0 or 1)
+ * @param out: collapsed genotype
+ */
+void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out){
+  assert(out);
+  int& numPeople = genotype.rows;
+  int numMarker = genotype.cols;
+
+  out->Dimension(numPeople, 1);
+  out->Zero();
+
+  for (int m = 0; m < numMarker; m++) {
+    // calculate weight
+    double freq = getMarkerFrequencyFromControl(genotype, phenotype, m);
+    if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
+    double weight = 1.0 / sqrt(freq * (1.0-freq));
+    // fprintf(stderr, "freq = %f\n", freq);
+    
+    for (int p = 0; p < numPeople; p++) {
+      (*out)[p][0] += genotype[p][m] * weight;
+    }
+  };
+};
+
+void fpCollapse(Matrix& in, Matrix* out){
+  assert(out);
+  int& numPeople = in.rows;
+  int numMarker = in.cols;
+
+  out->Dimension(numPeople, 1);
+  out->Zero();
+
+  for (int m = 0; m < numMarker; m++) {
+    // calculate weight
+    double freq = getMarkerFrequency(in, m);
+    if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
+    double weight = 1.0 / sqrt(freq * (1.0-freq));
+    // fprintf(stderr, "freq = %f\n", freq);
+    
+    for (int p = 0; p < numPeople; p++) {
+      (*out)[p][0] += in[p][m] * weight;
+    }
+  };
+};
+
+void madsonBrowningCollapse(Matrix* d, Matrix* out){
   assert(out);
   Matrix& in = (*d);
   int& numPeople = in.rows;

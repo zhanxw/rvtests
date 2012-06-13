@@ -77,6 +77,28 @@ void banner(FILE* fp) {
 };
 
 /**
+ * Parse "mb" to {"mb"}
+ * Parse "mb(10000, 0.1)" to {"mb", "10000", 0.1}
+ * Parse "mb..." and return -1 for failure.
+ * @return 0 for success
+ */
+int parseModel(std::string& flag, std::string* modelName, std::vector<std::string>* params){
+  size_t l = flag.find('(');
+  if ( l == std::string::npos){
+    *modelName = flag;
+    return 0;
+  }
+  *modelName = flag.substr(0, l);
+  if (flag[flag.size() - 1] != ')'){
+    return -1;
+  }
+  std::string allParam = flag.substr(l + 1, flag.size() - 1 - 1 -l);
+  int ret = stringTokenize(allParam, ',', params);
+  if (ret >= 0)
+    return 0;
+};
+
+/**
  * @return number of phenotypes read. -1 if errors
  *
  */
@@ -713,24 +735,26 @@ int main(int argc, char** argv){
   }
 
   std::vector< ModelFitter* > model;
+  
+  std::string modelName;
+  std::vector< std::string> modelParams;
   std::vector< std::string> argModelName;
 
-  // if (FLAG_rangeToTest == "") {
-  //     model.push_back (new SingleVariantHeader);
-  // } else {
-  //     collapsor.setSetFileName(FLAG_set.c_str());
-  //     model.push_back (new CollapsingHeader);
-  // }
-
+  //if (parseModel(FLAG_modelSingle, &modelName, &modelParams)
   if (FLAG_modelSingle != "") {
     stringTokenize(FLAG_modelSingle, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
-      if (argModelName[i] == "wald") {
+      if (parseModel(argModelName[i], &modelName, &modelParams)){
+        fprintf(stderr, "Specified an invalid model: %s\n", argModelName[i].c_str());
+        continue;
+      }
+      
+      if (modelName == "wald") {
         model.push_back( new SingleVariantWaldTest);
-      } else if (argModelName[i] == "score") {
+      } else if (modelName == "score") {
         model.push_back( new SingleVariantScoreTest);
-      } else if (argModelName[i] == "fisher") {
-        //model.push_back( new SingleVariantScoreTest );
+      } else if (modelName == "fisher") {
+        // model.push_back( new SingleVariantScoreTest );
         // TODO: add fisher test
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
@@ -742,16 +766,22 @@ int main(int argc, char** argv){
   if (FLAG_modelBurden != "") {
     stringTokenize(FLAG_modelBurden, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
-      if (argModelName[i] == "cmc") {
+      if (parseModel(argModelName[i], &modelName, &modelParams)){
+        fprintf(stderr, "Specified an invalid model: %s\n", argModelName[i].c_str());
+        continue;
+      }
+
+      if (modelName == "cmc") {
         model.push_back( new CMCTest );
-      } else if (argModelName[i] == "zeggini") {
+      } else if (modelName == "zeggini") {
         model.push_back( new ZegginiTest );
-      } else if (argModelName[i] == "mb") {
-        model.push_back( new MadsonBrowningTest );
-        // NOTE: use may use different frequency (not freq from control),
-        // so maybe print a warning here?
-      } else if (argModelName[i] == "exactCMC") {
+      } else if (modelName == "mb") {
+        fprintf(stderr, "Default MadsonBrowning test is 10000 times\n");
+        model.push_back( new MadsonBrowningTest(10000) );
+      } else if (modelName == "exactCMC") {
         model.push_back( new CMCFisherExactTest );
+      } else if (modelName == "fp") {
+        model.push_back( new FpTest );
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
         abort();
@@ -761,18 +791,23 @@ int main(int argc, char** argv){
   if (FLAG_modelVT != "") {
     stringTokenize(FLAG_modelVT, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
-      if (argModelName[i] == "cmc") {
+      if (parseModel(argModelName[i], &modelName, &modelParams)){
+        fprintf(stderr, "Specified an invalid model: %s\n", argModelName[i].c_str());
+        continue;
+      }
+
+      if (modelName == "cmc") {
         model.push_back( new VariableThreshold );
-      } else if (argModelName[i] == "zeggini") {
+      } else if (modelName == "zeggini") {
         //model.push_back( new VariableThresholdFreqTest );
         // TODO
-      } else if (argModelName[i] == "mb") {
+      } else if (modelName == "mb") {
         //////////!!!
         // model.push_back( new VariableThresholdFreqTest );
-      } else if (argModelName[i] == "skat") {
+      } else if (modelName == "skat") {
         //model.push_back( new VariableThresholdFreqTest );
       } else {
-        fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
+        fprintf(stderr, "Unknown model name: %s \n.", modelName.c_str());
         abort();
       };
     }
@@ -780,9 +815,14 @@ int main(int argc, char** argv){
   if (FLAG_modelKernel != "") {
     stringTokenize(FLAG_modelKernel, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
-      if (argModelName[i] == "skat") {
+      if (parseModel(argModelName[i], &modelName, &modelParams)){
+        fprintf(stderr, "Specified an invalid model: %s\n", argModelName[i].c_str());
+        continue;
+      }
+      
+      if (modelName == "skat") {
         model.push_back( new SkatTest );
-      } else if (argModelName[i] == "kbac") {
+      } else if (modelName == "kbac") {
         model.push_back( new KbacTest );
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());

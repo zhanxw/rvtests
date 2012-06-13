@@ -121,7 +121,7 @@ public:
       if (!isBinaryOutcome()) {
         double se = sqrt(linear.GetCovB()[1][1]);
         fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", linear.GetCovEst()[1], se, linear.GetAsyPvalue()[1]);
-      } else {        
+      } else {
         double se = sqrt(logistic.GetCovB()[0][0]);
         fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", logistic.GetCovEst()[1], se, logistic.GetAsyPvalue()[1]);
       }
@@ -527,13 +527,18 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    if (isBinaryOutcome()) 
-      fprintf(fp, "NumVariant\tEarlyStop\tActualPerm\tOneSideLargeP\tOndeSideLessP\tTwoSideP\n");
+    if (isBinaryOutcome())
+      fprintf(fp, "NumVariant\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
     else
       fprintf(fp, "NumVariant\tNA\n");
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
+    if (!isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -550,27 +555,56 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
 
     madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
 
-    if (isBinaryOutcome()) {
-      fitOK = logistic.FitLogisticModel(collapsedGenotype, 1, pheno, this->nPerm,0.0001);
-      if (!fitOK) return -1;
-    } else {
-      fitOK = false;
-      return -1;
-    }
-  };
 
+    fitOK = logistic.FitNullModel(intercept, pheno, 100);
+    if (!fitOK) return -1;
+    fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+    if (!fitOK) return -1;
+    // record observed stat
+    this->stat = logistic.GetStat(); // a chi-dist
+
+    // permutation part
+    int failed = 0;
+    for (int i = 0; i < this->nPerm; ++i) {
+      permute(&pheno);
+      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      if (!fitOK) {
+        if (failed < 10) {
+          failed++;
+          continue;
+        }else {
+          fitOK = false;
+          return -1;
+        }
+      }
+      ++ this->actualPerm;
+      // record new stats
+      double pStat = logistic.GetStat();
+      if (pStat > this->stat) {
+        this->numX ++;
+      }
+    } // end permutation
+    return (fitOK ? 0 : -1);
+  };
+  void reset() {
+    this->actualPerm = 0;
+    this->numX = 0;
+  }
+  double getPvalue() {
+    return (1.0 + this->numX) / (1.0 + this->actualPerm);
+  }
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (isBinaryOutcome()) {
       if (fitOK){
-        fprintf(fp, "%d\t%s\t%d\t%g\t%g\t%g\n",
+        fprintf(fp, "%d\t%d\t%d\t%g\t%d\t%g\n",
                 this->numVariant,
-                logistic.isEarlyStop() ? "Y":"N",
-                logistic.getActualPerm(),
-                logistic.getOneSidePvalueLarge(),
-                logistic.getOneSidePvalueLess(),
-                logistic.getTwoSidedPvalue());
+                this->nPerm,
+                this->actualPerm,
+                this->stat,
+                this->numX,
+                this->getPvalue());
       } else {
         fprintf(fp, "%d\tNA\tNA\tNA\tNA\tNA\n", this->numVariant);
       }
@@ -580,10 +614,13 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
   };
 private:
   Matrix collapsedGenotype;
-  LogisticRegressionPermutationTest logistic;
+  LogisticRegressionScoreTest logistic;
   bool fitOK;
   int numVariant;
   int nPerm;
+  int numX;
+  int actualPerm;
+  double stat;
 }; // MadsonBrowningTest
 
 // Danyu Lin's method, using 1/sqrt(p(1-p)) as weight
@@ -663,12 +700,12 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
     rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     convertToReferenceAlleleCount(&sortedGenotype);
     collapseGenotype(&sortedGenotype);
-    transpose(&sortedGenotype); // now each row is a collapsed genoype at certain frequency cutoff 
+    transpose(&sortedGenotype); // now each row is a collapsed genoype at certain frequency cutoff
     copyPhenotype(phenotype, &this->phenotype);
 
     this->zmax = 100.0;
     double z;
-    
+
     if (isBinaryOutcome()) {
       for (int i = 0; i < sortedGenotype.rows; ++i) {
         z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[i]);
@@ -677,7 +714,7 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
           this->optimalFreq = freq[i];
         }
       }
-      
+
       // begin permutation
       for (int i = 0; i < nPerm; ++i) {
         permute(&this->phenotype);
@@ -689,7 +726,7 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
           };
         }
       };
-      
+
     } else {
       centerVector(&this->phenotype);
       for (int i = 0; i < sortedGenotype.rows; ++i) {
@@ -699,7 +736,7 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
           this->optimalFreq = freq[i];
         }
       }
-      
+
       // begin permutation
       for (int i = 0; i < nPerm; ++i) {
         permute(&this->phenotype);
@@ -992,17 +1029,17 @@ public:
     }
     if (isBinaryOutcome()) {
       fitOK = logistic.FitLogisticModel(X, phenotype, 100);
-      if (!fitOK) {                                                                                                          
-        return -1;                                                                                                           
-      }                                                                                                                      
-      ynull = logistic.GetPredicted();                                                                                             
-      v = logistic.GetVariance();         
+      if (!fitOK) {
+        return -1;
+      }
+      ynull = logistic.GetPredicted();
+      v = logistic.GetVariance();
     } else {
       fitOK = linear.FitLinearModel(X, phenotype);
-      if (!fitOK) {                                                                                                          
-        return -1;                                                                                                           
-      }                                                                                                                      
-      ynull = linear.GetPredicted();                                                                                             
+      if (!fitOK) {
+        return -1;
+      }
+      ynull = linear.GetPredicted();
       v.Dimension(genotype.rows);
       for (int i = 0; i < genotype.rows; ++i) {
         v[i] = linear.GetSigma2();
@@ -1023,7 +1060,7 @@ public:
       if (isBinaryOutcome() ) {
         fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);
       } else {
-        fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);        
+        fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);
       }
     }
   };
@@ -1043,7 +1080,7 @@ private:
 
 class KbacTest: public ModelFitter{
 public:
-KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
+KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
     this->modelName = "KBAC";
   };
   ~KbacTest() {
@@ -1067,9 +1104,9 @@ KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0
     }
 
     this->resize(genotype.rows, genotype.cols);
-    this->nn = 0;
+    this->nn = this->nPerm;
     this->qq = 1;
-    this->aa = 0.05;
+    this->aa = 0.0;
     this->mafUpper = 1.0;
 
     for (int j = 0; j < genotype.cols; ++j) {
@@ -1083,7 +1120,7 @@ KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0
     for (int j = 0; j < genotype.cols; ++j ) {
       mafIn[j] = getMarkerFrequency(genotype, j);
     }
-    
+
     /**
      * nn: number of permutation
      * qq: quiet
@@ -1101,7 +1138,7 @@ KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0
      * twosided: two sided tests or one sided test
      */
     do_kbac_test(&this->pValue, &twosided);
-    
+
     clear_kbac_test();
     this->fitOK = true;
     return 0;
@@ -1115,7 +1152,7 @@ KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0
       if (isBinaryOutcome() ) {
         fprintf(fp, "%f\n", this->pValue);
       } else {
-        fprintf(fp, "%f\n", this->pValue);        
+        fprintf(fp, "%f\n", this->pValue);
       }
     }
   };
@@ -1126,7 +1163,7 @@ KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0
       this->ydatIn = new double[ numPeople];
       this->ylen = numPeople;
       resized = true;
-    } 
+    }
     if (numMarker > this->xcol) {
       delete[] this->mafIn;
       this->mafIn = new double[ numMarker];
@@ -1140,6 +1177,8 @@ KbacTest():xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0
     }
   };
 private:
+  int nPerm;
+
   int nn;
   int qq;
   double aa;
@@ -1165,7 +1204,7 @@ public:
   void writeHeader(FILE* fp, const char* prependString) { // e.g. column headers.
     fputs(prependString, fp);
     fprintf(fp, "FileName");
-    
+
     this->header = prependString;
   }
   // fitting model
@@ -1203,7 +1242,7 @@ public:
     for (int i = 0; i < phenotype.rows; ++i) {
       fputs(prependString, fDump);
       for (int j = 0; j < phenotype.cols; ++j) {
-        if (j) fprintf(fDump, "\t");        
+        if (j) fprintf(fDump, "\t");
         fprintf(fDump, "%f", phenotype[i][j]);
       }
       for (int j = 0; j < genotype.cols; ++j) {
@@ -1314,7 +1353,7 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out){
     if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
     double weight = 1.0 / sqrt(freq * (1.0-freq));
     // fprintf(stderr, "freq = %f\n", freq);
-    
+
     for (int p = 0; p < numPeople; p++) {
       (*out)[p][0] += genotype[p][m] * weight;
     }
@@ -1335,7 +1374,7 @@ void fpCollapse(Matrix& in, Matrix* out){
     if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
     double weight = 1.0 / sqrt(freq * (1.0-freq));
     // fprintf(stderr, "freq = %f\n", freq);
-    
+
     for (int p = 0; p < numPeople; p++) {
       (*out)[p][0] += in[p][m] * weight;
     }
@@ -1358,7 +1397,7 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out){
     if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
     double weight = 1.0 / sqrt(freq * (1.0-freq));
     // fprintf(stderr, "freq = %f\n", freq);
-    
+
     for (int p = 0; p < numPeople; p++) {
       (*out)[p][0] += in[p][m] * weight;
     }
@@ -1379,7 +1418,7 @@ OrderFunction(T& t): v(t) {};
  * @param freq: 0.3, 0.2, 0.1, 0.4
  * will return
  * @param ord:  2, 1, 0, 3
- * 
+ *
  * algorithm:
  * make a pair like this: (0.3, 0), (0.2, 1), (0.1, 2), (0.4, 3)
  * sort by first element:

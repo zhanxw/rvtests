@@ -1,6 +1,6 @@
 /**
    immediately TODO:
-   5. loading phenotype and covariate (need tests now).
+   5. loading covariate (need tests now).
    6. Test CMC
    7. Test VT
    12. Add support multi-thread
@@ -29,8 +29,9 @@
    18. add binary phenotype support
    12. Design command line various models (collapsing method, freq-cutoff)
    4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
+   5. loading phenotype  (need tests now).
 
-   futher TODO:
+   Future TODO:
 
    Not sure if worthy to do:
 
@@ -830,7 +831,7 @@ int main(int argc, char** argv){
       if (modelName == "skat") {
         model.push_back( new SkatTest );
       } else if (modelName == "kbac") {
-        model.push_back( new KbacTest );
+        model.push_back( new KbacTest(10000) );
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
         abort();

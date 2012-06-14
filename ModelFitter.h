@@ -1065,7 +1065,6 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
       permute(&phenoVec);
       ++actualPerm;
       skat.CalculatePValue(phenoVec, ynull, X, v, genotype, weight);
-      this->pValue = skat.GetPvalue();
       s = skat.GetQ();
       if (s > this->stat){
         ++numX ;

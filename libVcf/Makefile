@@ -16,7 +16,7 @@ DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I../base -I${TABIX_INC}
 
 # 'make release' will: clean current build; build with -O4 flags;
 # NOTE: don't use -j flag!
-release: CXXFLAGS = -O4 $(DEFAULT_CXXFLAGS)
+release: CXXFLAGS = -O4 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB) 
 
 debug: CXXFLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)

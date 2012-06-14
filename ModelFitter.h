@@ -993,16 +993,21 @@ private:
 
 class SkatTest: public ModelFitter{
 public:
-  SkatTest() {
+  /* SkatTest(const std::vector<std::string>& param) { */
+SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
+    if (nPerm >0)
+      this->usePermutation = true;
+    this->beta1 = beta1;
+    this->beta2 = beta2;
+
     this->modelName = "Skat";
-  };
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    fprintf(fp, "NMARKER\tQ\tPvalue\n");
+    
   };
   void reset() {
     this->skat.Reset();
+    actualPerm = 0;
+    numX = 0;
+    stat = 0;
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
@@ -1013,7 +1018,7 @@ public:
       double freq = getMarkerFrequency(genotype, i);
       freq = (freq * (genotype.rows * 2 + 1) -1 ) / (genotype.rows *2 );
       if (freq > 1e-30) { // avoid dividing zero
-        weight[i] =  gsl_ran_beta_pdf(freq, 1.0, 25.0);  /// use beta(MAF, 1, 25)
+        weight[i] =  gsl_ran_beta_pdf(freq, this->beta1, this->beta2);  /// default SKAT use beta(MAF, 1, 25)
         weight[i] *= weight[i];
         // fprintf(stderr, "weight(%d, %d, %f ) = %f\n", 1, 25, freq, weight[i]);
       } else {
@@ -1022,20 +1027,23 @@ public:
     };
 
     // get ynulll
+    Vector phenoVec;
+    copyPhenotype(phenotype, &phenoVec);
+    
     // ynull is mean of y (removing genotypes) in model Ynull ~ X (aka Ynull ~ X + 0.0 * G )
     X.Dimension(genotype.rows, 1);
     for (int i = 0; i < genotype.rows; ++i) {
       X[i][0] = 1.0;
     }
     if (isBinaryOutcome()) {
-      fitOK = logistic.FitLogisticModel(X, phenotype, 100);
+      fitOK = logistic.FitLogisticModel(X, phenoVec, 100);
       if (!fitOK) {
         return -1;
       }
       ynull = logistic.GetPredicted();
       v = logistic.GetVariance();
     } else {
-      fitOK = linear.FitLinearModel(X, phenotype);
+      fitOK = linear.FitLinearModel(X, phenoVec);
       if (!fitOK) {
         return -1;
       }
@@ -1047,9 +1055,34 @@ public:
     }
 
     // get Pvalue
-    skat.CalculatePValue(phenotype, ynull, X, v, genotype, weight);
+    skat.CalculatePValue(phenoVec, ynull, X, v, genotype, weight);
     this->pValue = skat.GetPvalue();
+
+    // permuation part
+    this->stat =  skat.GetQ();
+    double s;
+    for (int i = 0; i < this->nPerm; i++) {
+      permute(&phenoVec);
+      ++actualPerm;
+      skat.CalculatePValue(phenoVec, ynull, X, v, genotype, weight);
+      this->pValue = skat.GetPvalue();
+      s = skat.GetQ();
+      if (s > this->stat){
+        ++numX ;
+      }
+    };
     return 0;
+  };
+  double getPvalue() {
+    return (1.0 + numX) / (1.0 + actualPerm);
+  };
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (!usePermutation)
+      fprintf(fp, "NMARKER\tQ\tPvalue\n");
+    else
+      fprintf(fp, "NMARKER\tQ\tPvalue\tActualPerm\tStat\tNumX\tPermPvalue\n");
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
@@ -1057,15 +1090,18 @@ public:
     if (!fitOK){
       fprintf(fp, "%d\tNA\tNA\n", this->weight.Length());
     } else {
-      if (isBinaryOutcome() ) {
+      // binary outcome and quantative trait are similar output
+      if (!usePermutation){
         fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);
       } else {
-        fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);
+        fprintf(fp, "%d\t%g\t%g\t%d\t%g\t%d\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue,
+                this->actualPerm, this->stat, this->numX, this->getPvalue());
       }
     }
   };
-
 private:
+  double beta1;
+  double beta2;
   Matrix X; // n by (p+1) matrix, people by covariate (note intercept is needed);
   Vector v;
   Vector weight;
@@ -1076,6 +1112,12 @@ private:
   bool fitOK;
   double pValue;
   int nMarker;
+  
+  bool usePermutation;
+  int nPerm;
+  int actualPerm;
+  double stat;
+  int numX;
 }; // SkatTest
 
 class KbacTest: public ModelFitter{

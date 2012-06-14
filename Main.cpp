@@ -9,7 +9,7 @@
    14. support VCF specify given locations
    15. region class support union, support region names
 
-   17. add permutation tests
+   17. add permutation tests (mb, skat)
 
    DONE:
    2. support access INFO tag
@@ -113,7 +113,7 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
   while (lr.readLineBySep(&fd, "\t ")){
     ++ lineNo;
     if (fd.size() < 6) {
-      fprintf(stderr, "skip line %d (short of columns)\n", lineNo);
+      fprintf(stderr, "Skip line %d (short of columns) in phenotype file [ %s ]\n", lineNo, fn);
       continue;
     }
     std::string& pid = fd[1];
@@ -472,7 +472,7 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
   while (lr.readLineBySep(&fd, "\t ")){
     ++ lineNo;
     if (fd.size() < 6) {
-      fprintf(stderr, "skip %d line (short of columns).\n", lineNo);
+      fprintf(stderr, "Skip %d line (short of columns) in gene file [ %s ].\n", lineNo, fn);
       continue;
     }
 
@@ -489,7 +489,7 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
 };
 
 
-int appendListToRange(const std::string& FLAG_setList,   OrderedMap<std::string, RangeList>* geneRange){
+int appendListToRange(const std::string& FLAG_setList, OrderedMap<std::string, RangeList>* geneRange){
   std::vector<std::string>fd;
   int ret = stringNaturalTokenize(FLAG_setList, ',', &fd);
   std::string chr;
@@ -505,17 +505,23 @@ int appendListToRange(const std::string& FLAG_setList,   OrderedMap<std::string,
   return ret;
 };
 
-int loadRangeFile(const char* fn, OrderedMap<std::string, RangeList>* rangeMap) {
+int loadRangeFile(const char* fn, const char* givenRangeName, OrderedMap<std::string, RangeList>* rangeMap) {
+  std::set<std::string> rangeSet;
+  makeSet(givenRangeName, ',', &rangeSet);
+  
   OrderedMap<std::string, RangeList>& m = *rangeMap;
   LineReader lr(fn);
   int lineNo = 0;
   std::vector< std::string> fd;
   while (lr.readLineBySep(&fd, "\t ")){
     ++ lineNo;
-    if (fd.size() < 6) {
-      fprintf(stderr, "skip %d line (short of columns).\n", lineNo);
+    if (fd.size() < 2) {
+      fprintf(stderr, "Skip %d line (short of columns) when reading range file [ %s ].\n", lineNo, fn);
       continue;
     }
+    if (rangeSet.size() && rangeSet.find(fd[0]) == rangeSet.end())
+      continue;
+    
     m[ fd[0] ].addRangeList (fd[1].c_str());
   }
   return m.size();
@@ -829,7 +835,7 @@ int main(int argc, char** argv){
       }
       
       if (modelName == "skat") {
-        model.push_back( new SkatTest );
+        model.push_back( new SkatTest(10000, 1.0, 25.0) );
       } else if (modelName == "kbac") {
         model.push_back( new KbacTest(10000) );
       } else {
@@ -887,12 +893,12 @@ int main(int argc, char** argv){
 
   if (FLAG_setFile.size()) {
     rangeMode = "Range";
-    int ret = loadGeneFile(FLAG_setFile.c_str(), FLAG_set.c_str(), &geneRange);
-    if (ret < 0 || FLAG_set.size() == 0) {
+    int ret = loadRangeFile(FLAG_setFile.c_str(), FLAG_set.c_str(), &geneRange);
+    if (ret < 0 || geneRange.size() == 0) {
       fprintf(stderr, "Error loading set file or set list is empty!\n");
       return -1;
     } else {
-      fprintf(stderr, "Loaded %u genes!\n", geneRange.size());
+      fprintf(stderr, "Loaded %u set to tests!\n", geneRange.size());
     }
   }
   if (FLAG_setList.size()) {

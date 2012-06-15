@@ -108,7 +108,8 @@ int parseModel(std::string& flag, std::string* modelName, std::vector<std::strin
  */
 int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
   std::map<std::string, double>& pheno = *p;
-
+  std::map<std::string, int> dup; // duplicates
+  
   std::vector<std::string> fd;
   LineReader lr(fn);
   int lineNo = 0;
@@ -128,10 +129,15 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
         fprintf(stderr, "Missing or invalid phenotype, skipping line %d ... ", lineNo);
       }
     } else {
-      fprintf(stderr, "line %s have duplicated id, skipped...\n", pid.c_str());
+      // fprintf(stderr, "line %s have duplicated id, skipped...\n", pid.c_str());
+      dup[pid] ++;
       continue;
     }
   }
+
+  for (auto iter = dup.begin(); iter != dup.end(); ++iter){
+    fprintf(stderr, "Sample [ %s ] have appeared %d time, removed from phenotype file [ %s ]\n", iter->first.c_str(), iter->second, fn);
+  };
   return pheno.size();
 };
 

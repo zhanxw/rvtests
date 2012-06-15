@@ -1154,9 +1154,10 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
     this->aa = 0.05; 
     this->mafUpper = 1.0; // no need to further prune alleles
 
-    for (int j = 0; j < genotype.cols; ++j) {
-      for (int i = 0; i < genotype.rows; ++i) {
-        xdatIn[j * genotype.cols + i] = genotype[i][j];
+    // genotype is: people by marker
+    for (int i = 0; i < genotype.rows; ++i) {
+      for (int j = 0; j < genotype.cols; ++j) {
+        xdatIn[j * genotype.rows + i] = genotype[i][j];
       }
     }
     for (int i = 0; i < genotype.rows; ++i ) {
@@ -1203,13 +1204,13 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
   };
   void resize(int numPeople, int numMarker) {
     bool resized = false;
-    if (numPeople > this->ylen) {
+    if (numPeople != this->ylen) {
       delete[] this->ydatIn;
       this->ydatIn = new double[ numPeople];
       this->ylen = numPeople;
       resized = true;
     }
-    if (numMarker > this->xcol) {
+    if (numMarker != this->xcol) {
       delete[] this->mafIn;
       this->mafIn = new double[ numMarker];
       this->xcol = numMarker;

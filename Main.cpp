@@ -5,12 +5,12 @@
    7. Test VT
    12. Add support multi-thread
    13. Add optional weight
-
-   14. support VCF specify given locations
-   15. region class support union, support region names
-
-   17. add permutation tests (mb, skat)
-
+   18. Add filtering on GD, GQ
+   19. Add command line support for different imputation methods
+   20. Add rare cover
+   21. Add CMAT
+   22. Add U-statistics
+   
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -30,6 +30,9 @@
    12. Design command line various models (collapsing method, freq-cutoff)
    4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
    5. loading phenotype  (need tests now).
+   14. support VCF specify given locations
+   15. region class support union, support region names
+   17. add permutation tests (mb, skat)
 
    Future TODO:
 
@@ -764,9 +767,8 @@ int main(int argc, char** argv){
         model.push_back( new SingleVariantWaldTest);
       } else if (modelName == "score") {
         model.push_back( new SingleVariantScoreTest);
-      } else if (modelName == "fisher") {
-        // model.push_back( new SingleVariantScoreTest );
-        // TODO: add fisher test
+      } else if (modelName == "exact") {
+        model.push_back( new SingleVariantFisherExactTest);
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
         abort();
@@ -1001,6 +1003,8 @@ int main(int argc, char** argv){
   } else if (rangeMode != "Single" && groupVariantMode) {// read by gene/range mode, group variant test
     buf = rangeMode;
     buf += '\t';
+    buf += "NumVar";
+    buf += '\t';
     
     // output headers
     for (int m = 0; m < model.size(); m++) {
@@ -1025,6 +1029,9 @@ int main(int argc, char** argv){
         continue;
       };
 
+      buf += toString(genotype.rows);
+      buf += '\t';
+      
       // remove monomorphic site
       removeMonomorphicSite(&genotype);
       

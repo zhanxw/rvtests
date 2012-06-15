@@ -31,6 +31,46 @@ void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* 
 void permute(Vector* v);
 void centerVector(Vector* v);
 
+class AdaptivePermutationCheck{
+public:
+  void addStat(double d) {
+    this->stats.push_back(d);
+  }
+  /// compare to @param s, see we can early stop
+  /// Algorithm:
+  /// use existsing permuted stats to obtain a range of 95% confidence interval
+  bool needEarlyStop(double s) {
+    double m, sd;
+    getMeanAndSD(&m, &sd);
+    double lb = m - 1.96 * sd;
+    double ub = m + 1.96 * sd;
+    if ( s < lb ) return true;
+    return false;
+  };
+private:
+  double getMean() {
+    double s = 0;
+    for (int i = 0; i < stats.size(); i++) {
+      s+= this->stats[i];
+    }
+  };
+  void getMeanAndSD(double* mean, double* sd) {
+    if (stats.size() <= 1) {
+      *mean = 0.0;
+      *sd = 0.0;
+      return;
+    }
+    *mean = getMean();
+    double s = 0.0;
+    for (int i = 0; i < stats.size(); ++i) {
+      double tmp = (stats[i] - (*mean));
+      s += (tmp*tmp);
+    }
+    *sd = sqrt( s / (stats.size() - 1));
+  };
+  std::vector<double> stats;
+};
+
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
@@ -122,7 +162,7 @@ public:
         double se = sqrt(linear.GetCovB()[1][1]);
         fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", linear.GetCovEst()[1], se, linear.GetAsyPvalue()[1]);
       } else {
-        double se = sqrt(logistic.GetCovB()[0][0]);
+        double se = sqrt(logistic.GetCovB()[1][1]);
         fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", logistic.GetCovEst()[1], se, logistic.GetAsyPvalue()[1]);
       }
     }
@@ -169,24 +209,6 @@ public:
     fitOK = lrst.TestCovariate(intercept, pheno, genotype);
     return (fitOK ? 0 : -1);
   };
-#if 0
-  int fit(VCFData& data) {
-    if (data.covariate && data.covariate->cols > 0) {
-      fitOK = lrst.FitNullModel( *data.covariate, *data.extractPhenotype(), 100);
-      if (!fitOK)
-        return -1;
-
-      fitOK = lrst.TestCovariate( *data.covariate, *data.extractPhenotype(), *data.collapsedGenotype);
-      if (!fitOK)
-        return -1;
-    } else {
-      fitOK = lrst.TestCovariate( *data.collapsedGenotype, *data.extractPhenotype());
-      if (!fitOK)
-        return -1;
-    }
-    return 0;
-  };
-#endif
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
@@ -202,118 +224,100 @@ private:
   bool fitOK;
 }; // SingleVariantScoreTest
 
-class SingleVariantLogisticWaldTest: public ModelFitter{
+class SingleVariantFisherExactTest: public ModelFitter{
 public:
-  SingleVariantLogisticWaldTest(){
-    this->modelName = "SingleWald";
+  SingleVariantFisherExactTest() {
+    this->modelName = "FisherExact";
   };
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "Beta\tSE\tPvalue");
+    fputs("Fisher.N00\t", fp);
+    fputs("Fisher.N01\t", fp);
+    fputs("Fisher.N10\t", fp);
+    fputs("Fisher.N11\t", fp);
+    fputs("CtrlAF\t", fp);
+    fputs("CaseAF\t", fp);    
+    fputs("Fisher.PvalueTwoSide\t", fp);
+    fputs("Fisher.PvalueLess\t", fp);
+    fputs("Fisher.PvalueGreater\n", fp);
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
-    cbind(&X, &genotype, NULL, true);
-    fitOK = lr.FitLogisticModel(X, phenotype, 100);
-    return (fitOK ? 0 : 1);
-  };
+    if (genotype.cols == 0 || !isBinaryOutcome()) {
+      fitOK = false;
+      return 1;
+    };
 
-#if 0
-  int fit(VCFData& data) {
-    if (data.covariate && data.covariate->cols > 0)
-      cbind(&X, data.genotype, data.covariate, true);
-    else
-      cbind(&X, data.genotype, NULL, true);
+    // fit model
+    caseAC = 0;
+    caseAN = 0;
+    ctrlAC = 0;
+    ctrlAN = 0;
+    // step 1, fit two by two table
+    int numPeople = genotype.rows;
+    for (int i = 0; i < numPeople; i++) {
+      int geno = genotype[i][0];
+      int pheno = phenotype[i][0];
+      if ( !(0 <= geno && geno <= 2) ) continue;
+      if ( !(0 <= pheno && pheno <= 1)) continue;
+      if (pheno == 1) {
+        caseAC += geno;
+        caseAN += 2;
+      } else {
+        ctrlAC += geno;
+        ctrlAN += 2;
+      }
+      
+      if (geno == 0)
+        model.Increment(0, pheno);
+      else
+        model.Increment(1, pheno);        
+    }
 
-    fitOK = lr.FitLogisticModel(X, *data.extractPhenotype(), 100);
-    return (fitOK ? 0 : 1);
+    // step 2, calculate pvalue
+    model.UpdateMarginSum();
+    model.FullFastFisherExactTest();
+
+    this->fitOK = true;
   };
-#endif
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (fitOK) {
-      double se = sqrt(lr.GetCovB()[0][0]);
-      fprintf(fp, "%.3lf\t%.3lf\t%.3lf", lr.GetCovEst()[0], se, lr.GetAsyPvalue()[0]);
-    } else{
-      fputs("NA\tNA\tNA", fp);
+      fprintf(fp, "%d\t", model.Get00());
+      fprintf(fp, "%d\t", model.Get01());
+      fprintf(fp, "%d\t", model.Get10());
+      fprintf(fp, "%d\t", model.Get11());
+      if (ctrlAN == 0) {
+        fprintf(fp, "0\t");
+      } else{
+        fprintf(fp, "%g\t", 1.0 * ctrlAC / ctrlAN);
+      }
+      if (caseAN == 0) {
+        fprintf(fp, "0\t");
+      } else{
+        fprintf(fp, "%g\t", 1.0 * caseAC / caseAN);
+      }
+      fprintf(fp, "%lf\t", model.getPExactTwoSided());
+      fprintf(fp, "%lf\t", model.getPExactOneSidedLess());
+      fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater());
+    } else {
+      fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n");
     }
   };
-private:
-  void cbind(Matrix* out, Matrix* a, Matrix* b, bool addIntercept) {
-    assert(out && a);
-
-    int totalCol = a->cols + (b ? b->cols : 0) + (addIntercept ? 1 : 0);
-    if (b)
-      assert ( a->rows == b->rows);
-    out->Dimension(a->rows, totalCol);
-
-    for (int r = 0; r < a->rows; r ++ ){
-      int beginCol = 0;
-      for (int c = 0; c < a->cols; c++) {
-        (*out)[r][c] = (*a)[r][c];
-      }
-      beginCol += a->cols;
-
-      if (b) {
-        for (int c = 0; c < b->cols; c++) {
-          (*out)[r][c] = (*a)[r][beginCol + c];
-        }
-        beginCol += b->cols;
-      }
-
-      if (addIntercept) {
-        (*out)[r][beginCol] = 1.0;
-      }
-    }
+  void reset() {
+    model.reset();
   };
 private:
-  Matrix X; // geno + 1 + covariate
-  LogisticRegression lr;
+  Table2by2 model;
+  int caseAC;
+  int caseAN;
+  int ctrlAC;
+  int ctrlAN;
+  
   bool fitOK;
-
-}; // SingleVariantLogisticWaldTest
-
-class SingleVariantLogisticScoreTest: public ModelFitter{
-public:
-  SingleVariantLogisticScoreTest(){
-    this->modelName = "SingleScore";
-  };
-
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    fprintf(fp, "Pvalue\n");
-  };
-  // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
-    Matrix intercept;
-    intercept.Dimension(genotype.rows, 1);
-    Vector pheno;
-    pheno.Dimension(phenotype.rows);
-    for (int i = 0; i< phenotype.rows; i++){
-      intercept[i][0] = 1.0;
-      pheno[i] = phenotype[i][0];
-    }
-    fitOK = lrst.FitNullModel(intercept, pheno, 100);
-    if (!fitOK) return -1;
-    fitOK = lrst.TestCovariate(intercept, pheno, genotype);
-    return (fitOK ? 0 : -1);
-  };
-  // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (fitOK)
-      fprintf(fp, "%.3f\n", lrst.GetPvalue());
-    else
-      fputs("NA\n", fp);
-  };
-private:
-  LogisticRegressionScoreTest lrst;
-  bool fitOK;
-}; // SingleVariantLogisticScoreTest
-
+}; // SingleVariantFisherExactTest
 
 class CMCTest: public ModelFitter{
 public:
@@ -1147,8 +1151,8 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
     this->resize(genotype.rows, genotype.cols);
     this->nn = this->nPerm;
     this->qq = 1;
-    this->aa = 0.0;
-    this->mafUpper = 1.0;
+    this->aa = 0.05; 
+    this->mafUpper = 1.0; // no need to further prune alleles
 
     for (int j = 0; j < genotype.cols; ++j) {
       for (int i = 0; i < genotype.rows; ++i) {

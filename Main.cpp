@@ -1035,7 +1035,7 @@ int main(int argc, char** argv){
         continue;
       };
 
-      buf += toString(genotype.rows);
+      buf += toString(genotype.cols);
       buf += '\t';
       
       // remove monomorphic site

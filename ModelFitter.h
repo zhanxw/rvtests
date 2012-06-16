@@ -1150,14 +1150,22 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
 
     this->resize(genotype.rows, genotype.cols);
     this->nn = this->nPerm;
-    this->qq = 1;
+    this->qq = 0;
     this->aa = 0.05; 
     this->mafUpper = 1.0; // no need to further prune alleles
-
+    this->twosided = 1;
     // genotype is: people by marker
     for (int i = 0; i < genotype.rows; ++i) {
       for (int j = 0; j < genotype.cols; ++j) {
-        xdatIn[j * genotype.rows + i] = genotype[i][j];
+        // note: KBAC package main.R
+        // we essentially store xmat in a array where the order is
+        // people1 marker1, people1 marker2, people1 marker3.... then
+        // people2 marker1, people2 marker2, people2 marker3.... 
+        xdatIn[i * genotype.cols + j] = genotype[i][j];
+        /* if (genotype[i][j] != 0.0) { */
+        /*   fprintf(stderr, "i=%d, j=%d, genotype=%g\n", i,j,genotype[i][j]); */
+        /*   fprintf(stderr, "j*genotype.rows +i = %d, xdatIn[..] = %g\n", j * genotype.rows + i, xdatIn[j * genotype.rows + i]); */
+        /* } */
       }
     }
     for (int i = 0; i < genotype.rows; ++i ) {
@@ -1183,8 +1191,9 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
      * pvalue: results are here
      * twosided: two sided tests or one sided test
      */
-    do_kbac_test(&this->pValue, &twosided);
-
+    this->pValue = 9.0; // it is required to pass pvalue = 9.0 (see interface.R)
+    do_kbac_test(&this->pValue, &this->twosided);
+    // fprintf(stderr, "pValue = %g, twoside = %d\n", this->pValue, this->twosided);
     clear_kbac_test();
     this->fitOK = true;
     return 0;
@@ -1221,6 +1230,7 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
       delete[] this->xdatIn;
       this->xdatIn = new double[ numPeople * numMarker ];
     }
+    fprintf(stderr, "numPeople = %d, numMarker = %d", this->ylen, this->xcol);
   };
 private:
   int nPerm;

@@ -1,8 +1,6 @@
 /**
    immediately TODO:
    5. loading covariate (need tests now).
-   6. Test CMC
-   7. Test VT
    12. Add support multi-thread
    13. Add optional weight
    18. Add filtering on GD, GQ
@@ -33,6 +31,8 @@
    14. support VCF specify given locations
    15. region class support union, support region names
    17. add permutation tests (mb, skat)
+   7. Test VT
+   6. Test CMC
 
    Future TODO:
 
@@ -136,7 +136,7 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
   }
 
   for (auto iter = dup.begin(); iter != dup.end(); ++iter){
-    fprintf(stderr, "Sample [ %s ] have appeared %d time, removed from phenotype file [ %s ]\n", iter->first.c_str(), iter->second, fn);
+    fprintf(stderr, "Sample [%s] removed from phenotype file [ %s ] for its duplicity [ %d ].\n", iter->first.c_str(), fn, iter->second + 1);
   };
   return pheno.size();
 };

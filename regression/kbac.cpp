@@ -204,7 +204,6 @@ void KbacTest::calcKbacP(double* pvalue, int* sided)
   unsigned int iPermutation = 0;
   unsigned int permcount1 = 0, permcount2 = 0;
   double observedStatistic = 0.0;
-  std::cout << "Permute " << __nPermutations << " times\n";
   while (iPermutation <= __nPermutations) {
 
     // the KBAC statistic. Will be of length 1 or 2
@@ -296,7 +295,6 @@ void KbacTest::calcKbacP(double* pvalue, int* sided)
     random_shuffle(__ydat.begin(), __ydat.end());
     ++iPermutation;
   }
-  std::cout << "permcount1 = " << permcount1 << "\n";
   if (*pvalue <= 1.0);
   else {
     *pvalue = (1.0 * permcount1 + 1.0) / (1.0 * __nPermutations + 1.0);

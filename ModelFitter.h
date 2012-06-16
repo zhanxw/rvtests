@@ -237,7 +237,7 @@ public:
     fputs("Fisher.N10\t", fp);
     fputs("Fisher.N11\t", fp);
     fputs("CtrlAF\t", fp);
-    fputs("CaseAF\t", fp);    
+    fputs("CaseAF\t", fp);
     fputs("Fisher.PvalueTwoSide\t", fp);
     fputs("Fisher.PvalueLess\t", fp);
     fputs("Fisher.PvalueGreater\n", fp);
@@ -268,11 +268,11 @@ public:
         ctrlAC += geno;
         ctrlAN += 2;
       }
-      
+
       if (geno == 0)
         model.Increment(0, pheno);
       else
-        model.Increment(1, pheno);        
+        model.Increment(1, pheno);
     }
 
     // step 2, calculate pvalue
@@ -315,7 +315,7 @@ private:
   int caseAN;
   int ctrlAC;
   int ctrlAN;
-  
+
   bool fitOK;
 }; // SingleVariantFisherExactTest
 
@@ -691,6 +691,249 @@ private:
   int numVariant;
 }; // FpTest
 
+class RareCoverTest{
+public:
+RareCoverTest(int nPerm): nPerm(nPerm) {
+    this->modelName = "RareCover";
+  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome())
+      fprintf(fp, "NumPerm\tActualPerm\tStat\tNumX\tPval\n");
+    else
+      fprintf(fp, "NA\n");
+  };
+  // fitting model
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    if (!isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+
+    this->numVariant = genotype.cols;
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
+    // use marker by people matrix for faster computation
+    this->genotype.Transpose(genotype);
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i< phenotype.rows; i++){
+      pheno[i] = phenotype[i][0];
+    }
+
+    // find highest correlation coef.
+    Vector collapsed;
+    collapsed.Zero();
+    this->numMarker = genotype.cols;
+
+    // permutation part
+    int failed = 0;
+    for (int i = 0; i < this->nPerm; ++i) {
+      permute(&pheno);
+      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      if (!fitOK) {
+        if (failed < 10) {
+          failed++;
+          continue;
+        }else {
+          fitOK = false;
+          return -1;
+        }
+      }
+      ++ this->actualPerm;
+      // record new stats
+      double pStat = logistic.GetStat();
+      if (pStat > this->stat) {
+        this->numX ++;
+      }
+    } // end permutation
+    return (fitOK ? 0 : -1);
+  };
+  void 
+  void reset() {
+    this->actualPerm = 0;
+    this->numX = 0;
+  }
+  double getPvalue() {
+    return (1.0 + this->numX) / (1.0 + this->actualPerm);
+  }
+  // write model output
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()) {
+      if (fitOK){
+        fprintf(fp, "%d\t%d\t%g\t%d\t%g\n",
+                this->nPerm,
+                this->actualPerm,
+                this->stat,
+                this->numX,
+                this->getPvalue());
+      } else {
+        fprintf(fp, "NA\tNA\tNA\tNA\tNA\n");
+      }
+    } else {
+      fprintf(fp, "NA\n");
+    }
+  };
+  /**
+   * For a given genotype and phenotype, calculate RareCover stats, which markers are selected 
+   */
+  double calculateStat(Matrix& genotype, Vector& phenotype) {
+    Matrix m;
+    m.Transpose(genotype);
+    std::set< int > selected;
+    double stat;
+    bool selectFinish;
+    while (selected.size() < numMarker) {
+      int maxIdx = -1;
+      double maxCorr = -1.0;
+      double corr;
+      for (int i = 0; i < this->genotype.rows; ++i){
+        if (selected.count(i)) continue;
+        corr = calculateCorr(genotype[i], pheno);
+        if (corr > maxCorr) {
+          maxCorr = corr;
+          maxIdx = i;
+        }
+      }
+      if (maxIdx < 0) {
+        break;
+      } else {
+        if (maxCorr > stat) {
+          stat = maxCorr;
+          selected.insert(maxIdx);
+          combine(maxIdx);
+          selected.clear();
+          
+        }
+      };
+    }
+    return stat;
+  };
+private:
+  int numMarker;
+  Matrix collapsedGenotype;
+  LogisticRegressionScoreTest logistic;
+  bool fitOK;
+  int numVariant;
+  int nPerm;
+  int numX;
+  int actualPerm;
+  double stat;
+
+}; //RareCoverTest
+
+class CMAT{
+MadsonBrowningTest(int nPerm): nPerm(nPerm) {
+    this->modelName = "MadsonBrowningTest";
+  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome())
+      fprintf(fp, "NumVariant\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
+    else
+      fprintf(fp, "NumVariant\tNA\n");
+  };
+  // fitting model
+  int fit(Matrix& phenotype, Matrix& genotype) {
+    if (!isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+
+    this->numVariant = genotype.cols;
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
+    Matrix intercept;
+    intercept.Dimension(genotype.rows, 1);
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i< phenotype.rows; i++){
+      intercept[i][0] = 1.0;
+      pheno[i] = phenotype[i][0];
+    }
+
+    madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
+
+
+    fitOK = logistic.FitNullModel(intercept, pheno, 100);
+    if (!fitOK) return -1;
+    fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+    if (!fitOK) return -1;
+    // record observed stat
+    this->stat = logistic.GetStat(); // a chi-dist
+
+    // permutation part
+    int failed = 0;
+    for (int i = 0; i < this->nPerm; ++i) {
+      permute(&pheno);
+      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      if (!fitOK) {
+        if (failed < 10) {
+          failed++;
+          continue;
+        }else {
+          fitOK = false;
+          return -1;
+        }
+      }
+      ++ this->actualPerm;
+      // record new stats
+      double pStat = logistic.GetStat();
+      if (pStat > this->stat) {
+        this->numX ++;
+      }
+    } // end permutation
+    return (fitOK ? 0 : -1);
+  };
+  void reset() {
+    this->actualPerm = 0;
+    this->numX = 0;
+  }
+  double getPvalue() {
+    return (1.0 + this->numX) / (1.0 + this->actualPerm);
+  }
+  // write model output
+  void writeOutput(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()) {
+      if (fitOK){
+        fprintf(fp, "%d\t%d\t%d\t%g\t%d\t%g\n",
+                this->numVariant,
+                this->nPerm,
+                this->actualPerm,
+                this->stat,
+                this->numX,
+                this->getPvalue());
+      } else {
+        fprintf(fp, "%d\tNA\tNA\tNA\tNA\tNA\n", this->numVariant);
+      }
+    } else {
+      fprintf(fp, "%d\tNA\n", this->numVariant);
+    }
+  };
+private:
+  Matrix collapsedGenotype;
+  LogisticRegressionScoreTest logistic;
+  bool fitOK;
+  int numVariant;
+  int nPerm;
+  int numX;
+  int actualPerm;
+  double stat;
+
+};//CMAT
+
+class UStatTest{
+};// UStatTest
+
+
 /**
  * Implementation of Alkes Price's VT
  */
@@ -1005,7 +1248,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     this->beta2 = beta2;
 
     this->modelName = "Skat";
-    
+
   };
   void reset() {
     this->skat.Reset();
@@ -1033,7 +1276,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     // get ynulll
     Vector phenoVec;
     copyPhenotype(phenotype, &phenoVec);
-    
+
     // ynull is mean of y (removing genotypes) in model Ynull ~ X (aka Ynull ~ X + 0.0 * G )
     X.Dimension(genotype.rows, 1);
     for (int i = 0; i < genotype.rows; ++i) {
@@ -1115,7 +1358,7 @@ private:
   bool fitOK;
   double pValue;
   int nMarker;
-  
+
   bool usePermutation;
   int nPerm;
   int actualPerm;
@@ -1150,8 +1393,8 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
 
     this->resize(genotype.rows, genotype.cols);
     this->nn = this->nPerm;
-    this->qq = 0;
-    this->aa = 0.05; 
+    this->qq = 1;
+    this->aa = 0.05;
     this->mafUpper = 1.0; // no need to further prune alleles
     this->twosided = 1;
     // genotype is: people by marker
@@ -1160,7 +1403,7 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
         // note: KBAC package main.R
         // we essentially store xmat in a array where the order is
         // people1 marker1, people1 marker2, people1 marker3.... then
-        // people2 marker1, people2 marker2, people2 marker3.... 
+        // people2 marker1, people2 marker2, people2 marker3....
         xdatIn[i * genotype.cols + j] = genotype[i][j];
         /* if (genotype[i][j] != 0.0) { */
         /*   fprintf(stderr, "i=%d, j=%d, genotype=%g\n", i,j,genotype[i][j]); */
@@ -1230,7 +1473,6 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
       delete[] this->xdatIn;
       this->xdatIn = new double[ numPeople * numMarker ];
     }
-    fprintf(stderr, "numPeople = %d, numMarker = %d", this->ylen, this->xcol);
   };
 private:
   int nPerm;

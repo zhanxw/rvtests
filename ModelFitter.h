@@ -691,7 +691,7 @@ private:
   int numVariant;
 }; // FpTest
 
-class RareCoverTest{
+class RareCoverTest: public ModelFitter{
 public:
 RareCoverTest(int nPerm): nPerm(nPerm) {
     this->modelName = "RareCover";
@@ -725,34 +725,28 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
     }
 
     // find highest correlation coef.
-    Vector collapsed;
-    collapsed.Zero();
-    this->numMarker = genotype.cols;
+    this->stat = calculateStat(this->genotype, pheno, &this->selected);
 
-    // permutation part
-    int failed = 0;
-    for (int i = 0; i < this->nPerm; ++i) {
+    // permutation
+    double s;
+    std::set<int> permSelected;
+    int threshold = this->nPerm * 0.001;
+    while (this->actualPerm < this->nPerm) {
+      this->genotype.Transpose(genotype);
       permute(&pheno);
-      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
-      if (!fitOK) {
-        if (failed < 10) {
-          failed++;
-          continue;
-        }else {
-          fitOK = false;
-          return -1;
-        }
+      this->actualPerm++;
+
+      s = calculateStat(this->genotype, pheno, &permSelected);
+      if ( s > this->stat) {
+        numX ++;
       }
-      ++ this->actualPerm;
-      // record new stats
-      double pStat = logistic.GetStat();
-      if (pStat > this->stat) {
-        this->numX ++;
+
+      if (numX > threshold){
+        break;
       }
-    } // end permutation
+    };
     return (fitOK ? 0 : -1);
   };
-  void 
   void reset() {
     this->actualPerm = 0;
     this->numX = 0;
@@ -779,44 +773,86 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
     }
   };
   /**
-   * For a given genotype and phenotype, calculate RareCover stats, which markers are selected 
+   * For a given genotype and phenotype, calculate RareCover stats, which markers are selected
+   * Here the genotype is: marker by people
    */
-  double calculateStat(Matrix& genotype, Vector& phenotype) {
-    Matrix m;
-    m.Transpose(genotype);
-    std::set< int > selected;
+  double calculateStat(Matrix& genotype, Vector& phenotype, std::set<int>* selectedIndex) {
+    std::set<int>& selected = *selectedIndex;
+
+    Vector c; // collapsed
+    c.Dimension(phenotype.Length());
+    c.Zero();
+
     double stat;
-    bool selectFinish;
-    while (selected.size() < numMarker) {
+    while (selected.size() < genotype.rows) {
       int maxIdx = -1;
       double maxCorr = -1.0;
       double corr;
       for (int i = 0; i < this->genotype.rows; ++i){
         if (selected.count(i)) continue;
-        corr = calculateCorr(genotype[i], pheno);
+        corr = calculateCorrelation(genotype[i], c, phenotype);
         if (corr > maxCorr) {
           maxCorr = corr;
           maxIdx = i;
         }
       }
-      if (maxIdx < 0) {
+      if (maxIdx < 0) { // finish selection
         break;
       } else {
         if (maxCorr > stat) {
+          // update selection
           stat = maxCorr;
           selected.insert(maxIdx);
-          combine(maxIdx);
-          selected.clear();
-          
-        }
+          combine(&c, genotype[maxIdx]);
+        } else { // no select any new marker
+          break;
+        };
       };
     }
     return stat;
   };
+  /**
+   * Calculate correlatio of (g + collapsed, pheno)
+   */
+  double calculateCorrelation(Vector& g, Vector& collapsed, Vector& pheno){
+    double sum_g = 0.0;
+    double sum_g2 = 0.0;
+    double sum_p = 0.0;
+    double sum_p2 = 0.0;
+    double sum_gp = 0.0;
+    int n = pheno.Length();
+    for (int i = 0; i < n; ++i){
+      double geno = (g[i] + collapsed[i] > 0 ) ? 1.0 : 0.0 ;
+      if (geno > 0.0){
+        sum_g += geno;
+        sum_g2 += geno*geno;
+        sum_gp += geno*pheno[i];
+        sum_p += pheno[i];
+        sum_p2 += pheno[i] * pheno[i];
+      } else {
+        sum_p += pheno[i];
+        sum_p2 += pheno[i] * pheno[i];
+      };
+    };
+    double cov_gp = sum_gp - sum_g * sum_p;
+    double var_g = sum_g2 - sum_g * sum_g;
+    double var_p = sum_p2 - sum_p * sum_p;
+    double v = var_g * var_p;
+    if ( v < 1e-10) return 0.0;
+    double corr = cov_gp / sqrt(v);
+    return corr;
+  };
+  void combine(Vector* c, Vector& v){
+    int n = v.Length();
+    for (int i = 0; i < n; ++i){
+      if ( (*c)[i] + v[i] > 0) {
+        (*c)[i] = 1.0;
+      }
+    };
+  };
 private:
-  int numMarker;
-  Matrix collapsedGenotype;
-  LogisticRegressionScoreTest logistic;
+  Matrix genotype;
+  std::set<int> selected;
   bool fitOK;
   int numVariant;
   int nPerm;
@@ -826,9 +862,9 @@ private:
 
 }; //RareCoverTest
 
-class CMAT{
-MadsonBrowningTest(int nPerm): nPerm(nPerm) {
-    this->modelName = "MadsonBrowningTest";
+class CMATTest:public ModelFitter{
+CMATTest(int nPerm): nPerm(nPerm) {
+    this->modelName = "CMAT";
   }
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
@@ -845,51 +881,27 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
       return -1;
     }
 
-    this->numVariant = genotype.cols;
-    if (genotype.cols == 0) {
-      fitOK = false;
-      return -1;
-    }
-    Matrix intercept;
-    intercept.Dimension(genotype.rows, 1);
-    Vector pheno;
-    pheno.Dimension(phenotype.rows);
-    for (int i = 0; i< phenotype.rows; i++){
-      intercept[i][0] = 1.0;
-      pheno[i] = phenotype[i][0];
-    }
+    copyPhenotype(phenotype, &this->pheno);
 
-    madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
-
-
-    fitOK = logistic.FitNullModel(intercept, pheno, 100);
-    if (!fitOK) return -1;
-    fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
-    if (!fitOK) return -1;
-    // record observed stat
-    this->stat = logistic.GetStat(); // a chi-dist
+    // we use equal weight
+    this->stat = this->calculateStat(genotype, pheno, &N_A, &N_U, &m_A, &m_U, &M_A, &M_U);
 
     // permutation part
-    int failed = 0;
+    int threshold = 0.05 * this->nPerm;
+    double d1,d2,d3,d4,d5,d6; // just used in permutation
     for (int i = 0; i < this->nPerm; ++i) {
       permute(&pheno);
-      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
-      if (!fitOK) {
-        if (failed < 10) {
-          failed++;
-          continue;
-        }else {
-          fitOK = false;
-          return -1;
-        }
-      }
       ++ this->actualPerm;
       // record new stats
-      double pStat = logistic.GetStat();
+      double pStat = this->calculateStat(genotype, pheno, &d1, &d2, &d3, &d4, &d5, &d6);
       if (pStat > this->stat) {
         this->numX ++;
       }
+      if (this->numX > threshold){
+        break;
+      }
     } // end permutation
+    fitOK = true;
     return (fitOK ? 0 : -1);
   };
   void reset() {
@@ -918,9 +930,64 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
       fprintf(fp, "%d\tNA\n", this->numVariant);
     }
   };
+  double calculateStat(Matrix& genotype, Vector& phenotype,
+                       double* p_N_A, double* p_N_U,
+                       double* p_m_A, double* p_m_U,
+                       double* p_M_A, double* p_M_U){
+    double& N_A = *p_N_A;
+    double& N_U = *p_N_U;
+    double& m_A = *p_m_A;
+    double& m_U = *p_m_U;
+    double& M_A = *p_M_A;
+    double& M_U = *p_M_U;
+
+    for (int i = 0; i < phenotype.Length(); ++i){
+      if (phenotype[i] == 1) {
+        ++ N_A;
+      } else {
+        ++ N_U;
+      }
+    }
+    for (int i = 0; i < genotype.cols; ++i) {
+      // for each marker, get its allele frequency
+      double af = getMarkerFrequency(genotype, i);
+      bool flip = false;
+      if (af > 0.5) {
+        flip = true;
+      };
+      for (int j = 0; j < genotype.rows; ++j) {
+        if (phenotype[j] == 1) {
+          if (!flip) {
+            m_A += genotype[j][i];
+            M_A += (2.0 - genotype[j][i]);
+          } else {
+            m_A += (2.0 - genotype[j][i]);
+            M_A += genotype[j][i];
+          }
+        } else {
+          if (!flip) {
+            m_U += genotype[j][i];
+            M_U += (2.0 - genotype[j][i]);
+          } else {
+            m_U += (2.0 - genotype[j][i]);
+            M_U += genotype[j][i];
+          }
+        }
+      };
+    };
+    if (N_A + N_U == 0.0) return 0.0;
+    int numMarker = genotype.cols;
+    return (N_A + N_U)/(2*N_A*N_U* numMarker) * (m_A*M_U - m_U*M_A)*(m_A*M_U - m_U*M_A)/(m_A+m_U)/(M_A+M_U);
+  }
 private:
-  Matrix collapsedGenotype;
-  LogisticRegressionScoreTest logistic;
+  double N_A;
+  double N_U;
+  double m_A;
+  double m_U;
+  double M_A;
+  double M_U;
+
+  Vector pheno;
   bool fitOK;
   int numVariant;
   int nPerm;
@@ -928,11 +995,12 @@ private:
   int actualPerm;
   double stat;
 
-};//CMAT
+};//CMATTest
 
+#if 0
 class UStatTest{
 };// UStatTest
-
+#endif
 
 /**
  * Implementation of Alkes Price's VT

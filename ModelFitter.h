@@ -745,6 +745,7 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
         break;
       }
     };
+    fitOK = true;
     return (fitOK ? 0 : -1);
   };
   void reset() {
@@ -1374,6 +1375,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     this->pValue = skat.GetPvalue();
 
     // permuation part
+    int threshold = 0.05 * this->nPerm; 
     this->stat =  skat.GetQ();
     double s;
     for (int i = 0; i < this->nPerm; i++) {
@@ -1384,7 +1386,11 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
       if (s > this->stat){
         ++numX ;
       }
+      if (numX > threshold){
+        break;
+      }
     };
+    fitOK = true;
     return 0;
   };
   double getPvalue() {

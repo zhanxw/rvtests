@@ -40,8 +40,26 @@ static void copy(Vector& v, Matrix* mat){
   int n = v.Length();
   m.Dimension(n, 1);
   for (int i = 0; i < n; ++i){
-    mat[i][0] = v[i];
+    m[i][0] = v[i];
   }
 };
 
+static void print(Vector& v) {
+  int n = v.Length();
+  fprintf(stderr, "len = %d\n", n);
+  for (int i = 0; i < n; ++i){
+    fprintf(stderr, "[ %d ] = %g\n", i, v[i]);
+  }
+};
+static void print(Matrix& mat) {
+  int m = mat.rows;
+  int n = mat.cols;
+  fprintf(stderr, "dim = %d x %d\n", m, n);
+  for (int i = 0; i < m; ++i){
+    for (int j = 0; j < n; ++j){
+      fprintf(stderr, "[ %d, %d ] = %g\t", i, j, mat[i][j]);
+    }
+    fprintf(stderr, "\n");
+  }
+};
 #endif /* _MATRIXOPERATION_H_ */

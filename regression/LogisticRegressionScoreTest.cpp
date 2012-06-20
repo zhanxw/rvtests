@@ -1,28 +1,8 @@
 #include "LogisticRegressionScoreTest.h"
+#include "MatrixOperation.h"
 
 LogisticRegressionScoreTest::LogisticRegressionScoreTest():stat(0.0),pvalue(0.0){};
 
-static void MatrixPlusEqualV1andV2T(Matrix& m, Vector& v1, Vector& v2){
-  if (m.rows != v1.Length() || m.cols != v2.Length()){
-    fprintf(stderr, "Dimension does not match!");
-  };
-  for (int i = 0; i < m.rows; i++){
-    for (int j = 0; j < m.cols; j++){
-      m[i][j] += v1[i] * v2[j];
-    }
-  }
-};
-
-static void MatrixPlusEqualV1andV2TWithWeight(Matrix& m, Vector& v1, Vector& v2, double w){
-  if (m.rows != v1.Length() || m.cols != v2.Length()){
-    fprintf(stderr, "Dimension does not match!");
-  };
-  for (int i = 0; i < m.rows; i++){
-    for (int j = 0; j < m.cols; j++){
-      m[i][j] += v1[i] * v2[j] * w;
-    }
-  }
-};
 
 bool LogisticRegressionScoreTest::FitLogisticModel(Matrix &X, Vector &y, int colToTest, int nRound) {
   Matrix Xnull;
@@ -47,8 +27,13 @@ bool LogisticRegressionScoreTest::FitNullModel(Matrix& Xnull, Vector& y, int nRo
 };
 
 bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol){
-  double U = 0.0;
-  double I = 0.0;
+  this->Umatrix.Dimension(1,1);
+  this->Vmatrix.Dimension(1,1);
+
+  double& U = Umatrix[0][0];
+  double& I = Vmatrix[0][0];
+  U = 0.0;
+  I = 0.0;
 
   // printf("size of betaHat = %d\n",betaHat1.Length());
 
@@ -170,6 +155,14 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector
 };
 
 bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
+  this->Umatrix.Dimension(1,1);
+  this->Vmatrix.Dimension(1,1);
+
+  double& U = Umatrix[0][0];
+  double& V = Vmatrix[0][0];
+  U = 0.0;
+  V = 0.0;
+
   // notation is from Danyu Lin's paper
   double sumSi = 0.0;
   double sumSi2 = 0.0;
@@ -181,12 +174,11 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
     sumYi += y[i];
   };
   double yMean = sumYi / l;
-  double U = 0.0;
   for (int i = 0; i < l; i++){
     U += (y[i] - yMean) * x[i];
   };
   int n = y.Length();
-  double V = yMean * (1.0 - yMean) * (sumSi2 - sumSi / n *sumSi);
+  V = yMean * (1.0 - yMean) * (sumSi2 - sumSi / n *sumSi);
   if (V < 1e-6) {
     this->stat = 0.0;
     this->pvalue = 0.0;
@@ -196,8 +188,6 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
   this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
   return true;
 };
-
-
 
 
 /** NOTE:
@@ -246,6 +236,9 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
   SZ.Product(tmp, ZS);
   SZ.Negate();
   SS.Add(SZ);
+
+  copy(U, &this->Umatrix);
+  this->Vmatrix = SS;
 
   // S = U^T inv(I) U : quadratic form
   svd.InvertInPlace(SS);
@@ -296,6 +289,9 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
   temp.Multiply(1.0/ n);
   temp.Negate();
   SS.Add(temp);
+
+  copy(U, &this->Umatrix);
+  this->Vmatrix = SS;
 
   SVD svd;
   svd.InvertInPlace(SS);

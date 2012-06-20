@@ -182,12 +182,6 @@ public:
   SingleVariantScoreTest(){
     this->modelName = "SingleScore";
   };
-
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    fprintf(fp, "NSample\tAF\tStat\tPvalue\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
     if (genotype.cols == 0) {
@@ -215,14 +209,20 @@ public:
     }
     return (fitOK ? 0 : -1);
   };
+
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "NSample\tAF\tStat\tDirection\tPvalue\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (fitOK) {
       if (!isBinaryOutcome())
-        fprintf(fp, "%d\t%.3f\t%g\t%g\n", nSample, af, linear.GetStat(), linear.GetPvalue());
+        fprintf(fp, "%d\t%.3f\t%g\t%c\t%g\n", nSample, af, linear.GetStat(), linear.GetU()[0][0] > 0 ? '+': '-', linear.GetPvalue());
       else
-        fprintf(fp, "%d\t%.3f\t%g\t%g\n", nSample, af, logistic.GetStat(), logistic.GetPvalue());        
+        fprintf(fp, "%d\t%.3f\t%g\t%c\t%g\n", nSample, af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
     }else
       fputs("NA\n", fp);
   };
@@ -749,7 +749,7 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
       s = calculateStat(this->genotype, pheno, &permSelected);
       // NOTE: here we use >=, otherwise,
       //
-      // 
+      //
       if ( s >= this->stat) {
         numX ++;
       }
@@ -794,7 +794,7 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
   double calculateStat(Matrix& genotype, Vector& phenotype, std::set<int>* selectedIndex) {
     std::set<int>& selected = *selectedIndex;
     selected.clear();
-    
+
     Vector c; // collapsed genotype
     c.Dimension(phenotype.Length());
     c.Zero();
@@ -1391,7 +1391,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     this->pValue = skat.GetPvalue();
 
     // permuation part
-    int threshold = 0.05 * this->nPerm; 
+    int threshold = 0.05 * this->nPerm;
     this->stat =  skat.GetQ();
     double s;
     for (int i = 0; i < this->nPerm; i++) {

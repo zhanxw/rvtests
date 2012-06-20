@@ -10,36 +10,40 @@
 #include "LinearRegression.h"
 
 class LinearRegressionScoreTest{
-  public:
-    LinearRegressionScoreTest();
-    /**
-     * @param colToTest: 0-based index, for that column of X will be tested
-     */
-    bool FitLinearModel(Matrix &X, Vector &y, int colToTest);
+public:
+  LinearRegressionScoreTest();
+  /**
+   * @param colToTest: 0-based index, for that column of X will be tested
+   */
+  bool FitLinearModel(Matrix &X, Vector &y, int colToTest);
 
-    bool FitNullModel(Matrix& Xnull, Vector& y);
-    bool TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol);
-    /**
-     * Test H0: \beta = 0  (\beta is multiple dimension).
-     * y ~ \beta * Xcol + \gamma * Xnull
-     */
-    bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
+  bool FitNullModel(Matrix& Xnull, Vector& y);
+  bool TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol);
+  /**
+   * Test H0: \beta = 0  (\beta is multiple dimension).
+   * y ~ \beta * Xcol + \gamma * Xnull
+   */
+  bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
 
-    // fit y~1+ beta*x  (no covariate)
-    bool TestCovariate(Vector& x, Vector& y);
-    /**
-     * Test y~ 1 + \beta * X (no covariate)
-     */
-    bool TestCovariate(Matrix& x, Vector& y);
+  // fit y~1+ beta*x  (no covariate)
+  bool TestCovariate(Vector& x, Vector& y);
+  /**
+   * Test y~ 1 + \beta * X (no covariate)
+   */
+  bool TestCovariate(Matrix& x, Vector& y);
 
-    double GetStat() const {return this->stat;};
-    double GetPvalue() const {return this->pvalue;};
-  private:
-    
-    void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
-    double pvalue;
-    double stat;
-    LinearRegression lr;
+  double GetStat() const {return this->stat;};
+  double GetPvalue() const {return this->pvalue;};
+  const Matrix& GetU() const {return this->Umatrix;};
+  const Matrix& GetV() const {return this->Vmatrix;};
+private:
+
+  void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
+  double pvalue;
+  double stat;
+  Matrix Umatrix;
+  Matrix Vmatrix;
+  LinearRegression lr;
 };
 
 

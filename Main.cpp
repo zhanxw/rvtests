@@ -5,8 +5,6 @@
    13. Add optional weight
    18. Add filtering on GD, GQ
    19. Add command line support for different imputation methods
-   20. Add rare cover
-   21. Add CMAT
    22. Add U-statistics
    23. Add dominant model
    
@@ -34,6 +32,8 @@
    17. add permutation tests (mb, skat)
    7. Test VT
    6. Test CMC
+   20. Add rare cover
+   21. Add CMAT
 
    Future TODO:
 
@@ -416,6 +416,7 @@ int extractSiteGenotype(VCFExtractor* v, Matrix* g, std::string* b){
   }
   return 0;
 }
+
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
  */

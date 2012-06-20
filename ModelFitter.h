@@ -186,7 +186,7 @@ public:
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "NSample\tAF\tPvalue\n");
+    fprintf(fp, "NSample\tAF\tStat\tPvalue\n");
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype) {
@@ -204,23 +204,33 @@ public:
       intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
-    fitOK = lrst.FitNullModel(intercept, pheno);
-    if (!fitOK) return -1;
-    fitOK = lrst.TestCovariate(intercept, pheno, genotype);
+    if (!isBinaryOutcome()) {
+      fitOK = linear.FitNullModel(intercept, pheno);
+      if (!fitOK) return -1;
+      fitOK = linear.TestCovariate(intercept, pheno, genotype);
+    } else {
+      fitOK = logistic.FitNullModel(intercept, pheno, 100);
+      if (!fitOK) return -1;
+      fitOK = logistic.TestCovariate(intercept, pheno, genotype);
+    }
     return (fitOK ? 0 : -1);
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    if (fitOK)
-      fprintf(fp, "%d\t%.3f\t%g\n", nSample, af, lrst.GetPvalue());
-    else
+    if (fitOK) {
+      if (!isBinaryOutcome())
+        fprintf(fp, "%d\t%.3f\t%g\t%g\n", nSample, af, linear.GetStat(), linear.GetPvalue());
+      else
+        fprintf(fp, "%d\t%.3f\t%g\t%g\n", nSample, af, logistic.GetStat(), logistic.GetPvalue());        
+    }else
       fputs("NA\n", fp);
   };
 private:
   double af;
   int nSample;
-  LinearRegressionScoreTest lrst;
+  LinearRegressionScoreTest linear;
+  LogisticRegressionScoreTest logistic;
   bool fitOK;
 }; // SingleVariantScoreTest
 
@@ -700,7 +710,7 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (isBinaryOutcome())
-      fprintf(fp, "NumPerm\tActualPerm\tStat\tNumX\tPval\n");
+      fprintf(fp, "NumIncMarker\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
     else
       fprintf(fp, "NA\n");
   };
@@ -730,14 +740,17 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
     // permutation
     double s;
     std::set<int> permSelected;
-    int threshold = this->nPerm * 0.001;
+    int threshold = this->nPerm * 0.05;
     while (this->actualPerm < this->nPerm) {
       this->genotype.Transpose(genotype);
       permute(&pheno);
       this->actualPerm++;
 
       s = calculateStat(this->genotype, pheno, &permSelected);
-      if ( s > this->stat) {
+      // NOTE: here we use >=, otherwise,
+      //
+      // 
+      if ( s >= this->stat) {
         numX ++;
       }
 
@@ -760,14 +773,15 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
     fputs(prependString, fp);
     if (isBinaryOutcome()) {
       if (fitOK){
-        fprintf(fp, "%d\t%d\t%g\t%d\t%g\n",
+        fprintf(fp, "%zu\t%d\t%d\t%g\t%d\t%g\n",
+                this->selected.size(),
                 this->nPerm,
                 this->actualPerm,
                 this->stat,
                 this->numX,
                 this->getPvalue());
       } else {
-        fprintf(fp, "NA\tNA\tNA\tNA\tNA\n");
+        fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n");
       }
     } else {
       fprintf(fp, "NA\n");
@@ -779,8 +793,9 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
    */
   double calculateStat(Matrix& genotype, Vector& phenotype, std::set<int>* selectedIndex) {
     std::set<int>& selected = *selectedIndex;
-
-    Vector c; // collapsed
+    selected.clear();
+    
+    Vector c; // collapsed genotype
     c.Dimension(phenotype.Length());
     c.Zero();
 
@@ -789,7 +804,7 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
       int maxIdx = -1;
       double maxCorr = -1.0;
       double corr;
-      for (int i = 0; i < this->genotype.rows; ++i){
+      for (int i = 0; i < genotype.rows; ++i){
         if (selected.count(i)) continue;
         corr = calculateCorrelation(genotype[i], c, phenotype);
         if (corr > maxCorr) {
@@ -835,9 +850,10 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
         sum_p2 += pheno[i] * pheno[i];
       };
     };
-    double cov_gp = sum_gp - sum_g * sum_p;
-    double var_g = sum_g2 - sum_g * sum_g;
-    double var_p = sum_p2 - sum_p * sum_p;
+
+    double cov_gp = sum_gp - sum_g * sum_p /n;
+    double var_g = sum_g2 - sum_g * sum_g /n ;
+    double var_p = sum_p2 - sum_p * sum_p /n;
     double v = var_g * var_p;
     if ( v < 1e-10) return 0.0;
     double corr = cov_gp / sqrt(v);
@@ -860,10 +876,10 @@ private:
   int numX;
   int actualPerm;
   double stat;
-
 }; //RareCoverTest
 
 class CMATTest:public ModelFitter{
+public:
 CMATTest(int nPerm): nPerm(nPerm) {
     this->modelName = "CMAT";
   }

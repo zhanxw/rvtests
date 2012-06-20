@@ -166,13 +166,19 @@ public:
       this->includePeople(s);
     }
     s = name.substr(beg, end);
-    fprintf(stderr, "Include sample %s.\n", s.c_str());
+
+    bool included = false;
     for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       if (p->getName() == s) {
         p->include();
+        included = true;
+        fprintf(stderr, "Include sample [ %s ].\n", s.c_str());
       }
     }
+    if (!included) {
+      fprintf(stderr, "Failed to include sample [ %s ] - not in VCF file.\n", s.c_str());      
+    };
     this->hasAccess = false;
   };
   void includePeople(const std::vector<std::string>& v){

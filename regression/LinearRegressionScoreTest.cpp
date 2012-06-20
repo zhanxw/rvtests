@@ -98,7 +98,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& 
         return false;
     }
 
-    this->pvalue = chidist(U*U/I, 1.0); // use chisq to inverse
+    this->stat = U*U/I;
+    this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
     return true;
 };
 
@@ -123,8 +124,8 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
         this->pvalue = 0.0;
         return false;
     }
-
-    this->pvalue = chidist(U*U/V, 1.0); // use chisq to inverse
+    this->stat = U*U/V;
+    this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
     return true;
 };
     
@@ -184,8 +185,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
     }
     
     S /= this->lr.GetSigma2();
-
-    this->pvalue = chidist(S, m); // use chisq to inverse, here chidist = P(X > S) where X ~ chi(m)
+    this->stat = S;
+    this->pvalue = chidist(this->stat, m); // use chisq to inverse, here chidist = P(X > S) where X ~ chi(m)
     return true;
 };
 
@@ -236,8 +237,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
     }
     
     S /= this->lr.GetSigma2();
-
-    this->pvalue = chidist(S, m); // use chisq to inverse
+    this->stat = S;
+    this->pvalue = chidist(this->stat, m); // use chisq to inverse
     return true;
     
 };

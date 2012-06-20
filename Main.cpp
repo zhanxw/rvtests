@@ -8,6 +8,7 @@
    20. Add rare cover
    21. Add CMAT
    22. Add U-statistics
+   23. Add dominant model
    
    DONE:
    2. support access INFO tag
@@ -86,20 +87,115 @@ void banner(FILE* fp) {
  * Parse "mb..." and return -1 for failure.
  * @return 0 for success
  */
-int parseModel(std::string& flag, std::string* modelName, std::vector<std::string>* params){
-  size_t l = flag.find('(');
-  if ( l == std::string::npos){
-    *modelName = flag;
+class ModelParser{
+ public:
+  /**
+   * @return 0: if parse succeed.
+   */
+  int parse(const char* s){
+    std::string arg = s;
+    size_t l = arg.find('(');
+    if ( l == std::string::npos){
+      this->name = arg;
+      return 0;
+    }
+    this->name = arg.substr(0, l);
+    if (arg[arg.size() - 1] != ')'){
+      fprintf(stderr, "Please use this format: model(model_param1=v1)\n");
+      return -1;
+    }
+    std::vector<std::string> params;    
+    std::string allParam = arg.substr(l + 1, arg.size() - 1 - 1 -l);
+    int ret = stringTokenize(allParam, ',', &params);
+    for (int i = 0; i < params.size(); ++i) {
+      l = params[i].find('=');
+      if (l == std::string::npos) {
+        this->param[params[i]] = "";
+      } else {
+        std::string key = params[i].substr(0, l);
+        std::string value = params[i].substr(l + 1, params[i].size() - l - 1);
+        this->param[key] = value;
+      };
+    };
+    fprintf(stderr, "load %zu parameters.\n", this->size());
     return 0;
   }
-  *modelName = flag.substr(0, l);
-  if (flag[flag.size() - 1] != ')'){
-    return -1;
+  int parse(std::string& s){
+    return this->parse(s.c_str());
   }
-  std::string allParam = flag.substr(l + 1, flag.size() - 1 - 1 -l);
-  int ret = stringTokenize(allParam, ',', params);
-  if (ret >= 0)
-    return 0;
+  const std::string& getName() const {
+    return this->name;
+  };
+  ModelParser& assign(const char* tag, bool* value){
+    if (this->param.find(tag) != this->param.end()){
+      (*value) = true;
+    } else {
+      (*value) = false;
+    }
+    return (*this);
+  };
+  ModelParser& assign(const char* tag, double* value){
+    if (this->param.find(tag) != this->param.end()){
+      (*value) = atof(this->param[tag]);
+    } else {
+      fprintf(stderr, "Cannot find parameter [ %s ]\n", tag);
+    }
+    return (*this);
+  };
+  ModelParser& assign(const char* tag, int* value){
+    if (this->param.find(tag) != this->param.end()){
+      (*value) = atoi(this->param[tag]);
+    } else {
+      fprintf(stderr, "Cannot find parameter [ %s ]\n", tag);
+    }
+    return (*this);
+  };
+  ModelParser& assign(const char* tag, std::string* value){
+    if (this->param.find(tag) != this->param.end()){
+      (*value) = (this->param[tag]);
+    } else {
+      fprintf(stderr, "Cannot find parameter [ %s ]\n", tag);
+    }
+    return (*this);
+  };
+  ModelParser& assign(const char* tag, bool* value, const bool def){
+    if (this->param.find(tag) != this->param.end()){
+      (*value) = true;
+    } else {
+      (*value) = def;
+    }
+    return (*this);
+  };
+  ModelParser& assign(const char* tag, double* value, const double def){
+    if (this->param.find(tag) != this->param.end()){
+      (*value) = atof(this->param[tag]);
+    } else {
+      (*value) = def;
+    }
+    return (*this);
+  };
+  ModelParser& assign(const char* tag, int* value, const int def){
+    if (this->param.find(tag) != this->param.end()){
+      (*value) = atoi(this->param[tag]);
+    } else {
+      (*value) = def;
+    }
+    return (*this);
+  };
+  ModelParser& assign(const char* tag, std::string* value, const std::string& def){
+    if (this->param.find(tag) != this->param.end()){
+      (*value) = (this->param[tag]);
+    } else {
+      (*value) = def;
+    }
+    return (*this);
+  };
+  const size_t size() const {
+    return this->param.size();
+  };
+ private:
+  std::string name;
+  std::map<std::string, std::string> param;
 };
 
 /**
@@ -353,7 +449,7 @@ void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
 };
 
 /**
- * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
+ * Impute missing genotype (<0) according to its mean genotype
  */
 void imputeGenotypeToMean(Matrix* genotype) {
   Matrix& m = *genotype;
@@ -603,7 +699,7 @@ int main(int argc, char** argv){
       // ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
       ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
       ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
-      ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC")
+      ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
       // ADD_STRING_PARAMETER(pl, rangeToTest, "--set", "specify set file (for burden tests)")
@@ -759,16 +855,15 @@ int main(int argc, char** argv){
   std::string modelName;
   std::vector< std::string> modelParams;
   std::vector< std::string> argModelName;
-
+  ModelParser parser;
+  int nPerm = 10000;
+  
   //if (parseModel(FLAG_modelSingle, &modelName, &modelParams)
   if (FLAG_modelSingle != "") {
     stringTokenize(FLAG_modelSingle, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
-      if (parseModel(argModelName[i], &modelName, &modelParams)){
-        fprintf(stderr, "Specified an invalid model: %s\n", argModelName[i].c_str());
-        continue;
-      }
-      
+      parser.parse(argModelName[i]);
+      modelName = parser.getName();
       if (modelName == "wald") {
         model.push_back( new SingleVariantWaldTest);
       } else if (modelName == "score") {
@@ -785,22 +880,29 @@ int main(int argc, char** argv){
   if (FLAG_modelBurden != "") {
     stringTokenize(FLAG_modelBurden, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
-      if (parseModel(argModelName[i], &modelName, &modelParams)){
-        fprintf(stderr, "Specified an invalid model: %s\n", argModelName[i].c_str());
-        continue;
-      }
+      parser.parse(argModelName[i]);
+      modelName = parser.getName();
 
       if (modelName == "cmc") {
         model.push_back( new CMCTest );
       } else if (modelName == "zeggini") {
         model.push_back( new ZegginiTest );
       } else if (modelName == "mb") {
-        fprintf(stderr, "Default MadsonBrowning test is 10000 times\n");
-        model.push_back( new MadsonBrowningTest(10000) );
+        parser.assign("nPerm", &nPerm, 10000);
+        model.push_back( new MadsonBrowningTest(nPerm) );
+        fprintf(stderr, "MadsonBrowning test significance will be evaluated using %d permutations\n", nPerm);        
       } else if (modelName == "exactCMC") {
         model.push_back( new CMCFisherExactTest );
       } else if (modelName == "fp") {
         model.push_back( new FpTest );
+      } else if (modelName == "rarecover") {
+        parser.assign("nPerm", &nPerm, 10000);        
+        model.push_back( new RareCoverTest(nPerm) );
+        fprintf(stderr, "Rare cover test significance will be evaluated using %d permutations\n", nPerm);
+      } else if (modelName == "cmat") {
+        parser.assign("nPerm", &nPerm, 10000);        
+        model.push_back( new CMATTest(nPerm) );
+        fprintf(stderr, "cmat test significance will be evaluated using %d permutations\n", nPerm);
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
         abort();
@@ -810,16 +912,15 @@ int main(int argc, char** argv){
   if (FLAG_modelVT != "") {
     stringTokenize(FLAG_modelVT, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
-      if (parseModel(argModelName[i], &modelName, &modelParams)){
-        fprintf(stderr, "Specified an invalid model: %s\n", argModelName[i].c_str());
-        continue;
-      }
+      parser.parse(argModelName[i]);
+      modelName = parser.getName();
 
       if (modelName == "cmc") {
         model.push_back( new VariableThresholdCMC );
       } else if (modelName == "price") {
-        model.push_back( new VariableThresholdPrice(10000) );
-        // TODO
+        parser.assign("nPerm", &nPerm, 10000);
+        model.push_back( new VariableThresholdPrice(nPerm) );
+        fprintf(stderr, "Price's VT test significance will be evaluated using %d permutations\n", nPerm);
       } else if (modelName == "zeggini") {
         //model.push_back( new VariableThresholdFreqTest );
         // TODO
@@ -837,15 +938,18 @@ int main(int argc, char** argv){
   if (FLAG_modelKernel != "") {
     stringTokenize(FLAG_modelKernel, ",", &argModelName);
     for (int i = 0; i < argModelName.size(); i++ ){
-      if (parseModel(argModelName[i], &modelName, &modelParams)){
-        fprintf(stderr, "Specified an invalid model: %s\n", argModelName[i].c_str());
-        continue;
-      }
+      parser.parse(argModelName[i]);
+      modelName = parser.getName();
       
       if (modelName == "skat") {
-        model.push_back( new SkatTest(10000, 1.0, 25.0) );
+        double beta1, beta2;
+        parser.assign("nPerm", &nPerm, 10000).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);        
+        model.push_back( new SkatTest(nPerm, beta1, beta2) );
+        fprintf(stderr, "SKAT test significance will be evaluated using %d permutations (beta1 = %.2f, beta2 = %.2f)\n", nPerm, beta1, beta2);
       } else if (modelName == "kbac") {
-        model.push_back( new KbacTest(10000) );
+        parser.assign("nPerm", &nPerm, 10000);
+        model.push_back( new KbacTest(nPerm) );
+        fprintf(stderr, "KBAC test significance will be evaluated using %d permutations\n", nPerm);        
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
         abort();

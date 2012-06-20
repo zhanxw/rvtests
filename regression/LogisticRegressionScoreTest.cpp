@@ -224,14 +224,16 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
   SZ.Zero();
   ZZ.Zero();
 
+  FILE* fp = fopen("tmp.data", "w");
   Vector& v = this->lr.GetVariance();
   for (int i = 0; i < n; i ++){
     U.AddMultiple(y[i] - this->lr.GetPredicted()[i], Xcol[i]) ;
-
+    fprintf(fp, "%g\t%g\t%g\n", Xcol[i][0], this->lr.GetPredicted()[i], y[i]);
     MatrixPlusEqualV1andV2TWithWeight(SS, Xcol[i], Xcol[i], v[i]);
     MatrixPlusEqualV1andV2TWithWeight(SZ, Xcol[i], Xnull[i], v[i]);
     MatrixPlusEqualV1andV2TWithWeight(ZZ, Xnull[i], Xnull[i], v[i]);
   }
+  fclose(fp);
   // inverse in place ZZ
   SVD svd;
   svd.InvertInPlace(ZZ);

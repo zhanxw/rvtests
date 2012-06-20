@@ -133,6 +133,7 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
 
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
+ * genotype is marker by people matrix
  */
 void imputeGenotype(Matrix* genotype, Random* r) {
   Matrix& m = *genotype;
@@ -162,6 +163,31 @@ void imputeGenotype(Matrix* genotype, Random* r) {
     }
   }
 };
+
+/**
+ * Impute missing genotype (<0) according to its mean genotype
+ * genotype ismarker by people
+ */
+void imputeGenotypeToMean(Matrix* genotype) {
+  Matrix& m = *genotype;
+  for (int i = 0; i < m.rows; i++ ) {
+    int ac = 0;
+    int an = 0;
+    for (int j = 0; j < m.cols; j++) {
+      if (m[i][j] >= 0) {
+        ac += m[i][j];
+        an += 2;
+      }
+    }
+    double p = 1.0 * ac / an;
+    for (int j = 0; j < m.cols; j++){
+      if (m[i][j] < 0) {
+        m[i][j] = p;
+      }
+    }
+  }
+};
+
 /**
  * convert the vector @param v to Matrix format @param m
  */
@@ -172,30 +198,87 @@ void toMatrix(const std::vector<double>& v, Matrix* m) {
   }
 };
 
-int loadGeneFile(const char* fn, OrderedMap<std::string, RangeList>* geneList) {
-  OrderedMap<std::string, RangeList>& m = *geneList;
+
+/**
+ * Convert a @param string separated by @param sep to set (stored in @param s)
+ */
+void makeSet(const char* str, char sep, std::set<std::string>* s) {
+  s->clear();
+  if (!str || strlen(str) == 0)
+    return;
+
+  std::vector<std::string> fd;
+  stringTokenize(str, ",", &fd);
+  for (int i = 0; i < fd.size(); i++)
+    s->insert(fd[i]);
+}
+
+int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, RangeList>* geneMap) {
+  std::set<std::string> geneSet;
+  makeSet(gene, ',', &geneSet);
+
+  OrderedMap<std::string, RangeList>& m = *geneMap;
   LineReader lr(fn);
   int lineNo = 0;
   std::vector< std::string> fd;
   while (lr.readLineBySep(&fd, "\t ")){
     ++ lineNo;
     if (fd.size() < 6) {
-      fprintf(stderr, "skip %d line (short of columns).\n", lineNo);
+      fprintf(stderr, "Skip %d line (short of columns) in gene file [ %s ].\n", lineNo, fn);
       continue;
     }
+
+    std::string& geneName = fd[0];
+    if (geneSet.size() && geneSet.find(geneName)== geneSet.end())
+      continue;
+
     std::string chr = chopChr(fd[2]);
     int beg = atoi(fd[4]);
     int end = atoi(fd[5]);
-    m[ fd[0] ].addRange (chr.c_str(), beg, end);
+    m[ geneName ].addRange (chr.c_str(), beg, end);
   }
   return m.size();
 };
 
+/**
+ * Calculate R2 for genotype[,i] and genotype[,j]
+ */
+double calculateR2(Matrix& genotype, const int i, const int j){
+  double sum_i = 0.0 ; // sum of genotype[,i]
+  double sum_i2 = 0.0 ; // sum of genotype[,i]*genotype[,i]
+  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]  
+  double sum_j = 0.0 ; // sum of genotype[,j]
+  double sum_j2 = 0.0 ; // sum of genotype[,j]*genotype[,j]
+  int n = 0;
+  for (int c = 0; c < genotype.cols; c++) { //iterator each people
+    if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
+    ++n;
+    sum_i += genotype[i][c];
+    sum_i2 += genotype[i][c]*genotype[i][c];
+    sum_ij += genotype[i][c]*genotype[j][c];
+    sum_j += genotype[j][c];
+    sum_j2 += genotype[j][c]*genotype[j][c];
+  };
+  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
+  double cov_ij = sum_ij - sum_i * sum_j / n;
+  double var_i = sum_i2 - sum_i * sum_i / n;
+  double var_j = sum_j2 - sum_j * sum_j / n;
+  double d = var_i * var_j;
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+  if (d < 1e-10) return 0.0;
+  return cov_ij / sqrt(d);
+};
+
+#if 0
+/**
+ * @return r2 of genotype[,i] and genotype[,j] ( genotype is marker by people matrix)
+ * Note: this version is fast, but it only handles non-missing, integer genotypes
+ */
 double calculateR2(Matrix& genotype, const int i, const int j){
   int m[3][3] = {0};
-  for (int c = 0; c < genotype.rows; c++) {
-    int g1 = (int)genotype[c][i];
-    int g2 = (int)genotype[c][j];
+  for (int c = 0; c < genotype.cols; c++) {
+    int g1 = (int)genotype[i][c];
+    int g2 = (int)genotype[i][c];
     if (g1 >= 0 && g2 >= 0) {
       if (g1 <=2 && g2 <= 2) {
         m[g1][g2] ++;
@@ -218,6 +301,7 @@ double calculateR2(Matrix& genotype, const int i, const int j){
   
   return  numer/ sqrt( double(denom));
 };
+#endif
 
 int main(int argc, char** argv){
   time_t currentTime = time(0);
@@ -377,7 +461,7 @@ int main(int argc, char** argv){
 
   OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
-    int ret = loadGeneFile(FLAG_geneFile.c_str(), &geneRange);
+    int ret = loadGeneFile(FLAG_geneFile.c_str(), FLAG_geneToTest.c_str(), &geneRange);
     if (ret < 0 || geneRange.size() == 0) {
       fprintf(stderr, "Error loading gene file!\n");
       return -1;
@@ -426,6 +510,8 @@ int main(int argc, char** argv){
         if (GTidx >= 0)
           //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
           genotype[row][i] = indv->justGet(GTidx).getGenotype();
+        else
+          genotype[row][i] = -9;
       }
       ++ row;
     }
@@ -436,6 +522,8 @@ int main(int argc, char** argv){
       continue;
     };
 
+    // remove missing genotype by imputation
+    imputeGenotypeToMean(&genotype);
     
     // print
     if (!pos.size()) continue;
@@ -447,7 +535,7 @@ int main(int argc, char** argv){
     fprintf(fout, "\t");
     for (int i = 0; i < pos.size(); i++) {
       for (int j = i + 1; j < pos.size(); j++) {
-        fprintf(fout, "%.2f,", calculateR2(genotype, i, j));
+        fprintf(fout, "%g,", calculateR2(genotype, i, j));
       }
     }
     fprintf(fout, "\n");

@@ -160,10 +160,10 @@ public:
     } else {
       if (!isBinaryOutcome()) {
         double se = sqrt(linear.GetCovB()[1][1]);
-        fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", linear.GetCovEst()[1], se, linear.GetAsyPvalue()[1]);
+        fprintf(fp, "%g\t%g\t%g\n", linear.GetCovEst()[1], se, linear.GetAsyPvalue()[1]);
       } else {
         double se = sqrt(logistic.GetCovB()[1][1]);
-        fprintf(fp, "%.3lf\t%.3lf\t%.3lf\n", logistic.GetCovEst()[1], se, logistic.GetAsyPvalue()[1]);
+        fprintf(fp, "%g\t%g\t%g\n", logistic.GetCovEst()[1], se, logistic.GetAsyPvalue()[1]);
       }
     }
   };
@@ -220,11 +220,11 @@ public:
     fputs(prependString, fp);
     if (fitOK) {
       if (!isBinaryOutcome())
-        fprintf(fp, "%d\t%.3f\t%g\t%c\t%g\n", nSample, af, linear.GetStat(), linear.GetU()[0][0] > 0 ? '+': '-', linear.GetPvalue());
+        fprintf(fp, "%d\t%g\t%g\t%c\t%g\n", nSample, af, linear.GetStat(), linear.GetU()[0][0] > 0 ? '+': '-', linear.GetPvalue());
       else
-        fprintf(fp, "%d\t%.3f\t%g\t%c\t%g\n", nSample, af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
+        fprintf(fp, "%d\t%g\t%g\t%c\t%g\n", nSample, af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
     }else
-      fputs("NA\n", fp);
+      fputs("NA\tNA\tNA\tNA\tNA\n", fp);
   };
 private:
   double af;
@@ -1296,13 +1296,13 @@ public:
 
     for (int i = 0; i < outFreq.size(); i++) {
       if (i) fputc(',', fp);
-      fprintf(fp, "%.3lf", outFreq[i]);
+      fprintf(fp, "%g", outFreq[i]);
     }
     fputc('\t', fp);
     for (int i = 0; i < pvalue.size(); i++) {
       if (i) fputc(',', fp);
       if (pvalue[i] > 0)
-        fprintf(fp, "%.3lf", pvalue[i]);
+        fprintf(fp, "%g", pvalue[i]);
       else
         fputs("NA", fp);
     }

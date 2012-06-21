@@ -76,10 +76,12 @@ private:
 // and collapsing results are stored internally.
 class ModelFitter{
 public:
+  /* // fitting model */
+  /* virtual int fit(Matrix& phenotype, Matrix& genotype) = 0; */
+  // fitting model
+  virtual int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) = 0;
   // write result header
   virtual void writeHeader(FILE* fp, const char* prependString) = 0;
-  // fitting model
-  virtual int fit(Matrix& phenotype, Matrix& genotype) = 0;
   // write model output
   virtual void writeOutput(FILE* fp, const char* prependString) = 0;
 
@@ -124,26 +126,56 @@ void copyGenotypeWithIntercept(Matrix& in, Matrix* o){
       out[i][j + 1] = in[i][j];
     }
   }
+  out.SetColumnLabel(0, "Intercept");
+  for (int i = 0; i < in.cols; ++i)
+    out.SetColumnLabel(i + 1, in.GetColumnLabel(i));
 };
+/**
+ * copy @param in and @param cov to @param o (essentially: o = cbind(in, cov))
+ */
+void copyGenotypeWithCovariate(Matrix& in, Matrix& cov, Matrix* o){
+  Matrix& out = *o;
+  out.Dimension(in.rows, in.cols+cov.cols);
+  for (int j = 0; j < in.cols; ++j) {
+    for (int i = 0; i <in.rows; ++i){
+      out[i][j] = in[i][j];
+    }
+    out.SetColumnLabel(j, in.GetColumnLabel(j));
+  }
+
+  for (int j = 0; j < cov.cols; ++j) {
+    for (int i = 0; i < cov.rows; ++i){
+      out[i][j + in.cols] = cov[i][j];
+    }
+    out.SetColumnLabel(j + in.cols, cov.GetColumnLabel(j));
+  }
+};
+
+/**
+ * copy intercept and @param cov to @param o with its first column equaling to 1.0
+ */
+void copyCovariateWithIntercept(Matrix& cov, Matrix* o){
+  copyGenotypeWithIntercept(cov, o);
+};
+
 
 class SingleVariantWaldTest: public ModelFitter{
 public:
   SingleVariantWaldTest(){
     this->modelName = "SingleWald";
   };
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    fprintf(fp, "Beta\tSE\tPvalue\n");
-  };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov) {
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
     }
     copyPhenotype(phenotype, &this->Y);
-    copyGenotypeWithIntercept(genotype, &this->X);
+    if (cov.cols) {
+      copyGenotypeWithCovariate(genotype, cov, &this->X);
+    } else {
+      copyGenotypeWithIntercept(genotype, &this->X);
+    }
 
     if (!isBinaryOutcome()) {
       fitOK = linear.FitLinearModel(this->X, this->Y);
@@ -152,18 +184,29 @@ public:
     }
     return (fitOK ? 0 : 1);
   };
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "Test\tBeta\tSE\tPvalue\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!fitOK) {
-      fputs("NA\tNA\tNA\n", fp);
+      fputs("NA\tNA\tNA\tNA\n", fp);
     } else {
-      if (!isBinaryOutcome()) {
-        double se = sqrt(linear.GetCovB()[1][1]);
-        fprintf(fp, "%g\t%g\t%g\n", linear.GetCovEst()[1], se, linear.GetAsyPvalue()[1]);
-      } else {
-        double se = sqrt(logistic.GetCovB()[1][1]);
-        fprintf(fp, "%g\t%g\t%g\n", logistic.GetCovEst()[1], se, logistic.GetAsyPvalue()[1]);
+      for (int i = 0; i < this->X.cols; ++i) {
+        double beta, se, pval;
+        if (!isBinaryOutcome()) {
+          beta = linear.GetCovEst()[i];
+          se = sqrt(linear.GetCovB()[i][i]);
+          pval = linear.GetAsyPvalue()[i];
+        } else {
+          beta = linear.GetCovEst()[i];
+          se = sqrt(linear.GetCovB()[i][i]);
+          pval = linear.GetAsyPvalue()[i];
+        }
+        fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se, pval);
       }
     }
   };
@@ -183,29 +226,30 @@ public:
     this->modelName = "SingleScore";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
     }
     nSample = genotype.rows;
     af = getMarkerFrequency(genotype, 0);
-    Matrix intercept;
-    intercept.Dimension(genotype.rows, 1);
+
+    Matrix cov;
+    copyCovariateWithIntercept(covariate, &cov);
+
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i< phenotype.rows; i++){
-      intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
     if (!isBinaryOutcome()) {
-      fitOK = linear.FitNullModel(intercept, pheno);
+      fitOK = linear.FitNullModel(cov, pheno);
       if (!fitOK) return -1;
-      fitOK = linear.TestCovariate(intercept, pheno, genotype);
+      fitOK = linear.TestCovariate(cov, pheno, genotype);
     } else {
-      fitOK = logistic.FitNullModel(intercept, pheno, 100);
+      fitOK = logistic.FitNullModel(cov, pheno, 100);
       if (!fitOK) return -1;
-      fitOK = logistic.TestCovariate(intercept, pheno, genotype);
+      fitOK = logistic.TestCovariate(cov, pheno, genotype);
     }
     return (fitOK ? 0 : -1);
   };
@@ -253,12 +297,16 @@ public:
     fputs("Fisher.PvalueGreater\n", fp);
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov) {
     if (genotype.cols == 0 || !isBinaryOutcome()) {
       fitOK = false;
-      return 1;
+      return -1;
     };
-
+    if (cov.cols ) {
+      fitOK = false;
+      return -1;
+    };
+    
     // fit model
     caseAC = 0;
     caseAN = 0;
@@ -344,32 +392,31 @@ public:
     }
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
     }
-    Matrix intercept;
-    intercept.Dimension(genotype.rows, 1);
+    Matrix cov;
+    copyCovariateWithIntercept(covariate, &cov);
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i< phenotype.rows; i++){
-      intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
 
     cmcCollapse(genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
-      fitOK = logistic.FitNullModel(intercept, pheno, 100);
+      fitOK = logistic.FitNullModel(cov, pheno, 100);
       if (!fitOK) return -1;
-      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     } else {
-      fitOK = linear.FitNullModel(intercept, pheno);
+      fitOK = linear.FitNullModel(cov, pheno);
       if (!fitOK) return -1;
-      fitOK = linear.TestCovariate(intercept, pheno, collapsedGenotype);
+      fitOK = linear.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     }
   };
@@ -420,10 +467,14 @@ public:
     fputs("exactCMC.PvalueGreater\n", fp);
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov) {
     if (genotype.cols == 0) {
       fitOK = false;
       return 1;
+    };
+    if (cov.cols ) {
+      fitOK = false;
+      return -1;
     };
 
     // collapsing
@@ -483,32 +534,32 @@ public:
     fprintf(fp, "NumVariant\tZeggini.Pvalue\n");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
     }
-    Matrix intercept;
-    intercept.Dimension(genotype.rows, 1);
+    Matrix cov;
+    copyCovariateWithIntercept(covariate, &cov);
+
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i< phenotype.rows; i++){
-      intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
 
     zegginiCollapse(genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
-      fitOK = logistic.FitNullModel(intercept, pheno, 100);
+      fitOK = logistic.FitNullModel(cov, pheno, 100);
       if (!fitOK) return -1;
-      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     } else {
-      fitOK = linear.FitNullModel(intercept, pheno);
+      fitOK = linear.FitNullModel(cov, pheno);
       if (!fitOK) return -1;
-      fitOK = linear.TestCovariate(intercept, pheno, collapsedGenotype);
+      fitOK = linear.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     }
   };
@@ -547,7 +598,7 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
       fprintf(fp, "NumVariant\tNA\n");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -558,21 +609,21 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
       fitOK = false;
       return -1;
     }
-    Matrix intercept;
-    intercept.Dimension(genotype.rows, 1);
+    Matrix cov;
+    copyCovariateWithIntercept(covariate, &cov);
+
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i< phenotype.rows; i++){
-      intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
 
     madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
 
 
-    fitOK = logistic.FitNullModel(intercept, pheno, 100);
+    fitOK = logistic.FitNullModel(cov, pheno, 100);
     if (!fitOK) return -1;
-    fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+    fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
     if (!fitOK) return -1;
     // record observed stat
     this->stat = logistic.GetStat(); // a chi-dist
@@ -581,7 +632,7 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
     int failed = 0;
     for (int i = 0; i < this->nPerm; ++i) {
       permute(&pheno);
-      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       if (!fitOK) {
         if (failed < 10) {
           failed++;
@@ -650,32 +701,32 @@ public:
     fprintf(fp, "NumVariant\tFp.Pvalue\n");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
     }
-    Matrix intercept;
-    intercept.Dimension(genotype.rows, 1);
+    Matrix cov;
+    copyCovariateWithIntercept(covariate, &cov);
+
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i< phenotype.rows; i++){
-      intercept[i][0] = 1.0;
       pheno[i] = phenotype[i][0];
     }
 
     fpCollapse(genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
-      fitOK = logistic.FitNullModel(intercept, pheno, 100);
+      fitOK = logistic.FitNullModel(cov, pheno, 100);
       if (!fitOK) return -1;
-      fitOK = logistic.TestCovariate(intercept, pheno, collapsedGenotype);
+      fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     } else {
-      fitOK = linear.FitNullModel(intercept, pheno);
+      fitOK = linear.FitNullModel(cov, pheno);
       if (!fitOK) return -1;
-      fitOK = linear.TestCovariate(intercept, pheno, collapsedGenotype);
+      fitOK = linear.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     }
   };
@@ -715,12 +766,16 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
       fprintf(fp, "NA\n");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
     }
-
+    if (covariate.cols == 0) {
+      fitOK = false;
+      return -1;
+    };
+    
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -892,12 +947,15 @@ CMATTest(int nPerm): nPerm(nPerm) {
       fprintf(fp, "NumVariant\tNA\n");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
     }
-
+    if (covariate.cols = 0){
+      fitOK = false;
+      return -1;
+    }
     copyPhenotype(phenotype, &this->pheno);
 
     // we use equal weight
@@ -1028,7 +1086,16 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
     this->modelName = "VariableThresholdPrice";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
+    if (covariate.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
+    
     rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     convertToReferenceAlleleCount(&sortedGenotype);
     collapseGenotype(&sortedGenotype);
@@ -1196,28 +1263,26 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     this->modelLen = n;
     this->modelCapacity = n;
   };
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    model[0].writeHeader(fp, "FreqThreshold\t");
-  };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
-
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (genotype.cols > modelLen) {
       resize(genotype.cols);
       reset();
     }
-
     rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     for (int i = genotype.cols - 1; i >=0; --i){
       sortedGenotype.Dimension( genotype.rows, i + 1);
-      if ( model[i].fit(phenotype, sortedGenotype) ) {
+      if ( model[i].fit(phenotype, sortedGenotype, covariate) ) {
         fitOK = false;
       }
     }
 
     return 0;
+  };
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    model[0].writeHeader(fp, "FreqThreshold\t");
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
@@ -1331,9 +1396,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
       this->usePermutation = true;
     this->beta1 = beta1;
     this->beta2 = beta2;
-
     this->modelName = "Skat";
-
   };
   void reset() {
     this->skat.Reset();
@@ -1342,7 +1405,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     stat = 0;
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     // fill it wegith
     // NOTE: our frequency calculation is slightly different than SKAT, so we will need to adjust it back
     weight.Dimension(genotype.cols);
@@ -1363,19 +1426,18 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     copyPhenotype(phenotype, &phenoVec);
 
     // ynull is mean of y (removing genotypes) in model Ynull ~ X (aka Ynull ~ X + 0.0 * G )
-    X.Dimension(genotype.rows, 1);
-    for (int i = 0; i < genotype.rows; ++i) {
-      X[i][0] = 1.0;
-    }
+    Matrix cov;
+    copyCovariateWithIntercept(covariate, &cov);
+    
     if (isBinaryOutcome()) {
-      fitOK = logistic.FitLogisticModel(X, phenoVec, 100);
+      fitOK = logistic.FitLogisticModel(cov, phenoVec, 100);
       if (!fitOK) {
         return -1;
       }
       ynull = logistic.GetPredicted();
       v = logistic.GetVariance();
     } else {
-      fitOK = linear.FitLinearModel(X, phenoVec);
+      fitOK = linear.FitLinearModel(cov, phenoVec);
       if (!fitOK) {
         return -1;
       }
@@ -1387,7 +1449,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     }
 
     // get Pvalue
-    skat.CalculatePValue(phenoVec, ynull, X, v, genotype, weight);
+    skat.CalculatePValue(phenoVec, ynull, cov, v, genotype, weight);
     this->pValue = skat.GetPvalue();
 
     // permuation part
@@ -1397,7 +1459,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     for (int i = 0; i < this->nPerm; i++) {
       permute(&phenoVec);
       ++actualPerm;
-      skat.CalculatePValue(phenoVec, ynull, X, v, genotype, weight);
+      skat.CalculatePValue(phenoVec, ynull, cov, v, genotype, weight);
       s = skat.GetQ();
       if (s > this->stat){
         ++numX ;
@@ -1430,7 +1492,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
       if (!usePermutation){
         fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);
       } else {
-        fprintf(fp, "%d\t%g\t%g\t%d\t%g\t%d\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue,
+        fprintf(fp, "%d\t%g\t%d\t%g\t%d\t%g\n", this->weight.Length(), this->pValue,
                 this->actualPerm, this->stat, this->numX, this->getPvalue());
       }
     }
@@ -1438,7 +1500,7 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
 private:
   double beta1;
   double beta2;
-  Matrix X; // n by (p+1) matrix, people by covariate (note intercept is needed);
+  // Matrix X; // n by (p+1) matrix, people by covariate (note intercept is needed);
   Vector v;
   Vector weight;
   LogisticRegression logistic;
@@ -1475,12 +1537,16 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
     // clear_kbac_test();
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
     }
-
+    if (covariate.cols  != 0){
+      fitOK = false;
+      return -1;
+    }
+      
     this->resize(genotype.rows, genotype.cols);
     this->nn = this->nPerm;
     this->qq = 1;
@@ -1596,7 +1662,7 @@ public:
     this->header = prependString;
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->phenotype = phenotype;
     this->genotype = genotype;
   };

@@ -236,7 +236,7 @@ void makeSet(const std::vector<std::string> in, std::set<std::string>* s) {
 int loadCovariate(const char* fn,
                   const std::vector<std::string>& includedSample,
                   const char* nameToUse,
-                  std::vector<std::vector<double> >* covariate,
+                  Matrix* covariate,
                   std::vector<std::string>* colNames,
                   std::set< std::string >* sampleToDrop
                   ) {
@@ -291,23 +291,25 @@ int loadCovariate(const char* fn,
         fprintf(stderr, "Duplicate sample [ %s ] in covariate file, skipping\n", fd[0].c_str());
       };
       // int idx = sampleIdx[fd[0]];
-      int idx = (*covariate).size();
-      (*covariate).resize( idx + 1);
-      (*covariate)[idx].resize( columnNameSet.size());
+      int idx = (*covariate).rows;
+      (*covariate).Dimension( idx + 1, columnNameSet.size());
       
       for (int i = 0; i < columnToExtract.size(); ++i) {
         (*covariate)[idx][i] = atof(fd[columnToExtract[i]]);
       }
     }
   };
-
+  // set up labels
+  for (int i = 0 ; i < colNames->size(); ++i) {
+    (*covariate).SetColumnLabel(i, (*colNames)[i].c_str());
+  }
   for (int i = 0; i <includedSample.size(); i++) {
     if (processed.find(includedSample[i]) == processed.end()) {
       fprintf(stderr, "Covariate file does not contain sample [ %s ]\n", includedSample[i].c_str());
       sampleToDrop->insert(includedSample[i]);
     };
   }
-  return (*covariate).size();
+  return (*covariate).rows;
 }
                   
 /**
@@ -925,8 +927,8 @@ int main(int argc, char** argv){
   }
 
   // load covariate
+  Matrix covariate;  
   if (!FLAG_cov.empty()) {
-    std::vector<std::vector<double> > covariate;
     std::vector<std::string> columnNamesInCovariate;
     std::set< std::string > sampleToDropInCovariate;
     int ret = loadCovariate(FLAG_cov.c_str(), phenotypeNameInOrder, FLAG_covName.c_str(), &covariate, &columnNamesInCovariate, &sampleToDropInCovariate );
@@ -1196,7 +1198,7 @@ int main(int argc, char** argv){
       // fit each model
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
-        model[m]->fit(phenotypeMatrix, genotype);
+        model[m]->fit(phenotypeMatrix, genotype, covariate);
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
     }
@@ -1239,7 +1241,7 @@ int main(int argc, char** argv){
 
         for (int m = 0; m < model.size(); m++) {
           model[m]->reset();
-          model[m]->fit(phenotypeMatrix, genotype);
+          model[m]->fit(phenotypeMatrix, genotype, covariate);
           model[m]->writeOutput(fOuts[m], buf.c_str());
         };
       }
@@ -1284,7 +1286,7 @@ int main(int argc, char** argv){
 
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
-        model[m]->fit(phenotypeMatrix, genotype);
+        model[m]->fit(phenotypeMatrix, genotype, covariate);
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
     }

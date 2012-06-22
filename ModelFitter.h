@@ -131,31 +131,51 @@ void copyGenotypeWithIntercept(Matrix& in, Matrix* o){
     out.SetColumnLabel(i + 1, in.GetColumnLabel(i));
 };
 /**
- * copy @param in and @param cov to @param o (essentially: o = cbind(in, cov))
+ * copy vector of one, @param in and @param cov to @param o (essentially: o = cbind(1, in, cov))
  */
-void copyGenotypeWithCovariate(Matrix& in, Matrix& cov, Matrix* o){
+void copyGenotypeWithCovariateAndIntercept(Matrix& in, Matrix& cov, Matrix* o){
   Matrix& out = *o;
-  out.Dimension(in.rows, in.cols+cov.cols);
+  out.Dimension(in.rows, 1+in.cols+cov.cols);
+
+  for (int i = 0; i <in.rows; ++i){
+    out[i][0] = 1.0;
+  }
+  out.SetColumnLabel(0, "Intercept");
+
   for (int j = 0; j < in.cols; ++j) {
     for (int i = 0; i <in.rows; ++i){
-      out[i][j] = in[i][j];
+      out[i][1+j] = in[i][j];
     }
-    out.SetColumnLabel(j, in.GetColumnLabel(j));
+    out.SetColumnLabel(1+j, in.GetColumnLabel(j));
   }
 
   for (int j = 0; j < cov.cols; ++j) {
     for (int i = 0; i < cov.rows; ++i){
-      out[i][j + in.cols] = cov[i][j];
+      out[i][1+j + in.cols] = cov[i][j];
     }
-    out.SetColumnLabel(j + in.cols, cov.GetColumnLabel(j));
+    out.SetColumnLabel(1+j + in.cols, cov.GetColumnLabel(j));
   }
 };
 
 /**
  * copy intercept and @param cov to @param o with its first column equaling to 1.0
  */
-void copyCovariateWithIntercept(Matrix& cov, Matrix* o){
-  copyGenotypeWithIntercept(cov, o);
+void copyCovariateAndIntercept(int n, Matrix& cov, Matrix* o){
+  if (cov.cols == 0 ) {
+    (*o).Dimension(n, 1);
+    for (int i = 0; i < n; ++i) {
+      (*o)[i][0] = 1.0;
+    }
+    return ;
+  }
+  (*o).Dimension(n, 1 + cov.cols);
+  for (int i = 0; i < n; ++i) {
+    (*o)[i][0] = 1.0;
+    for (int j = 0; j <cov.cols; ++j){
+      (*o)[i][j+1] = cov[i][j];
+    }
+  }
+  return;
 };
 
 
@@ -172,7 +192,7 @@ public:
     }
     copyPhenotype(phenotype, &this->Y);
     if (cov.cols) {
-      copyGenotypeWithCovariate(genotype, cov, &this->X);
+      copyGenotypeWithCovariateAndIntercept(genotype, cov, &this->X);
     } else {
       copyGenotypeWithIntercept(genotype, &this->X);
     }
@@ -191,21 +211,23 @@ public:
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (!fitOK) {
-      fputs("NA\tNA\tNA\tNA\n", fp);
-    } else {
-      for (int i = 0; i < this->X.cols; ++i) {
+    // skip interecept (column 0)
+    for (int i = 1; i < this->X.cols; ++i) {
+      if (!fitOK) {
+        fputs(prependString, fp);
+        fprintf(fp, "%s\tNA\tNA\tNA\n", this->X.GetColumnLabel(i));
+      } else {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
           beta = linear.GetCovEst()[i];
           se = sqrt(linear.GetCovB()[i][i]);
           pval = linear.GetAsyPvalue()[i];
         } else {
-          beta = linear.GetCovEst()[i];
-          se = sqrt(linear.GetCovB()[i][i]);
-          pval = linear.GetAsyPvalue()[i];
+          beta = logistic.GetCovEst()[i];
+          se = sqrt(logistic.GetCovB()[i][i]);
+          pval = logistic.GetAsyPvalue()[i];
         }
+        fputs(prependString, fp);
         fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se, pval);
       }
     }
@@ -235,7 +257,7 @@ public:
     af = getMarkerFrequency(genotype, 0);
 
     Matrix cov;
-    copyCovariateWithIntercept(covariate, &cov);
+    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     Vector pheno;
     pheno.Dimension(phenotype.rows);
@@ -306,7 +328,7 @@ public:
       fitOK = false;
       return -1;
     };
-    
+
     // fit model
     caseAC = 0;
     caseAN = 0;
@@ -399,7 +421,7 @@ public:
       return -1;
     }
     Matrix cov;
-    copyCovariateWithIntercept(covariate, &cov);
+    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i< phenotype.rows; i++){
@@ -541,7 +563,7 @@ public:
       return -1;
     }
     Matrix cov;
-    copyCovariateWithIntercept(covariate, &cov);
+    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     Vector pheno;
     pheno.Dimension(phenotype.rows);
@@ -610,7 +632,7 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
       return -1;
     }
     Matrix cov;
-    copyCovariateWithIntercept(covariate, &cov);
+    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     Vector pheno;
     pheno.Dimension(phenotype.rows);
@@ -708,7 +730,7 @@ public:
       return -1;
     }
     Matrix cov;
-    copyCovariateWithIntercept(covariate, &cov);
+    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     Vector pheno;
     pheno.Dimension(phenotype.rows);
@@ -775,7 +797,7 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
       fitOK = false;
       return -1;
     };
-    
+
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -1095,7 +1117,7 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
       fitOK = false;
       return -1;
     }
-    
+
     rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     convertToReferenceAlleleCount(&sortedGenotype);
     collapseGenotype(&sortedGenotype);
@@ -1427,8 +1449,8 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
 
     // ynull is mean of y (removing genotypes) in model Ynull ~ X (aka Ynull ~ X + 0.0 * G )
     Matrix cov;
-    copyCovariateWithIntercept(covariate, &cov);
-    
+    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
     if (isBinaryOutcome()) {
       fitOK = logistic.FitLogisticModel(cov, phenoVec, 100);
       if (!fitOK) {
@@ -1546,7 +1568,7 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
       fitOK = false;
       return -1;
     }
-      
+
     this->resize(genotype.rows, genotype.cols);
     this->nn = this->nPerm;
     this->qq = 1;
@@ -1665,6 +1687,7 @@ public:
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->phenotype = phenotype;
     this->genotype = genotype;
+    this->covariate = covariate;
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString){
@@ -1690,6 +1713,9 @@ public:
     for (int i = 0; i < genotype.cols; i++) {
       fprintf(fDump, "\tX%d", i);
     };
+    for (int i = 0; i < covariate.cols; i++) {
+      fprintf(fDump, "\tC%d", i);
+    };
     fprintf(fDump, "\n");
 
     // write content
@@ -1702,6 +1728,9 @@ public:
       for (int j = 0; j < genotype.cols; ++j) {
         fprintf(fDump, "\t%f", genotype[i][j]);
       }
+      for (int j = 0; j < covariate.cols; ++j) {
+        fprintf(fDump, "\t%f", covariate[i][j]);
+      }
       fprintf(fDump, "\n");
     };
     fclose(fDump);
@@ -1713,6 +1742,7 @@ public:
 private:
   Matrix phenotype;
   Matrix genotype;
+  Matrix covariate;
   std::string prefix;
   std::string header;
 }; // end DumpModel

@@ -150,6 +150,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector
     return false;
   }
   this->stat = U*U/I;
+  if (this->stat < 0) return false;  
   this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
   return true;
 };
@@ -185,6 +186,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
     return false;
   }
   this->stat = U*U/V;
+  if (this->stat < 0) return false;
   this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
   return true;
 };
@@ -207,23 +209,20 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
 
   Vector U(m);
   Matrix SS(m,m);
-  Matrix SZ(d,m);
+  Matrix SZ(m, d);
   Matrix ZZ(d,d);
   U.Zero();
   SS.Zero();
   SZ.Zero();
   ZZ.Zero();
 
-  FILE* fp = fopen("tmp.data", "w");
   Vector& v = this->lr.GetVariance();
   for (int i = 0; i < n; i ++){
     U.AddMultiple(y[i] - this->lr.GetPredicted()[i], Xcol[i]) ;
-    fprintf(fp, "%g\t%g\t%g\n", Xcol[i][0], this->lr.GetPredicted()[i], y[i]);
     MatrixPlusEqualV1andV2TWithWeight(SS, Xcol[i], Xcol[i], v[i]);
     MatrixPlusEqualV1andV2TWithWeight(SZ, Xcol[i], Xnull[i], v[i]);
     MatrixPlusEqualV1andV2TWithWeight(ZZ, Xnull[i], Xnull[i], v[i]);
   }
-  fclose(fp);
   // inverse in place ZZ
   SVD svd;
   svd.InvertInPlace(ZZ);
@@ -250,6 +249,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
     }
   }
   this->stat = S;
+  if (this->stat < 0) return false;
   this->pvalue = chidist(this->stat, m); // use chisq to inverse
   return true;
 };
@@ -304,6 +304,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
   }
   // fprintf(stderr, "m=%d\t S=%.3f\t U[0]=%.3f SS[0][0]=%.3f\n", m, S, U[0], SS[0][0]);
   this->stat = S;
+  if (this->stat < 0) return false;
   this->pvalue = chidist(this->stat, m); // use chisq to inverse
   return true;
 };

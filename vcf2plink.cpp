@@ -38,7 +38,7 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
         ADD_PARAMETER_GROUP(pl, "Gene Extractor")
         ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "Specify the gene file (refFlat format), so we know gene start and end.")
-        ADD_STRING_PARAMETER(pl, geneName, "--geneName", "Specify the gene names to extract")
+        ADD_STRING_PARAMETER(pl, geneName, "--gene", "Specify the gene names to extract")
         ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify the type of annotation to extract")
         ADD_PARAMETER_GROUP(pl, "Other Function")        
         ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")

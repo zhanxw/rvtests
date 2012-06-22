@@ -533,6 +533,11 @@ int extractSiteGenotype(VCFExtractor* v, Matrix* g, std::string* b){
       return -1;
     }
   }
+
+  std::string label = r.getChrom();
+  label += ':';
+  label += r.getPosStr();
+  genotype.SetColumnLabel(0, label.c_str());
   return 0;
 }
 
@@ -937,11 +942,11 @@ int main(int argc, char** argv){
       abort();
     }
     // drop phenotype samples
-    {
+    if (!sampleToDropInCovariate.empty()){
       int idx = 0;
       int n = phenotypeNameInOrder.size();
       for (int i = 0; i < n; ++i) {
-        if (sampleToDropInCovariate.find(phenotypeNameInOrder[i]) == sampleToDropInCovariate.end()){
+        if (sampleToDropInCovariate.count(phenotypeNameInOrder[i]) != 0){ // need to drop
           continue;
         }
         phenotypeNameInOrder[idx] = phenotypeNameInOrder[i];

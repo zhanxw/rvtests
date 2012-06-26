@@ -90,7 +90,10 @@ public:
     this->binaryOutcome = false; // default: using continuous outcome
   };
   const std::string& getModelName() const { return this->modelName; };
-  virtual void reset() {}; // for particular class to call when fitting repeatedly
+  // for particular class to call when fitting repeatedly
+  // e.g. clear permutation counter
+  // e.g. clear internal cache
+  virtual void reset() {}; 
   // virtual void needFittingCovariate();
   bool isBinaryOutcome() const{
     return this->binaryOutcome;
@@ -178,7 +181,6 @@ void copyCovariateAndIntercept(int n, Matrix& cov, Matrix* o){
   return;
 };
 
-
 class SingleVariantWaldTest: public ModelFitter{
 public:
   SingleVariantWaldTest(){
@@ -186,11 +188,12 @@ public:
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov) {
-    if (genotype.cols == 0) {
+    if (genotype.cols != 1) {
       fitOK = false;
       return -1;
     }
     copyPhenotype(phenotype, &this->Y);
+    
     if (cov.cols) {
       copyGenotypeWithCovariateAndIntercept(genotype, cov, &this->X);
     } else {
@@ -233,12 +236,10 @@ public:
     }
   };
 private:
-  Matrix X; // 1 + geno
+  Matrix X; // 1 + cov + geno
   Vector Y; // phenotype
   LinearRegression linear;
   LogisticRegression logistic;
-  int nCov;
-  int nGeno;
   bool fitOK;
 }; // SingleVariantWaldTest
 
@@ -249,7 +250,7 @@ public:
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
-    if (genotype.cols == 0) {
+    if (genotype.cols != 1) {
       fitOK = false;
       return -1;
     }
@@ -259,11 +260,7 @@ public:
     Matrix cov;
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
-    Vector pheno;
-    pheno.Dimension(phenotype.rows);
-    for (int i = 0; i< phenotype.rows; i++){
-      pheno[i] = phenotype[i][0];
-    }
+    copyPhenotype(phenotype, &this->pheno);
     if (!isBinaryOutcome()) {
       fitOK = linear.FitNullModel(cov, pheno);
       if (!fitOK) return -1;
@@ -295,6 +292,7 @@ public:
 private:
   double af;
   int nSample;
+  Vector pheno;
   LinearRegressionScoreTest linear;
   LogisticRegressionScoreTest logistic;
   bool fitOK;
@@ -1764,7 +1762,9 @@ double getMarkerFrequency(Matrix& in, int col){
       an += 2;
     }
   }
-  double freq = 1.0 * (ac + 1) / (an + 1);
+  if ( an == 0 ) return 0.0;
+  //double freq = 1.0 * (ac + 1) / (an + 1);
+  double freq = 1.0 * ac / an;
   return freq;
 };
 

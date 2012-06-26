@@ -125,6 +125,20 @@ inline void stringJoin(const std::vector<std::string>& array, const char delim, 
   }
 };
 
+inline void tolower(std::string* s) {
+  for (std::string::iterator i = s->begin();
+       i != s->end();
+       ++i)
+    (*i) = tolower(*i);
+};
+
+inline std::string tolower(const std::string& s) {
+  std::string ret(s);
+  tolower(&ret);
+  return ret;
+};
+
+
 /**
  * print out the content for debug only
  */
@@ -133,4 +147,6 @@ inline void dumpStringVector(const std::vector<std::string> s) {
     fprintf(stdout, "%u: %s\n", i, s[i].c_str());
   }
 };
+
+
 #endif /* _UTILS_H_ */

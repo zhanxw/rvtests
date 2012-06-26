@@ -43,7 +43,6 @@
 
 #include "Argument.h"
 #include "IO.h"
-#include "tabix.h"
 
 #include <cassert>
 #include <string>
@@ -91,16 +90,19 @@ class ModelParser{
  public:
   /**
    * @return 0: if parse succeed.
+   * NOTE: will convert all letters to lower case
    */
   int parse(const char* s){
     std::string arg = s;
-    size_t l = arg.find('(');
+    tolower(&arg);
+    
+    size_t l = arg.find(ModelParser::LEFT_DELIM);
     if ( l == std::string::npos){
       this->name = arg;
       return 0;
     }
     this->name = arg.substr(0, l);
-    if (arg[arg.size() - 1] != ')'){
+    if (arg[arg.size() - 1] != ModelParser::RIGHT_DELIM){
       fprintf(stderr, "Please use this format: model(model_param1=v1)\n");
       return -1;
     }
@@ -193,6 +195,8 @@ class ModelParser{
   const size_t size() const {
     return this->param.size();
   };
+  static const char LEFT_DELIM = '(';
+  static const char RIGHT_DELIM = ')';  
  private:
   std::string name;
   std::map<std::string, std::string> param;
@@ -458,6 +462,22 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     }
   }
 };
+
+// class GenotypeExtractor{
+//  public:
+//   GenotypeExtract(VCFExtractor* v): vin(*v) {
+//   };
+//   int extractMultipleGenotype(Matrix* g) {
+//   };
+//   int extractSingleGenotype(Matrix* g) {
+//   };
+//   private;
+//   VCFExtractor& vin;
+//   int GDmin;
+//   int GDmax;
+//   int GQmin;
+//   int GQmax;
+// };
 
 /**
  * @return 0 for success
@@ -750,6 +770,31 @@ double qnorm(double x) {
   return gsl_cdf_gaussian_Pinv(x, 1.0);
 };
 
+double calculateMean(const std::vector<double>& v ){
+  double s = 0.0;
+  if (v.empty()) return 0.0;
+  
+  for (unsigned int i = 0; i < v.size(); ++i) {
+    s += v[i];
+  }
+  return s / v.size();
+}
+
+// sd ^ 2 = \frac{1}{N}  (v_i - mean of v_i) ^ 2
+double calculateSD(const std::vector<double>& v ){
+  double s = 0.0;
+  if (v.empty()) return 0.0;
+
+  double mean = calculateMean(v);
+  for (unsigned int i = 0; i < v.size(); ++i) {
+    const double t = v[i] - mean;
+    s += t * t;
+  }
+  return sqrt(s / v.size());
+}
+
+// inverse normal a vector AND center it.
+// 
 void inverseNormal(std::vector<double>* y){
   if (!y || !y->size()) return;
   const int n = y->size();
@@ -770,6 +815,15 @@ void inverseNormal(std::vector<double>* y){
     (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + 1 - 2 * a));
 
   fprintf(stderr, "Done: inverse normal transformation finished.\n");
+
+  // center
+  double m = calculateMean(*y);
+  double sd = calculateSD(*y);
+  for (unsigned int i = 0; i < n ; i++) {
+    (*y)[i] -= m;
+    (*y)[i] /= sd;
+  }
+  fprintf(stderr, "Done: centering to 0.0 and scaling to 1.0 finished.\n");
 };
 
 

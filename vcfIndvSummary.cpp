@@ -95,7 +95,7 @@ class Variant{
 
     printf("\t%10d", synonymous);
     printf("\t%10d", nonsynonymous);
-    
+
     putchar('\n');
   };
   void print(const char* filt, const SiteSet& hapmapSites) const{
@@ -202,38 +202,9 @@ int main(int argc, char** argv){
     inDbSnp = snpSet.isIncluded(r.getChrom(), r.getPos());
     inHapmap = hmSet.isIncluded(r.getChrom(), r.getPos());
 
-
-    VCFPeople& people = r.getPeople();
-    VCFIndividual* indv;
-    for (int i = 0; i < people.size(); ++i) {
-      indv = people[i];
-      const std::string& name = indv->getName();
-
-      Variant& v = freq[name];
-      // get GT index. if you are sure the index will not change, call this function only once!
-      int GTidx = r.getFormatIndex("GT");
-      if (GTidx < 0) {
-        fprintf(stderr, "Missing GT for individual %s: %s\n", name.c_str(), indv->getSelf().toStr());
-        v.missing ++;
-      } else {
-        int genotype = indv->justGet(GTidx).getGenotype();
-        switch(genotype) {
-          case 0:
-            v.homRef ++;
-            break;
-          case 1:
-            v.het ++;
-            break;
-          case 2:
-            v.homAlt ++;
-            break;
-          default:  // include -9, and 0/2, 1/2, 2/2....
-            fprintf(stderr, "Skipped genotype: %s\n", indv->getSelf().toStr());
-            v.missing ++;
-            break;
-        }
-      }
-
+    // create a fake sample __ALL__
+    {
+      Variant& v = freq["__ALL__"];
       v.total++;
       if ( isTs(ref, alt) ) {
         v.ts ++;
@@ -261,6 +232,71 @@ int main(int argc, char** argv){
         }
       }
     }
+
+
+    // loop each individual
+    VCFPeople& people = r.getPeople();
+    VCFIndividual* indv;
+    for (int i = 0; i < people.size(); ++i) {
+      indv = people[i];
+      const std::string& name = indv->getName();
+
+      Variant& v = freq[name];
+      bool isVariant = false;
+      // get GT index. if you are sure the index will not change, call this function only once!
+      int GTidx = r.getFormatIndex("GT");
+      if (GTidx < 0) {
+        fprintf(stderr, "Missing GT for individual %s: %s\n", name.c_str(), indv->getSelf().toStr());
+        v.missing ++;
+      } else {
+        int genotype = indv->justGet(GTidx).getGenotype();
+        switch(genotype) {
+          case 0:
+            v.homRef ++;
+            break;
+          case 1:
+            v.het ++;
+            isVariant = true;
+            break;
+          case 2:
+            v.homAlt ++;
+            isVariant = true;
+            break;
+          default:  // include -9, and 0/2, 1/2, 2/2....
+            fprintf(stderr, "Skipped genotype: %s\n", indv->getSelf().toStr());
+            v.missing ++;
+            break;
+        }
+      }
+      if (isVariant) {
+        v.total++;
+        if ( isTs(ref, alt) ) {
+          v.ts ++;
+          if (inDbSnp) {
+            v.tsInDbSnp ++;
+            v.dbSnp ++;
+          }
+        } else if (isTv(ref, alt)) {
+          v.tv ++;
+          if (inDbSnp) {
+            v.tvInDbSnp ++;
+            v.dbSnp ++;
+          }
+        };
+        if (inHapmap)
+          v.hapmap ++;
+
+        bool missing;
+        VCFValue value = r.getInfoTag("ANNO", &missing);
+        if (!missing) {
+          if (matchPrefix(value.toStr(), "Synonymous")) {
+            v.synonymous ++;
+          } else if (matchPrefix(value.toStr(), "Nonsynonymous")) {
+            v.nonsynonymous ++;
+          }
+        }
+      }
+    }
   };
   fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
 
@@ -269,7 +305,7 @@ int main(int argc, char** argv){
   int pad = (170 - title.size() ) /2 ;
   std::string outTitle = std::string(pad, '-') + title + std::string(pad, '-');
   puts(outTitle.c_str());
-  printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s%10s%10s%10s%10s%10s%10s\n",
+  printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
          "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall", "%TotalHM3", "%HMCalled",
          "HomRef", "Het", "HomAlt", "Missing", "Synonymous", "Nonsynonymous");
   std::map<std::string, Variant> indvFreq;

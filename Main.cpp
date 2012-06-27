@@ -340,7 +340,7 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
       if (str2double(fd[5].c_str(), &v)) {
         pheno[pid] = v;
       } else {
-        fprintf(stderr, "Missing or invalid phenotype, skipping line %d ... ", lineNo);
+        fprintf(stderr, "Missing or invalid phenotype, skipping line %d ... \n", lineNo);
       }
     } else {
       // fprintf(stderr, "line %s have duplicated id, skipped...\n", pid.c_str());

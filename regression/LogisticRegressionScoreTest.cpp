@@ -1,6 +1,8 @@
 #include "LogisticRegressionScoreTest.h"
 #include "MatrixOperation.h"
 
+#include "gsl/gsl_cdf.h" // use gsl_cdf_chisq_Q
+
 LogisticRegressionScoreTest::LogisticRegressionScoreTest():stat(0.0),pvalue(0.0){};
 
 
@@ -150,8 +152,9 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector
     return false;
   }
   this->stat = U*U/I;
-  if (this->stat < 0) return false;  
-  this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
+  if (this->stat < 0) return false;
+  //   this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
+  this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
 };
 
@@ -187,7 +190,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
   }
   this->stat = U*U/V;
   if (this->stat < 0) return false;
-  this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
+  this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);  
   return true;
 };
 
@@ -250,7 +253,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
   }
   this->stat = S;
   if (this->stat < 0) return false;
-  this->pvalue = chidist(this->stat, m); // use chisq to inverse
+  this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
 };
 
@@ -305,7 +308,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
   // fprintf(stderr, "m=%d\t S=%.3f\t U[0]=%.3f SS[0][0]=%.3f\n", m, S, U[0], SS[0][0]);
   this->stat = S;
   if (this->stat < 0) return false;
-  this->pvalue = chidist(this->stat, m); // use chisq to inverse
+  this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
 };
 

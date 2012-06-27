@@ -224,7 +224,7 @@ public:
       else
         fprintf(fp, "%d\t%.3f\t%g\t%c\t%g\n", nSample, af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
     }else
-      fputs("NA\n", fp);
+      fputs("NA\tNA\tNA\tNA\tNA\n", fp);
   };
 private:
   double af;

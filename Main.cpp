@@ -43,7 +43,6 @@
 
 #include "Argument.h"
 #include "IO.h"
-#include "tabix.h"
 
 #include <cassert>
 #include <string>
@@ -91,16 +90,19 @@ class ModelParser{
  public:
   /**
    * @return 0: if parse succeed.
+   * NOTE: will convert all letters to lower case
    */
   int parse(const char* s){
     std::string arg = s;
-    size_t l = arg.find('(');
+    tolower(&arg);
+    
+    size_t l = arg.find(ModelParser::LEFT_DELIM);
     if ( l == std::string::npos){
       this->name = arg;
       return 0;
     }
     this->name = arg.substr(0, l);
-    if (arg[arg.size() - 1] != ')'){
+    if (arg[arg.size() - 1] != ModelParser::RIGHT_DELIM){
       fprintf(stderr, "Please use this format: model(model_param1=v1)\n");
       return -1;
     }
@@ -193,11 +195,127 @@ class ModelParser{
   const size_t size() const {
     return this->param.size();
   };
+  static const char LEFT_DELIM = '(';
+  static const char RIGHT_DELIM = ')';  
  private:
   std::string name;
   std::map<std::string, std::string> param;
 };
 
+/**
+ * Convert a @param string separated by @param sep to set (stored in @param s)
+ */
+void makeSet(const char* str, char sep, std::set<std::string>* s) {
+  s->clear();
+  if (!str || strlen(str) == 0)
+    return;
+
+  std::vector<std::string> fd;
+  stringTokenize(str, ",", &fd);
+  for (int i = 0; i < fd.size(); i++)
+    s->insert(fd[i]);
+}
+
+void makeSet(const std::vector<std::string> in, std::set<std::string>* s) {
+  s->clear();
+  if (in.empty())
+    return;
+  
+  for (int i = 0; i < in.size(); i++)
+    s->insert(in[i]);
+}
+
+/**
+ * Load covariate from @param fn, using specified @param nameToUse, for given @param includedSample
+ * covariate will be stored in @param covariate, and column names will be stored in @colNames
+ * if covariate file missed some samples, those sample names will be stored in @sampleToDrop
+ * NOTE: for missing values in a covariate, it will drop this covariate out of the following anaylysis
+ * @return number of samples have covariates.
+ * Example:
+ * includedSample = [A, B, C] and in covaraite file we have [B, C, C, D]
+ * then output covariate have 3 rows corresponding to [A, B, C]
+ * row C filled by the last C in covariate file
+ * sample D will be in sampleToDrop
+ */
+int loadCovariate(const char* fn,
+                  const std::vector<std::string>& includedSample,
+                  const char* nameToUse,
+                  Matrix* covariate,
+                  std::vector<std::string>* colNames,
+                  std::set< std::string >* sampleToDrop
+                  ) {
+  // std::map<std::string, int> sampleIdx;
+  // for (int i = 0; i < includedSample.size() ; ++i){
+  //   sampleIdx[includedSample[i]] = i;
+  // }
+  std::set< std::string> sampleSet;
+  makeSet(includedSample, &sampleSet);
+  
+  std::set< std::string> columnNameSet;
+  makeSet(nameToUse, ',', &columnNameSet);
+
+  
+  std::map< std::string, int > processed; //record how many times a sample is processed
+  std::vector< int> columnToExtract;
+  std::vector< std::string > fd;
+  LineReader lr(fn);
+  int lineNo = 0;
+  int fieldLen = 0;
+  while (lr.readLineBySep(&fd, "\t ")) {
+    ++lineNo;
+    if (lineNo == 1) { // header line
+      fieldLen = fd.size();
+      if (fieldLen < 1) {
+        fprintf(stderr, "Insufficient lenght in covariate file!\n");
+        return -1;
+      };
+      for (int i = 1; i < fd.size(); i++) {
+        if (columnNameSet.count(fd[i]) > 0) {
+          columnToExtract.push_back(i);
+          colNames->push_back(fd[i]);
+        };
+      }
+
+      // // init output array
+      // (*covariate).resize( includedSample.size());
+      // for (int i = 0; i < includedSample.size(); i++) {
+      //   (*covariate)[i].resize(colNames.size());
+      // };
+    } else { // body lines
+      if (fd.size() != fieldLen) {
+        fprintf(stderr, "Inconsistent lenght in covariate file [ %s ] line %d - skip this file!\n", fn, lineNo);
+        return -1;
+      }
+      if (sampleSet.find(fd[0]) == sampleSet.end()) {
+        fprintf(stderr, "skip sample [ %s ] as it has no phenotype.\n", fd[0].c_str());
+        continue;
+      };
+      processed[fd[0]] ++;
+      if (processed[fd[0]] > 1) {
+        fprintf(stderr, "Duplicate sample [ %s ] in covariate file, skipping\n", fd[0].c_str());
+      };
+      // int idx = sampleIdx[fd[0]];
+      int idx = (*covariate).rows;
+      (*covariate).Dimension( idx + 1, columnNameSet.size());
+      
+      for (int i = 0; i < columnToExtract.size(); ++i) {
+        (*covariate)[idx][i] = atof(fd[columnToExtract[i]]);
+      }
+    }
+  };
+  // set up labels
+  for (int i = 0 ; i < colNames->size(); ++i) {
+    (*covariate).SetColumnLabel(i, (*colNames)[i].c_str());
+  }
+  for (int i = 0; i <includedSample.size(); i++) {
+    if (processed.find(includedSample[i]) == processed.end()) {
+      fprintf(stderr, "Covariate file does not contain sample [ %s ]\n", includedSample[i].c_str());
+      sampleToDrop->insert(includedSample[i]);
+    };
+  }
+  return (*covariate).rows;
+}
+                  
 /**
  * @return number of phenotypes read. -1 if errors
  *
@@ -222,7 +340,7 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
       if (str2double(fd[5].c_str(), &v)) {
         pheno[pid] = v;
       } else {
-        fprintf(stderr, "Missing or invalid phenotype, skipping line %d ... ", lineNo);
+        fprintf(stderr, "Missing or invalid phenotype, skipping line %d ... \n", lineNo);
       }
     } else {
       // fprintf(stderr, "line %s have duplicated id, skipped...\n", pid.c_str());
@@ -324,9 +442,13 @@ bool isUnique(const std::vector<std::string>& x) {
  * according to the order of @param vcfSampleNames, put phenotypes to @param phenotypeInOrder
  */
 void rearrange(const std::map< std::string, double>& phenotype, const std::vector<std::string>& vcfSampleNames,
-               std::vector<std::string>* vcfSampleToDrop, std::vector<double>* phenotypeInOrder) {
+               std::vector<std::string>* vcfSampleToDrop,
+               std::vector<std::string> * phenotypeNameInOrder,
+               std::vector<double>* phenotypeValueInOrder) {
   vcfSampleToDrop->clear();
-  phenotypeInOrder->clear();
+  phenotypeNameInOrder->clear();  
+  phenotypeValueInOrder->clear();
+  
   if (!isUnique(vcfSampleNames)) {
     fprintf(stderr, "VCF file have duplicated sample id. Quitting!\n");
     abort();
@@ -335,10 +457,27 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     if (phenotype.count(vcfSampleNames[i]) == 0) {
       vcfSampleToDrop->push_back(vcfSampleNames[i]);
     } else {
-      phenotypeInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
+      phenotypeNameInOrder->push_back( phenotype.find(vcfSampleNames[i])->first);      
+      phenotypeValueInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
     }
   }
 };
+
+// class GenotypeExtractor{
+//  public:
+//   GenotypeExtract(VCFExtractor* v): vin(*v) {
+//   };
+//   int extractMultipleGenotype(Matrix* g) {
+//   };
+//   int extractSingleGenotype(Matrix* g) {
+//   };
+//   private;
+//   VCFExtractor& vin;
+//   int GDmin;
+//   int GDmax;
+//   int GQmin;
+//   int GQmax;
+// };
 
 /**
  * @return 0 for success
@@ -414,6 +553,11 @@ int extractSiteGenotype(VCFExtractor* v, Matrix* g, std::string* b){
       return -1;
     }
   }
+
+  std::string label = r.getChrom();
+  label += ':';
+  label += r.getPosStr();
+  genotype.SetColumnLabel(0, label.c_str());
   return 0;
 }
 
@@ -553,20 +697,6 @@ void toMatrix(const std::vector<double>& v, Matrix* m) {
   }
 };
 
-/**
- * Convert a @param string separated by @param sep to set (stored in @param s)
- */
-void makeSet(const char* str, char sep, std::set<std::string>* s) {
-  s->clear();
-  if (!str || strlen(str) == 0)
-    return;
-
-  std::vector<std::string> fd;
-  stringTokenize(str, ",", &fd);
-  for (int i = 0; i < fd.size(); i++)
-    s->insert(fd[i]);
-}
-
 int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, RangeList>* geneMap) {
   std::set<std::string> geneSet;
   makeSet(gene, ',', &geneSet);
@@ -640,6 +770,31 @@ double qnorm(double x) {
   return gsl_cdf_gaussian_Pinv(x, 1.0);
 };
 
+double calculateMean(const std::vector<double>& v ){
+  double s = 0.0;
+  if (v.empty()) return 0.0;
+  
+  for (unsigned int i = 0; i < v.size(); ++i) {
+    s += v[i];
+  }
+  return s / v.size();
+}
+
+// sd ^ 2 = \frac{1}{N}  (v_i - mean of v_i) ^ 2
+double calculateSD(const std::vector<double>& v ){
+  double s = 0.0;
+  if (v.empty()) return 0.0;
+
+  double mean = calculateMean(v);
+  for (unsigned int i = 0; i < v.size(); ++i) {
+    const double t = v[i] - mean;
+    s += t * t;
+  }
+  return sqrt(s / v.size());
+}
+
+// inverse normal a vector AND center it.
+// 
 void inverseNormal(std::vector<double>* y){
   if (!y || !y->size()) return;
   const int n = y->size();
@@ -660,6 +815,15 @@ void inverseNormal(std::vector<double>* y){
     (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + 1 - 2 * a));
 
   fprintf(stderr, "Done: inverse normal transformation finished.\n");
+
+  // center
+  double m = calculateMean(*y);
+  double sd = calculateSD(*y);
+  for (unsigned int i = 0; i < n ; i++) {
+    (*y)[i] -= m;
+    (*y)[i] /= sd;
+  }
+  fprintf(stderr, "Done: centering to 0.0 and scaling to 1.0 finished.\n");
 };
 
 
@@ -697,13 +861,13 @@ int main(int argc, char** argv){
       // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any valid Python expression, will output if eval is > 0")
 
       ADD_PARAMETER_GROUP(pl, "Association Functions")
-      // ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
+      ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
+      ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")          
       ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
       ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
-      // ADD_STRING_PARAMETER(pl, rangeToTest, "--set", "specify set file (for burden tests)")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
       ADD_STRING_PARAMETER(pl, setList, "--setList", "specify a list to test (for burden tests)")
@@ -792,15 +956,8 @@ int main(int argc, char** argv){
   // site: DP, MAC, MAF (T3, T5)
   // indv: GD, GQ
 
-  // if (FLAG_cov != "") {
-  //     if (data.loadCovariate(FLAG_cov.c_str()) < 0) {
-  //         fprintf(stderr, "Loading covariate failed!\n");
-  //         return -1;
-  //     };
-  // }
-
   std::map< std::string, double> phenotype;
-  if (FLAG_pheno == "") {
+  if (FLAG_pheno.empty()) {
     fprintf(stderr, "Cannot do association when phenotype is missing!\n");
     return -1;
   } else {
@@ -817,8 +974,9 @@ int main(int argc, char** argv){
   std::vector<std::string> vcfSampleNames;
   vin.getVCFHeader()->getPeopleName(&vcfSampleNames);
   std::vector<std::string> vcfSampleToDrop;
-  std::vector<double> phenotypeInOrder;
-  rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeInOrder);
+  std::vector<std::string> phenotypeNameInOrder; // phenotype arranged in the same order as in VCF  
+  std::vector<double> phenotypeInOrder; // phenotype arranged in the same order as in VCF
+  rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeNameInOrder, &phenotypeInOrder);
   if (vcfSampleToDrop.size()) {
     fprintf(stderr, "Drop %zu sample from VCF file since we don't have their phenotypes\n", vcfSampleToDrop.size());
     vin.excludePeople(vcfSampleToDrop);
@@ -827,6 +985,41 @@ int main(int argc, char** argv){
     fprintf(stderr, "Drop %d sample from phenotype file since we don't have their genotpyes from VCF files\n", (int) (phenotype.size() - phenotypeInOrder.size()));
   }
 
+  // load covariate
+  Matrix covariate;  
+  if (!FLAG_cov.empty()) {
+    std::vector<std::string> columnNamesInCovariate;
+    std::set< std::string > sampleToDropInCovariate;
+    int ret = loadCovariate(FLAG_cov.c_str(), phenotypeNameInOrder, FLAG_covName.c_str(), &covariate, &columnNamesInCovariate, &sampleToDropInCovariate );
+    if (ret < 0) {
+      fprintf(stderr, "Load covariate file failed !\n");
+      abort();
+    }
+    // drop phenotype samples
+    if (!sampleToDropInCovariate.empty()){
+      int idx = 0;
+      int n = phenotypeNameInOrder.size();
+      for (int i = 0; i < n; ++i) {
+        if (sampleToDropInCovariate.count(phenotypeNameInOrder[i]) != 0){ // need to drop
+          continue;
+        }
+        phenotypeNameInOrder[idx] = phenotypeNameInOrder[i];
+        phenotypeInOrder[idx] = phenotypeInOrder[i];
+        idx++;
+      }
+      phenotypeNameInOrder.resize(idx);
+      phenotypeInOrder.resize(idx);
+      fprintf(stderr, "%zu sample phenotypes are dropped due to lacking covariates.\n", sampleToDropInCovariate.size());
+    };
+    // drop vcf samples;
+    for (auto iter = sampleToDropInCovariate.begin();
+         iter != sampleToDropInCovariate.end();
+         ++iter) {
+      vin.excludePeople(iter->c_str());
+    }
+  }
+
+  // adjust phenotype
   bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
   if (binaryPhenotype) {
     fprintf(stderr, "-- Enabling binary phenotype mode -- \n");
@@ -842,6 +1035,7 @@ int main(int argc, char** argv){
     }
   };
 
+      
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
   bool singleVariantMode = FLAG_modelSingle.size();
@@ -1063,7 +1257,7 @@ int main(int argc, char** argv){
       // fit each model
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
-        model[m]->fit(phenotypeMatrix, genotype);
+        model[m]->fit(phenotypeMatrix, genotype, covariate);
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
     }
@@ -1106,7 +1300,7 @@ int main(int argc, char** argv){
 
         for (int m = 0; m < model.size(); m++) {
           model[m]->reset();
-          model[m]->fit(phenotypeMatrix, genotype);
+          model[m]->fit(phenotypeMatrix, genotype, covariate);
           model[m]->writeOutput(fOuts[m], buf.c_str());
         };
       }
@@ -1151,7 +1345,7 @@ int main(int argc, char** argv){
 
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
-        model[m]->fit(phenotypeMatrix, genotype);
+        model[m]->fit(phenotypeMatrix, genotype, covariate);
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
     }

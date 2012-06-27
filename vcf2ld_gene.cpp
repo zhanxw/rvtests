@@ -269,6 +269,27 @@ double calculateR2(Matrix& genotype, const int i, const int j){
   return cov_ij / sqrt(d);
 };
 
+/**
+ * Calculate covariance for genotype[,i] and genotype[,j]
+ */
+double calculateCov(Matrix& genotype, const int i, const int j){
+  double sum_i = 0.0 ; // sum of genotype[,i]
+  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]  
+  double sum_j = 0.0 ; // sum of genotype[,j]
+  int n = 0;
+  for (int c = 0; c < genotype.cols; c++) { //iterator each people
+    if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
+    ++n;
+    sum_i += genotype[i][c];
+    sum_ij += genotype[i][c]*genotype[j][c];
+    sum_j += genotype[j][c];
+  };
+  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
+  double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+  return cov_ij;
+};
+
 #if 0
 /**
  * @return r2 of genotype[,i] and genotype[,j] ( genotype is marker by people matrix)
@@ -474,7 +495,7 @@ int main(int argc, char** argv){
   };
 
   std::string s = FLAG_outPrefix;
-  FILE* fout = fopen( ( s + ".r2" ).c_str(), "wt");
+  FILE* fout = fopen( ( s + ".cov" ).c_str(), "wt");
   FILE* flog = fopen( ( s + ".log" ).c_str(), "wt");
 
 
@@ -534,8 +555,8 @@ int main(int argc, char** argv){
     }
     fprintf(fout, "\t");
     for (int i = 0; i < pos.size(); i++) {
-      for (int j = i + 1; j < pos.size(); j++) {
-        fprintf(fout, "%g,", calculateR2(genotype, i, j));
+      for (int j = i; j < pos.size(); j++) {
+        fprintf(fout, "%g,", calculateCov(genotype, i, j));
       }
     }
     fprintf(fout, "\n");

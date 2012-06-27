@@ -198,7 +198,7 @@ int main(int argc, char** argv){
   std::string outTitle = std::string(pad, '-') + title + std::string(pad, '-');
   puts(outTitle.c_str());
   printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
+         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known_Ts/Tv", "Novel_Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
   std::map<std::string, Variant> indvFreq;
   Variant pass;
   Variant fail;
@@ -227,7 +227,7 @@ int main(int argc, char** argv){
   outTitle = std::string(pad, '-') + title + std::string(pad, '-');
   puts(outTitle.c_str());
   printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
+         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known_Ts/Tv", "Novel_Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
   for (std::map<std::string, Variant>::iterator i = indvFreq.begin() ; i != indvFreq.end(); ++i ){
     const std::string& filt = i->first;
     const Variant& v = i->second;
@@ -239,7 +239,7 @@ int main(int argc, char** argv){
   outTitle = std::string(pad, '-') + title + std::string(pad, '-');
   puts(outTitle.c_str());
   printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
+         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known_Ts/Tv", "Novel_Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
 
   pass.print("PASS", hmSet);
   fail.print("FAIL", hmSet);

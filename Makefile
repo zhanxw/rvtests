@@ -82,7 +82,7 @@ DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x #-Wall
 lib: $(LIB)
 lib-dbg: $(LIB_DBG)
 
-release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS)
+release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) -static
 release: $(DIR_EXEC)/$(EXEC) util
 $(DIR_EXEC)/$(EXEC): $(LIB) \
                      Main.o \
@@ -112,7 +112,7 @@ define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS)
+  $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS) -static
   $$(TAR): $$(SRC) $(LIB) | $(DIR_EXEC)
 	g++ -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
 endef

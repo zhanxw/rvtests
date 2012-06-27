@@ -31,6 +31,7 @@ int main(int argc, char** argv){
       ADD_BOOL_PARAMETER(pl, inverse, "--inverse", "Inverse site")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+      ADD_BOOL_PARAMETER(pl, snpOnly, "--snpOnly", "Specify only extract SNP site")      
       END_PARAMETER_LIST(pl)
       ;
 
@@ -86,10 +87,14 @@ int main(int argc, char** argv){
     if (FLAG_inverse) {
       keep = !keep;
     }
-    if (keep) {
-      if (vout) vout->writeRecord(& r);
-      lineOut ++;
+    if (!keep) continue;
+    if (FLAG_snpOnly) {
+      if ( strlen(r.getRef()) != 1) continue;
+      if ( strlen(r.getAlt()) != 1) continue;
+      if ( r.getAlt()[0] == '.') continue;  //deletion e.g. A -> .
     }
+    if (vout) vout->writeRecord(& r);
+    lineOut ++;
   };
 
   delete vout;

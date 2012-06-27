@@ -1,6 +1,8 @@
 #include "LinearRegressionScoreTest.h"
 #include "MatrixOperation.h"
 
+#include "gsl/gsl_cdf.h" // use gsl_cdf_chisq_Q
+
 LinearRegressionScoreTest::LinearRegressionScoreTest():pvalue(0.0){};
 
 bool LinearRegressionScoreTest::FitLinearModel(Matrix &X, Vector &y, int colToTest) {
@@ -90,7 +92,9 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& 
   }
 
   this->stat = U*U/I;
-  this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
+  if (this->stat < 0) return false;
+  //this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
+  this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
 };
 
@@ -123,7 +127,8 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
     return false;
   }
   this->stat = U*U/V;
-  this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
+  if (this->stat < 0) return false;
+  this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
 };
 
@@ -146,7 +151,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
 
   Vector U(m);
   Matrix SS(m,m);
-  Matrix SZ(d,m);
+  Matrix SZ(m,d);
   Matrix ZZ(d,d);
   U.Zero();
   SS.Zero();
@@ -188,7 +193,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
 
   S /= this->lr.GetSigma2();
   this->stat = S;
-  this->pvalue = chidist(this->stat, m); // use chisq to inverse, here chidist = P(X > S) where X ~ chi(m)
+  if (this->stat < 0) return false;
+  this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0); // use chisq to inverse, here chidist = P(X > S) where X ~ chi(m)
   return true;
 };
 
@@ -243,7 +249,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
 
   S /= this->lr.GetSigma2();
   this->stat = S;
-  this->pvalue = chidist(this->stat, m); // use chisq to inverse
+  if (this->stat < 0) return false;
+  this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
 
 };

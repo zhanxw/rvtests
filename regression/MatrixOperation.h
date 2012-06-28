@@ -62,4 +62,28 @@ static void print(Matrix& mat) {
     fprintf(stderr, "\n");
   }
 };
+
+static void dumpToFile(Matrix& mat, const char* fn){
+  const int m = mat.rows;
+  const int n = mat.cols;
+  FILE* fp = fopen(fn, "wt");
+  for (int i = 0; i < m; ++i){
+    for (int j = 0; j < n; ++j) {
+      if (j)
+        fprintf(fp, "\t");
+      fprintf(fp, "%g", mat[i][j]);
+    }
+    fprintf(fp, "\n");
+  }
+  fclose(fp);
+};
+
+static void dumpToFile(Vector& v, const char* fn){
+  const int n = v.Length();
+  FILE* fp = fopen(fn, "wt");
+  for (int i = 0; i < n; ++i){
+    fprintf(fp, "%g\n", v[i]);
+  }
+  fclose(fp);
+};
 #endif /* _MATRIXOPERATION_H_ */

@@ -466,8 +466,8 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
 class GenotypeExtractor{
  public:
   GenotypeExtractor(VCFExtractor* v): vin(*v),
-                                      GDmin(-1), GDmax(-1),
-                                      GQmin(-1), GQmax(-1){
+                                      GDmin(-1), GDmax(-1), needGD(false),
+                                      GQmin(-1), GQmax(-1), needGQ(false){
   };
   int extractMultipleGenotype(Matrix* g) {
     Matrix m;
@@ -564,33 +564,41 @@ class GenotypeExtractor{
   // @return true if GD is valid
   // if GD is missing, we will take GD = 0
   bool checkGD(VCFIndividual* indv, int gdIdx){
+    if (!needGD) return true;
     int gd = indv->justGet(gdIdx).toInt();
     if (this->GDmin > 0 && gd < this->GDmin) return false;
     if (this->GDmax > 0 && gd > this->GDmax) return false;
     return true;
   };
   bool checkGQ(VCFIndividual* indv, int gqIdx){
+    if (!needGQ) return true;
     int gq = indv->justGet(gqIdx).toInt();
     if (this->GQmin > 0 && gq < this->GQmin) return false;
     if (this->GQmax > 0 && gq > this->GQmax) return false;
     return true;
   };
   void setGDmin(int m) {
+    this->needGD = true;
     this->GDmin = m;
   };
   void setGDmax(int m) {
+    this->needGD = true;
     this->GDmax = m;
   };
   void setGQmin(int m) {
+    this->needGQ = true;
     this->GQmin = m;
   };
   void setGQmax(int m) {
+    this->needGQ = true;    
     this->GQmax = m;
   };
  private:
   VCFExtractor& vin;
+  bool needGD;
   int GDmin;
   int GDmax;
+  bool needGQ;
   int GQmin;
   int GQmax;
 };
@@ -829,6 +837,8 @@ class DataConsolidator{
     // remove monomorphic site
     removeMonomorphicSite(genotype);
 
+    copyColName(pheno, phenoOut);
+    copyColName(cov, covOut);
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(genotype);
@@ -862,7 +872,7 @@ class DataConsolidator{
   bool hasNoMissingGenotype(Matrix& g, int r) {
     const int n = g.cols;
     for (int i = 0; i < n; ++i){
-      if (g[i][r] < 0) return false;
+      if (g[r][i] < 0) return false;
     }
     return true;
   };
@@ -878,6 +888,12 @@ class DataConsolidator{
     const int n = m.cols;
     for (int i = 0; i < n; ++i){
       m[destRow][i] = src[srcRow][i];
+    }
+  };
+  void copyColName(Matrix& src, Matrix* dest){
+    dest->Dimension(dest->rows, src.cols);
+    for (int i = 0; i < src.cols; ++i){
+      dest->SetColumnLabel(i, src.GetColumnLabel(i));
     }
   };
  private:
@@ -1043,9 +1059,9 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-      // ADD_INT_PARAMETER(pl, indvMinDepth, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, indvMaxDepth, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, indvMinQual,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
+      ADD_INT_PARAMETER(pl, indvDepthMin, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
+      ADD_INT_PARAMETER(pl, indvDepthMax, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis");
+      ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
 
       ADD_PARAMETER_GROUP(pl, "Site Filter")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
@@ -1233,7 +1249,7 @@ int main(int argc, char** argv){
     }
   };
 
-
+  fprintf(stderr, "Analysis begin with %zu samples...\n", phenotypeInOrder.size());
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
   bool singleVariantMode = FLAG_modelSingle.size();
@@ -1417,11 +1433,17 @@ int main(int argc, char** argv){
 
   // set imptation method
   DataConsolidator dc;
-  if (FLAG_impute.empty() || FLAG_impute == "mean") {
+  if (FLAG_impute.empty()) {
+    fprintf(stderr, "Impute missing genotype to mean (by default)\n");
+    dc.setStrategy(DataConsolidator::IMPUTE_MEAN);
+  } else if (FLAG_impute == "mean") {
+    fprintf(stderr, "Impute missing genotype to mean\n");    
     dc.setStrategy(DataConsolidator::IMPUTE_MEAN);
   } else if (FLAG_impute == "hwe") {
+    fprintf(stderr, "Impute missing genotype by HWE\n");        
     dc.setStrategy(DataConsolidator::IMPUTE_HWE);
   } else if (FLAG_impute == "drop") {
+    fprintf(stderr, "Drop missing genotypes\n");            
     dc.setStrategy(DataConsolidator::DROP);
   }
 
@@ -1430,7 +1452,19 @@ int main(int argc, char** argv){
   Matrix workingCov;
   Matrix workingPheno;
   GenotypeExtractor ge(&vin);
-
+  if (FLAG_indvDepthMin > 0) {
+    ge.setGDmin(FLAG_indvDepthMin);
+    fprintf(stderr, "Minimum GD set to %d (or marked as missing genotype).\n", FLAG_indvDepthMin);    
+  };
+  if (FLAG_indvDepthMax > 0) {
+    ge.setGDmax(FLAG_indvDepthMax);
+    fprintf(stderr, "Maximum GD set to %d (or marked as missing genotype).\n", FLAG_indvDepthMax);    
+  };
+  if (FLAG_indvQualMin > 0) {
+    ge.setGQmin(FLAG_indvQualMin);
+    fprintf(stderr, "Minimum GQ set to %d (or marked as missing genotype).\n", FLAG_indvQualMin);
+  };
+  
   std::string buf; // we put site sinformation here
   buf.resize(1024);
 

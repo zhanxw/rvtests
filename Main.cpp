@@ -324,11 +324,13 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
   std::map<std::string, double>& pheno = *p;
   std::map<std::string, int> dup; // duplicates
 
+  std::string line;
   std::vector<std::string> fd;
   LineReader lr(fn);
   int lineNo = 0;
   double v;
-  while (lr.readLineBySep(&fd, "\t ")){
+  while (lr.readLine(&line)){
+    stringNaturalTokenize(line, "\t ", &fd);
     ++ lineNo;
     if (fd.size() < 6) {
       fprintf(stderr, "Skip line %d (short of columns) in phenotype file [ %s ]\n", lineNo, fn);
@@ -340,7 +342,8 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
       if (str2double(fd[5].c_str(), &v)) {
         pheno[pid] = v;
       } else {
-        fprintf(stderr, "Missing or invalid phenotype, skipping line %d ... \n", lineNo);
+        fprintf(stderr, "Missing or invalid phenotype type, skipping line %d [ %s ] ... \n", lineNo, line.c_str());
+        abort();
       }
     } else {
       // fprintf(stderr, "line %s have duplicated id, skipped...\n", pid.c_str());
@@ -1318,6 +1321,10 @@ int main(int argc, char** argv){
     abort();
   }
 
+  if (!FLAG_gene.empty() && FLAG_geneFile.empty()) {
+    fprintf(stderr, "Please provide gene file for gene bases analysis.\n");
+    abort();
+  }
   OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
     rangeMode = "Gene";
@@ -1330,6 +1337,10 @@ int main(int argc, char** argv){
     }
   }
 
+  if (!FLAG_set.empty() && FLAG_setFile.empty()) {
+    fprintf(stderr, "Please provide set file for set bases analysis.\n");
+    abort();
+  }
   if (FLAG_setFile.size()) {
     rangeMode = "Range";
     int ret = loadRangeFile(FLAG_setFile.c_str(), FLAG_set.c_str(), &geneRange);

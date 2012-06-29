@@ -53,6 +53,7 @@ MixtureChiSquare():
     lambda = newLambda;
     noncen = newNonCen;
     df = newDf;
+    lambda_cap = newCap;
   };
   double getPvalue(double Q);
 private:

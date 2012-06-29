@@ -2,6 +2,8 @@
 #define __SKAT_H__
 
 #include <Eigen/Dense>
+#include <fstream>
+
 #include "MixtureChiSquare.h"
 
 class Matrix;
@@ -36,6 +38,19 @@ Skat():pValue(-999) {};
 
   double GetQ() const {return this->Q;};
 
+  /* void dump() { */
+  /*   dumpToFile(K_sqrt, "out.Ksqrt"); */
+  /*   dumpToFile(w_sqrt, "out.Wsqrt"); */
+  /*   dumpToFile(P0, "out.P0"); */
+  /*   dumpToFile(res, "out.res"); */
+  /* }; */
+  /* template <class T> */
+  /* void dumpToFile(T& v, const char* f){ */
+  /*   std::ofstream fout(f); */
+  /*   fout << v; */
+  /*   fout.close(); */
+  /* } */
+  
 private:
   //Eigen::MatrixXf K;        // G * W * G'
   Eigen::MatrixXf K_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt

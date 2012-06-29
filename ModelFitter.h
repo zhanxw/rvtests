@@ -1433,7 +1433,7 @@ private:
 class SkatTest: public ModelFitter{
 public:
   /* SkatTest(const std::vector<std::string>& param) { */
-SkatTest(int nPerm, int alpha, double beta1, double beta2):perm(nPerm, alpha) {
+SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha) {
     if (nPerm >0)
       this->usePermutation = true;
     this->beta1 = beta1;
@@ -1447,6 +1447,10 @@ SkatTest(int nPerm, int alpha, double beta1, double beta2):perm(nPerm, alpha) {
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
     // fill it wegith
     // NOTE: our frequency calculation is slightly different than SKAT, so we will need to adjust it back
     weight.Dimension(genotype.cols);
@@ -1513,9 +1517,9 @@ SkatTest(int nPerm, int alpha, double beta1, double beta2):perm(nPerm, alpha) {
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!usePermutation)
-      fprintf(fp, "NMARKER\tQ\tPvalue\n");
+      fprintf(fp, "Q\tPvalue\n");
     else {
-      fprintf(fp, "NMARKER\tQ\tPvalue\t");
+      fprintf(fp, "Q\tPvalue\t");
       this->perm.writeHeader(fp);
       fprintf(fp, "\n");
     }
@@ -1524,10 +1528,14 @@ SkatTest(int nPerm, int alpha, double beta1, double beta2):perm(nPerm, alpha) {
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!fitOK){
-      fprintf(fp, "%d\tNA\tNA\n", this->weight.Length());
+      fprintf(fp, "NA\tNA");
+      if (usePermutation) {
+        fprintf(fp, "\tNA\tNA\tNA\tNA\tNA\tNA");
+      };
+      fprintf(fp, "\n");      
     } else {
       // binary outcome and quantative trait are similar output
-      fprintf(fp, "%d\t%g\t%g", this->weight.Length(), this->skat.GetQ(), this->pValue);
+      fprintf(fp, "%g\t%g", this->skat.GetQ(), this->pValue);
       if (usePermutation) {
         fprintf(fp, "\t");
         this->perm.writeOutput(fp);

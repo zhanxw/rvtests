@@ -1,5 +1,4 @@
 #include "Skat.h"
-
 #include "MathMatrix.h"
 #include <Eigen/Eigenvalues>
 #include <Eigen/Dense>
@@ -26,7 +25,7 @@ int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permut
 
   // calculation w_sqrt
   G_to_Eigen(w_G, &this->w_sqrt);
-  w_sqrt.cwiseSqrt();
+  w_sqrt = w_sqrt.cwiseSqrt();
 
   // calculate K
   Eigen::MatrixXf G;
@@ -52,8 +51,19 @@ int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permut
     P0 = v.asDiagonal();
     P0 -= XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
   }
+  // dump();
+  // Eigen::MatrixXf tmp = K_sqrt * P0 * K_sqrt.transpose();
+  // dumpToFile(tmp, "out.tmp");
   // eigen decomposition
   es.compute( K_sqrt * P0 * K_sqrt.transpose());
+  // std::ofstream k("K");
+  // k << K_sqrt;
+  // k.close();
+
+  // std::ofstream p("P0");
+  // p << P0;
+  // p.close();
+  
   this->mixChiSq.reset();
   int r_ub = std::min(nPeople, nMarker);
   int r = 0; // es.eigenvalues().size();
@@ -75,10 +85,9 @@ double Skat::GetQFromNewResidual(Vector & res_G){   // residual under NULL -- ma
   // calculate Q
   Eigen::VectorXf res;
   G_to_Eigen(res_G, &res);
-  this->Q = (this->K_sqrt * res).squaredNorm();
+  double Q = (this->K_sqrt * res).squaredNorm();
 
-  // calculate p-value
-  this->pValue = this->mixChiSq.getPvalue(this->Q);
+  return Q;
 };
 
 #if 0

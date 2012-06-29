@@ -1305,9 +1305,9 @@ int main(int argc, char** argv){
 
       if (modelName == "skat") {
         double beta1, beta2;
-        parser.assign("nPerm", &nPerm, 100).assign("alpha", &alpha, 0.05).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
+        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
         model.push_back( new SkatTest(nPerm, alpha, beta1, beta2) );
-        logger->info("SKAT test significance will be evaluated using %d permutations (beta1 = %.2f, beta2 = %.2f)", nPerm, beta1, beta2);
+        logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g (beta1 = %.2f, beta2 = %.2f)", nPerm, alpha, beta1, beta2);
       } else if (modelName == "kbac") {
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new KbacTest(nPerm, alpha) );

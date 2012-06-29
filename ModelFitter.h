@@ -345,7 +345,7 @@ public:
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "NSample\tAF\tStat\tDirection\tPvalue\n");
+    fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {

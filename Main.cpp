@@ -27,7 +27,7 @@
    12. Design command line various models (collapsing method, freq-cutoff)
    4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
    5. loading phenotype  (need tests now).
-   14. support VCF specify given locations
+   14. support VCF specify given locationsNSample
    15. region class support union, support region names
    17. add permutation tests (mb, skat)
    7. Test VT
@@ -77,6 +77,16 @@ void banner(FILE* fp) {
       "                                                       \n"
       ;
   fputs(string, fp);
+};
+
+/**
+ * @return a string representing current time, without '\n' at the end
+ */
+std::string currentTime() {
+  time_t t = time(NULL);
+  std::string s (ctime(&t));
+  s = s.substr(0, s.size() - 1);
+  return s;
 };
 
 /**
@@ -1047,7 +1057,7 @@ int main(int argc, char** argv){
   logger->infoToFile("Parameters END");
 
   time_t startTime = time(0);
-  logger->info("Analysis started at: %s", ctime(&startTime));
+  logger->info("Analysis started at: %s", currentTime().c_str());
 
   const char* fn = FLAG_inVcf.c_str();
   VCFExtractor* pVin = new VCFExtractor(fn);
@@ -1317,8 +1327,6 @@ int main(int argc, char** argv){
     fOuts[i] = fopen(s.c_str(), "wt");
   }
 
-  FILE* fLog = fopen( (FLAG_outPrefix + ".log").c_str(), "wt");
-
   // determine VCF file reading pattern
   // current support:
   // * line by line ( including range selection)
@@ -1546,10 +1554,8 @@ int main(int argc, char** argv){
   }
   delete[] fOuts;
 
-  fclose(fLog);
-
   time_t endTime = time(0);
-  logger->info("Analysis ends at: %s", ctime(&endTime));
+  logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);
   logger->info("Analysis took %d seconds", elapsedSecond);
   return 0;

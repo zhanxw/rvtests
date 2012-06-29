@@ -1,5 +1,4 @@
 #include "VCFUtil.h"
-#include "VCFExtractor.h"
 
 void print(VCFInputFile* v) {
   VCFInputFile& vin = *v;

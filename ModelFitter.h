@@ -1107,13 +1107,12 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
-    if (genotype.cols == 0) {
+    if (genotype.cols != 1) {
       fitOK = false;
       return -1;
     }
-    if (covariate.cols == 0) {
-      fitOK = false;
-      return -1;
+    if (covariate.cols != 0) {
+      fprintf(stderr, "Price's Variable Threshold method does not take covariate.\n");
     }
 
     rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
@@ -1180,14 +1179,18 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "%d\t%d\t%g\t%g\t%d\t%g\n",
-            this->nPerm,
-            this->actualPerm,
-            this->optimalFreq,
-            this->zmax,
-            this->numX,
-            this->calculatePvalue()
-            );
+    if (fitOK) {
+      fprintf(fp, "%d\t%d\t%g\t%g\t%d\t%g\n",
+              this->nPerm,
+              this->actualPerm,
+              this->optimalFreq,
+              this->zmax,
+              this->numX,
+              this->calculatePvalue()
+              );
+    } else {
+      fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n");
+    };
   };
   void reset() {
     fitOK = true;

@@ -80,6 +80,9 @@ public:
         p ++ ;
         if (p == end) 
             return g;
+        if (line[p] != '|' && line[p] != '/') {
+          return MISSING_GENOTYPE;
+        }
         
         p ++;
         if (p == end)
@@ -90,7 +93,11 @@ public:
             REPORT("Wrong genotype detected. [2]");
         else 
             g += line[p] - '0';
-        
+
+        p ++;
+        if (p != end) {
+          return MISSING_GENOTYPE;
+        }
         return g;
     };
     /**

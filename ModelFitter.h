@@ -71,6 +71,75 @@ private:
   std::vector<double> stats;
 };
 
+class Permutation{
+public:
+Permutation():numPerm(10000), alpha(0.05) {};
+Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {};  
+  /**
+   * @param observation: observed statistics
+   */
+  void init(double observation) {
+    this->obs = observation;
+    this->actualPerm = 0;
+    this->threshold = this->numPerm * this->alpha * 2;
+    this->numX = 0; 
+    this->numEqual = 0;
+  };
+  /**
+   * @return true if need more permutations
+   */
+  bool next() {
+    if (this->actualPerm > this->numPerm) return false;
+    if (numX + numEqual > threshold){
+      return false;
+    }
+    return true;
+  };
+  void add(double s) {
+    this->actualPerm++;
+    if ( s > this->obs) {
+      numX ++;
+    } 
+    if ( s == this->obs) {
+      numEqual ++;
+    }
+  };
+  double getPvalue() const {
+    if (this->actualPerm == 0) return 1.0;
+    return  1.0 * (this->numX + 0.5 * this->numEqual) / this->actualPerm;
+  };
+  void reset() {
+    obs = 0.0;
+    actualPerm = 0;
+    threshold = 0;
+    numX = 0;
+    numEqual = 0;
+  };
+  void writeHeader(FILE* fp){
+    fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s",
+            "NumPerm", "ActualPerm", "STAT", "NumX", "NumEqual", "PermPvalue");
+  }
+  void writeOutput(FILE* fp) {
+    fprintf(fp, "%d\t%d\t%g\t%d\t%d\t%g", 
+            this->numPerm,
+            this->actualPerm,
+            this->obs,
+            this->numX,
+            this->numEqual,
+            this->getPvalue());
+  };
+  
+private:
+  double alpha;
+  int numPerm;
+
+  double obs;
+  int actualPerm;
+  int threshold;
+  int numX;
+  int numEqual;
+};
+
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
@@ -276,18 +345,18 @@ public:
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "NSample\tAF\tStat\tDirection\tPvalue\n");
+    fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (fitOK) {
       if (!isBinaryOutcome())
-        fprintf(fp, "%d\t%g\t%g\t%c\t%g\n", nSample, af, linear.GetStat(), linear.GetU()[0][0] > 0 ? '+': '-', linear.GetPvalue());
+        fprintf(fp, "%g\t%g\t%c\t%g\n", af, linear.GetStat(), linear.GetU()[0][0] > 0 ? '+': '-', linear.GetPvalue());
       else
-        fprintf(fp, "%d\t%g\t%g\t%c\t%g\n", nSample, af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
+        fprintf(fp, "%g\t%g\t%c\t%g\n", af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
     }else
-      fputs("NA\tNA\tNA\tNA\tNA\n", fp);
+      fputs("NA\tNA\tNA\tNA\n", fp);
   };
 private:
   double af;
@@ -402,15 +471,6 @@ public:
   CMCTest() {
     this->modelName = "CMC";
   };
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (isBinaryOutcome()) {
-      fprintf(fp, "NumVariant\tCMC.Pvalue\n");
-    } else {
-      fprintf(fp, "NumVariant\tNonRefSite\tCMC.Pvalue\n");
-    }
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->numVariant = genotype.cols;
@@ -440,17 +500,25 @@ public:
       return (fitOK ? 0 : -1);
     }
   };
-
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()) {
+      fprintf(fp, "CMC.Pvalue\n");
+    } else {
+      fprintf(fp, "NonRefSite\tCMC.Pvalue\n");
+    }
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!fitOK) {
-      fprintf(fp, "%d\tNA\n", this->numVariant);
+      fprintf(fp, "NA\n");
     } else {
       if (isBinaryOutcome()) {
-        fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
+        fprintf(fp, "%f\n", logistic.GetPvalue());
       } else {
-        fprintf(fp, "%d\t%d\t%f\n", this->numVariant, this->totalNonRefSite(), linear.GetPvalue());
+        fprintf(fp, "%d\t%f\n", this->totalNonRefSite(), linear.GetPvalue());
       }
     };
   };
@@ -548,11 +616,6 @@ public:
   ZegginiTest(){
     this->modelName = "ZegginiTest";
   };
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    fprintf(fp, "NumVariant\tZeggini.Pvalue\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->numVariant = genotype.cols;
@@ -583,16 +646,21 @@ public:
       return (fitOK ? 0 : -1);
     }
   };
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "Zeggini.Pvalue\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!fitOK) {
-      fprintf(fp, "%d\tNA\n", this->numVariant);
+      fprintf(fp, "NA\n");
     } else {
       if (isBinaryOutcome()) {
-        fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
+        fprintf(fp, "%f\n", logistic.GetPvalue());
       } else {
-        fprintf(fp, "%d\t%f\n", this->numVariant, linear.GetPvalue());
+        fprintf(fp, "%f\n", linear.GetPvalue());
       }
     };
   };
@@ -606,17 +674,9 @@ private:
 
 class MadsonBrowningTest: public ModelFitter{
 public:
-MadsonBrowningTest(int nPerm): nPerm(nPerm) {
+MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "MadsonBrowningTest";
   }
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (isBinaryOutcome())
-      fprintf(fp, "NumVariant\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
-    else
-      fprintf(fp, "NumVariant\tNA\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
@@ -645,12 +705,12 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
     if (!fitOK) return -1;
     fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
     if (!fitOK) return -1;
-    // record observed stat
-    this->stat = logistic.GetStat(); // a chi-dist
 
-    // permutation part
-    int failed = 0;
-    for (int i = 0; i < this->nPerm; ++i) {
+    // record observed stat
+    this->perm.init(logistic.GetStat()); // a chi-dist
+    
+    while (this->perm.next()){
+      int failed = 0;
       permute(&pheno);
       fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       if (!fitOK) {
@@ -662,39 +722,37 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
           return -1;
         }
       }
-      ++ this->actualPerm;
       // record new stats
       double pStat = logistic.GetStat();
-      if (pStat > this->stat) {
-        this->numX ++;
-      }
+      this->perm.add(pStat);
     } // end permutation
     return (fitOK ? 0 : -1);
   };
   void reset() {
-    this->actualPerm = 0;
-    this->numX = 0;
+    this->perm.reset();
   }
-  double getPvalue() {
-    return (1.0 + this->numX) / (1.0 + this->actualPerm);
-  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()){
+      perm.writeHeader(fp);
+    } else {
+      fprintf(fp, "Pvalue\n");      
+    };
+    fprintf(fp, "\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (isBinaryOutcome()) {
       if (fitOK){
-        fprintf(fp, "%d\t%d\t%d\t%g\t%d\t%g\n",
-                this->numVariant,
-                this->nPerm,
-                this->actualPerm,
-                this->stat,
-                this->numX,
-                this->getPvalue());
+        perm.writeOutput(fp);
+        fprintf(fp, "\n");
       } else {
-        fprintf(fp, "%d\tNA\tNA\tNA\tNA\tNA\n", this->numVariant);
+        fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n");
       }
     } else {
-      fprintf(fp, "%d\tNA\n", this->numVariant);
+      fprintf(fp, "NA\n");
     }
   };
 private:
@@ -702,10 +760,11 @@ private:
   LogisticRegressionScoreTest logistic;
   bool fitOK;
   int numVariant;
-  int nPerm;
-  int numX;
-  int actualPerm;
-  double stat;
+  Permutation perm;
+  /* int nPerm; */
+  /* int numX; */
+  /* int actualPerm; */
+  /* double stat; */
 }; // MadsonBrowningTest
 
 // Danyu Lin's method, using 1/sqrt(p(1-p)) as weight
@@ -715,11 +774,6 @@ public:
   FpTest() {
     this->modelName = "FpTest";
   }
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    fprintf(fp, "NumVariant\tFp.Pvalue\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->numVariant = genotype.cols;
@@ -750,17 +804,21 @@ public:
       return (fitOK ? 0 : -1);
     }
   };
-
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fprintf(fp, "Fp.Pvalue\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!fitOK) {
-      fprintf(fp, "%d\tNA\n", this->numVariant);
+      fprintf(fp, "NA\n");
     } else {
       if (isBinaryOutcome()) {
-        fprintf(fp, "%d\t%f\n", this->numVariant, logistic.GetPvalue());
+        fprintf(fp, "%f\n", logistic.GetPvalue());
       } else {
-        fprintf(fp, "%d\t%f\n", this->numVariant, linear.GetPvalue());
+        fprintf(fp, "%f\n", linear.GetPvalue());
       }
     };
   };
@@ -774,17 +832,9 @@ private:
 
 class RareCoverTest: public ModelFitter{
 public:
-RareCoverTest(int nPerm): nPerm(nPerm) {
+RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "RareCover";
   }
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (isBinaryOutcome())
-      fprintf(fp, "NumIncMarker\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
-    else
-      fprintf(fp, "NA\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
@@ -811,52 +861,46 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
 
     // find highest correlation coef.
     this->stat = calculateStat(this->genotype, pheno, &this->selected);
+    this->perm.init(this->stat);
 
     // permutation
     double s;
     std::set<int> permSelected;
-    int threshold = this->nPerm * 0.05;
-    while (this->actualPerm < this->nPerm) {
+    while (this->perm.next()) {
       this->genotype.Transpose(genotype);
       permute(&pheno);
-      this->actualPerm++;
 
       s = calculateStat(this->genotype, pheno, &permSelected);
-      // NOTE: here we use >=, otherwise,
-      //
-      //
-      if ( s >= this->stat) {
-        numX ++;
-      }
-
-      if (numX > threshold){
-        break;
-      }
+      this->perm.add(s);
     };
     fitOK = true;
     return (fitOK ? 0 : -1);
   };
   void reset() {
-    this->actualPerm = 0;
-    this->numX = 0;
+    this->perm.reset();
   }
-  double getPvalue() {
-    return (1.0 + this->numX) / (1.0 + this->actualPerm);
-  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()){
+      fprintf(fp, "NumIncMarker\t");
+      this->perm.writeHeader(fp);
+      fprintf(fp, "\n");
+    } else
+      fprintf(fp, "NA\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (isBinaryOutcome()) {
       if (fitOK){
-        fprintf(fp, "%zu\t%d\t%d\t%g\t%d\t%g\n",
-                this->selected.size(),
-                this->nPerm,
-                this->actualPerm,
-                this->stat,
-                this->numX,
-                this->getPvalue());
+        fprintf(fp, "%zu\t", this->selected.size());
+        this->perm.writeOutput(fp);
+        fprintf(fp, "\n");
       } else {
-        fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n");
+        fprintf(fp, "NA\t");
+        this->perm.writeOutput(fp);
+        fprintf(fp, "\n");
       }
     } else {
       fprintf(fp, "NA\n");
@@ -947,25 +991,15 @@ private:
   std::set<int> selected;
   bool fitOK;
   int numVariant;
-  int nPerm;
-  int numX;
-  int actualPerm;
   double stat;
+  Permutation perm;
 }; //RareCoverTest
 
 class CMATTest:public ModelFitter{
 public:
-CMATTest(int nPerm): nPerm(nPerm) {
+CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "CMAT";
   }
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (isBinaryOutcome())
-      fprintf(fp, "NumVariant\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
-    else
-      fprintf(fp, "NumVariant\tNA\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
@@ -980,49 +1014,44 @@ CMATTest(int nPerm): nPerm(nPerm) {
 
     // we use equal weight
     this->stat = this->calculateStat(genotype, pheno, &N_A, &N_U, &m_A, &m_U, &M_A, &M_U);
+    this->perm.init(this->stat);
 
     // permutation part
-    int threshold = 0.05 * this->nPerm;
     double d1,d2,d3,d4,d5,d6; // just used in permutation
-    for (int i = 0; i < this->nPerm; ++i) {
+    while(this->perm.next()) {
       permute(&pheno);
-      ++ this->actualPerm;
       // record new stats
       double pStat = this->calculateStat(genotype, pheno, &d1, &d2, &d3, &d4, &d5, &d6);
-      if (pStat > this->stat) {
-        this->numX ++;
-      }
-      if (this->numX > threshold){
-        break;
-      }
+      this->perm.add(pStat);
     } // end permutation
     fitOK = true;
     return (fitOK ? 0 : -1);
   };
   void reset() {
-    this->actualPerm = 0;
-    this->numX = 0;
+    this->perm.reset();
   }
-  double getPvalue() {
-    return (1.0 + this->numX) / (1.0 + this->actualPerm);
-  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (!isBinaryOutcome()) {
+      this->perm.writeHeader(fp);
+      fprintf(fp, "\n");      
+    } else
+      fprintf(fp, "NA\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (isBinaryOutcome()) {
       if (fitOK){
-        fprintf(fp, "%d\t%d\t%d\t%g\t%d\t%g\n",
-                this->numVariant,
-                this->nPerm,
-                this->actualPerm,
-                this->stat,
-                this->numX,
-                this->getPvalue());
+        this->perm.writeOutput(fp);
+        fputs("\n", fp);
       } else {
-        fprintf(fp, "%d\tNA\tNA\tNA\tNA\tNA\n", this->numVariant);
+        this->perm.writeOutput(fp);
+        fputs("\n", fp);
       }
     } else {
-      fprintf(fp, "%d\tNA\n", this->numVariant);
+      fprintf(fp, "\n");
     }
   };
   double calculateStat(Matrix& genotype, Vector& phenotype,
@@ -1084,12 +1113,8 @@ private:
 
   Vector pheno;
   bool fitOK;
-  int numVariant;
-  int nPerm;
-  int numX;
-  int actualPerm;
   double stat;
-
+  Permutation perm;
 };//CMATTest
 
 #if 0
@@ -1102,12 +1127,12 @@ class UStatTest{
  */
 class VariableThresholdPrice: public ModelFitter{
 public:
-VariableThresholdPrice(int nPerm): nPerm(nPerm) {
+VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "VariableThresholdPrice";
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
-    if (genotype.cols != 1) {
+    if (genotype.cols == 0) {
       fitOK = false;
       return -1;
     }
@@ -1121,9 +1146,8 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
     transpose(&sortedGenotype); // now each row is a collapsed genoype at certain frequency cutoff
     copyPhenotype(phenotype, &this->phenotype);
 
-    this->zmax = 100.0;
+    this->zmax = -999.0;
     double z;
-
     if (isBinaryOutcome()) {
       for (int i = 0; i < sortedGenotype.rows; ++i) {
         z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[i]);
@@ -1133,16 +1157,21 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
         }
       }
 
+      this->perm.init(zmax);
+
       // begin permutation
-      for (int i = 0; i < nPerm; ++i) {
+      while (this->perm.next()) {
         permute(&this->phenotype);
-        ++actualPerm;
+        double zp = -999.0;
         for (int j = 0; j < sortedGenotype.rows; ++j){
           z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[j]);
-          if (z > this->zmax) {
-            ++ this->numX;
+          if (z > zp) {
+            zp =z; 
           };
+          if (zp > this->zmax)  // early stop
+            break;
         }
+        this->perm.add(zp);
       };
 
     } else {
@@ -1150,21 +1179,26 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
       for (int i = 0; i < sortedGenotype.rows; ++i) {
         z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[i]);
         if ( z > this->zmax){
-          zmax = z;
+          this->zmax = z;
           this->optimalFreq = freq[i];
         }
       }
+      this->perm.init(this->zmax);
 
       // begin permutation
-      for (int i = 0; i < nPerm; ++i) {
+      while(this->perm.next()) {
+        double zp = -999.0;
         permute(&this->phenotype);
-        ++actualPerm;
         for (int j = 0; j < sortedGenotype.rows; ++j){
           z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[j]);
-          if (z > this->zmax) {
-            ++ this->numX;
+          if (z > zp) {
+            zp = z;
           };
+          if (zp > this->zmax) {
+            break;
+          }
         }
+        this->perm.add(zp);
       };
     };
 
@@ -1174,35 +1208,25 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fputs("NumPerm\tActualPerm\tOptimalFreq\tZmax\tNumX\tPvalue\n", fp);
+    fputs("\tOptFreq\t", fp);
+    this->perm.writeHeader(fp);
+    fputs("\n", fp);
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    if (fitOK) {
-      fprintf(fp, "%d\t%d\t%g\t%g\t%d\t%g\n",
-              this->nPerm,
-              this->actualPerm,
-              this->optimalFreq,
-              this->zmax,
-              this->numX,
-              this->calculatePvalue()
-              );
-    } else {
-      fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n");
-    };
+    fprintf(fp, "\t%g\t", this->optimalFreq);
+    this->perm.writeOutput(fp);
+    fprintf(fp, "\n");
   };
   void reset() {
     fitOK = true;
-    this->zmax = 100.0;
-    this->pvalue = 100.0;
-    this->actualPerm = 0;
-    this->numX = 0;
+    this->perm.reset();
   };
 private:
   /**
    * Convert genotype back to reference allele count
-   * e.g. genotype 2 is reference allele count 0
+   * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
    */
   void convertToReferenceAlleleCount(Matrix* g){
     Matrix& m = *g;
@@ -1245,20 +1269,14 @@ private:
     }
     return ret;
   };
-  double calculatePvalue() {
-    return (1.0 + numX) / (1.0 + actualPerm);
-  };
 private:
   Matrix sortedGenotype;
   std::vector<double> freq;
   bool fitOK;
   Vector phenotype;
   double zmax;
-  double pvalue;
-  int nPerm;
-  int actualPerm;
-  int numX; // x is the number of permutation for which Zmax is higher in unpermuted data than permutated data.
   double optimalFreq; // the frequency cutoff in unpermutated data which give smallest pvalue
+  Permutation perm;
 }; // VariableThresholdPrice
 
 
@@ -1414,7 +1432,7 @@ private:
 class SkatTest: public ModelFitter{
 public:
   /* SkatTest(const std::vector<std::string>& param) { */
-SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
+SkatTest(int nPerm, int alpha, double beta1, double beta2):perm(nPerm, alpha) {
     if (nPerm >0)
       this->usePermutation = true;
     this->beta1 = beta1;
@@ -1423,9 +1441,8 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
   };
   void reset() {
     this->skat.Reset();
-    actualPerm = 0;
-    numX = 0;
-    stat = 0;
+    this->perm.reset();
+    stat = -9999;
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
@@ -1476,34 +1493,29 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     this->pValue = skat.GetPvalue();
 
     // permuation part
-    int threshold = 0.05 * this->nPerm;
     this->stat =  skat.GetQ();
+    this->perm.init(this->stat);
+
     double s;
-    for (int i = 0; i < this->nPerm; i++) {
+    while (this->perm.next()) {
       permute(&phenoVec);
-      ++actualPerm;
       skat.CalculatePValue(phenoVec, ynull, cov, v, genotype, weight);
       s = skat.GetQ();
-      if (s > this->stat){
-        ++numX ;
-      }
-      if (numX > threshold){
-        break;
-      }
+      this->perm.add(s);
     };
     fitOK = true;
     return 0;
-  };
-  double getPvalue() {
-    return (1.0 + numX) / (1.0 + actualPerm);
   };
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!usePermutation)
       fprintf(fp, "NMARKER\tQ\tPvalue\n");
-    else
-      fprintf(fp, "NMARKER\tQ\tPvalue\tActualPerm\tStat\tNumX\tPermPvalue\n");
+    else {
+      fprintf(fp, "NMARKER\tQ\tPvalue\t");
+      this->perm.writeHeader(fp);
+      fprintf(fp, "\n");
+    }
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
@@ -1512,12 +1524,12 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
       fprintf(fp, "%d\tNA\tNA\n", this->weight.Length());
     } else {
       // binary outcome and quantative trait are similar output
-      if (!usePermutation){
-        fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);
-      } else {
-        fprintf(fp, "%d\t%g\t%d\t%g\t%d\t%g\n", this->weight.Length(), this->pValue,
-                this->actualPerm, this->stat, this->numX, this->getPvalue());
+      fprintf(fp, "%d\t%g\t%g", this->weight.Length(), this->skat.GetQ(), this->pValue);
+      if (usePermutation) {
+        fprintf(fp, "\t");
+        this->perm.writeOutput(fp);
       }
+      fprintf(fp, "\n");
     }
   };
 private:
@@ -1535,15 +1547,14 @@ private:
   int nMarker;
 
   bool usePermutation;
-  int nPerm;
-  int actualPerm;
   double stat;
-  int numX;
+  Permutation perm;
 }; // SkatTest
 
 class KbacTest: public ModelFitter{
 public:
-KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
+KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
+      xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
     this->modelName = "KBAC";
   };
   ~KbacTest() {
@@ -1573,7 +1584,7 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
     this->resize(genotype.rows, genotype.cols);
     this->nn = this->nPerm;
     this->qq = 1;
-    this->aa = 0.05;
+    this->aa = this->alpha;
     this->mafUpper = 1.0; // no need to further prune alleles
     this->twosided = 1;
     // genotype is: people by marker
@@ -1655,7 +1666,8 @@ KbacTest(int nPerm):nPerm(nPerm), xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0
   };
 private:
   int nPerm;
-
+  double alpha;
+  
   int nn;
   int qq;
   double aa;

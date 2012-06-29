@@ -206,6 +206,8 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix
     fprintf(stderr, "Incompatible dimension.\n");
     return false;
   }
+  if (Xcol.cols == 0) 
+    return false;
   int n = Xcol.rows;
   int m = Xcol.cols;
   int d = Xnull.cols;

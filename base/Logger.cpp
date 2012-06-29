@@ -54,3 +54,7 @@ int Logger::fatal(const char *fmt, ...)
     NEWLINE ;
     return n;
 }
+
+FILE*& Logger::getStream() {
+    return Logger::fp;
+};

@@ -1000,17 +1000,9 @@ private:
 
 class CMATTest:public ModelFitter{
 public:
-CMATTest(int nPerm): nPerm(nPerm) {
+CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "CMAT";
   }
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (isBinaryOutcome())
-      fprintf(fp, "NumVariant\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
-    else
-      fprintf(fp, "NumVariant\tNA\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
@@ -1025,49 +1017,44 @@ CMATTest(int nPerm): nPerm(nPerm) {
 
     // we use equal weight
     this->stat = this->calculateStat(genotype, pheno, &N_A, &N_U, &m_A, &m_U, &M_A, &M_U);
+    this->perm.init(this->stat);
 
     // permutation part
-    int threshold = 0.05 * this->nPerm;
     double d1,d2,d3,d4,d5,d6; // just used in permutation
-    for (int i = 0; i < this->nPerm; ++i) {
+    while(this->perm.next()) {
       permute(&pheno);
-      ++ this->actualPerm;
       // record new stats
       double pStat = this->calculateStat(genotype, pheno, &d1, &d2, &d3, &d4, &d5, &d6);
-      if (pStat > this->stat) {
-        this->numX ++;
-      }
-      if (this->numX > threshold){
-        break;
-      }
+      this->perm.add(pStat);
     } // end permutation
     fitOK = true;
     return (fitOK ? 0 : -1);
   };
   void reset() {
-    this->actualPerm = 0;
-    this->numX = 0;
+    this->perm.reset();
   }
-  double getPvalue() {
-    return (1.0 + this->numX) / (1.0 + this->actualPerm);
-  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()) {
+      this->perm.writeHeader(fp);
+      fprintf(fp, "\n");      
+    } else
+      fprintf(fp, "NA\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (isBinaryOutcome()) {
       if (fitOK){
-        fprintf(fp, "%d\t%d\t%d\t%g\t%d\t%g\n",
-                this->numVariant,
-                this->nPerm,
-                this->actualPerm,
-                this->stat,
-                this->numX,
-                this->getPvalue());
+        this->perm.writeOutput(fp);
+        fputs("\n", fp);
       } else {
-        fprintf(fp, "%d\tNA\tNA\tNA\tNA\tNA\n", this->numVariant);
+        this->perm.writeOutput(fp);
+        fputs("\n", fp);
       }
     } else {
-      fprintf(fp, "%d\tNA\n", this->numVariant);
+      fprintf(fp, "\n");
     }
   };
   double calculateStat(Matrix& genotype, Vector& phenotype,
@@ -1129,12 +1116,8 @@ private:
 
   Vector pheno;
   bool fitOK;
-  int numVariant;
-  int nPerm;
-  int numX;
-  int actualPerm;
   double stat;
-
+  Permutation perm;
 };//CMATTest
 
 #if 0
@@ -1147,7 +1130,7 @@ class UStatTest{
  */
 class VariableThresholdPrice: public ModelFitter{
 public:
-VariableThresholdPrice(int nPerm): nPerm(nPerm) {
+VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "VariableThresholdPrice";
   };
   // fitting model
@@ -1167,9 +1150,8 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
     transpose(&sortedGenotype); // now each row is a collapsed genoype at certain frequency cutoff
     copyPhenotype(phenotype, &this->phenotype);
 
-    this->zmax = 100.0;
+    this->zmax = -1.0;
     double z;
-
     if (isBinaryOutcome()) {
       for (int i = 0; i < sortedGenotype.rows; ++i) {
         z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[i]);
@@ -1179,16 +1161,21 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
         }
       }
 
+      this->perm.init(zmax);
+
       // begin permutation
-      for (int i = 0; i < nPerm; ++i) {
+      while (this->perm.next()) {
         permute(&this->phenotype);
-        ++actualPerm;
+        double zp = -1.0;
         for (int j = 0; j < sortedGenotype.rows; ++j){
           z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[j]);
-          if (z > this->zmax) {
-            ++ this->numX;
+          if (z > zp) {
+            zp =z; 
           };
+          if (zp > this->zmax)  // early stop
+            break;
         }
+        this->perm.add(zp);
       };
 
     } else {
@@ -1196,21 +1183,26 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
       for (int i = 0; i < sortedGenotype.rows; ++i) {
         z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[i]);
         if ( z > this->zmax){
-          zmax = z;
+          this->zmax = z;
           this->optimalFreq = freq[i];
         }
       }
+      this->perm.init(this->zmax);
 
       // begin permutation
-      for (int i = 0; i < nPerm; ++i) {
+      while(this->perm.next()) {
+        double zp = -1.0;
         permute(&this->phenotype);
-        ++actualPerm;
         for (int j = 0; j < sortedGenotype.rows; ++j){
           z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[j]);
-          if (z > this->zmax) {
-            ++ this->numX;
+          if (z > zp) {
+            zp = z;
           };
+          if (zp > this->zmax) {
+            break;
+          }
         }
+        this->perm.add(zp);
       };
     };
 
@@ -1220,26 +1212,17 @@ VariableThresholdPrice(int nPerm): nPerm(nPerm) {
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fputs("NumPerm\tActualPerm\tOptimalFreq\tZmax\tNumX\tPvalue\n", fp);
+    this->perm.writeHeader(fp);
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    fprintf(fp, "%d\t%d\t%g\t%g\t%d\t%g\n",
-            this->nPerm,
-            this->actualPerm,
-            this->optimalFreq,
-            this->zmax,
-            this->numX,
-            this->calculatePvalue()
-            );
+    this->perm.writeOutput(fp);
+    fprintf(fp, "\n");
   };
   void reset() {
     fitOK = true;
-    this->zmax = 100.0;
-    this->pvalue = 100.0;
-    this->actualPerm = 0;
-    this->numX = 0;
+    this->perm.reset();
   };
 private:
   /**
@@ -1287,20 +1270,14 @@ private:
     }
     return ret;
   };
-  double calculatePvalue() {
-    return (1.0 + numX) / (1.0 + actualPerm);
-  };
 private:
   Matrix sortedGenotype;
   std::vector<double> freq;
   bool fitOK;
   Vector phenotype;
   double zmax;
-  double pvalue;
-  int nPerm;
-  int actualPerm;
-  int numX; // x is the number of permutation for which Zmax is higher in unpermuted data than permutated data.
   double optimalFreq; // the frequency cutoff in unpermutated data which give smallest pvalue
+  Permutation perm;
 }; // VariableThresholdPrice
 
 
@@ -1456,7 +1433,7 @@ private:
 class SkatTest: public ModelFitter{
 public:
   /* SkatTest(const std::vector<std::string>& param) { */
-SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
+SkatTest(int nPerm, int alpha, double beta1, double beta2):perm(nPerm, alpha) {
     if (nPerm >0)
       this->usePermutation = true;
     this->beta1 = beta1;
@@ -1465,9 +1442,8 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
   };
   void reset() {
     this->skat.Reset();
-    actualPerm = 0;
-    numX = 0;
-    stat = 0;
+    this->perm.reset();
+    stat = -9999;
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
@@ -1518,34 +1494,29 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
     this->pValue = skat.GetPvalue();
 
     // permuation part
-    int threshold = 0.05 * this->nPerm;
     this->stat =  skat.GetQ();
+    this->perm.init(this->stat);
+
     double s;
-    for (int i = 0; i < this->nPerm; i++) {
+    while (this->perm.next()) {
       permute(&phenoVec);
-      ++actualPerm;
       skat.CalculatePValue(phenoVec, ynull, cov, v, genotype, weight);
       s = skat.GetQ();
-      if (s > this->stat){
-        ++numX ;
-      }
-      if (numX > threshold){
-        break;
-      }
+      this->perm.add(s);
     };
     fitOK = true;
     return 0;
-  };
-  double getPvalue() {
-    return (1.0 + numX) / (1.0 + actualPerm);
   };
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (!usePermutation)
       fprintf(fp, "NMARKER\tQ\tPvalue\n");
-    else
-      fprintf(fp, "NMARKER\tQ\tPvalue\tActualPerm\tStat\tNumX\tPermPvalue\n");
+    else {
+      fprintf(fp, "NMARKER\tQ\tPvalue\t");
+      this->perm.writeHeader(fp);
+      fprintf(fp, "\n");
+    }
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
@@ -1554,12 +1525,12 @@ SkatTest(int nPerm, double beta1, double beta2):nPerm(nPerm) {
       fprintf(fp, "%d\tNA\tNA\n", this->weight.Length());
     } else {
       // binary outcome and quantative trait are similar output
-      if (!usePermutation){
-        fprintf(fp, "%d\t%g\t%g\n", this->weight.Length(), this->skat.GetQ(), this->pValue);
-      } else {
-        fprintf(fp, "%d\t%g\t%d\t%g\t%d\t%g\n", this->weight.Length(), this->pValue,
-                this->actualPerm, this->stat, this->numX, this->getPvalue());
+      fprintf(fp, "%d\t%g\t%g", this->weight.Length(), this->skat.GetQ(), this->pValue);
+      if (usePermutation) {
+        fprintf(fp, "\t");
+        this->perm.writeOutput(fp);
       }
+      fprintf(fp, "\n");
     }
   };
 private:
@@ -1577,10 +1548,8 @@ private:
   int nMarker;
 
   bool usePermutation;
-  int nPerm;
-  int actualPerm;
   double stat;
-  int numX;
+  Permutation perm;
 }; // SkatTest
 
 class KbacTest: public ModelFitter{

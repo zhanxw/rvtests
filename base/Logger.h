@@ -30,12 +30,14 @@ class Logger{
             fclose(Logger::fp);
             Logger::fp = NULL;
         }
+        fprintf(stderr, "logger closed\n");
     };
 
     static int info(const char* fmt, ...);
     static int warn(const char* fmt, ...);
     static int error(const char* fmt, ...);
     static int fatal(const char* fmt, ...);
+    static FILE*& getStream();
   public:
     const static LogLevel INFO = _INFO; 
     const static LogLevel WARN = _WARN; 

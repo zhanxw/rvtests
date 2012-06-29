@@ -62,8 +62,7 @@
 
 #include "ModelFitter.h"
 
-
-// #include "Analysis.h"
+Logger* logger = NULL;
 
 void banner(FILE* fp) {
   const char* string =
@@ -960,7 +959,6 @@ void inverseNormal(std::vector<double>* y){
   fprintf(stderr, "Done: centering to 0.0 and scaling to 1.0 finished.\n");
 };
 
-
 int main(int argc, char** argv){
   time_t startTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&startTime));
@@ -1041,8 +1039,13 @@ int main(int argc, char** argv){
   }
 
   REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+
   if (!FLAG_outPrefix.size())
     FLAG_outPrefix = "rvtest";
+
+  Logger _logger( (FLAG_outPrefix + ".log").c_str(), Logger::INFO);
+  logger = &_logger;
+  logger->info("Analysis started at: %s", ctime(&startTime));
 
   const char* fn = FLAG_inVcf.c_str();
   VCFExtractor* pVin = new VCFExtractor(fn);
@@ -1230,8 +1233,8 @@ int main(int argc, char** argv){
         model.push_back( new RareCoverTest(nPerm, alpha) );
         fprintf(stderr, "Rare cover test significance will be evaluated using %d permutations\n", nPerm);
       } else if (modelName == "cmat") {
-        parser.assign("nPerm", &nPerm, 10000);
-        model.push_back( new CMATTest(nPerm) );
+        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+        model.push_back( new CMATTest(nPerm, alpha) );
         fprintf(stderr, "cmat test significance will be evaluated using %d permutations\n", nPerm);
       } else {
         fprintf(stderr, "Unknown model name: %s \n.", argModelName[i].c_str());
@@ -1248,8 +1251,8 @@ int main(int argc, char** argv){
       if (modelName == "cmc") {
         model.push_back( new VariableThresholdCMC );
       } else if (modelName == "price") {
-        parser.assign("nPerm", &nPerm, 10000);
-        model.push_back( new VariableThresholdPrice(nPerm) );
+        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+        model.push_back( new VariableThresholdPrice(nPerm, alpha) );
         fprintf(stderr, "Price's VT test significance will be evaluated using %d permutations\n", nPerm);
       } else if (modelName == "zeggini") {
         //model.push_back( new VariableThresholdFreqTest );
@@ -1273,11 +1276,11 @@ int main(int argc, char** argv){
 
       if (modelName == "skat") {
         double beta1, beta2;
-        parser.assign("nPerm", &nPerm, 10000).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
-        model.push_back( new SkatTest(nPerm, beta1, beta2) );
+        parser.assign("nPerm", &nPerm, 100).assign("alpha", &alpha, 0.05).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
+        model.push_back( new SkatTest(nPerm, alpha, beta1, beta2) );
         fprintf(stderr, "SKAT test significance will be evaluated using %d permutations (beta1 = %.2f, beta2 = %.2f)\n", nPerm, beta1, beta2);
       } else if (modelName == "kbac") {
-        parser.assign("nPerm", &nPerm, 10000);
+        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new KbacTest(nPerm) );
         fprintf(stderr, "KBAC test significance will be evaluated using %d permutations\n", nPerm);
       } else {

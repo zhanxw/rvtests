@@ -102,7 +102,7 @@ $(DIR_EXEC_DBG)/$(EXEC): $(LIB_DBG) \
 
 ##################################################
 GitVersion.h: .git/HEAD .git/index
-    echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
+	echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
 
 -include Main.d
 Main.o: Main.cpp

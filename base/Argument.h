@@ -211,11 +211,18 @@ class ParameterParser{
     void WriteToFile(const char* fileName) {
         this->WriteToFileWithComment(fileName, "");
     };
+    void WriteToFile(FILE* fp) {
+        this->WriteToFileWithComment(fp, "");
+    };
     // write all transated parameters to @param fileName
     // the first line with be @param comment
     // or the information when we write to file.
     void WriteToFileWithComment(const char* fileName, const char* comment) {
         FILE* fp = fopen(fileName, "w");
+        this->WriteToFileWithComment(fp, comment);
+        fclose(fp);
+    }
+    void WriteToFileWithComment(FILE* fp, const char* comment) {
         if (strlen(comment) > 0) {
             fprintf(fp, "# %s\n", comment);
         } else {
@@ -271,7 +278,6 @@ class ParameterParser{
             fprintf(fp, " \"%s\"", (*this->ptrRemainingArg)[i].c_str());
         }            
         fprintf(fp, "\n");
-        fclose(fp);
     };
     void Read(int argc, char** argv) {
         std::string flag;

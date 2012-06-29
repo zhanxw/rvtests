@@ -572,7 +572,6 @@ class GenotypeExtractor{
     label += ':';
     label += r.getPosStr();
     genotype.SetColumnLabel(0, label.c_str());
-
   };
 
   // @return true if GD is valid
@@ -622,27 +621,27 @@ class GenotypeExtractor{
  */
 void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
   Matrix& m = *genotype;
-  for (int i = 0; i < m.rows; i++ ) {
+  for (int i = 0; i < m.cols; i++ ) {
     int ac = 0;
     int an = 0;
-    for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] >= 0) {
-        ac += m[i][j];
+    for (int j = 0; j < m.rows; j++) {
+      if (m[j][i] >= 0) {
+        ac += m[j][i];
         an += 2;
       }
     }
     double p = 1.0 * ac / an;
     double pRef = p * p;
     double pHet = pRef + 2.0*p * (1.0 - p);
-    for (int j = 0; j < m.cols; j++){
-      if (m[i][j] < 0) {
+    for (int j = 0; j < m.rows; j++){
+      if (m[j][i] < 0) {
         double v = r->Next();
         if (v < pRef) {
-          m[i][j] = 0;
+          m[j][i] = 0;
         } else if (v < pHet) {
-          m[i][j] = 1;
+          m[j][i] = 1;
         } else {
-          m[i][j] = 2;
+          m[j][i] = 2;
         }
       }
     }
@@ -651,29 +650,30 @@ void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
 
 /**
  * Impute missing genotype (<0) according to its mean genotype
+ * @param genotype (people by marker matrix)
  */
 void imputeGenotypeToMean(Matrix* genotype) {
   Matrix& m = *genotype;
-  for (int i = 0; i < m.rows; i++ ) {
+  for (int i = 0; i < m.cols; i++ ) {
     int ac = 0;
     int an = 0;
-    for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] >= 0) {
-        ac += m[i][j];
+    for (int j = 0; j < m.rows; j++) {
+      if (m[j][i] >= 0) {
+        ac += m[j][i];
         an += 2;
       }
     }
     double p = 1.0 * ac / an;
-    for (int j = 0; j < m.cols; j++){
-      if (m[i][j] < 0) {
-        m[i][j] = p;
+    for (int j = 0; j < m.rows; j++){
+      if (m[j][i] < 0) {
+        m[j][i] = p;
       }
     }
   }
 };
 
 /**
- * @return true if any of the markers (@param col) of @param genotype is missing
+ * @return true if any of the markers (@param col) of @param genotype (people by marker) is missing
  */
 bool hasMissingMarker(Matrix& genotype, int col) {
   if (col >= genotype.cols || col < 0) {
@@ -689,7 +689,7 @@ bool hasMissingMarker(Matrix& genotype, int col) {
 };
 
 /**
- * Remove columns of markers in @param genotype where there are missing genotypes
+ * Remove columns of markers in @param genotype (people by marker) where there are missing genotypes
  */
 void removeMissingMarker(Matrix* genotype) {
   Matrix& g = *genotype;
@@ -701,6 +701,7 @@ void removeMissingMarker(Matrix* genotype) {
       for (int r = 0; r < g.rows; ++r){
         g[r][col] = g[r][lastCol];
       }
+      g.SetColumnLabel(col, g.GetColumnLabel(lastCol));
       g.Dimension(g.rows, lastCol);
       continue;
     };
@@ -708,16 +709,26 @@ void removeMissingMarker(Matrix* genotype) {
   };
 };
 /**
- * @return true if markers on @param col of @param genotype is monomorphic (genotypes are all the same)
+ * @return true if markers on @param col of @param genotype (people by marker) is monomorphic (genotypes are all the same)
  */
 bool isMonomorphicMarker(Matrix& genotype, int col) {
   if (col >= genotype.cols || col < 0) {
     logger->error("Invalid check of monomorhpic marker.");
     return false;
   }
+  
+  int nonMissingRow;
+  for (int i = 0; i < genotype.rows; ++i) {
+    if (genotype[i][col] >= 0) {
+      nonMissingRow = i;
+      break;
+    }
+  }
 
-  for (int r = 1; r < genotype.rows; ++r) {
-    if (genotype[r][col] != genotype[0][col])
+  for (int r = nonMissingRow + 1; r < genotype.rows; ++r) {
+    if (genotype[r][col] < 0) // missing
+      continue;
+    if (genotype[r][col] != genotype[nonMissingRow][col])
       return false;
   }
   return true;

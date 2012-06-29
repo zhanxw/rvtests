@@ -29,6 +29,7 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out);
 void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq);
 
 void permute(Vector* v);
+void permute(Vector* vec1, Vector* vec2); //permute both vector.
 void centerVector(Vector* v);
 
 class AdaptivePermutationCheck{
@@ -1461,7 +1462,6 @@ SkatTest(int nPerm, int alpha, double beta1, double beta2):perm(nPerm, alpha) {
       }
     };
 
-    // get ynulll
     Vector phenoVec;
     copyPhenotype(phenotype, &phenoVec);
 
@@ -1487,20 +1487,23 @@ SkatTest(int nPerm, int alpha, double beta1, double beta2):perm(nPerm, alpha) {
         v[i] = linear.GetSigma2();
       }
     }
-
+    this->res.Dimension(ynull.Length());
+    for (int i = 0; i < this->ynull.Length(); ++i){
+        this->res[i] = phenoVec[i] - this->ynull[i];
+    }
+    
     // get Pvalue
-    skat.CalculatePValue(phenoVec, ynull, cov, v, genotype, weight);
+    skat.Fit(res, v, cov, genotype, weight);
+    this->stat =  skat.GetQ();
     this->pValue = skat.GetPvalue();
 
     // permuation part
-    this->stat =  skat.GetQ();
     this->perm.init(this->stat);
 
     double s;
     while (this->perm.next()) {
-      permute(&phenoVec);
-      skat.CalculatePValue(phenoVec, ynull, cov, v, genotype, weight);
-      s = skat.GetQ();
+      permute(&res);
+      s = skat.GetQFromNewResidual(res);
       this->perm.add(s);
     };
     fitOK = true;
@@ -1541,6 +1544,7 @@ private:
   LogisticRegression logistic;
   LinearRegression linear;
   Vector ynull;
+  Vector res; //residual under the null
   Skat skat;
   bool fitOK;
   double pValue;
@@ -2072,6 +2076,26 @@ void permute(Vector* vec){
       tmp = v[i];
       v[i] = v[j];
       v[j] = tmp;
+    }
+  }
+};
+
+void permute(Vector* vec1, Vector* vec2){
+  Vector& v1 = *vec1;
+  Vector& v2 = *vec2;
+  int n = v1.Length();
+  double tmp;
+  for (int i = n - 1; i >= 1; --i) {
+    // pick j from 0 <= j <= i
+    int j = rand() % (i+1);
+    if (i != j) {
+      tmp = v1[i];
+      v1[i] = v1[j];
+      v1[j] = tmp;
+
+      tmp = v2[i];
+      v2[i] = v2[j];
+      v2[j] = tmp;
     }
   }
 };

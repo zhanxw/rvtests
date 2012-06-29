@@ -1,5 +1,4 @@
 #include "Skat.h"
-#include "qfc.c"
 
 #include "MathMatrix.h"
 #include <Eigen/Eigenvalues>
@@ -7,18 +6,82 @@
 
 #define ZBOUND 1e-30
 
-int Skat::CalculatePValue(Matrix & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
-                          Matrix & G_G, Vector &w_G) {
-  if (y_G.cols != 1) {
-    fprintf(stderr, "%s:%d Use first column of y\n", __FILE__, __LINE__);
-  }
-  Vector v(y_G.rows);
-  for (int i = 0; i < y_G.rows; ++i){
-    v[i] = y_G[i][0];
-  }
-  return this->CalculatePValue(v, y0_G, X_G, v_G, G_G, w_G);
-}
+void Eigen_to_G(Eigen::MatrixXf &EigenM, Matrix* GM);
+void Eigen_to_G(Eigen::VectorXf &EigenV, Vector* GV);
+void G_to_Eigen(Vector &GV, Eigen::VectorXf* EigenV);
+void G_to_Eigen(Matrix &GM, Eigen::MatrixXf* EigenM);
 
+void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf* out);
+
+
+int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permuting
+              Vector& v_G,      // variance under NULL -- may change when permuting
+              Matrix& X_G,      // covariance
+              Matrix & G_G,     // genotype
+              Vector &w_G)     // weight 
+{
+  this->nPeople = X_G.rows;
+  this->nMarker = G_G.cols;
+  this->nCovariate = X_G.cols;
+
+  // calculation w_sqrt
+  G_to_Eigen(w_G, &this->w_sqrt);
+  w_sqrt.cwiseSqrt();
+
+  // calculate K
+  Eigen::MatrixXf G;
+  G_to_Eigen(G_G, &G);
+  this->K_sqrt.noalias() = w_sqrt.asDiagonal() * G.transpose();
+
+  // calculate Q
+  Eigen::VectorXf res;
+  G_to_Eigen(res_G, &res);
+  this->Q = (this->K_sqrt * res).squaredNorm();
+  
+  // calculate P0
+  Eigen::VectorXf v;
+  G_to_Eigen(v_G, &v);
+  if (this->nCovariate == 1) {
+    P0 = v.asDiagonal();
+    P0 -= v * v.transpose() / v.sum();
+  } else {
+    Eigen::MatrixXf X;
+    G_to_Eigen(X_G, &X);    
+    Eigen::MatrixXf XtV ;        // X^t V
+    XtV.noalias() = X.transpose() * v.asDiagonal();
+    P0 = v.asDiagonal();
+    P0 -= XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
+  }
+  // eigen decomposition
+  es.compute( K_sqrt * P0 * K_sqrt.transpose());
+  this->mixChiSq.reset();
+  int r_ub = std::min(nPeople, nMarker);
+  int r = 0; // es.eigenvalues().size();
+  int eigen_len = es.eigenvalues().size();
+  for(int i=eigen_len-1; i>=0; i--)
+  {
+    if (es.eigenvalues()[i] > ZBOUND && r<r_ub) {
+      mixChiSq.addLambda(es.eigenvalues()[i]);
+      r++;
+    }
+	else break;
+  }
+  // calculate p-value
+  this->pValue = this->mixChiSq.getPvalue(this->Q);
+  return 0;
+};
+
+double Skat::GetQFromNewResidual(Vector & res_G){   // residual under NULL -- may change when permuting
+  // calculate Q
+  Eigen::VectorXf res;
+  G_to_Eigen(res_G, &res);
+  this->Q = (this->K_sqrt * res).squaredNorm();
+
+  // calculate p-value
+  this->pValue = this->mixChiSq.getPvalue(this->Q);
+};
+
+#if 0
 int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
                           Matrix & G_G, Vector &w_G) {
   // Eigen::VectorXf y;
@@ -110,9 +173,6 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
 	else break;
   }
 
-  double sigma = 0.0;
-  int lim = 10000;
-  double acc = 0.0001;
 
   // Output from qf
   double pvalue;
@@ -131,32 +191,37 @@ int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
 
   return 0;
 }
+#endif
 
-void G_to_Eigen(Matrix& GM, Eigen::MatrixXf& EigenM)
+void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* _EigenM)
 {
+  Eigen::MatrixXf& EigenM = *_EigenM;
   EigenM.resize(GM.rows, GM.cols);
   for(int i=0; i<GM.rows; i++)
     for(int j=0; j<GM.cols; j++)
       EigenM(i, j) = GM[i][j];
 }
-
-void Eigen_to_G(Eigen::MatrixXf& EigenM, Matrix& GM)
+void G_to_Eigen(Vector& GV, Eigen::VectorXf* _EigenV)
 {
+  Eigen::VectorXf& EigenV = *_EigenV;
+  EigenV.resize(GV.Length());
+  for(int i=0; i<GV.Length(); i++)
+    EigenV(i) = GV[i];
+}
+
+void Eigen_to_G(Eigen::MatrixXf& EigenM, Matrix* _GM)
+{
+  Matrix& GM = *_GM;
   GM.Dimension(EigenM.rows(), EigenM.cols());
   for(int i=0; i<GM.rows; i++)
     for(int j=0; j<GM.cols; j++)
       GM[i][j] = EigenM(i, j);
 }
 
-void G_to_Eigen(Vector& GV, Eigen::VectorXf& EigenV)
-{
-  EigenV.resize(GV.Length());
-  for(int i=0; i<GV.Length(); i++)
-    EigenV(i) = GV[i];
-}
 
-void Eigen_to_G(Eigen::VectorXf& EigenV, Vector &GV)
+void Eigen_to_G(Eigen::VectorXf& EigenV, Vector* _GV)
 {
+  Vector& GV = *_GV;
   EigenV.resize(GV.Length());
   for(int i=0; i<GV.Length(); i++)
     EigenV(i) = GV[i];
@@ -165,18 +230,18 @@ void Eigen_to_G(Eigen::VectorXf& EigenV, Vector &GV)
 /**
  *     // NOTE: since @param may not be full rank, we will use SVD
  */
-void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf& out) {
-
-  // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(in);
-  // out = es.operatorSqrt();
+void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf* _out) {
+  Eigen::MatrixXf& out = *_out;
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(in);
-  Eigen::VectorXf d = es.eigenvalues();;
-  for (int i = 0; i < d.size(); i++){
-    if (d(i) > ZBOUND) {
-      d(i) = sqrt(d[i]);
-    }else{
-      d(i) = 0.0;
-    }
-  }
-  out = es.eigenvectors() * d.asDiagonal() *  es.eigenvectors().transpose();
+  out = es.operatorSqrt();
+  // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(in);
+  // Eigen::VectorXf d = es.eigenvalues();;
+  // for (int i = 0; i < d.size(); i++){
+  //   if (d(i) > ZBOUND) {
+  //     d(i) = sqrt(d[i]);
+  //   }else{
+  //     d(i) = 0.0;
+  //   }
+  // }
+  // out = es.eigenvectors() * d.asDiagonal() *  es.eigenvectors().transpose();
 }

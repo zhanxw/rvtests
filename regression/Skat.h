@@ -2,41 +2,17 @@
 #define __SKAT_H__
 
 #include <Eigen/Dense>
+#include "MixtureChiSquare.h"
 
 class Matrix;
 class Vector;
 
-void Eigen_to_G(Eigen::MatrixXf &EigenM, Matrix&);
-void Eigen_to_G(Eigen::VectorXf &EigenV, Vector& GV);
-void G_to_Eigen(Vector &GV, Eigen::VectorXf &EigenV);
-void G_to_Eigen(Matrix &GM, Eigen::MatrixXf &EigenM);
-
-void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf& out);
-
 class Skat
 {
 public:
-  Skat() {
-    lambda = NULL;
-    noncen = NULL;
-    df = NULL;
-    lambda_size = 0;
-    Reset();
-  }
-  ~Skat()
-  {
-    if (lambda_size) {
-      delete [] lambda;
-      delete [] noncen;
-      delete [] df;
-      lambda = NULL;
-      noncen = NULL;
-      df = NULL;
-    }
-  }
-
+Skat():pValue(-999) {};
   void Reset() {
-    this->pValue = -1.0;
+    this->pValue = -999.0;
   };
   /**
    * _G suffix: Data structure for Goncalo
@@ -46,11 +22,15 @@ public:
    * v variance
    * G genotype
    * w weight for G
+   * @return 0 when success
    */
-  int CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
-                      Matrix & G_G, Vector &w_G);
-  int CalculatePValue(Matrix & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
-                      Matrix & G_G, Vector &w_G);
+  int Fit(Vector & res_G,   // residual under NULL -- may change when permuting
+          Vector& v_G,      // variance under NULL -- may change when permuting
+          Matrix& X_G,      // covariance
+          Matrix & G_G,     // genotype
+          Vector &w_G);     // weight
+  
+  double GetQFromNewResidual(Vector & res_G);   // e.g. permuted residual under NULL
 
   double GetPvalue() const {return this->pValue;};
 
@@ -62,15 +42,16 @@ private:
   Eigen::VectorXf w_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
   Eigen::MatrixXf P0;         // V - VX ( X' V X)^{-1} X V
   Eigen::VectorXf res;        // residual
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
   // bool hasCache;              // hasCache == true: no need to recalculate P0
+
+  int nPeople;
+  int nMarker;
+  int nCovariate;
+  MixtureChiSquare mixChiSq;
+
   double pValue;
   double Q;
-
-  // fit in parameters to qf()
-  double *lambda;
-  double *noncen;
-  int *df;
-  int lambda_size;
 };
 
 #endif

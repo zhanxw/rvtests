@@ -8,7 +8,8 @@ SRC = LogisticRegression \
       LinearRegressionScoreTest \
       LinearRegressionPermutationTest \
       kbac_interface kbac \
-      Skat qfc Table2by2
+      Skat qfc MixtureChiSquare \
+      Table2by2
 
 .PHONY: all release debug
 all: release

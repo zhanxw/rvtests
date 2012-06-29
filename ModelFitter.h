@@ -71,6 +71,75 @@ private:
   std::vector<double> stats;
 };
 
+class Permutation{
+public:
+Permutation():numPerm(10000), alpha(0.05) {};
+Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {};  
+  /**
+   * @param observation: observed statistics
+   */
+  void init(double observation) {
+    this->obs = observation;
+    this->numPerm =  0;
+    this->actualPerm = 0;
+    this->threshold = this->numPerm * this->alpha * 2;
+    this->numX = 0; 
+    this->numEqual = 0;
+  };
+  /**
+   * @return true if need more permutations
+   */
+  bool next() {
+    if (this->actualPerm > this->numPerm) return false;
+    if (numX + numX > threshold){
+      return false;
+    }
+    return true;
+  };
+  void add(double s) {
+    this->actualPerm++;
+    if ( s > this->obs) {
+      numX ++;
+    } 
+    if ( s == this->obs) {
+      numEqual ++;
+    }
+  };
+  double getPvalue() const {
+    if (this->actualPerm == 0) return 1.0;
+    return  0.5 * (this->numX + this->numEqual) / this->actualPerm;
+  };
+  void reset() {
+  numPerm = 0;
+  actualPerm = 0;
+  threshold = 0;
+  numX = 0;
+  numEqual = 0;
+  };
+  void writeHeader(FILE* fp){
+    fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s",
+            "NumPerm", "ActualPerm", "STAT", "NumX", "NumEqual", "PermPvalue");
+  }
+  void writeOutput(FILE* fp) {
+    fprintf(fp, "%d\t%d\t%g\t%d\t%d\t%g", 
+            this->numPerm,
+            this->actualPerm,
+            this->obs,
+            this->numX,
+            this->numEqual,
+            this->getPvalue());
+  };
+  
+private:
+  double obs;
+  double alpha;
+  int numPerm;
+  int actualPerm;
+  int threshold;
+  int numX;
+  int numEqual;
+};
+
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
@@ -283,11 +352,11 @@ public:
     fputs(prependString, fp);
     if (fitOK) {
       if (!isBinaryOutcome())
-        fprintf(fp, "%d\t%g\t%g\t%c\t%g\n", nSample, af, linear.GetStat(), linear.GetU()[0][0] > 0 ? '+': '-', linear.GetPvalue());
+        fprintf(fp, "%g\t%g\t%c\t%g\n", af, linear.GetStat(), linear.GetU()[0][0] > 0 ? '+': '-', linear.GetPvalue());
       else
-        fprintf(fp, "%d\t%g\t%g\t%c\t%g\n", nSample, af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
+        fprintf(fp, "%g\t%g\t%c\t%g\n", af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
     }else
-      fputs("NA\tNA\tNA\tNA\tNA\n", fp);
+      fputs("NA\tNA\tNA\tNA\n", fp);
   };
 private:
   double af;
@@ -606,17 +675,9 @@ private:
 
 class MadsonBrowningTest: public ModelFitter{
 public:
-MadsonBrowningTest(int nPerm): nPerm(nPerm) {
+MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "MadsonBrowningTest";
   }
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (isBinaryOutcome())
-      fprintf(fp, "NumVariant\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
-    else
-      fprintf(fp, "NumVariant\tNA\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
@@ -645,12 +706,12 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
     if (!fitOK) return -1;
     fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
     if (!fitOK) return -1;
-    // record observed stat
-    this->stat = logistic.GetStat(); // a chi-dist
 
-    // permutation part
-    int failed = 0;
-    for (int i = 0; i < this->nPerm; ++i) {
+    // record observed stat
+    this->perm.init(logistic.GetStat()); // a chi-dist
+    
+    while (this->perm.next()){
+      int failed = 0;
       permute(&pheno);
       fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       if (!fitOK) {
@@ -662,36 +723,35 @@ MadsonBrowningTest(int nPerm): nPerm(nPerm) {
           return -1;
         }
       }
-      ++ this->actualPerm;
       // record new stats
       double pStat = logistic.GetStat();
-      if (pStat > this->stat) {
-        this->numX ++;
-      }
+      this->perm.add(pStat);
     } // end permutation
     return (fitOK ? 0 : -1);
   };
   void reset() {
-    this->actualPerm = 0;
-    this->numX = 0;
+    this->perm.reset();
   }
-  double getPvalue() {
-    return (1.0 + this->numX) / (1.0 + this->actualPerm);
-  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()){
+      fprintf(fp, "NumVariant\t");
+      perm.writeHeader(fp);
+      fprintf(fp, "\n");
+    } else
+      fprintf(fp, "NumVariant\tNA\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
+    fprintf(fp, "%d\tNA\n", this->numVariant);
     if (isBinaryOutcome()) {
       if (fitOK){
-        fprintf(fp, "%d\t%d\t%d\t%g\t%d\t%g\n",
-                this->numVariant,
-                this->nPerm,
-                this->actualPerm,
-                this->stat,
-                this->numX,
-                this->getPvalue());
+        perm.writeOutput(fp);
+        fprintf(fp, "\n");
       } else {
-        fprintf(fp, "%d\tNA\tNA\tNA\tNA\tNA\n", this->numVariant);
+        fprintf(fp, "NA\tNA\tNA\tNA\tNA\n");
       }
     } else {
       fprintf(fp, "%d\tNA\n", this->numVariant);
@@ -702,10 +762,11 @@ private:
   LogisticRegressionScoreTest logistic;
   bool fitOK;
   int numVariant;
-  int nPerm;
-  int numX;
-  int actualPerm;
-  double stat;
+  Permutation perm;
+  /* int nPerm; */
+  /* int numX; */
+  /* int actualPerm; */
+  /* double stat; */
 }; // MadsonBrowningTest
 
 // Danyu Lin's method, using 1/sqrt(p(1-p)) as weight
@@ -774,17 +835,9 @@ private:
 
 class RareCoverTest: public ModelFitter{
 public:
-RareCoverTest(int nPerm): nPerm(nPerm) {
+RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "RareCover";
   }
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    if (isBinaryOutcome())
-      fprintf(fp, "NumIncMarker\tNumPerm\tActualPerm\tStat\tNumX\tPval\n");
-    else
-      fprintf(fp, "NA\n");
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     if (!isBinaryOutcome()) {
@@ -811,52 +864,46 @@ RareCoverTest(int nPerm): nPerm(nPerm) {
 
     // find highest correlation coef.
     this->stat = calculateStat(this->genotype, pheno, &this->selected);
+    this->perm.init(this->stat);
 
     // permutation
     double s;
     std::set<int> permSelected;
-    int threshold = this->nPerm * 0.05;
-    while (this->actualPerm < this->nPerm) {
+    while (this->perm.next()) {
       this->genotype.Transpose(genotype);
       permute(&pheno);
-      this->actualPerm++;
 
       s = calculateStat(this->genotype, pheno, &permSelected);
-      // NOTE: here we use >=, otherwise,
-      //
-      //
-      if ( s >= this->stat) {
-        numX ++;
-      }
-
-      if (numX > threshold){
-        break;
-      }
+      this->perm.add(s);
     };
     fitOK = true;
     return (fitOK ? 0 : -1);
   };
   void reset() {
-    this->actualPerm = 0;
-    this->numX = 0;
+    this->perm.reset();
   }
-  double getPvalue() {
-    return (1.0 + this->numX) / (1.0 + this->actualPerm);
-  }
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    if (isBinaryOutcome()){
+      fprintf(fp, "NumIncMarker\t");
+      this->perm.writeHeader(fp);
+      fprintf(fp, "\n");
+    } else
+      fprintf(fp, "NA\n");
+  };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
     if (isBinaryOutcome()) {
       if (fitOK){
-        fprintf(fp, "%zu\t%d\t%d\t%g\t%d\t%g\n",
-                this->selected.size(),
-                this->nPerm,
-                this->actualPerm,
-                this->stat,
-                this->numX,
-                this->getPvalue());
+        fprintf(fp, "%zu\t", this->selected.size());
+        this->perm.writeOutput(fp);
+        fprintf(fp, "\n");
       } else {
-        fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n");
+        fprintf(fp, "NA\t");
+        this->perm.writeOutput(fp);
+        fprintf(fp, "\n");
       }
     } else {
       fprintf(fp, "NA\n");
@@ -947,10 +994,8 @@ private:
   std::set<int> selected;
   bool fitOK;
   int numVariant;
-  int nPerm;
-  int numX;
-  int actualPerm;
   double stat;
+  Permutation perm;
 }; //RareCoverTest
 
 class CMATTest:public ModelFitter{

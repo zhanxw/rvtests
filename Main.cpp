@@ -469,6 +469,9 @@ class GenotypeExtractor{
                                       GDmin(-1), GDmax(-1), needGD(false),
                                       GQmin(-1), GQmax(-1), needGQ(false){
   };
+  /**
+   * @param g, store people by marker matrix
+   */
   int extractMultipleGenotype(Matrix* g) {
     Matrix m;
     int row = 0;
@@ -528,7 +531,6 @@ class GenotypeExtractor{
     buf += r.getRef();
     buf += '\t';
     buf += r.getAlt();
-    buf += '\t';
 
     genotype.Dimension(people.size(), 1);
 
@@ -590,7 +592,7 @@ class GenotypeExtractor{
     this->GQmin = m;
   };
   void setGQmax(int m) {
-    this->needGQ = true;    
+    this->needGQ = true;
     this->GQmax = m;
   };
  private:
@@ -602,91 +604,6 @@ class GenotypeExtractor{
   int GQmin;
   int GQmax;
 };
-
-
-#if 0
-/**
- * @return 0 for success
- * extract genotypes to @param g (people by marker).
- * Missing is -9
- */
-int extractGenotype(VCFExtractor* v, Matrix* g){
-  VCFExtractor& vin = *v;
-  Matrix m;
-  int row = 0;
-  while (vin.readRecord()){
-    VCFRecord& r = vin.getVCFRecord();
-    VCFPeople& people = r.getPeople();
-    VCFIndividual* indv;
-
-    m.Dimension(row + 1, people.size());
-
-    // e.g.: Loop each (selected) people in the same order as in the VCF
-    for (int i = 0; i < people.size(); i++) {
-      indv = people[i];
-      // get GT index. if you are sure the index will not change, call this function only once!
-      int GTidx = r.getFormatIndex("GT");
-      if (GTidx >= 0)
-        //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
-        m[row][i] = indv->justGet(GTidx).getGenotype();
-      else {
-        fprintf(stderr, "Cannot find GT field!\n");
-        return -1;
-      }
-    }
-    ++ row;
-  }
-  // now transpose (marker by people -> people by marker)
-  g->Transpose(m);
-  return 0;
-};
-
-int extractSiteGenotype(VCFExtractor* v, Matrix* g, std::string* b){
-  VCFExtractor& vin = *v;
-  Matrix& genotype = *g;
-  std::string& buf = *b;
-
-  bool hasRead = vin.readRecord();
-  if (!hasRead)
-    return -2;
-
-  VCFRecord& r = vin.getVCFRecord();
-  VCFPeople& people = r.getPeople();
-  VCFIndividual* indv;
-
-  buf += r.getChrom();
-  buf += '\t';
-  buf += r.getPosStr();
-  buf += '\t';
-  buf += r.getRef();
-  buf += '\t';
-  buf += r.getAlt();
-  buf += '\t';
-
-  genotype.Dimension(people.size(), 1);
-
-  // e.g.: Loop each (selected) people in the same order as in the VCF
-  for (int i = 0; i < people.size(); i++) {
-    indv = people[i];
-    // get GT index. if you are sure the index will not change, call this function only once!
-    int GTidx = r.getFormatIndex("GT");
-    if (GTidx >= 0) {
-      //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
-      genotype[i][0] = indv->justGet(GTidx).getGenotype();
-      // // fprintf(stderr, "%d ", int(genotype[i][0]));
-    } else {
-      fprintf(stderr, "Cannot find GT field when read genotype: %s!\n", indv->getSelf().toStr());
-      return -1;
-    }
-  }
-
-  std::string label = r.getChrom();
-  label += ':';
-  label += r.getPosStr();
-  genotype.SetColumnLabel(0, label.c_str());
-  return 0;
-}
-#endif
 
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
@@ -1060,10 +977,10 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
       ADD_INT_PARAMETER(pl, indvDepthMin, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
-      ADD_INT_PARAMETER(pl, indvDepthMax, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis");
-      ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
+  ADD_INT_PARAMETER(pl, indvDepthMax, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis");
+  ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
 
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
+  ADD_PARAMETER_GROUP(pl, "Site Filter")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
@@ -1266,6 +1183,7 @@ int main(int argc, char** argv){
   std::vector< std::string> argModelName;
   ModelParser parser;
   int nPerm = 10000;
+  double alpha = 0.05;
 
   //if (parseModel(FLAG_modelSingle, &modelName, &modelParams)
   if (FLAG_modelSingle != "") {
@@ -1297,16 +1215,16 @@ int main(int argc, char** argv){
       } else if (modelName == "zeggini") {
         model.push_back( new ZegginiTest );
       } else if (modelName == "mb") {
-        parser.assign("nPerm", &nPerm, 10000);
-        model.push_back( new MadsonBrowningTest(nPerm) );
+        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+        model.push_back( new MadsonBrowningTest(nPerm, alpha) );
         fprintf(stderr, "MadsonBrowning test significance will be evaluated using %d permutations\n", nPerm);
       } else if (modelName == "exactCMC") {
         model.push_back( new CMCFisherExactTest );
       } else if (modelName == "fp") {
         model.push_back( new FpTest );
       } else if (modelName == "rarecover") {
-        parser.assign("nPerm", &nPerm, 10000);
-        model.push_back( new RareCoverTest(nPerm) );
+        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+        model.push_back( new RareCoverTest(nPerm, alpha) );
         fprintf(stderr, "Rare cover test significance will be evaluated using %d permutations\n", nPerm);
       } else if (modelName == "cmat") {
         parser.assign("nPerm", &nPerm, 10000);
@@ -1437,13 +1355,13 @@ int main(int argc, char** argv){
     fprintf(stderr, "Impute missing genotype to mean (by default)\n");
     dc.setStrategy(DataConsolidator::IMPUTE_MEAN);
   } else if (FLAG_impute == "mean") {
-    fprintf(stderr, "Impute missing genotype to mean\n");    
+    fprintf(stderr, "Impute missing genotype to mean\n");
     dc.setStrategy(DataConsolidator::IMPUTE_MEAN);
   } else if (FLAG_impute == "hwe") {
-    fprintf(stderr, "Impute missing genotype by HWE\n");        
+    fprintf(stderr, "Impute missing genotype by HWE\n");
     dc.setStrategy(DataConsolidator::IMPUTE_HWE);
   } else if (FLAG_impute == "drop") {
-    fprintf(stderr, "Drop missing genotypes\n");            
+    fprintf(stderr, "Drop missing genotypes\n");
     dc.setStrategy(DataConsolidator::DROP);
   }
 
@@ -1454,17 +1372,17 @@ int main(int argc, char** argv){
   GenotypeExtractor ge(&vin);
   if (FLAG_indvDepthMin > 0) {
     ge.setGDmin(FLAG_indvDepthMin);
-    fprintf(stderr, "Minimum GD set to %d (or marked as missing genotype).\n", FLAG_indvDepthMin);    
+    fprintf(stderr, "Minimum GD set to %d (or marked as missing genotype).\n", FLAG_indvDepthMin);
   };
   if (FLAG_indvDepthMax > 0) {
     ge.setGDmax(FLAG_indvDepthMax);
-    fprintf(stderr, "Maximum GD set to %d (or marked as missing genotype).\n", FLAG_indvDepthMax);    
+    fprintf(stderr, "Maximum GD set to %d (or marked as missing genotype).\n", FLAG_indvDepthMax);
   };
   if (FLAG_indvQualMin > 0) {
     ge.setGQmin(FLAG_indvQualMin);
     fprintf(stderr, "Minimum GQ set to %d (or marked as missing genotype).\n", FLAG_indvQualMin);
   };
-  
+
   std::string buf; // we put site sinformation here
   buf.resize(1024);
 
@@ -1473,7 +1391,7 @@ int main(int argc, char** argv){
   // * range variant reading, single variant test
   // * range variant reading, group variant test
   if (rangeMode == "Single" && singleVariantMode) { // use line by line mode
-    buf = "CHROM\tPOS\tREF\tALT\t";
+    buf = "CHROM\tPOS\tREF\tALT\tNumSample\t";
     // output headers
     for (int m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf.c_str());
@@ -1497,11 +1415,10 @@ int main(int argc, char** argv){
       };
 
       dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
-      // // remove monomorphic site
-      // removeMonomorphicSite(&genotype);
 
-      // // impute missing genotypes
-      // imputeGenotypeToMean(&genotype);
+      buf += "\t";
+      buf += toString(genotype.rows);
+      buf += "\t";
 
       // fit each model
       for (int m = 0; m < model.size(); m++) {
@@ -1514,7 +1431,7 @@ int main(int argc, char** argv){
   } else if (rangeMode != "Single" && singleVariantMode) { // read by gene/range model, single variant test
     buf = rangeMode;
     buf += '\t';
-    buf += "CHROM\tPOS\tREF\tALT\t";
+    buf += "CHROM\tPOS\tREF\tALT\tNumSample\t";
     // output headers
     for (int m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf.c_str());
@@ -1526,11 +1443,6 @@ int main(int argc, char** argv){
       vin.setRange(rangeList);
 
       while (true) {
-        buf = geneName;
-        buf += '\t';
-
-        // int ret;
-        // ret = extractSiteGenotype(&vin, &genotype, &buf);
         int ret = ge.extractSingleGenotype(&genotype, &buf);
         if (ret == -2) // reach end of this region
           break;
@@ -1544,11 +1456,11 @@ int main(int argc, char** argv){
         };
 
         dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
-        // // remove monomorphic site
-        // removeMonomorphicSite(&genotype);
 
-        // // impute missing genotypes
-        // imputeGenotypeToMean(&genotype);
+        buf = geneName;
+        buf += '\t';
+        buf += toString(genotype.rows);
+        buf += '\t';
 
         for (int m = 0; m < model.size(); m++) {
           model[m]->reset();
@@ -1560,6 +1472,8 @@ int main(int argc, char** argv){
     }
   } else if (rangeMode != "Single" && groupVariantMode) {// read by gene/range mode, group variant test
     buf = rangeMode;
+    buf += '\t';
+    buf += "NumSample";
     buf += '\t';
     buf += "NumVar";
     buf += '\t';
@@ -1574,9 +1488,6 @@ int main(int argc, char** argv){
       geneRange.at(i, &geneName, &rangeList);
       vin.setRange(rangeList);
 
-      buf = geneName;
-      buf += '\t';
-
       // int ret = extractGenotype(&vin, &genotype);
       int ret = ge.extractMultipleGenotype(&genotype);
       if (ret < 0) {
@@ -1588,15 +1499,14 @@ int main(int argc, char** argv){
         continue;
       };
 
+      dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
+
+      buf = geneName;
+      buf += '\t';
+      buf += toString(genotype.rows);
+      buf += '\t';
       buf += toString(genotype.cols);
       buf += '\t';
-
-      dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
-      // // remove monomorphic site
-      // removeMonomorphicSite(&genotype);
-
-      // // impute missing genotypes
-      // imputeGenotypeToMean(&genotype);
 
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();

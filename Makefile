@@ -86,7 +86,8 @@ release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) -static
 release: $(DIR_EXEC)/$(EXEC) util
 $(DIR_EXEC)/$(EXEC): $(LIB) \
                      Main.o \
-                     Collapsor.h ModelFitter.h \
+                     ModelFitter.h \
+                     GitVersion.h\
                      |$(DIR_EXEC)
 	g++ -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB)
 
@@ -100,6 +101,9 @@ $(DIR_EXEC_DBG)/$(EXEC): $(LIB_DBG) \
 
 
 ##################################################
+GitVersion.h: .git/HEAD .git/index
+    echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
+
 -include Main.d
 Main.o: Main.cpp
 	g++ -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__

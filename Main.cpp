@@ -61,6 +61,7 @@
 #include "Random.h"
 
 #include "ModelFitter.h"
+#include "GitVersion.h"
 
 Logger* logger = NULL;
 
@@ -1065,6 +1066,8 @@ int main(int argc, char** argv){
 
   Logger _logger( (FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
+  logger->infoToFile("Program Version");
+  logger->infoToFile(gitVersion);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");

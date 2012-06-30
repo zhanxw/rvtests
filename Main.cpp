@@ -3,8 +3,6 @@
    5. loading covariate (need tests now).
    12. Add support multi-thread
    13. Add optional weight
-   18. Add filtering on GD, GQ
-   19. Add command line support for different imputation methods
    22. Add U-statistics
    23. Add dominant model
 
@@ -34,6 +32,8 @@
    6. Test CMC
    20. Add rare cover
    21. Add CMAT
+   18. Add filtering on GD, GQ
+   19. Add command line support for different imputation methods
 
    Future TODO:
 
@@ -989,6 +989,11 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Input/Output")
       ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
       ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
+      ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
+      ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")
+      ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
+      ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
+      ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
       // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
       // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
       // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output [prefix].{fam,bed,bim} in Plink BED format")
@@ -998,11 +1003,8 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_INT_PARAMETER(pl, indvDepthMin, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
-  ADD_INT_PARAMETER(pl, indvDepthMax, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis");
-  ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
-
-  ADD_PARAMETER_GROUP(pl, "Site Filter")
+      
+      ADD_PARAMETER_GROUP(pl, "Site Filter")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
@@ -1011,25 +1013,26 @@ int main(int argc, char** argv){
       // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis")
       ADD_INT_PARAMETER(pl, siteMACMin,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis")
       ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field, regular expression is allowed ")
-      // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any valid Python expression, will output if eval is > 0")
 
-      ADD_PARAMETER_GROUP(pl, "Association Functions")
-      ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
-      ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")
-      ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
+      ADD_PARAMETER_GROUP(pl, "Genotype Filter")
+      ADD_INT_PARAMETER(pl, indvDepthMin, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
+      ADD_INT_PARAMETER(pl, indvDepthMax, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis")
+      ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
+
+      ADD_PARAMETER_GROUP(pl, "Statistical Model")
       ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
+
+      ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
       ADD_STRING_PARAMETER(pl, setList, "--setList", "specify a list to test (for burden tests)")
       ADD_STRING_PARAMETER(pl, setFile, "--setFile", "specify a list file (for burden tests, first 4 columns: chr beg end setName)")
       ADD_STRING_PARAMETER(pl, set, "--set", "specify which set to test (4th column)")
-      ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
-      //ADD_STRING_PARAMETER(pl, map, "--map", "specify map file (when provides marker names, e.g. rs1234)")
 
-      ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
+      ADD_PARAMETER_GROUP(pl, "Frequency Cutoff")
       /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
       // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
       ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
@@ -1037,7 +1040,6 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Specify either of mean, hwe, and drop")
       ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
-      ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
       END_PARAMETER_LIST(pl)
       ;
@@ -1256,7 +1258,7 @@ int main(int argc, char** argv){
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new MadsonBrowningTest(nPerm, alpha) );
         logger->info("MadsonBrowning test significance will be evaluated using %d permutations", nPerm);
-      } else if (modelName == "exactCMC") {
+      } else if (modelName == "exactcmc") {
         model.push_back( new CMCFisherExactTest );
       } else if (modelName == "fp") {
         model.push_back( new FpTest );

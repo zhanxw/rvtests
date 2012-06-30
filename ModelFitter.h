@@ -544,19 +544,12 @@ public:
   CMCFisherExactTest() {
     this->modelName = "CMCFisherExact";
   };
-  // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    fputs("exactCMC.N00\t", fp);
-    fputs("exactCMC.N01\t", fp);
-    fputs("exactCMC.N10\t", fp);
-    fputs("exactCMC.N11\t", fp);
-    fputs("exactCMC.PvalueTwoSide\t", fp);
-    fputs("exactCMC.PvalueLess\t", fp);
-    fputs("exactCMC.PvalueGreater\n", fp);
-  };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov) {
+    if (!isBinaryOutcome()){
+      fitOK = false;
+      return -1;
+    }
     if (genotype.cols == 0) {
       fitOK = false;
       return 1;
@@ -585,6 +578,17 @@ public:
     model.FullFastFisherExactTest();
 
     this->fitOK = true;
+  };
+  // write result header
+  void writeHeader(FILE* fp, const char* prependString) {
+    fputs(prependString, fp);
+    fputs("exactCMC.N00\t", fp);
+    fputs("exactCMC.N01\t", fp);
+    fputs("exactCMC.N10\t", fp);
+    fputs("exactCMC.N11\t", fp);
+    fputs("exactCMC.PvalueTwoSide\t", fp);
+    fputs("exactCMC.PvalueLess\t", fp);
+    fputs("exactCMC.PvalueGreater\n", fp);
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {

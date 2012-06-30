@@ -1,0 +1,4 @@
+GENE1	tran1	1	-	10	30	10	30	1	10	30
+GENE2	tran2	1	-	40	60
+GENE3	tran3	X	+	50	110
+GENE4	tran4	X	+	110	200

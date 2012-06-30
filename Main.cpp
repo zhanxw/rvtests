@@ -1053,11 +1053,10 @@ int main(int argc, char** argv){
 
   pl.Status();
   if (FLAG_REMAIN_ARG.size() > 0){
-    logger->error("Unparsed arguments: ");
+    fprintf(stderr, "Unparsed arguments: ");
     for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
-      logger->error(" %s", FLAG_REMAIN_ARG[i].c_str());
+      fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
     }
-    logger->error("");
     abort();
   }
 

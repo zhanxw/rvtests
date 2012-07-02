@@ -37,6 +37,7 @@ VCFBuffer():buf(NULL), len(0), bufLen(0) {};
   }
   VCFBuffer& operator=(const char* s) {
     this->copy(s);
+    return (*this);
   };
   void clear() {
     this->len = 0;

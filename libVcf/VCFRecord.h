@@ -168,7 +168,7 @@ public:
     s = name.substr(beg, end);
 
     bool included = false;
-    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
+    for (int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       if (p->getName() == s) {
         p->include();
@@ -182,7 +182,7 @@ public:
     this->hasAccess = false;
   };
   void includePeople(const std::vector<std::string>& v){
-    for (unsigned int i = 0; i < v.size(); i++){
+    for (int i = 0; i < v.size(); i++){
       this->includePeople(v[i]);
     }
     this->hasAccess = false;
@@ -192,13 +192,13 @@ public:
     LineReader lr(fn);
     std::vector<std::string> fd;
     while(lr.readLineBySep(&fd, "\t ")) {
-      for (unsigned int i = 0; i < fd.size(); i++)
+      for (int i = 0; i < fd.size(); i++)
         this->includePeople(fd[i]);
     }
     this->hasAccess = false;
   };
   void includeAllPeople() {
-    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
+    for (int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       p->include();
     }
@@ -206,7 +206,7 @@ public:
   };
   void excludePeople(const std::string& name){
     if (name.size() == 0) return;
-    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
+    for (int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       if (p->getName() == name) {
         p->exclude();
@@ -215,7 +215,7 @@ public:
     this->hasAccess = false;
   };
   void excludePeople(const std::vector<std::string>& v){
-    for (unsigned int i = 0; i != v.size(); i++ ){
+    for (int i = 0; i != v.size(); i++ ){
       this->excludePeople(v[i]);
     }
     this->hasAccess = false;
@@ -225,13 +225,13 @@ public:
     LineReader lr(fn);
     std::vector<std::string> fd;
     while(lr.readLineBySep(&fd, "\t ")) {
-      for (unsigned int i = 0; i != fd.size(); i++)
+      for (int i = 0; i != fd.size(); i++)
         this->excludePeople(fd[i]);
     }
     this->hasAccess = false;
   };
   void excludeAllPeople() {
-    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
+    for (int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       p->exclude();
     }
@@ -305,6 +305,7 @@ public:
         }
       }
     }
+    return -1;
   };
   const VCFValue& getSelf() const{
     return this->self;

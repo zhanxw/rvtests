@@ -44,8 +44,8 @@ public:
 
 private:
   void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
-  double pvalue;
   double stat;
+  double pvalue;
   Matrix Umatrix;
   Matrix Vmatrix;
   LogisticRegression lr;

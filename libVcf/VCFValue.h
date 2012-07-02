@@ -13,9 +13,9 @@
  */
 class VCFValue{
 public:
+    const char* line;
     int beg; // inclusive
     int end; // exclusive, and beg <= end
-    const char* line;
 VCFValue():line(NULL), beg(0), end(0){};
 public:
     int toInt() const{

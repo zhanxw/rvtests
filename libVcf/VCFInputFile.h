@@ -272,8 +272,8 @@ public:
   const char* getFileName() const {return this->fileName.c_str();};
 private:
   // disable copy-constructor
-  VCFInputFile(const VCFInputFile& v){};
-  VCFInputFile& operator=(const VCFInputFile& v){};
+  VCFInputFile(const VCFInputFile& v);
+  VCFInputFile& operator=(const VCFInputFile& v);
 
 private:
   VCFHeader header;

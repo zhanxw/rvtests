@@ -30,7 +30,7 @@ $(KBAC_LIB):
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 release: CXXFLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
-debug: CXXFLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
+debug: CXXFLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS) -Wall
 debug: $(LIB-DBG)
 
 

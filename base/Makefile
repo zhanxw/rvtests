@@ -21,7 +21,7 @@ all: release
 release: CXXFLAGS = -O4 $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 
-debug: CXXFLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
+debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB_DBG)
 
 $(LIB): $(OBJ)

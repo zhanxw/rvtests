@@ -18,7 +18,7 @@ public:
             regfree(&this->pattern);
             this->initialized == false;
         }
-        int cflags = 0;
+        // int cflags = 0;
         int ret = regcomp(& this->pattern, argRegex, 0);
         if (ret) {
             regerror(ret, & this->pattern, error_buf, ERROR_BUF_LEN);

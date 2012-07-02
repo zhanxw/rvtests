@@ -7,7 +7,7 @@ void PeopleSet::readID(const char* allPeopleID){
 
     std::vector<std::string> sa;
     stringTokenize(allPeopleID, ",", &sa);
-    for (int i = 0; i< sa.size(); i++){
+    for (unsigned int i = 0; i< sa.size(); i++){
         this->people.insert(sa[i]);
     }
 }

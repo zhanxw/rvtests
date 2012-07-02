@@ -89,10 +89,10 @@ RangeCollection():_size(0){};
   /**
    * Get @param index ordered range index, and store results in @param chrom, @param beg and @param end
    */
-  void obtainRange(const unsigned int index, std::string* chrom, unsigned int* beg, unsigned int* end) const {
+  void obtainRange(const int index, std::string* chrom, unsigned int* beg, unsigned int* end) const {
     unsigned int t = index;
-    int s;
-    for(int i = 0; i < this->chrVector.size(); i++ ) {
+    unsigned int s;
+    for(unsigned int i = 0; i < this->chrVector.size(); i++ ) {
       const std::vector<PositionPair>& v = this->rangeMap.find(chrVector[i])->second;
       s = v.size();
       if ( t < s) {
@@ -216,7 +216,7 @@ private:
     if (l == 0)
       return;
 
-    int beg =  (*v)[0].begin;
+    // int beg =  (*v)[0].begin;
     t.push_back( (*v)[0] );
     for(int i = 1; i < l; i++) {
       // if this range falls into last range, skip
@@ -261,10 +261,10 @@ RangeList(): isSorted(false) {};
   /**
    * First sort all ranges(if necessary), then store th index-th range to @param range, in the format of "chr1:100-200"
    */
-  void obtainRange(const unsigned int index, std::string* range) {
+  void obtainRange(const int index, std::string* range) {
     this->rangeCollection.obtainRange(index, range);
   }
-  void obtainRange(const unsigned int index, std::string* chr, unsigned int* beg, unsigned int* end) {
+  void obtainRange(const int index, std::string* chr, unsigned int* beg, unsigned int* end) {
     this->rangeCollection.obtainRange(index, chr, beg, end);
   }
   /**
@@ -319,6 +319,7 @@ RangeList(): isSorted(false) {};
         chrom = &(this->rangeCollection->getChromVector()[chromIndex]);
         positionPair = getRegions(chromIndex);
       }
+      return (*this);
     }
     bool operator==(const iterator& iter) const{
       return (this->rangeCollection == iter.rangeCollection &&

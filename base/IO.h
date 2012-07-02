@@ -1,6 +1,7 @@
 #ifndef _IO_H_
 #define _IO_H_
 
+#define UNUSED(x) ((void)(x))
 #include <stdio.h>  //fopen
 #include <stdlib.h> //malloc
 #include <string.h> //strchr
@@ -52,7 +53,7 @@ public:
   virtual int getc() = 0;
   virtual bool isEof() = 0;
   virtual void close() = 0;
-  virtual int read(void* buf, unsigned int len) = 0;
+  virtual int read(void* buf, int len) = 0;
   // common utility function
   static FileType checkFileType(const char* fileName);
 protected:
@@ -98,7 +99,7 @@ PlainFileReader(const char* fileName):
       fp = NULL;
     }
   }
-  int read(void* buf, unsigned int len) {
+  int read(void* buf, int len) {
     return ::fread(buf, sizeof(char), len, this->fp);
   };
 private:
@@ -147,7 +148,7 @@ GzipFileReader(const char* fileName):
       fp = NULL;
     }
   }
-  int read(void* buf, unsigned int len) {
+  int read(void* buf, int len) {
     return gzread(this->fp, buf, len);
   };
 
@@ -180,6 +181,7 @@ Bzip2FileReader(const char* fileName):
     char c;
     this->bzerror = BZ_OK;
     int nBuf = BZ2_bzRead(&this->bzerror, this->bzp, &c, sizeof(char));
+    UNUSED(nBuf);
     if (this->bzerror == BZ_OK) {
       return c;
     } else {
@@ -204,6 +206,7 @@ Bzip2FileReader(const char* fileName):
       fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
       return NULL;
     }
+    return this->bzp;
   }
   // close
   void close() {
@@ -218,7 +221,7 @@ Bzip2FileReader(const char* fileName):
     this->bzp = NULL;
     this->bzerror = 0;
   };
-  int read(void* buf, unsigned int len) {
+  int read(void* buf, int len) {
     return BZ2_bzRead ( &this->bzerror, this->bzp, buf, len);
   };
 private:
@@ -252,7 +255,7 @@ BufferedReader(const char* fileName, int bufferCapacity):
       fprintf(stderr, "Buffer size should be greater than 0, now use default buffer size 8096 instead of %d.\n", bufferCapacity);
       this->bufCap = 8096;
     } else {
-      this->bufCap = (unsigned int) (bufferCapacity);
+      this->bufCap = (int) (bufferCapacity);
     }
     this->buf = new char[this->bufCap];
     if (!this->buf) {
@@ -307,9 +310,9 @@ BufferedReader(const char* fileName, int bufferCapacity):
     }
     this->buf = NULL;
   }
-  int read(void* buf, unsigned int len) {
+  int read(void* buf, int len) {
     // use current buffer to fill in buf
-    unsigned int idx = 0;
+    int idx = 0;
     while (this->bufPtr < this->bufEnd && len > 0) {
       ((char*)buf)[idx++] = this->buf[this->bufPtr++];
       len --;
@@ -318,7 +321,7 @@ BufferedReader(const char* fileName, int bufferCapacity):
       return idx;
     }
     // fill rest of buf
-    unsigned int nRead = this->fp->read(((char*)buf)+idx, len);
+    int nRead = this->fp->read(((char*)buf)+idx, len);
     idx += nRead;
     // refill buffer
     this->bufEnd = this->fp->read(this->buf, this->bufCap);
@@ -326,9 +329,9 @@ BufferedReader(const char* fileName, int bufferCapacity):
     return idx;
   }
 private:
-  unsigned int bufCap; // capacity of the buffer
-  unsigned int bufEnd; // bufPtr should not read beyond bufEnd(incluive)
-  unsigned int bufPtr; // from which buffer begins to read
+  int bufCap; // capacity of the buffer
+  int bufEnd; // bufPtr should not read beyond bufEnd(incluive)
+  int bufPtr; // from which buffer begins to read
   char* buf;
   AbstractFileReader* fp;
 };
@@ -627,7 +630,7 @@ private:
 #define DEFAULT_WRITER_BUFFER 4096
 class BufferedFileWriter: public AbstractFileWriter{
 public:
-  BufferedFileWriter(AbstractFileWriter* f, unsigned int bufLen = DEFAULT_WRITER_BUFFER){
+  BufferedFileWriter(AbstractFileWriter* f, int bufLen = DEFAULT_WRITER_BUFFER){
     this->bufLen = DEFAULT_WRITER_BUFFER;
     this->buf = new char[bufLen + 1]; // last char in the buffer is always '\0'
     // that help to use fputs()
@@ -685,8 +688,8 @@ public:
   };
 private:
   char* buf;
-  unsigned int bufLen;
-  unsigned int bufPtr;
+  int bufLen;
+  int bufPtr;
   AbstractFileWriter* f;
 }; // end BufferedFileWriter
 
@@ -831,7 +834,7 @@ public:
   /* }; */
 
 private:
-  void increaseBufferTo(unsigned int newBufLen){
+  void increaseBufferTo(int newBufLen){
     delete[] this->buf;
     this->buf = new char[newBufLen];
     if (!this->buf){
@@ -843,7 +846,7 @@ private:
   AbstractFileWriter* fp;
   AbstractFileWriter* fpRaw;
   char* buf;
-  unsigned int bufLen;
+  int bufLen;
 }; // end class FileWriter
 
 #endif /* _IO_H_ */

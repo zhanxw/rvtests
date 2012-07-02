@@ -214,6 +214,7 @@ class ParameterParser{
     void WriteToFile(FILE* fp) {
         this->WriteToFileWithComment(fp, "");
     };
+    
     // write all transated parameters to @param fileName
     // the first line with be @param comment
     // or the information when we write to file.
@@ -298,7 +299,7 @@ class ParameterParser{
                 continue;
             }
 
-            bool isLongParam = false; // I did not make use of this variable.
+            bool isLongParam; // I did not make use of this variable.
             unsigned int choppedLeadingDash = 0;
             // user may input ---flag, ----flag, ..., and we will chop all leading -
             // user may also input ---, ----, but I don't understand what that means, so report error
@@ -484,8 +485,8 @@ class ParameterParser{
                 int idx = v[i];
                 std::string flag = this->flagVec[idx];
                 FlagInfo &fi = this->flagInfoMap[idx];
-                void* data = fi.data;
-                int flagWidth = 0;
+                // void* data = fi.data;
+                // int flagWidth = 0;
 
                 if (fi.isLongParam) {
                     fprintf(stderr, "%*s%s%s", (int)(FLAG_WIDTH - flag.size() ), "--", flag.c_str(), SEP);

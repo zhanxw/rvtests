@@ -53,8 +53,8 @@ VCFExtractor(const char* fn): VCFInputFile(fn){
           (isVariantSiteOnly())) {
 
       // loop each individual and check
-      int dp = 0;
-      int qual = 0;
+      /* int dp = 0; */
+      /* int qual = 0; */
       int mac = 0;
       int ac = 0;
       int an = 0;

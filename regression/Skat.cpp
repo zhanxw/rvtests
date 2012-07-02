@@ -41,15 +41,15 @@ int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permut
   Eigen::VectorXf v;
   G_to_Eigen(v_G, &v);
   if (this->nCovariate == 1) {
-    P0 = v.asDiagonal();
-    P0 -= v * v.transpose() / v.sum();
+    P0 = v * v.transpose() / (-v.sum());
+    P0.diagonal() += v.asDiagonal();
   } else {
     Eigen::MatrixXf X;
     G_to_Eigen(X_G, &X);    
     Eigen::MatrixXf XtV ;        // X^t V
     XtV.noalias() = X.transpose() * v.asDiagonal();
-    P0 = v.asDiagonal();
-    P0 -= XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
+    P0 = - XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
+    P0.diagonal() += v;
   }
   // dump();
   // Eigen::MatrixXf tmp = K_sqrt * P0 * K_sqrt.transpose();

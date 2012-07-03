@@ -17,17 +17,18 @@ gsl: gsl-1.15.tar.gz
 	tar zvxf gsl-1.15.tar.gz
 	-(DIR=`pwd`; cd gsl-1.15; ./configure --prefix="$${DIR}"/gsl; make -j; make install)
 
-eigen: eigen-3.0.4.tar.bz2
-	tar jvxf eigen-3.0.4.tar.bz2
-	-mv eigen-eigen-13a11181fc5a eigen-3.04
-	ln -s -f eigen-3.04 eigen
+eigen: eigen-3.1.0.tar.bz2
+	tar jvxf eigen-3.1.0.tar.bz2
+	-mv eigen-eigen-ca142d0540d3 eigen-3.1.0
+	ln -s -f eigen-3.1.0 eigen
 
 
 ######################################################################
 # download sources
-eigen-3.04.tar.gz2:
+eigen-3.1.0.tar.bz2:
 	echo "obtain Eigen..."
-	wget http://bitbucket.org/eigen/eigen/get/3.0.4.tar.bz2
+	wget http://bitbucket.org/eigen/eigen/get/3.1.0.tar.bz2
+	mv 3.1.0.tar.bz2 $@
 
 gsl-1.15.tar.gz:
 	echo "obtain GSL"

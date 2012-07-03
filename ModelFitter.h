@@ -1070,6 +1070,13 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     double& M_A = *p_M_A;
     double& M_U = *p_M_U;
 
+    N_A = 0;
+    N_U = 0;
+    m_A = 0;
+    m_U = 0;
+    M_A = 0;
+    M_U = 0;    
+    
     for (int i = 0; i < phenotype.Length(); ++i){
       if (phenotype[i] == 1) {
         ++ N_A;

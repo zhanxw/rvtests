@@ -24,8 +24,8 @@ int SimpleMatrix::readFile(const char* f){
 
 int SimpleMatrix::writeFile(const char* f){
     FileWriter fw(f);
-    for (int i = 0; i < mat.size(); i++){
-        for (int j = 0; j < mat.size(); j++) {
+    for (unsigned int i = 0; i < mat.size(); i++){
+        for (unsigned int j = 0; j < mat.size(); j++) {
             fw.printf("%f", mat[i][j]);
             if (j) 
                 fw.write("\t");

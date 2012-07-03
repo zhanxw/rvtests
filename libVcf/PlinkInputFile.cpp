@@ -94,10 +94,10 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* 
     if (peopleNames == NULL || peopleNames->size() == 0) {
         // all peoples
         peopleIdx.resize(pid2Idx.size());
-        for (int i = 0; i < pid2Idx.size(); i++)
+        for (unsigned int i = 0; i < pid2Idx.size(); i++)
             peopleIdx[i] = (i);
     } else {
-        for (int i = 0; i < peopleNames->size(); i++)
+        for (unsigned int i = 0; i < peopleNames->size(); i++)
             if ( pid2Idx.find( (*peopleNames)[i] ) != pid2Idx.end()) {
                 peopleIdx.push_back(  pid2Idx[ (*peopleNames)[i] ]) ;
             }
@@ -108,10 +108,10 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* 
     if (markerNames == NULL || markerNames->size() == 0) {
         // all markers
         markerIdx.resize(snp.size());
-        for (int i = 0; i < snp.size(); i++)
+        for (unsigned int i = 0; i < snp.size(); i++)
             markerIdx[i]= (i);
     } else {
-        for (int i = 0; i < markerNames->size(); i++)
+        for (unsigned int i = 0; i < markerNames->size(); i++)
             if ( snp2Idx.find( (*markerNames)[i] ) != snp2Idx.end()) {
                 markerIdx.push_back(  snp2Idx[ (*markerNames)[i] ]) ;
             }
@@ -130,7 +130,7 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* 
                 int offset = peopleIdx[p] % 4;
                 unsigned char c;
                 fseek(this->fpBed, pos, SEEK_SET);
-                int ret = fread(&c, sizeof(unsigned char), 1, fpBed);
+                fread(&c, sizeof(unsigned char), 1, fpBed);
                 unsigned char geno = (c & mask[offset]) >> (offset << 1);
                 switch (geno){
                     case HOM_REF:
@@ -159,7 +159,7 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* 
                 int offset = markerIdx[m] % 4;
                 unsigned char c;
                 fseek(this->fpBed, pos, SEEK_SET);
-                int ret = fread(&c, sizeof(unsigned char), 1, fpBed);
+                fread(&c, sizeof(unsigned char), 1, fpBed);
 
                 unsigned char geno = (c & mask[offset]) >> (offset << 1);
                 switch (geno){

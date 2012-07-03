@@ -340,6 +340,7 @@ class ParameterParser{
 
             // parse data
             unsigned int idx = it - this->flagVec.begin();
+            this->flagInfoMap[idx].isLongParam = isLongParam;
             void* data = this->flagInfoMap[idx].data;
             if (this->flagInfoMap[idx].isParsed) {
                 fprintf(stderr, "WARNING: flag \"%s\" provided more than once, the previous value will be overwritten\n", argv[i]);

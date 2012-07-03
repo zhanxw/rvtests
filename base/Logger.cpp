@@ -17,7 +17,7 @@ LogLevel Logger::consoleLevel = Logger::INFO;
 #define FATAL_LEADING(x)    fputs("[FATAL]\t", (x));
 #define PRINT_WITH_FMT(x)   va_list ap;                       \
                             va_start(ap, fmt);                \
-                            int n = vfprintf((x), fmt, ap);   \
+                            vfprintf((x), fmt, ap);           \
                             va_end(ap);
 #define NEWLINE(x)          fputc('\n', (x));
 

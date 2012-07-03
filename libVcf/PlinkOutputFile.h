@@ -82,7 +82,7 @@ public:
     unsigned char c = 0;
     VCFIndividual* indv;
     int offset;
-    for (int i = 0; i < people.size() ; i ++) {
+    for (unsigned int i = 0; i < people.size() ; i ++) {
       indv = people[i];
       offset = i & (4 - 1);
       if (indv->justGet(0).isHaploid()) { // 0: index of GT
@@ -174,7 +174,7 @@ public:
     return 0;
   };
   void writeFAM(std::vector< std::string >& people){
-    for (int i = 0; i < people.size(); i++) {
+    for (unsigned int i = 0; i < people.size(); i++) {
       fprintf(this->fpFam, "%s\t%s\t0\t0\t0\t-9\n", people[i].c_str(), people[i].c_str());
     };
   };

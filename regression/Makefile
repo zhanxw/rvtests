@@ -28,9 +28,9 @@ $(KBAC_LIB):
 	(cd kbac; make)
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
-release: CXXFLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS)
+release: CXXFLAGS = -O2 -msse2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
-debug: CXXFLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS) -Wall
+debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB-DBG)
 
 

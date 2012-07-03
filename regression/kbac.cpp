@@ -29,18 +29,18 @@ KbacTest::KbacTest (int* nn, int* qq, double* aa, double* mafUpper, double* xdat
     __adaptive = 5000;
   }
 
-  for (unsigned int i = 0; i != *ylen; ++i) { 
+  for (int i = 0; i != *ylen; ++i) { 
     __ydat.push_back(ydatIn[i]);
   }
-  for (unsigned int i = 0; i != *xcol; ++i) { 
+  for (int i = 0; i != *xcol; ++i) { 
     __observedMafs.push_back(mafIn[i]);
   }
 
   int start = 0;
   int nInvalidGenotypes = 0;
-  for (unsigned int i = 0; i != *ylen; ++i) {
+  for (int i = 0; i != *ylen; ++i) {
     std::vector<double> tmpvct(0);
-    for (unsigned int j = 0; j != *xcol; ++j) {
+    for (int j = 0; j != *xcol; ++j) {
       if (xdatIn[start+j] != MAJOR_ALLELE && xdatIn[start+j] != MINOR_ALLELE && xdatIn[start+j] != HOMO_ALLELE) {
         ++nInvalidGenotypes;
         tmpvct.push_back(MAJOR_ALLELE);
@@ -209,7 +209,7 @@ void KbacTest::calcKbacP(double* pvalue, int* sided)
     // the KBAC statistic. Will be of length 1 or 2
     std::vector<double> kbacStatistics(0);
     // two models
-    for (unsigned int s = 0; s != *sided; ++s) {
+    for (int s = 0; s != *sided; ++s) {
 
       //!- count number of sample cases (for the 1st model, or ctrls for the 2nd model) for each genotype pattern
       unsigned int uniquePatternCountsSub[uniquePattern.size()];

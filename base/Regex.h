@@ -16,7 +16,7 @@ public:
     int readPattern(const char* argRegex) {
         if (this->initialized){
             regfree(&this->pattern);
-            this->initialized == false;
+            this->initialized = false;
         }
         // int cflags = 0;
         int ret = regcomp(& this->pattern, argRegex, 0);

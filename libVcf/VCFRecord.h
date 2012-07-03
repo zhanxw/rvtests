@@ -88,7 +88,7 @@ public:
     this->parsed[this->format.end] = '\0';
 
     // now comes each individual genotype
-    int idx = 0; // peopleIdx
+    unsigned int idx = 0; // peopleIdx
     VCFIndividual* p;
     VCFValue indv;
     int beg = this->format.end + 1;
@@ -135,7 +135,7 @@ public:
     if (sa.size() <= 9){
       FATAL("not enough people in the VCF (VCF does not contain genotype and individuals?)");
     }
-    for (int i = 9; i < sa.size(); i++ ) {
+    for (unsigned int i = 9; i < sa.size(); i++ ) {
       int idx = i - 9;
       VCFIndividual* p = new VCFIndividual;
       this->allIndv[idx] = p;
@@ -143,7 +143,7 @@ public:
     }
   };
   void deleteIndividual(){
-    for (int i = 0; i < this->allIndv.size(); i++) {
+    for (unsigned int i = 0; i < this->allIndv.size(); i++) {
       if (this->allIndv[i])
         delete this->allIndv[i];
       this->allIndv[i] = NULL;
@@ -157,7 +157,7 @@ public:
 
     // tokenize @param name by ','
     int beg = 0;
-    int end = name.find(',');
+    unsigned int end = name.find(',');
     std::string s;
     while (end != std::string::npos) {
       s = name.substr(beg, end - beg);
@@ -168,7 +168,7 @@ public:
     s = name.substr(beg, end);
 
     bool included = false;
-    for (int i = 0 ; i != this->allIndv.size() ; i++) {
+    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       if (p->getName() == s) {
         p->include();
@@ -182,7 +182,7 @@ public:
     this->hasAccess = false;
   };
   void includePeople(const std::vector<std::string>& v){
-    for (int i = 0; i < v.size(); i++){
+    for (unsigned int i = 0; i < v.size(); i++){
       this->includePeople(v[i]);
     }
     this->hasAccess = false;
@@ -192,13 +192,13 @@ public:
     LineReader lr(fn);
     std::vector<std::string> fd;
     while(lr.readLineBySep(&fd, "\t ")) {
-      for (int i = 0; i < fd.size(); i++)
+      for (unsigned int i = 0; i < fd.size(); i++)
         this->includePeople(fd[i]);
     }
     this->hasAccess = false;
   };
   void includeAllPeople() {
-    for (int i = 0 ; i != this->allIndv.size() ; i++) {
+    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       p->include();
     }
@@ -206,7 +206,7 @@ public:
   };
   void excludePeople(const std::string& name){
     if (name.size() == 0) return;
-    for (int i = 0 ; i != this->allIndv.size() ; i++) {
+    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       if (p->getName() == name) {
         p->exclude();
@@ -215,7 +215,7 @@ public:
     this->hasAccess = false;
   };
   void excludePeople(const std::vector<std::string>& v){
-    for (int i = 0; i != v.size(); i++ ){
+    for (unsigned int i = 0; i != v.size(); i++ ){
       this->excludePeople(v[i]);
     }
     this->hasAccess = false;
@@ -225,13 +225,13 @@ public:
     LineReader lr(fn);
     std::vector<std::string> fd;
     while(lr.readLineBySep(&fd, "\t ")) {
-      for (int i = 0; i != fd.size(); i++)
+      for (unsigned int i = 0; i != fd.size(); i++)
         this->excludePeople(fd[i]);
     }
     this->hasAccess = false;
   };
   void excludeAllPeople() {
-    for (int i = 0 ; i != this->allIndv.size() ; i++) {
+    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       p->exclude();
     }
@@ -266,7 +266,7 @@ public:
   VCFPeople& getPeople(){
     if (!this->hasAccess) {
       this->selectedIndv.clear();
-      for (int i = 0; i < this->allIndv.size(); i++){
+      for (unsigned int i = 0; i < this->allIndv.size(); i++){
         if (allIndv[i]->isInUse()) {
           this->selectedIndv[this->selectedIndv.size()] = allIndv[i];
         }

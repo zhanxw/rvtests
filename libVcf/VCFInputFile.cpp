@@ -6,7 +6,7 @@
 void VCFInputFile::rewriteVCFHeader() {
   std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
   VCFPeople& people = this->record.getPeople();
-  for (int i = 0; i <people.size(); i++ ){
+  for (unsigned int i = 0; i <people.size(); i++ ){
     s += '\t';
     s += people[i]->getName();
   }
@@ -50,7 +50,7 @@ int VCFInputFile::updateId(const char* fn){
   std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
   VCFPeople& people = this->record.getPeople();
   int n = 0;
-  for (int i = 0; i <people.size(); i++ ){
+  for (unsigned int i = 0; i <people.size(); i++ ){
     if (tbl.find(people[i]->getName()) != tbl.end()) {
       ++n;
       people[i]->setName(tbl[people[i]->getName()]);

@@ -62,7 +62,7 @@ VCFExtractor(const char* fn): VCFInputFile(fn){
       double nMiss = 0; // number of missing
       int gt = -9;
 
-      for (int i = 0; i < people.size(); i++) {
+      for (unsigned int i = 0; i < people.size(); i++) {
         VCFIndividual* indv = people[i];
         int GTidx = r.getFormatIndex("GT");
         if (GTidx >= 0)

@@ -48,7 +48,7 @@ void RangeList::filterGeneName(const char* inclusionGeneFileName, const char* ge
 int parseRangeFormat(const std::string& s, std::string* chr, unsigned int* begin, unsigned int* end) {
   //fprintf(stderr, "parseRangeFormat: %s\n", s.c_str());
 
-  int i = 0;
+  unsigned int i = 0;
   chr->clear();
   while (i < s.size()){
     if (s[i]!=':'){
@@ -105,7 +105,7 @@ void RangeList::addRangeList(const char* argRangeList) {
   std::vector<std::string> col;
   //col.AddTokens(arg, ',');
   stringTokenize(rangeList, ',', &col);
-  for (int i = 0; i < col.size(); i++){
+  for (unsigned int i = 0; i < col.size(); i++){
     std::string c;
     unsigned int b,e;
     if (!parseRangeFormat(col[i], &c, &b, &e)) {

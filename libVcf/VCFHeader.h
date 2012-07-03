@@ -18,7 +18,7 @@ class VCFHeader{
         stringTokenize(ln, "\t", &fd);
         if (fd.size() < 10) return;
         p->clear();
-        for (int i = 9; i < fd.size() ; i++) {
+        for (unsigned int i = 9; i < fd.size() ; i++) {
             p->push_back(fd[i]);
         }
     };

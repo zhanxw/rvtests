@@ -190,7 +190,7 @@ private:
     dumpStringVector(chrVector);
   };
   void dump(const std::vector<PositionPair>& v){
-    for (int i = 0; i < v.size(); i++){
+    for (unsigned int i = 0; i < v.size(); i++){
       printf("[%d, %d] ", v[i].begin, v[i].end);
     }
     printf("\n");
@@ -311,7 +311,7 @@ RangeList(): isSorted(false) {};
     };
     iterator& operator++(){
       this->inChromRangeIndex ++;
-      if (inChromRangeIndex == inChromRegionSize) {
+      if (inChromRangeIndex == (int)inChromRegionSize) {
         this->chromIndex ++;
         this->inChromRangeIndex = 0;
         chromSize = this->rangeCollection->getChromVector().size();
@@ -342,7 +342,7 @@ RangeList(): isSorted(false) {};
     }
  private:
     bool isValidChromIndex(int index) const{
-      if (0 <= index  && index < this->rangeCollection->getChromVector().size()) {
+        if (0 <= index  && index < (int)this->rangeCollection->getChromVector().size()) {
         return true;
       }
       return false;
@@ -357,11 +357,11 @@ RangeList(): isSorted(false) {};
       return NULL;
     };
     const std::vector<PositionPair>* getRegions(int index) const{
-      if (!isValidChromIndex(index) && index != this->rangeCollection->getChromVector().size()) {
+        if (!isValidChromIndex(index) && index != (int) this->rangeCollection->getChromVector().size()) {
         fprintf(stderr, "Invalid chromosome index: %d!\n", index);
         return NULL;
       }
-      if (index == this->rangeCollection->getChromVector().size()) {
+        if (index == (int) this->rangeCollection->getChromVector().size()) {
         return NULL;
       }
       const std::string& c = this->rangeCollection->getChromVector()[index];
@@ -372,8 +372,8 @@ RangeList(): isSorted(false) {};
     const RangeCollection* rangeCollection;
     int chromIndex;
     size_t chromSize;           // number of chromosomes
-    size_t inChromRegionSize;   // number of regions per chromosome
     int inChromRangeIndex;
+    size_t inChromRegionSize;   // number of regions per chromosome
     const std::string* chrom;
     const std::vector<PositionPair>* positionPair;
   };

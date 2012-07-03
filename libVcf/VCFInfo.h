@@ -41,7 +41,7 @@ public:
     
     // parse key and values
     int state = 0; // 0: key, 1: value
-    int end = 0;
+    unsigned int end = 0;
     std::string key;
     VCFValue value;
     value.beg = 0;

@@ -46,7 +46,7 @@ public:
                          r->getFormat());
         VCFPeople& p = r->getPeople();
         //std::string s;
-        for (int i = 0; i < p.size() ; i ++ ) {
+        for (unsigned int i = 0; i < p.size() ; i ++ ) {
             VCFIndividual* indv = p[i];
             this->fp->printf("\t%s", indv->getSelf().toStr());
         }

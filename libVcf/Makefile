@@ -19,7 +19,7 @@ DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I../base -I${TABIX_INC}
 release: CXXFLAGS = -O4 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB) 
 
-debug: CXXFLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS) -Wall
+debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB_DBG)
 
 $(LIB): $(OBJ) 

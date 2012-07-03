@@ -5,7 +5,7 @@ int chrom2int(const std::string& chrom) {
     int b = 0;
     if (hasLeadingChr(chrom))
         b = 3;
-    int e;
+    size_t e;
     e = chrom.find('_', b);
     std::string t = chrom.substr(b, e - b);
     if (t.size() == 0) return -1;

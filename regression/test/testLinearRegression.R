@@ -1,3 +1,4 @@
+outFile = commandArgs(trailingOnly = TRUE)[1]
 setwd("~/rvtests/regression/test/")
 source("ScoreTest.R")
 set.seed(0)
@@ -17,7 +18,7 @@ beta = coef(ret)
 v = vcov(ret)
 p.wald = coef(summary(ret))[2,4]
 
-conn = file("output.R.lm", "w")
+conn = file(outFile, "w")
 
 cat("wald_beta\t", file = conn)
 cat(beta, file = conn, append = TRUE)

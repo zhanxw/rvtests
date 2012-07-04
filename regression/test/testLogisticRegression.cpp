@@ -111,7 +111,6 @@ void Print(Matrix& m){
             if (j) { fprintf(stdout, "\t");}
             fprintf(stdout, "%.3f", m[i][j]);
         }
-
     }
 }
 void Print(double& d){

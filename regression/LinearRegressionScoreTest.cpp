@@ -111,18 +111,17 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
   double sumSi = 0.0;
   double sumSi2 = 0.0;
   double sumYi = 0.0;
-  int l = x.Length();
-  for (int i = 0; i < l; i++){
+  int n = x.Length();
+  for (int i = 0; i < n; i++){
     sumSi += x[i];
     sumSi2 += x[i]*x[i];
     sumYi += y[i];
   };
-  double yMean = sumYi / l;
+  double yMean = sumYi / n;
   double sigma2 = (sumSi2 - sumSi * sumSi / n) /n;
-  for (int i = 0; i < l; ++i){
+  for (int i = 0; i < n; ++i){
     U += (y[i] - yMean) * x[i];
   }
-  int n = y.Length();
   V = sigma2 * (sumSi2 - sumSi / n *sumSi);
   if (V < 1e-6) {
     this->pvalue = 0.0;

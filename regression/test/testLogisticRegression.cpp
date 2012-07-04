@@ -34,15 +34,15 @@ int main(int argc, char *argv[])
     Matrix& v = lr.GetCovB();
     Vector& pWald = lr.GetAsyPvalue();
 
-    fprintf(stdout, "wald_beta:\t");
+    fprintf(stdout, "wald_beta\t");
     Print(beta);
     fputc('\n', stdout);
 
-    fprintf(stdout, "wald_vcov:\t");
+    fprintf(stdout, "wald_vcov\t");
     Print(v);
     fputc('\n', stdout);
 
-    fprintf(stdout, "wald_p:\t");
+    fprintf(stdout, "wald_p\t");
     Print(pWald[1]);
     fputc('\n', stdout);
 
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     if ( lrpt.isEarlyStop() ) {
         fprintf(stderr, "Permutation early stopped!\n");
     }
-    fprintf(stdout, "permuation_p:\t");
+    fprintf(stdout, "permutation_p\t");
     double permu_p =lrpt.getPvalue();
     Print(permu_p);
     fputc('\n', stdout);
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
         return -1;
     } 
 
-    fprintf(stdout, "score_p:\t");
+    fprintf(stdout, "score_p\t");
     double score_p =lrst.GetPvalue();
     Print(score_p);
     fputc('\n', stdout);
@@ -105,13 +105,13 @@ void Print(Vector& v){
     }
 };
 void Print(Matrix& m){
-    
     for (int i = 0; i < m.rows ; i++){
+        if (i) { fprintf(stdout, "\t");}
         for (int j = 0; j < m.cols; j++){
             if (j) { fprintf(stdout, "\t");}
             fprintf(stdout, "%.3f", m[i][j]);
         }
-        if (i) { fprintf(stdout, "\t");}
+
     }
 }
 void Print(double& d){

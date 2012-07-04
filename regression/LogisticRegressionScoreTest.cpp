@@ -294,6 +294,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
   temp.Multiply(1.0/ n);
   temp.Negate();
   SS.Add(temp);
+  SS.Multiply(yVar);
 
   copy(U, &this->Umatrix);
   this->Vmatrix = SS;

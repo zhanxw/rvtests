@@ -1,7 +1,7 @@
 setwd("~/rvtests/regression/test/")
 source("ScoreTest.R")
 set.seed(0)
-n = 30
+n = 10000
 x = rnorm(n)
 cov = rnorm(n)
 y = 1 +  0.2 * x + cov + rnorm(n)

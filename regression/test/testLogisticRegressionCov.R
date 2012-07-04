@@ -1,7 +1,7 @@
 setwd("~/rvtests/regression/test/")
 source("ScoreTest.R")
 set.seed(0)
-n = 200
+n = 10000
 x = rnorm(n)
 cov = rnorm(n)
 y = rbinom(n, 1, 1/ ( 1 + exp( - (1 +  0.5 *x + cov))))

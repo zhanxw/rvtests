@@ -71,6 +71,7 @@ output.score.cpp.glm: $(EXE)
 	./testLogisticRegressionScoreTest > $@
 
 
-
+deepclean: clean
+	-rm output.* input.*
 clean:
-	-rm -f $(EXE) *.o *.d output.*
+	-rm -f $(EXE) *.o *.d

@@ -15,9 +15,9 @@ write.table(file = "input.y", y, row.names = F, col.names =F)
 conn = file(outFile, "w")
 
 p.score = logistic.score(Xcol=x, Y=y)$pvalue
-cat("score_p\t", file = conn)
-cat(p.score, file = conn, append = TRUE)
-cat("\n", file = conn)
+for (i in 1:5){ # total 5 blocks in corresponding .cpp file
+  cat("score_p\t",p.score,"\n", file = conn)
+}
 
 close(conn)
 

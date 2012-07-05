@@ -45,5 +45,17 @@ void Print(double& d){
     fprintf(stdout, "%.3f", d);
 }
 
+void extractColumn(Matrix& x, int col, Vector* v) {
+  (*v).Dimension(x.rows);
+  for (int i = 0; i < x.rows; ++i) {
+    (*v)[i] = x[i][col];
+  }
+};
 
+void extractColumn(Matrix& x, int col, Matrix* m) {
+  (*m).Dimension(x.rows, 1);
+  for (int i = 0; i < x.rows; ++i) {
+    (*m)[i][0] = x[i][col];
+  }
+};
 #endif /* _MATRIXIO_H_ */

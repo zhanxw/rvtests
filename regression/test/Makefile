@@ -1,7 +1,9 @@
 EXE = testLinearRegression \
       testLinearRegressionCov \
       testLogisticRegression \
-      testLogisticRegressionCov
+      testLogisticRegressionCov \
+      testLinearRegressionScoreTest \
+      testLogisticRegressionScoreTest
 
 all: $(EXE)
 debug: $(EXE)
@@ -53,6 +55,22 @@ output.R.glm.cov:
 	Rscript testLogisticRegressionCov.R $@
 output.cpp.glm.cov: $(EXE)
 	./testLogisticRegressionCov > $@
+######################################################################
+check5: output.score.R.lm output.score.cpp.lm
+	python compare.py $^
+output.score.R.lm:
+	Rscript testLinearRegressionScoreTest.R $@
+output.score.cpp.lm: $(EXE)
+	./testLinearRegressionScoreTest > $@
+######################################################################
+check6: output.score.R.glm output.score.cpp.glm
+	python compare.py $^
+output.score.R.glm:
+	Rscript testLogisticRegressionScoreTest.R $@
+output.score.cpp.glm: $(EXE)
+	./testLogisticRegressionScoreTest > $@
+
+
 
 clean:
 	-rm -f $(EXE) *.o *.d output.*

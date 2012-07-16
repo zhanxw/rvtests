@@ -7,14 +7,14 @@ int main(){
     }
     
     { 
-        Logger l("info.log", Logger::INFO);
+      Logger l("info.log");
         l.info("info");
         l.warn("warn");
         l.error("error");
         l.fatal("fatal");
     }
     { 
-        Logger l("error.log", Logger::ERROR);
+      Logger l("error.log");
         l.info("info");
         l.warn("warn");
         l.error("error");

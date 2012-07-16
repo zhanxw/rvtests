@@ -124,9 +124,10 @@ int main(int argc, char** argv){
       }
       range += it->second;
     };
-    // fprintf(stdout, "range = %s\n", range.c_str());
-    vin.setRangeList(range.c_str());
-
+    if (!range.empty()){
+      // fprintf(stdout, "range = %s\n", range.c_str());
+      vin.setRangeList(range.c_str());
+    }
     Regex regex;
     if (FLAG_annoType.size()) {
       regex.readPattern(FLAG_annoType);

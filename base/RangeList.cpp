@@ -111,7 +111,7 @@ void RangeList::addRangeList(const char* argRangeList) {
     if (!parseRangeFormat(col[i], &c, &b, &e)) {
       this->rangeCollection.addRange(c, b, e);
     } else {
-      fprintf(stdout, "This range does not conform 1:100-200 format -- %s\n", col[i].c_str());
+      fprintf(stdout, "This range does not conform 1:100-200 format -- skip %s\n", col[i].c_str());
     }
   }
 };
@@ -132,7 +132,8 @@ void RangeList::addRangeFile(const char* argRangeFile){
   while ( lr.readLineBySep(&sa, "\t ")) {
     if (sa.size() == 0) continue;
     if (sa.size() == 1){
-      fprintf(stderr, "Wrong format for --rangeFile: %s, shoudl be: chr beg end \n", argRangeFile);
+      // fprintf(stderr, "Wrong format for --rangeFile: %s, shoudl be: chr beg end \n", argRangeFile);
+      this->addRangeList(sa[0].c_str());
       return;
     } else if (sa.size() == 2)
       this->rangeCollection.addRange(sa[0].c_str(), (unsigned int) atoi(sa[1]), (unsigned int) atoi(sa[1]));

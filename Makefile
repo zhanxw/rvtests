@@ -92,7 +92,7 @@ lib-dbg: $(call reverse,$(LIB_DBG))
 
 release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) -static
 release: $(DIR_EXEC)/$(EXEC) util
-$(DIR_EXEC)/$(EXEC): $(LIB) \
+$(DIR_EXEC)/$(EXEC): lib \
                      Main.o \
                      ModelFitter.h \
                      |$(DIR_EXEC)
@@ -100,7 +100,7 @@ $(DIR_EXEC)/$(EXEC): $(LIB) \
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS) 
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
-$(DIR_EXEC_DBG)/$(EXEC): $(LIB_DBG) \
+$(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
                          Main.o \
                          Collapsor.h ModelFitter.h \
                          | $(DIR_EXEC_DBG)

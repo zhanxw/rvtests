@@ -1,4 +1,6 @@
-eigen-*
+eigen*
 pcre*
 tabix*
 zlib*
+gsl*
+

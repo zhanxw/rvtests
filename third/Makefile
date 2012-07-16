@@ -1,6 +1,7 @@
 # download all third party library and compile them
-# .PHONY: tabix goncalo pcre eigen
-all: tabix pcre eigen
+
+LIB = tabix pcre eigen gsl
+all: $LIB
 
 tabix: tabix-0.2.5.tar.bz2
 	-mv tabix-0.2.5.tar.bz2* tabix-0.2.5.tar.bz2
@@ -35,6 +36,5 @@ gsl-1.15.tar.gz:
 	wget http://mirrors.kernel.org/gnu/gsl/gsl-1.15.tar.gz
 
 clean:
-	-cd tabix && make clean
-#	-cd pcre && make clean
-	-rm -f tabix eigen
+	-rm -rf $(LIB)
+

@@ -21,15 +21,20 @@ EIGEN_LIB =  # Eigen are header files only
 PCRE_INC = third/pcre/include
 PCRE_LIB = third/pcre/lib/libpcreposix.a third/pcre/lib/libpcre.a
 
+GSL_INC = third/gsl/include
+GSL_LIB = third/gsl/lib/libgsl.a
+
 $(TABIX_INC) $(TABIX_LIB):
 	(cd third; make tabix)
 $(EIGEN_INC) $(EIGEN_LIB):
 	(cd third; make eigen)
 $(PCRE_INC) $(PCRE_LIB):
 	(cd third; make pcre)
+$(GSL_INC) $(GSL_LIB):
+	(cd third; make gsl)
 
-THIRD_INC = $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC)
-THIRD_LIB = $(TABIX_LIB) $(PCRE_LIB)
+THIRD_INC = $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC)
+THIRD_LIB = $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB)
 ##################################################
 # Our libs.
 BASE_INC = ./base
@@ -79,15 +84,17 @@ DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x #-Wall
 
 .PHONY: release debug
 
-lib: $(LIB)
-lib-dbg: $(LIB_DBG)
+# to build lib, we will use reverse order
+# so third party lib is build first.
+reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
+lib: $(call reverse,$(LIB))
+lib-dbg: $(call reverse,$(LIB_DBG))
 
 release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) -static
 release: $(DIR_EXEC)/$(EXEC) util
 $(DIR_EXEC)/$(EXEC): $(LIB) \
                      Main.o \
                      ModelFitter.h \
-                     GitVersion.h\
                      |$(DIR_EXEC)
 	g++ -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB)
 
@@ -105,7 +112,7 @@ GitVersion.h: .git/HEAD .git/index
 	echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
 
 -include Main.d
-Main.o: Main.cpp
+Main.o: Main.cpp GitVersion.h
 	g++ -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 

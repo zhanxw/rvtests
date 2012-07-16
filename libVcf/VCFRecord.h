@@ -157,7 +157,7 @@ public:
 
     // tokenize @param name by ','
     int beg = 0;
-    unsigned int end = name.find(',');
+    size_t end = name.find(',');
     std::string s;
     while (end != std::string::npos) {
       s = name.substr(beg, end - beg);

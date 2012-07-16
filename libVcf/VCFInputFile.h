@@ -171,7 +171,10 @@ public:
           snprintf(rangeBuffer, 128, "%s:%u-%u", this->rangeIterator.getChrom().c_str(),
                    this->rangeIterator.getBegin(), this->rangeIterator.getEnd());
           rangeBuffer[127] = '\0';
-
+#ifndef NDEBUG
+          fprintf(stderr, "Process range: %s\n", rangeBuffer);
+          // this->range.dump();
+#endif        
           // parse range
           int tid, beg, end, len;
           if (ti_parse_region(tabixHandle->idx, rangeBuffer, &tid, &beg, &end) != 0){

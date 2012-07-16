@@ -291,7 +291,13 @@ RangeList(): isSorted(false) {};
     this->isSorted = false;
   };
 
-
+  void dump() {
+    std::string out;
+    for (size_t i = 0; i != this->size(); ++i) {
+      this->obtainRange(i, &out);
+      fprintf(stderr, "range %zu: %s\n", i, out.c_str());
+    }
+  };
   class iterator{
  public:
  iterator(): rangeCollection(NULL), chromIndex(-1), inChromRegionSize(-1) 

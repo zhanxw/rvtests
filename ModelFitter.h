@@ -1038,7 +1038,7 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
-    if (!isBinaryOutcome()) {
+    if (isBinaryOutcome()) { /// cmat only takes binary output
       this->perm.writeHeader(fp);
       fprintf(fp, "\n");      
     } else

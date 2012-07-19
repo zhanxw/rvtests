@@ -13,6 +13,8 @@
 #include "StringHash.h"
 #include "MathStats.h"
 
+#include "gsl/gsl_cdf.h"
+
 #ifdef DEBUG
 // for debug usage
 void printToFile(Vector& v, String fn, int index) {
@@ -85,10 +87,12 @@ Vector & LogisticRegression::GetAsyPvalue(){
 	pValue.Dimension(B.Length());
 	for (int i = 0; i < numCov; i ++){
 		double Zstat = B[i]/sqrt(covB[i][i]);
-		pValue[i] = ndist(Zstat);
-		if (pValue[i] >= 0.5){
-			pValue[i] = 2*(1-pValue[i]);
-		} else pValue[i] = 2*pValue[i];
+		// pValue[i] = ndist(Zstat);
+		// if (pValue[i] >= 0.5){
+		// 	pValue[i] = 2*(1-pValue[i]);
+		// } else pValue[i] = 2*pValue[i];
+        Zstat *= Zstat;
+        pValue[i] = gsl_cdf_chisq_Q(Zstat, 1.0);
 	}
 	return(pValue);
 }

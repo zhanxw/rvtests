@@ -619,7 +619,7 @@ private:
 class ZegginiTest: public ModelFitter{
 public:
   ZegginiTest(){
-    this->modelName = "ZegginiTest";
+    this->modelName = "Zeggini";
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
@@ -680,7 +680,7 @@ private:
 class MadsonBrowningTest: public ModelFitter{
 public:
 MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
-    this->modelName = "MadsonBrowningTest";
+    this->modelName = "MadsonBrowning";
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
@@ -777,7 +777,7 @@ private:
 class FpTest: public ModelFitter{
 public:
   FpTest() {
-    this->modelName = "FpTest";
+    this->modelName = "Fp";
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
@@ -846,7 +846,7 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
       fitOK = false;
       return -1;
     }
-    if (covariate.cols == 0) {
+    if (covariate.cols != 0) { // rare cover does not take covariate
       fitOK = false;
       return -1;
     };

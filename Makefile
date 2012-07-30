@@ -1,6 +1,11 @@
 all: release
 EXEC = rvtest
-UTIL_EXEC = vcf2plink vcfSummary vcfConcordance vcf2geno plink2vcf vcfExtractSite vcf2ld_gene  vcfSummaryLite vcfIndvSummary # vcf2merlin vcf2ld_window vcf2ld_neighbor 
+UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
+            vcf2geno plink2vcf vcfExtractSite \
+            vcf2ld_gene  \
+            vcfSummaryLite vcfIndvSummary \
+            vcf2ld_window 
+            # vcf2merlin vcf2ld_neighbor 
 
 DIR_EXEC = ./executable
 DIR_EXEC_DBG = ./executable/dbg

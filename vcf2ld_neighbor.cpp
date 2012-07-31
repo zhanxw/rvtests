@@ -18,6 +18,11 @@
 
 #define min(x, y) ( (x) < (y) ? (x) : (y) )
 
+/**
+ * @param lastGeno, @param geno are two vector of genotypes
+ * @param n: a contigency table with length 4
+ * @param d: results stored here: d[0]: D, d[1]: D', d[2]: r^2
+ */
 int calculateLD(std::vector<int>& lastGeno, std::vector<int>& geno, int* n, double* d) {
   assert(lastGeno.size() == geno.size());
   assert( n && d);

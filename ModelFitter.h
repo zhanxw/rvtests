@@ -15,6 +15,9 @@
 #include "regression/Table2by2.h"
 #include "regression/kbac_interface.h"
 
+#include "regression/MatrixOperation.h"
+#include "LinearAlgebra.h"
+
 // various collapsing method
 // they all take people by marker matrix
 // and they won't take special care of missing genotypes
@@ -27,10 +30,6 @@ void fpCollapse(Matrix& in, Matrix* out);
 void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out);
 
 void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq);
-
-void permute(Vector* v);
-void permute(Vector* vec1, Vector* vec2); //permute both vector.
-void centerVector(Vector* v);
 
 class AdaptivePermutationCheck{
 public:
@@ -697,15 +696,20 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     Matrix cov;
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
-    Vector pheno;
-    pheno.Dimension(phenotype.rows);
-    for (int i = 0; i< phenotype.rows; i++){
-      pheno[i] = phenotype[i][0];
-    }
+    copyPhenotype(phenotype, &this->pheno);
 
     madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
 
-
+    // debug code
+    Vector v;
+    extractColumn(collapsedGenotype, 0, &v);
+    double cor;
+    int ret = corr(v, pheno, &cor);
+    dumpToFile(pheno, "tmp.pheno");
+    dumpToFile(v, "tmp.v");
+    dumpToFile(collapsedGenotype, "tmp.coll");
+    fprintf(stderr, "ret = %d, len = %d, cor = %g\n", ret, v.Length(), cor);
+    
     fitOK = logistic.FitNullModel(cov, pheno, 100);
     if (!fitOK) return -1;
     fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
@@ -714,8 +718,8 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     // record observed stat
     this->perm.init(logistic.GetStat()); // a chi-dist
     
+    int failed = 0;
     while (this->perm.next()){
-      int failed = 0;
       permute(&pheno);
       fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       if (!fitOK) {
@@ -762,14 +766,11 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
   };
 private:
   Matrix collapsedGenotype;
+  Vector pheno;
   LogisticRegressionScoreTest logistic;
   bool fitOK;
   int numVariant;
   Permutation perm;
-  /* int nPerm; */
-  /* int numX; */
-  /* int actualPerm; */
-  /* double stat; */
 }; // MadsonBrowningTest
 
 // Danyu Lin's method, using 1/sqrt(p(1-p)) as weight
@@ -1817,7 +1818,9 @@ double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col){
       an += 2;
     }
   }
-  double freq = 1.0 * (ac + 1) / (an + 1);
+  // Refer:
+  // 1. Madsen BE, Browning SR. A Groupwise Association Test for Rare Mutations Using a Weighted Sum Statistic. PLoS Genet. 2009;5(2):e1000384. Available at: http://dx.doi.org/10.1371/journal.pgen.1000384 [Accessed November 24, 2010].
+  double freq = 1.0 * (ac + 1) / (an + 2);
   return freq;
 };
 
@@ -2082,49 +2085,6 @@ void progressiveMadsonBrowningCollapse(Matrix* d, Matrix* out, std::vector<doubl
       }
     }
   }
-};
-
-void permute(Vector* vec){
-  Vector& v = *vec;
-  int n = v.Length();
-  double tmp;
-  for (int i = n - 1; i >= 1; --i) {
-    // pick j from 0 <= j <= i
-    int j = rand() % (i+1);
-    if (i != j) {
-      tmp = v[i];
-      v[i] = v[j];
-      v[j] = tmp;
-    }
-  }
-};
-
-void permute(Vector* vec1, Vector* vec2){
-  Vector& v1 = *vec1;
-  Vector& v2 = *vec2;
-  int n = v1.Length();
-  double tmp;
-  for (int i = n - 1; i >= 1; --i) {
-    // pick j from 0 <= j <= i
-    int j = rand() % (i+1);
-    if (i != j) {
-      tmp = v1[i];
-      v1[i] = v1[j];
-      v1[j] = tmp;
-
-      tmp = v2[i];
-      v2[i] = v2[j];
-      v2[j] = tmp;
-    }
-  }
-};
-
-void centerVector(Vector* v){
-  double avg = v->Average();
-  int n = v->Length();
-  for (int i = 0; i < n; ++i) {
-    (*v)[i] -= avg;
-  };
 };
 
 

@@ -64,7 +64,7 @@ struct Loci{
  */
 double getCovariance(const Genotype& g1, const Genotype& g2) {
   double sum_i = 0.0 ; // sum of genotype[,i]
-  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]  
+  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]
   double sum_j = 0.0 ; // sum of genotype[,j]
   int n = 0;
   for (size_t c = 0; c < g1.size(); ++c) { //iterator each people
@@ -81,16 +81,20 @@ double getCovariance(const Genotype& g1, const Genotype& g2) {
 };
 
 /**
- * @return max integer if different chromosome; or return difference between head and tail locus. 
+ * @return max integer if different chromosome; or return difference between head and tail locus.
  */
 int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
+  if (loci.size() == 0) {
+    return 0;
+  }
+
   const Loci& head = loci.front();
   const Loci& tail = newOne;
 
   if (head.pos.chrom != tail.pos.chrom) {
     return INT_MAX;
   } else {
-    return (head.pos.pos - tail.pos.pos);
+    return abs(tail.pos.pos - head.pos.pos);
   }
 };
 
@@ -100,9 +104,8 @@ int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
  */
 int printCovariance(FILE* fp, const std::deque<Loci>& loci){
   auto iter = loci.begin();
-  ++iter;
-  std::vector<int> position( loci.size() - 1);
-  std::vector<double> cov (loci.size() - 1);
+  std::vector<int> position( loci.size());
+  std::vector<double> cov (loci.size());
   int idx = 0;
   for (; iter != loci.end(); ++iter){
     position[idx] = iter->pos.pos;
@@ -112,13 +115,15 @@ int printCovariance(FILE* fp, const std::deque<Loci>& loci){
   fprintf(fp, "%s\t%d\t%d\t", loci.front().pos.chrom.c_str(), loci.front().pos.pos, loci.back().pos.pos);
   fprintf(fp, "%d\t", idx);
   for(int i = 0; i < idx; ++i) {
-    if (i) fputc(':', fp);
-    fprintf(fp, "%d", position[idx]);
+    if (i) fputc(',', fp);
+    fprintf(fp, "%d", position[i]);
   }
+  fputc('\t', fp);
   for(int i = 0; i < idx; ++i) {
-    if (i) fputc(':', fp);
-    fprintf(fp, "%lf", cov[idx]);
+    if (i) fputc(',', fp);
+    fprintf(fp, "%g", cov[i]);
   }
+  fputc('\n', fp);
 };
 
 void banner(FILE* fp) {
@@ -266,48 +271,6 @@ void toMatrix(const std::vector<double>& v, Matrix* m) {
   }
 };
 
-
-/**
- * Convert a @param string separated by @param sep to set (stored in @param s)
- */
-void makeSet(const char* str, char sep, std::set<std::string>* s) {
-  s->clear();
-  if (!str || strlen(str) == 0)
-    return;
-
-  std::vector<std::string> fd;
-  stringTokenize(str, ",", &fd);
-  for (int i = 0; i < fd.size(); i++)
-    s->insert(fd[i]);
-}
-
-int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, RangeList>* geneMap) {
-  std::set<std::string> geneSet;
-  makeSet(gene, ',', &geneSet);
-
-  OrderedMap<std::string, RangeList>& m = *geneMap;
-  LineReader lr(fn);
-  int lineNo = 0;
-  std::vector< std::string> fd;
-  while (lr.readLineBySep(&fd, "\t ")){
-    ++ lineNo;
-    if (fd.size() < 6) {
-      fprintf(stderr, "Skip %d line (short of columns) in gene file [ %s ].\n", lineNo, fn);
-      continue;
-    }
-
-    std::string& geneName = fd[0];
-    if (geneSet.size() && geneSet.find(geneName)== geneSet.end())
-      continue;
-
-    std::string chr = chopChr(fd[2]);
-    int beg = atoi(fd[4]);
-    int end = atoi(fd[5]);
-    m[ geneName ].addRange (chr.c_str(), beg, end);
-  }
-  return m.size();
-};
-
 /**
  * Calculate R2 for genotype[,i] and genotype[,j]
  */
@@ -357,42 +320,6 @@ double calculateCov(Matrix& genotype, const int i, const int j){
   // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
   return cov_ij;
 };
-
-#if 0
-/**
- * @return r2 of genotype[,i] and genotype[,j] ( genotype is marker by people matrix)
- * Note: this version is fast, but it only handles non-missing, integer genotypes
- */
-double calculateR2(Matrix& genotype, const int i, const int j){
-  int m[3][3] = {0};
-  for (int c = 0; c < genotype.cols; c++) {
-    int g1 = (int)genotype[i][c];
-    int g2 = (int)genotype[i][c];
-    if (g1 >= 0 && g2 >= 0) {
-      if (g1 <=2 && g2 <= 2) {
-        m[g1][g2] ++;
-      } else {
-        fprintf(stderr, "Strange genotype for i = %d, j = %d, genotype = %d, %d\n", i, j, g1, g2);
-        continue;
-      }
-    }
-  };
-  int numer = m[1][1] + 2 * (m[1][2] + m[2][1]) + 4 * m[2][2];
-  int m1_ = m[1][0] + m[1][1] + m[1][2];
-  int m2_ = m[2][0] + m[2][1] + m[2][2];
-  int m_1 = m[0][1] + m[1][1] + m[2][1];
-  int m_2 = m[0][2] + m[1][2] + m[2][2];
-  int denom =  (m1_ + 4 * m2_) * (m_1 + 4* m_2);
-
-  if (denom == 0) {
-    return -100.0;
-  };
-
-  return  numer/ sqrt( double(denom));
-};
-#endif
-
-
 
 int main(int argc, char** argv){
   time_t currentTime = time(0);
@@ -500,7 +427,7 @@ int main(int argc, char** argv){
 
     Loci loci;
     loci.pos.chrom = r.getChrom();
-    loci.pos.pos += r.getPos();
+    loci.pos.pos = r.getPos();
 
     if (strlen(r.getRef()) != 1 ||
         strlen(r.getAlt()) != 1) { // not snp
@@ -525,11 +452,11 @@ int main(int argc, char** argv){
     // // remove missing genotype by imputation
     // imputeGenotypeToMean(&genotype);
 
-    while (getWindowSize(queue, loci) > FLAG_windowSize) {
+    while (queue.size() && getWindowSize(queue, loci) > FLAG_windowSize) {
       printCovariance(fout, queue);
       queue.pop_front();
     };
-    queue.push_back(loci);    
+    queue.push_back(loci);
   }
 
   while(queue.size() > 1) {

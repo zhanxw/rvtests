@@ -1,9 +1,7 @@
 /**
    immediately TODO:
-   5. loading covariate (need tests now).
    12. Add support multi-thread
    13. Add optional weight
-   22. Add U-statistics
    23. Add dominant model
    24. Conditional analysis + burden test
    25. Take optional weight, e.g. GERP
@@ -36,11 +34,13 @@
    21. Add CMAT
    18. Add filtering on GD, GQ
    19. Add command line support for different imputation methods
+   5. loading covariate
 
    Future TODO:
-
+   22. Add U-statistics
+   
    Not sure if worthy to do:
-
+   None yet.
 */
 
 #include "Argument.h"
@@ -75,7 +75,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      June 2012                         ...   \n"
+      "      ...      August 2012                       ...   \n"
       "       ..............................................  \n"
       "                                                       \n"
       ;

@@ -158,9 +158,6 @@ deepclean: clean
 	(cd regression; make clean)
 	(cd libVcf; make clean)
 
-doc: README
-	pandoc README -o README.html
-
 test: test1
 test1: rvtest
 	./rvtest --inVcf test.vcf.gz --outVcf test1.out.vcf 
@@ -215,3 +212,7 @@ tar:
 # IO: IO_test.cpp IO.h 
 # 	g++ -c $(CXXFLAGS) IO_test.cpp -I../statgen/lib/include -I. -D__ZLIB_AVAILABLE__ 
 # 	g++ -o $@ IO_test.o $(TABIX_LIB) $(STATGEN_LIB)  -lz -lm -lbz2
+README.md:README.wiki
+doc: README.md
+	java -jar third/wiki2html.jar README.wiki > README.html 
+	pandoc -f html -t markdown README.html > README.md 

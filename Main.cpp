@@ -472,7 +472,7 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     abort();
   }
   if (!imputePhenotype) {
-    for (int i = 0; i < vcfSampleNames.size(); i++) {
+    for (size_t i = 0; i < vcfSampleNames.size(); i++) {
       if (phenotype.count(vcfSampleNames[i]) == 0) {
         vcfSampleToDrop->push_back(vcfSampleNames[i]);
         logger->warn("Drop sample from VCF file [ %s ]", vcfSampleNames[i].c_str() );
@@ -484,18 +484,17 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
   } else {
     double sum = 0.0;
     int nMissingPheno = 0;
-    for (int i = 0; i < vcfSampleNames.size(); i++) {
+    for (size_t i = 0; i < vcfSampleNames.size(); i++) {
       if (phenotype.count(vcfSampleNames[i]) == 0) {
         ++nMissingPheno;
       } else {
         sum += phenotype.find(vcfSampleNames[i])->second;
       }
     }
-    double avg = sum / nMissingPheno;
-    logger->warn("Impute [ %d ] missing phenotype for samples with genotypes but lacks phenotypes", nMissingPheno);
+    double avg = sum / (vcfSampleNames.size() - nMissingPheno);
     for (int i = 0; i < vcfSampleNames.size(); i++) {
       if (phenotype.count(vcfSampleNames[i]) == 0) {
-        logger->info("Impute phenotype for sample [ %s ]", vcfSampleNames[i].c_str());
+        logger->info("Impute phenotype of sample [ %s ] to [ %g ]", vcfSampleNames[i].c_str(), avg);
         phenotypeNameInOrder->push_back(vcfSampleNames[i]);
         phenotypeValueInOrder->push_back(avg);
       } else {
@@ -503,6 +502,8 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
         phenotypeValueInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
       }
     }
+    if (nMissingPheno) 
+      logger->warn("Impute [ %d ] missing phenotypes for samples with genotypes but lacks phenotypes", nMissingPheno);
   };
 };
 

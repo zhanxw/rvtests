@@ -8,7 +8,6 @@
 
 #include "regression/LogisticRegression.h"
 #include "regression/LogisticRegressionScoreTest.h"
-#include "regression/LogisticRegressionPermutationTest.h"
 #include "regression/LinearRegression.h"
 #include "regression/LinearRegressionScoreTest.h"
 #include "regression/Skat.h"
@@ -31,6 +30,7 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out);
 
 void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq);
 
+#if 0
 class AdaptivePermutationCheck{
 public:
   void addStat(double d) {
@@ -70,6 +70,7 @@ private:
   };
   std::vector<double> stats;
 };
+#endif
 
 class Permutation{
 public:
@@ -81,7 +82,7 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {};
   void init(double observation) {
     this->obs = observation;
     this->actualPerm = 0;
-    this->threshold = this->numPerm * this->alpha * 2;
+    this->threshold = 1.0 * this->numPerm * this->alpha * 2;
     this->numX = 0; 
     this->numEqual = 0;
   };
@@ -89,7 +90,7 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {};
    * @return true if need more permutations
    */
   bool next() {
-    if (this->actualPerm > this->numPerm) return false;
+    if (this->actualPerm >= this->numPerm) return false;
     if (numX + numEqual > threshold){
       return false;
     }
@@ -117,7 +118,7 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {};
   };
   void writeHeader(FILE* fp){
     fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s",
-            "NumPerm", "ActualPerm", "STAT", "NumX", "NumEqual", "PermPvalue");
+            "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue");
   }
   void writeOutput(FILE* fp) {
     fprintf(fp, "%d\t%d\t%g\t%d\t%d\t%g", 
@@ -148,7 +149,7 @@ public:
   /* // fitting model */
   /* virtual int fit(Matrix& phenotype, Matrix& genotype) = 0; */
   // fitting model
-  virtual int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) = 0;
+  virtual int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& w) = 0;
   // write result header
   virtual void writeHeader(FILE* fp, const char* prependString) = 0;
   // write model output
@@ -256,7 +257,7 @@ public:
     this->modelName = "SingleWald";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight) {
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -318,7 +319,7 @@ public:
     this->modelName = "SingleScore";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -386,7 +387,7 @@ public:
     fputs("Fisher.PvalueGreater\n", fp);
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight) {
     if (genotype.cols == 0 || !isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -472,7 +473,7 @@ public:
     this->modelName = "CMC";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -544,7 +545,7 @@ public:
     this->modelName = "CMCFisherExact";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight) {
     if (!isBinaryOutcome()){
       fitOK = false;
       return -1;
@@ -621,7 +622,7 @@ public:
     this->modelName = "Zeggini";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -682,7 +683,7 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "MadsonBrowning";
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -700,16 +701,6 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
 
     madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
 
-    // debug code
-    Vector v;
-    extractColumn(collapsedGenotype, 0, &v);
-    double cor;
-    int ret = corr(v, pheno, &cor);
-    dumpToFile(pheno, "tmp.pheno");
-    dumpToFile(v, "tmp.v");
-    dumpToFile(collapsedGenotype, "tmp.coll");
-    fprintf(stderr, "ret = %d, len = %d, cor = %g\n", ret, v.Length(), cor);
-    
     fitOK = logistic.FitNullModel(cov, pheno, 100);
     if (!fitOK) return -1;
     fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
@@ -720,8 +711,9 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     
     int failed = 0;
     while (this->perm.next()){
-      permute(&pheno);
-      fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
+      permute(&this->pheno);
+      madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
+      fitOK = logistic.TestCovariate(collapsedGenotype, pheno);
       if (!fitOK) {
         if (failed < 10) {
           failed++;
@@ -781,7 +773,7 @@ public:
     this->modelName = "Fp";
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -842,7 +834,7 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "RareCover";
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1007,7 +999,7 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "CMAT";
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1144,7 +1136,7 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "VariableThresholdPrice";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -1163,7 +1155,7 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     double z;
     if (isBinaryOutcome()) {
       for (int i = 0; i < sortedGenotype.rows; ++i) {
-        z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[i]);
+        z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[i], weight);
         if ( z > this->zmax) {
           zmax = z;
           this->optimalFreq = freq[i];
@@ -1177,7 +1169,7 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
         permute(&this->phenotype);
         double zp = -999.0;
         for (int j = 0; j < sortedGenotype.rows; ++j){
-          z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[j]);
+          z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[j], weight);
           if (z > zp) {
             zp =z; 
           };
@@ -1190,7 +1182,7 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     } else {
       centerVector(&this->phenotype);
       for (int i = 0; i < sortedGenotype.rows; ++i) {
-        z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[i]);
+        z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[i], weight);
         if ( z > this->zmax){
           this->zmax = z;
           this->optimalFreq = freq[i];
@@ -1203,7 +1195,7 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
         double zp = -999.0;
         permute(&this->phenotype);
         for (int j = 0; j < sortedGenotype.rows; ++j){
-          z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[j]);
+          z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[j], weight);
           if (z > zp) {
             zp = z;
           };
@@ -1266,20 +1258,33 @@ private:
     Matrix tmp = *g;
     g->Transpose(tmp);
   };
-  double calculateZForBinaryTrait(Vector& y, Vector& x){
+  double calculateZForBinaryTrait(Vector& y, Vector& x, Vector& weight){
     double ret = 0;
     int n = y.Length();
+
+    if (weight.Length() == 0) {
     for (int i = 0; i < n; ++i) {
       if (y[i]) ret += x[i];
     }
+    } else {
+    for (int i = 0; i < n; ++i) {
+      if (y[i]) ret += (x[i] * weight[i]);
+    }
+    }      
     return ret;
   };
-  double calculateZForContinuousTrait(Vector& y, Vector& x){
+  double calculateZForContinuousTrait(Vector& y, Vector& x, Vector& weight){
     double ret = 0;
     int n = y.Length();
+    if (weight.Length() == 0) {
     for (int i = 0; i < n; ++i) {
       ret += x[i] * y[i];
     }
+    } else {
+    for (int i = 0; i < n; ++i) {
+      ret += x[i] * y[i] * weight[i];
+    }
+    }      
     return ret;
   };
 private:
@@ -1318,7 +1323,7 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     this->modelCapacity = n;
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     if (genotype.cols > modelLen) {
       resize(genotype.cols);
       reset();
@@ -1326,7 +1331,7 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     for (int i = genotype.cols - 1; i >=0; --i){
       sortedGenotype.Dimension( genotype.rows, i + 1);
-      if ( model[i].fit(phenotype, sortedGenotype, covariate) ) {
+      if ( model[i].fit(phenotype, sortedGenotype, covariate, weight) ) {
         fitOK = false;
       }
     }
@@ -1458,7 +1463,7 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
     stat = -9999;
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -1595,7 +1600,7 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
     // clear_kbac_test();
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1721,7 +1726,7 @@ public:
     this->header = prependString;
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
     this->phenotype = phenotype;
     this->genotype = genotype;
     this->covariate = covariate;
@@ -1876,7 +1881,7 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out){
     // calculate weight
     double freq = getMarkerFrequencyFromControl(genotype, phenotype, m);
     if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
-    double weight = 1.0 / sqrt(freq * (1.0-freq));
+    double weight = 1.0 / sqrt(freq * (1.0-freq)*genotype.rows);
     // fprintf(stderr, "freq = %f\n", freq);
 
     for (int p = 0; p < numPeople; p++) {

@@ -5,7 +5,9 @@
    13. Add optional weight
    22. Add U-statistics
    23. Add dominant model
-
+   24. Conditional analysis + burden test
+   25. Take optional weight, e.g. GERP
+   
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -1470,7 +1472,7 @@ int main(int argc, char** argv){
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
         //model[m]->fit(phenotypeMatrix, genotype, covariate);
-        model[m]->fit(workingPheno, genotype, workingCov);
+        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };
     }
@@ -1510,7 +1512,7 @@ int main(int argc, char** argv){
 
         for (int m = 0; m < model.size(); m++) {
           model[m]->reset();
-          model[m]->fit(workingPheno, genotype, workingCov);
+          model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
           //          model[m]->fit(phenotypeMatrix, genotype, covariate);
           model[m]->writeOutput(fOuts[m], buf.c_str());
         };

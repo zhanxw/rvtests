@@ -50,6 +50,7 @@
 #include "Random.h"
 
 #include "ModelFitter.h"
+#include "GitVersion.h"
 
 // #include "Analysis.h"
 
@@ -497,8 +498,12 @@ int main(int argc, char** argv){
   std::string s = FLAG_outPrefix;
   FILE* fout = fopen( ( s + ".cov" ).c_str(), "wt");
   FILE* flog = fopen( ( s + ".log" ).c_str(), "wt");
-
-
+  
+  fprintf(flog, "Version: %s\n", gitVersion);
+  currentTime = time(0);  
+  fprintf(flog, "Analysis started on %s", ctime(&currentTime));
+  fprintf(stderr, "Analysis started on %s", ctime(&currentTime));
+  
   std::string chrom; 
   std::vector<int> pos; // store positions
   Matrix genotype; // marker by people
@@ -520,7 +525,7 @@ int main(int argc, char** argv){
 
       chrom = r.getChrom();
       pos.push_back(r.getPos());
-      fprintf(stderr, "read %s:%d\n", chrom.c_str(), pos.back());
+      // fprintf(stderr, "read %s:%d\n", chrom.c_str(), pos.back());
       genotype.Dimension(row + 1, people.size());
 
       // e.g.: Loop each (selected) people in the same order as in the VCF
@@ -566,6 +571,6 @@ int main(int argc, char** argv){
 
   currentTime = time(0);
   fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));
-
+  fprintf(flog, "Analysis ended at: %s", ctime(&currentTime));
   return 0;
 };

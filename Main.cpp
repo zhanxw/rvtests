@@ -611,6 +611,12 @@ class GenotypeExtractor{
     this->needGQ = true;
     this->GQmax = m;
   };
+  /**
+   * @return weigth, its length equals to # of markers
+   */
+  Vector& getWeight(){
+    return this->weight;
+  };
  private:
   VCFExtractor& vin;
   bool needGD;
@@ -619,6 +625,7 @@ class GenotypeExtractor{
   bool needGQ;
   int GQmin;
   int GQmax;
+  Vector weight;
 };
 
 /**
@@ -1558,7 +1565,7 @@ int main(int argc, char** argv){
 
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
-        model[m]->fit(workingPheno, genotype, workingCov);
+        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
         // model[m]->fit(phenotypeMatrix, genotype, covariate);
         model[m]->writeOutput(fOuts[m], buf.c_str());
       };

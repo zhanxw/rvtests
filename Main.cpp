@@ -455,11 +455,14 @@ bool isUnique(const std::vector<std::string>& x) {
 
 /**
  * according to the order of @param vcfSampleNames, put phenotypes to @param phenotypeInOrder
+ * @param imputePhenotype: if true, we will impute phenotpye to the average for those have genotype but no phenotype;
+ *                         if false, we will drop those samples
  */
 void rearrange(const std::map< std::string, double>& phenotype, const std::vector<std::string>& vcfSampleNames,
                std::vector<std::string>* vcfSampleToDrop,
                std::vector<std::string> * phenotypeNameInOrder,
-               std::vector<double>* phenotypeValueInOrder) {
+               std::vector<double>* phenotypeValueInOrder,
+               bool imputePhenotype) {
   vcfSampleToDrop->clear();
   phenotypeNameInOrder->clear();
   phenotypeValueInOrder->clear();
@@ -468,14 +471,39 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     logger->error("VCF file have duplicated sample id. Quitting!");
     abort();
   }
-  for (int i = 0; i < vcfSampleNames.size(); i++) {
-    if (phenotype.count(vcfSampleNames[i]) == 0) {
-      vcfSampleToDrop->push_back(vcfSampleNames[i]);
-    } else {
-      phenotypeNameInOrder->push_back( phenotype.find(vcfSampleNames[i])->first);
-      phenotypeValueInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
+  if (!imputePhenotype) {
+    for (int i = 0; i < vcfSampleNames.size(); i++) {
+      if (phenotype.count(vcfSampleNames[i]) == 0) {
+        vcfSampleToDrop->push_back(vcfSampleNames[i]);
+        logger->warn("Drop sample from VCF file [ %s ]", vcfSampleNames[i].c_str() );
+      } else {
+        phenotypeNameInOrder->push_back( phenotype.find(vcfSampleNames[i])->first);
+        phenotypeValueInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
+      }
     }
-  }
+  } else {
+    double sum = 0.0;
+    int nMissingPheno = 0;
+    for (int i = 0; i < vcfSampleNames.size(); i++) {
+      if (phenotype.count(vcfSampleNames[i]) == 0) {
+        ++nMissingPheno;
+      } else {
+        sum += phenotype.find(vcfSampleNames[i])->second;
+      }
+    }
+    double avg = sum / nMissingPheno;
+    logger->warn("Impute [ %d ] missing phenotype for samples with genotypes but lacks phenotypes", nMissingPheno);
+    for (int i = 0; i < vcfSampleNames.size(); i++) {
+      if (phenotype.count(vcfSampleNames[i]) == 0) {
+        logger->info("Impute phenotype for sample [ %s ]", vcfSampleNames[i].c_str());
+        phenotypeNameInOrder->push_back(vcfSampleNames[i]);
+        phenotypeValueInOrder->push_back(avg);
+      } else {
+        phenotypeNameInOrder->push_back( phenotype.find(vcfSampleNames[i])->first);
+        phenotypeValueInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
+      }
+    }
+  };
 };
 
 class GenotypeExtractor{
@@ -1046,8 +1074,10 @@ int main(int argc, char** argv){
       // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
       ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
       ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
+
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Specify either of mean, hwe, and drop")
+      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean by those have genotypes but no phenotpyes")      
       ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
       END_PARAMETER_LIST(pl)
@@ -1151,7 +1181,7 @@ int main(int argc, char** argv){
   std::vector<std::string> vcfSampleToDrop;
   std::vector<std::string> phenotypeNameInOrder; // phenotype arranged in the same order as in VCF
   std::vector<double> phenotypeInOrder; // phenotype arranged in the same order as in VCF
-  rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeNameInOrder, &phenotypeInOrder);
+  rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeNameInOrder, &phenotypeInOrder, FLAG_imputePheno);
   if (vcfSampleToDrop.size()) {
     logger->warn("Drop %zu sample from VCF file since we don't have their phenotypes", vcfSampleToDrop.size());
     vin.excludePeople(vcfSampleToDrop);

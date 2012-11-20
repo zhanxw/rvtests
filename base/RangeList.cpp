@@ -134,7 +134,6 @@ void RangeList::addRangeFile(const char* argRangeFile){
     if (sa.size() == 1){
       // fprintf(stderr, "Wrong format for --rangeFile: %s, shoudl be: chr beg end \n", argRangeFile);
       this->addRangeList(sa[0].c_str());
-      return;
     } else if (sa.size() == 2)
       this->rangeCollection.addRange(sa[0].c_str(), (unsigned int) atoi(sa[1]), (unsigned int) atoi(sa[1]));
     else if (sa.size() == 3)

@@ -1,6 +1,9 @@
 #ifndef _MODELPARSER_H_
 #define _MODELPARSER_H_
 
+#include "base/Logger.h"
+extern Logger* logger;
+
 /**
  * Parse "mb" to {"mb"}
  * Parse "mb(nperm=10000, alpha=0.1)" then later use assign("nperm", &p) to set value for p 

@@ -62,6 +62,7 @@
 #include "MathMatrix.h"
 #include "Random.h"
 
+#include "ModelParser.h"
 #include "ModelFitter.h"
 #include "GitVersion.h"
 
@@ -885,7 +886,7 @@ void inverseNormal(std::vector<double>* y){
     a = 0.5;
   }
   for (unsigned int i = 0; i < n ; i++)
-    (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + 1 - 2 * a));
+    (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + (1 - a) - a));
 
   logger->info("Done: inverse normal transformation finished.");
 
@@ -978,8 +979,6 @@ int main(int argc, char** argv){
     abort();
   }
 
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
-
   if (!FLAG_outPrefix.size())
     FLAG_outPrefix = "rvtest";
 
@@ -991,6 +990,10 @@ int main(int argc, char** argv){
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
 
+  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+
+
+  
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 

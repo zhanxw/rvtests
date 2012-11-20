@@ -38,7 +38,9 @@ inline bool str2int(const char* input, int* output) {
     *output = val;
     return true;
 }
-
+inline bool str2int(std::string& input, int* output) {
+  return str2int(input.c_str(), output);
+}
 // convert std::string to double
 // @return true if conversion succeed
 inline bool str2double(const char* input, double* output) {
@@ -60,6 +62,9 @@ inline bool str2double(const char* input, double* output) {
     }
     *output = val;
     return true;
+}
+inline bool str2double(std::string& input, double* output) {
+  return str2double(input.c_str(), output);
 }
 
 inline int atoi(const std::string& s) {

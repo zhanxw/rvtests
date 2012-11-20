@@ -1,6 +1,6 @@
 # download all third party library and compile them
 
-LIB = tabix pcre eigen gsl
+LIB = tabix pcre eigen gsl bzip2
 all: $LIB
 
 tabix: tabix-0.2.5.tar.bz2
@@ -23,6 +23,9 @@ eigen: eigen-3.1.0.tar.bz2
 	-mv eigen-eigen-ca142d0540d3 eigen-3.1.0
 	ln -s -f eigen-3.1.0 eigen
 
+bzip2: bzip2-1.0.6.tar.gz
+	tar zvxf $@
+	
 
 ######################################################################
 # download sources
@@ -35,6 +38,9 @@ gsl-1.15.tar.gz:
 	echo "obtain GSL"
 	wget http://mirrors.kernel.org/gnu/gsl/gsl-1.15.tar.gz
 
+bzip2-1.0.6.tar.gz:
+	echo "obtain Bzip2 library"
+	wget http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz
 clean:
 	-rm -rf $(LIB)
 

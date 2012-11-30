@@ -992,8 +992,6 @@ int main(int argc, char** argv){
 
   REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
 
-
-  
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 

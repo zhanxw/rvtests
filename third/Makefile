@@ -1,7 +1,7 @@
 # download all third party library and compile them
 
 LIB = tabix pcre eigen gsl bzip2
-all: $LIB
+all: $(LIB)
 
 tabix: tabix-0.2.5.tar.bz2
 	-mv tabix-0.2.5.tar.bz2* tabix-0.2.5.tar.bz2
@@ -24,8 +24,9 @@ eigen: eigen-3.1.0.tar.bz2
 	ln -s -f eigen-3.1.0 eigen
 
 bzip2: bzip2-1.0.6.tar.gz
-	tar zvxf $@
-	
+	tar zvxf $<
+	ln -s -f bzip2-1.0.6 bzip2
+	(cd bzip2-1.0.6; make)
 
 ######################################################################
 # download sources
@@ -43,4 +44,11 @@ bzip2-1.0.6.tar.gz:
 	wget http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz
 clean:
 	-rm -rf $(LIB)
+deepclean:
+	-rm -rf $(LIB)
+	-rm -rf tabix-0.2.5
+	-rm -rf pcre-8.21
+	-rm -rf gsl-1.15
+	-rm -rf eigen-3.1.0
+	-rm -rf bzip2-1.0.6
 

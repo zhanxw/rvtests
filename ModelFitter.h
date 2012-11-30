@@ -327,7 +327,6 @@ public:
     nSample = genotype.rows;
     af = getMarkerFrequency(genotype, 0);
 
-    Matrix cov;
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     copyPhenotype(phenotype, &this->pheno);
@@ -345,6 +344,9 @@ public:
 
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
+    // write summaries
+    
+    // write more
     fputs(prependString, fp);
     fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
   };
@@ -366,6 +368,7 @@ private:
   LinearRegressionScoreTest linear;
   LogisticRegressionScoreTest logistic;
   bool fitOK;
+  Matrix cov;
 }; // SingleVariantScoreTest
 
 class SingleVariantFisherExactTest: public ModelFitter{

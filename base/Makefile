@@ -11,7 +11,7 @@ LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger RangeList SimpleMatrix
 OBJ = $(BASE:=.o)
 
-DEFAULT_CXXFLAGS = -I. -I../third/tabix
+DEFAULT_CXXFLAGS = -I. -I../third/tabixi -I../third/pcre/include
 
 .PHONY: all release debug
 all: release

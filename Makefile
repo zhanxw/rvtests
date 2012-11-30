@@ -161,10 +161,12 @@ clean:
         $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
 
 deepclean: clean
+	rm -rf *~
 	(cd base; make clean)
 	(cd regression; make clean)
 	(cd libVcf; make clean)
-
+	(cd third; make clean)
+	(cd libsrc; make clean)
 test: test1
 test1: rvtest
 	./rvtest --inVcf test.vcf.gz --outVcf test1.out.vcf 
@@ -208,7 +210,7 @@ autoTest2: rvtest
 # archive 
 DATE=$(shell date '+%m%d')
 tar:
-	tar zvchf rvtest.$(DATE).tgz *.h Main.cpp tabix*tar.bz2 
+	tar zvchf rvtest.$(DATE).tgz *.h *.cpp Makefile .git/HEAD .git/index third base libVcf regression libsrc
 
 # arg: Argument.h Argument.cpp
 # 	g++ -g -o Argument Argument.cpp

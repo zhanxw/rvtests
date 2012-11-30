@@ -149,10 +149,10 @@ int main(int argc, char *argv[])
       continue;
     }
 
-    const char base = gs[chrom][pos];
+    const char base = gs[chrom][pos - 1];
     char r = ref[0];
     char a = alt[0];
-    
+
     if (r == base) { // no need to do anything
       fout.writeLine(line.c_str());
       totalCorrect ++;
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
       } else if (direction == "-") {
         direction = "+";
       }
-      fout.printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", chrom.c_str(), pos,
+      fout.printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", chrom.c_str(), pos,
                   alt.c_str(), ref.c_str(),
                   ns.c_str(), af.c_str(),
                   stat.c_str(), direction.c_str(),
@@ -200,7 +200,11 @@ int main(int argc, char *argv[])
      a = alt[0];
     
     if (r == base) { // no need to do anything
-      fout.writeLine(line.c_str());
+      fout.printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", chrom.c_str(), pos,
+                  ref.c_str(), alt.c_str(),
+                  ns.c_str(), af.c_str(),
+                  stat.c_str(), direction.c_str(),
+                  pvalue.c_str());
       totalFlippedCorrect ++;
       continue;
     }
@@ -216,13 +220,11 @@ int main(int argc, char *argv[])
       } else if (direction == "-") {
         direction = "+";
       }
-      fout.printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", chrom.c_str(), pos,
+      fout.printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", chrom.c_str(), pos,
                   alt.c_str(), ref.c_str(),
                   ns.c_str(), af.c_str(),
                   stat.c_str(), direction.c_str(),
                   pvalue.c_str());
-                  
-      
       totalFlippedSwith ++;
       continue;
     }
@@ -242,7 +244,5 @@ int main(int argc, char *argv[])
   logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);
   logger->info("Analysis took %d seconds", elapsedSecond);
-  return 0;
-  
   return 0;
 }

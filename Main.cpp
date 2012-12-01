@@ -53,8 +53,6 @@
 #include <vector>
 #include <algorithm>
 
-#include <gsl/gsl_cdf.h>
-
 #include "Logger.h"
 #include "Utils.h"
 #include "VCFUtil.h"
@@ -62,6 +60,7 @@
 #include "MathMatrix.h"
 #include "Random.h"
 
+#include "CommonFunction.h"
 #include "ModelParser.h"
 #include "ModelFitter.h"
 #include "GitVersion.h"
@@ -837,68 +836,7 @@ int loadRangeFile(const char* fn, const char* givenRangeName, OrderedMap<std::st
   return m.size();
 };
 
-double pnorm(double x) {
-  return gsl_cdf_gaussian_P(x, 1.0);
-};
-double qnorm(double x) {
-  return gsl_cdf_gaussian_Pinv(x, 1.0);
-};
-
-double calculateMean(const std::vector<double>& v ){
-  double s = 0.0;
-  if (v.empty()) return 0.0;
-
-  for (unsigned int i = 0; i < v.size(); ++i) {
-    s += v[i];
-  }
-  return s / v.size();
-}
-
-// sd ^ 2 = \frac{1}{N}  (v_i - mean of v_i) ^ 2
-double calculateSD(const std::vector<double>& v ){
-  double s = 0.0;
-  if (v.empty()) return 0.0;
-
-  double mean = calculateMean(v);
-  for (unsigned int i = 0; i < v.size(); ++i) {
-    const double t = v[i] - mean;
-    s += t * t;
-  }
-  return sqrt(s / v.size());
-}
-
-// inverse normal a vector AND center it.
-//
-void inverseNormal(std::vector<double>* y){
-  if (!y || !y->size()) return;
-  const int n = y->size();
-  std::vector<int> ord;
-  order(*y, &ord);
-
-  for (unsigned int i = 0; i < n; i++)
-    (*y)[i] = ord[i];
-  order(*y, &ord);
-
-  double a;
-  if ( n <= 10) {
-    a = 0.375;
-  } else {
-    a = 0.5;
-  }
-  for (unsigned int i = 0; i < n ; i++)
-    (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + (1 - a) - a));
-
-  logger->info("Done: inverse normal transformation finished.");
-
-  // center
-  double m = calculateMean(*y);
-  double sd = calculateSD(*y);
-  for (unsigned int i = 0; i < n ; i++) {
-    (*y)[i] -= m;
-    (*y)[i] /= sd;
-  }
-  logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");
-};
+SummaryHeader* g_SummaryHeader = NULL;
 
 int main(int argc, char** argv){
   ////////////////////////////////////////////////
@@ -1069,7 +1007,7 @@ int main(int argc, char** argv){
   if (phenotypeInOrder.size() != phenotype.size()) {
     logger->warn("Drop %d sample from phenotype file since we don't have their genotpyes from VCF files", (int) (phenotype.size() - phenotypeInOrder.size()));
   }
-
+  
   // load covariate
   Matrix covariate;
   if (!FLAG_cov.empty()) {
@@ -1111,14 +1049,20 @@ int main(int argc, char** argv){
     convertBinaryPhenotype(&phenotypeInOrder);
   }
 
+  // phenotype transformation
+  g_SummaryHeader = new SummaryHeader;
+  g_SummaryHeader->recordRawPhenotype(phenotypeInOrder);
   if (FLAG_inverseNormal) {
     if (binaryPhenotype){
-      logger->warn("WARNING: Skip transforming binary phenotype using --inverseNormal!");
+      logger->warn("WARNING: Skip transforming binary phenotype, although you used --inverseNormal!");
     } else {
       logger->info("Apply inverse normal transformation.");
       inverseNormal(&phenotypeInOrder);
+      logger->info("Done: inverse normal transformation finished.");
     }
   };
+  g_SummaryHeader->recordTransformedPhenotype(phenotypeInOrder, FLAG_inverseNormal);
+  
 
   if (phenotypeInOrder.empty()) {
     logger->fatal("There are 0 samples with valid phenotypes, quitting...");
@@ -1356,7 +1300,7 @@ int main(int argc, char** argv){
   // * range variant reading, single variant test
   // * range variant reading, group variant test
   if (rangeMode == "Single" && singleVariantMode) { // use line by line mode
-    buf = "CHROM\tPOS\tREF\tALT\tNumSample\t";
+    buf = "CHROM\tPOS\tREF\tALT\tN_INFORMATIVE\t";
     // output headers
     for (int m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf.c_str());
@@ -1396,7 +1340,7 @@ int main(int argc, char** argv){
   } else if (rangeMode != "Single" && singleVariantMode) { // read by gene/range model, single variant test
     buf = rangeMode;
     buf += '\t';
-    buf += "CHROM\tPOS\tREF\tALT\tNumSample\t";
+    buf += "CHROM\tPOS\tREF\tALT\tN_INFORMATIVE\t";
     // output headers
     for (int m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf.c_str());
@@ -1438,7 +1382,7 @@ int main(int argc, char** argv){
   } else if (rangeMode != "Single" && groupVariantMode) {// read by gene/range mode, group variant test
     buf = rangeMode;
     buf += '\t';
-    buf += "NumSample";
+    buf += "N_INFORMATIVE";
     buf += '\t';
     buf += "NumVar";
     buf += '\t';
@@ -1495,5 +1439,7 @@ int main(int argc, char** argv){
   logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);
   logger->info("Analysis took %d seconds", elapsedSecond);
+
+  delete g_SummaryHeader;
   return 0;
 };

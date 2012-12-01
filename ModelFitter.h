@@ -16,6 +16,10 @@
 
 #include "regression/MatrixOperation.h"
 #include "LinearAlgebra.h"
+#include "snp_hwe.c"
+#include "Summary.h"
+
+extern SummaryHeader* g_SummaryHeader;
 
 // various collapsing method
 // they all take people by marker matrix
@@ -313,6 +317,38 @@ private:
   bool fitOK;
 }; // SingleVariantWaldTest
 
+/**
+ * @return 0 if success
+ */
+int checkHWEandCallRate(Matrix& geno, int* homRef, int* het, int* homAlt, double* hweP, double* callRate) {
+  *homRef = *het = *homAlt = 0;
+  *hweP = 0.0;
+  *callRate = 0.0;
+  
+  int nonMissingGeno = 0;
+  int totalGeno = geno.rows;
+
+  for (int i = 0; i < totalGeno; ++i) {
+    const int& g = geno[i][0];
+    if (g < 0) continue;
+    if (g == 0) {
+      ++ (*homRef);
+      ++ (nonMissingGeno);          
+    } else if (g == 1) {
+      ++ (*het);
+      ++ (nonMissingGeno);          
+    } else if (g == 2) {
+      ++ (*homAlt);
+      ++ (nonMissingGeno);
+    } 
+  }
+  if (totalGeno)
+    (*callRate) = 1.0 * nonMissingGeno / totalGeno;
+  if ( (*homRef) > 0 && (*het) > 0 && (*homAlt) > 0) 
+    (*hweP) = SNPHWE( (*het), (*homRef), (*homAlt));
+  return 0;
+}
+
 class SingleVariantScoreTest: public ModelFitter{
 public:
   SingleVariantScoreTest(){
@@ -330,6 +366,9 @@ public:
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     copyPhenotype(phenotype, &this->pheno);
+
+    checkHWEandCallRate(genotype, &homRef, &het, &homAlt, &hweP, &callRate);
+        
     if (!isBinaryOutcome()) {
       fitOK = linear.FitNullModel(cov, pheno);
       if (!fitOK) return -1;
@@ -344,22 +383,58 @@ public:
 
   // write result header
   void writeHeader(FILE* fp, const char* prependString) {
-    // write summaries
+    if (g_SummaryHeader) {
+      g_SummaryHeader->outputHeader(fp);
+    }
     
-    // write more
     fputs(prependString, fp);
-    fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
+    // fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
+    fprintf(fp, "AF\t");
+    fprintf(fp, "INFORMATIVE_ALT_AC\t");
+    fprintf(fp, "CALL_RATE\t");
+    fprintf(fp, "HWE_PVALUE\t");
+    fprintf(fp, "N_REF\t");
+    fprintf(fp, "N_HET\t");
+    fprintf(fp, "N_ALT\t");
+    fprintf(fp, "U_STAT\t");
+    fprintf(fp, "SQRT_V_STAT\t");
+    fprintf(fp, "ALT_EFFSIZE\t");
+    fprintf(fp, "PVALUE\n");
   };
   // write model output
   void writeOutput(FILE* fp, const char* prependString) {
     fputs(prependString, fp);
+    int informativeAC = het + 2* homAlt;
+    
     if (fitOK) {
       if (!isBinaryOutcome())
-        fprintf(fp, "%g\t%g\t%c\t%g\n", af, linear.GetStat(), linear.GetU()[0][0] > 0 ? '+': '-', linear.GetPvalue());
+        fprintf(fp, "%g\t%d\t%g\t%g\t%d\t%d\t%d\t%g\t%g\t%g\t%g",
+                af,
+                informativeAC,
+                callRate,
+                hweP,
+                homRef, het, homAlt,
+                linear.GetU()[0][0],
+                sqrt(linear.GetV()[0][0]),
+                linear.GetU()[0][0] / (linear.GetV()[0][0]),
+                linear.GetPvalue());
       else
-        fprintf(fp, "%g\t%g\t%c\t%g\n", af, logistic.GetStat(), logistic.GetU()[0][0] > 0 ? '+': '-', logistic.GetPvalue());
+        fprintf(fp, "%g\t%d\t%g\t%g\t%d\t%d\t%d\t%g\t%g\t%g\t%g",
+                af,
+                informativeAC,
+                callRate,
+                hweP,
+                homRef, het, homAlt,
+                logistic.GetU()[0][0],
+                sqrt(logistic.GetV()[0][0]),
+                logistic.GetU()[0][0] / (logistic.GetV()[0][0]),
+                logistic.GetPvalue());
     }else
-      fputs("NA\tNA\tNA\tNA\n", fp);
+      for (int i = 11; i >= 1; --i) {
+        fputs("NA", fp);
+        if (i!=1) fputs("\t", fp);
+      }
+      fputs("\n", fp);
   };
 private:
   double af;
@@ -369,6 +444,11 @@ private:
   LogisticRegressionScoreTest logistic;
   bool fitOK;
   Matrix cov;
+  int homRef;
+int het;
+  int homAlt;
+  double hweP;
+double callRate;
 }; // SingleVariantScoreTest
 
 class SingleVariantFisherExactTest: public ModelFitter{
@@ -1935,37 +2015,6 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out){
       (*out)[p][0] += in[p][m] * weight;
     }
   };
-};
-
-template<class T>
-class OrderFunction {
-public:
-OrderFunction(T& t): v(t) {};
-  bool operator() (int i, int j)  {
-    return v[i] < v[j];
-  };
-  const T& v;
-};
-
-/**
- * @param freq: 0.3, 0.2, 0.1, 0.4
- * will return
- * @param ord:  2, 1, 0, 3
- *
- * algorithm:
- * make a pair like this: (0.3, 0), (0.2, 1), (0.1, 2), (0.4, 3)
- * sort by first element:
- * (0.1, 2), (0.2, 1), (0.3, 0), (0.4, 3)
- * extract second element:
- * 2, 1, 0, 3
- */
-void order(std::vector<double>& freq, std::vector<int>* ord) {
-  ord->resize(freq.size());
-  for (int i = 0; i < freq.size(); ++i)
-    (*ord)[i] = i;
-
-  OrderFunction< std::vector<double> > func(freq);
-  std::sort(ord->begin(), ord->end(), func);
 };
 
 /**

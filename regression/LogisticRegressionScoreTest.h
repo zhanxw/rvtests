@@ -41,7 +41,6 @@ public:
   double GetStat() const {return this->stat;};
   const Matrix& GetU() const {return this->Umatrix;};
   const Matrix& GetV() const {return this->Vmatrix;};
-
 private:
   void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
   double stat;

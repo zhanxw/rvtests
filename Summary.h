@@ -19,7 +19,7 @@ Summary(): min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0){};
     max = t[ n - 1];
 
     mean = calculateMean(v);
-    sd = calculateSD(v);
+    sd = calculateSampleSD(v);
   };
 public:
   double min;
@@ -98,7 +98,7 @@ public:
               pheno[i].q3,
               pheno[i].max,
               pheno[i].mean,
-              pheno[i].sd);
+              pheno[i].sd * pheno[i].sd );
     }
 
     if (cov.empty())
@@ -123,7 +123,7 @@ public:
               cov[i].q3,
               cov[i].max,
               cov[i].mean,
-              cov[i].sd);
+              cov[i].sd * cov[i].sd);
     }
   }
 private:

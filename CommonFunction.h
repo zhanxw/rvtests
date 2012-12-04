@@ -71,6 +71,7 @@ double calculateMean(const std::vector<double>& v ){
   return s / v.size();
 }
 
+// this calculate standard deviation by dividing N
 // sd ^ 2 = \frac{1}{N}  (v_i - mean of v_i) ^ 2
 double calculateSD(const std::vector<double>& v ){
   double s = 0.0;
@@ -82,6 +83,20 @@ double calculateSD(const std::vector<double>& v ){
     s += t * t;
   }
   return sqrt(s / v.size());
+}
+
+// this calculate standard deviation by dividing N
+// sd ^ 2 = \frac{1}{N-1}  (v_i - mean of v_i) ^ 2
+double calculateSampleSD(const std::vector<double>& v ){
+  double s = 0.0;
+  if (v.size() <= 1) return 0.0;
+
+  double mean = calculateMean(v);
+  for (unsigned int i = 0; i < v.size(); ++i) {
+    const double t = v[i] - mean;
+    s += t * t;
+  }
+  return sqrt(s / ( v.size() - 1));
 }
 
 void inverseNormalizeLikeMerlin(std::vector<double>* y){

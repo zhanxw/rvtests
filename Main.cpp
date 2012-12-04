@@ -878,6 +878,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
+      ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov")
 
       ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
@@ -1093,8 +1094,8 @@ int main(int argc, char** argv){
       logger->info("Now applying inverse normal transformation.");
       inverseNormalizeLikeMerlin(&phenotypeInOrder);
       g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
-      g_SummaryHeader->recordPhenotype("TransformedTrait", phenotypeInOrder);
-      standardize(&phenotypeInOrder);
+      // g_SummaryHeader->recordPhenotype("TransformedTrait", phenotypeInOrder);
+      // standardize(&phenotypeInOrder);
       g_SummaryHeader->recordPhenotype("AnalyzedTrait", phenotypeInOrder);
       logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");
       logger->info("Done: inverse normal transformation finished.");
@@ -1109,7 +1110,7 @@ int main(int argc, char** argv){
 
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
-  bool singleVariantMode = FLAG_modelSingle.size();
+  bool singleVariantMode = FLAG_modelSingle.size() || FLAG_modelMeta.size();
   bool groupVariantMode =(FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size());
   if ( singleVariantMode && groupVariantMode ) {
     logger->error("Cannot support both single variant and region based tests");
@@ -1224,6 +1225,26 @@ int main(int argc, char** argv){
     }
   };
 
+  if (FLAG_modelMeta != "") {
+    stringTokenize(FLAG_modelMeta, ",", &argModelName);
+    for (int i = 0; i < argModelName.size(); i++ ){
+      parser.parse(argModelName[i]);
+      modelName = parser.getName();
+
+      if (modelName == "score") {
+        model.push_back( new MetaScoreTest() );
+      } else if (modelName == "cov") {
+        int windowSize;
+        parser.assign("windowSize", &windowSize, 1000000);
+        logger->info("Meta analysis window size is %d", windowSize);        
+        model.push_back( new MetaCovTest(windowSize) );
+      } else {
+        logger->error("Unknown model name: %s .", argModelName[i].c_str());
+        abort();
+      };
+    }
+  };
+  
   if (FLAG_outputRaw) {
     model.push_back( new DumpModel(FLAG_outPrefix.c_str()));
   }
@@ -1375,7 +1396,7 @@ int main(int argc, char** argv){
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
         //model[m]->fit(phenotypeMatrix, genotype, covariate);
-        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
+        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
         model[m]->writeOutput(fOuts[m], buf);
       };
 
@@ -1421,7 +1442,7 @@ int main(int argc, char** argv){
 
         for (int m = 0; m < model.size(); m++) {
           model[m]->reset();
-          model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
+          model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
           //          model[m]->fit(phenotypeMatrix, genotype, covariate);
           model[m]->writeOutput(fOuts[m], buf);
         };
@@ -1466,7 +1487,7 @@ int main(int argc, char** argv){
 
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
-        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
+        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
         // model[m]->fit(phenotypeMatrix, genotype, covariate);
         model[m]->writeOutput(fOuts[m], buf);
         // buf.writeValue(fOuts[m]);

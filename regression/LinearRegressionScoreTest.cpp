@@ -103,6 +103,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& 
 bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
   this->Umatrix.Dimension(1,1);
   this->Vmatrix.Dimension(1,1);
+  this->betaMatrix.Dimension(1,1);
 
   double& U = Umatrix[0][0];
   double& V = Vmatrix[0][0];
@@ -126,7 +127,11 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
   for (int i = 0; i < n; ++i){
     U += (y[i] - yMean) * x[i];
   }
-  V = sigma2 * (sumSi2 - sumSi / n *sumSi);
+
+  V = (sumSi2 - sumSi / n *sumSi);
+  this->betaMatrix[0][0] = U / V;
+  V *= sigma2;
+  
   if (V < 1e-6) {
     this->pvalue = 0.0;
     return false;
@@ -186,12 +191,19 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
   SS.Add(SZ);
 
   copy(U, &this->Umatrix);
-  SS *= lr.GetSigma2();
-  
+
+  //
   this->Vmatrix = SS;
-      
-  // S = U^T inv(I) U : quadratic form
+  this->Vmatrix *= lr.GetSigma2();
+
+  
   svd.InvertInPlace(SS);
+  Matrix Umat;
+  copy(U, &Umat);
+  this->betaMatrix.Product(SS, Umat);
+  SS /= lr.GetSigma2();
+  
+  // S = U^T inv(I) U : quadratic form
   double S = 0.0;
   for (int i = 0; i < m; i++){
     S += U[i] * SS[i][i] * U[i];
@@ -244,11 +256,23 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
 
   copy(U, &this->Umatrix);
 
-  SS *= this->lr.GetSigma2();
-  this->Vmatrix = SS;
+  // SS *= this->lr.GetSigma2();
+  // this->Vmatrix = SS;
 
+  // SVD svd;
+  // svd.InvertInPlace(SS);
+
+  //
+  this->Vmatrix = SS;
+  this->Vmatrix *= lr.GetSigma2();
   SVD svd;
   svd.InvertInPlace(SS);
+  Matrix Umat;
+  copy (U, &Umat);
+  this->betaMatrix.Product(SS, Umat);
+  SS /= lr.GetSigma2();
+  //
+  
   double S = 0.0;
   for (int i = 0; i < m; i++){
     S += U[i] * SS[i][i] * U[i];

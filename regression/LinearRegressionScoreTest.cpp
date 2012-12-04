@@ -29,7 +29,8 @@ bool LinearRegressionScoreTest::FitNullModel(Matrix& Xnull, Vector& y){
 bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol){
   this->Umatrix.Dimension(1,1);
   this->Vmatrix.Dimension(1,1);
-
+  this->betaMatrix.Dimension(1,1);
+      
   double& U = Umatrix[0][0];
   double& I = Vmatrix[0][0];
 
@@ -83,6 +84,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& 
     I -= leftMult_corr[i] * vec_corr[i];
   }
 
+  this->betaMatrix[0][0] = U / I;
   I *= this->lr.GetSigma2();
 
   // printf("In the end, I = %.5f\n",I);
@@ -184,8 +186,10 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
   SS.Add(SZ);
 
   copy(U, &this->Umatrix);
+  SS *= lr.GetSigma2();
+  
   this->Vmatrix = SS;
-
+      
   // S = U^T inv(I) U : quadratic form
   svd.InvertInPlace(SS);
   double S = 0.0;
@@ -196,7 +200,6 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Matrix& 
     }
   }
 
-  S /= this->lr.GetSigma2();
   this->stat = S;
   if (this->stat < 0) return false;
   this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0); // use chisq to inverse, here chidist = P(X > S) where X ~ chi(m)
@@ -240,6 +243,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
   SS.Add(temp);
 
   copy(U, &this->Umatrix);
+
+  SS *= this->lr.GetSigma2();
   this->Vmatrix = SS;
 
   SVD svd;
@@ -252,7 +257,6 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
     }
   }
 
-  S /= this->lr.GetSigma2();
   this->stat = S;
   if (this->stat < 0) return false;
   this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);

@@ -165,7 +165,7 @@ deepclean: clean
 	(cd base; make clean)
 	(cd regression; make clean)
 	(cd libVcf; make clean)
-	(cd third; make clean)
+	(cd third; make deepclean)
 	(cd libsrc; make clean)
 test: test1
 test1: rvtest

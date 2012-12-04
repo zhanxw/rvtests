@@ -74,7 +74,7 @@ double getCovariance(const Genotype& g1, const Genotype& g2) {
     sum_ij += g1[c]*g2[c];
     sum_j += g2[c];
   };
-  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
+  // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij, sum_i, sum_j);
   double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
   // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
   return cov_ij;
@@ -459,7 +459,7 @@ int main(int argc, char** argv){
     queue.push_back(loci);
   }
 
-  while(queue.size() > 1) {
+  while(queue.size() > 0 ) { 
     printCovariance(fout, queue);
     queue.pop_front();
   }

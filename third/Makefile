@@ -7,6 +7,7 @@ tabix: tabix-0.2.5.tar.bz2
 	-mv tabix-0.2.5.tar.bz2* tabix-0.2.5.tar.bz2
 	tar jvxf tabix-0.2.5.tar.bz2
 	ln -s -f tabix-0.2.5 tabix
+	sed -i 's:-D_USE_KNETFILE::' tabix/Makefile
 	sed -i 's:-D_USE_KNTFILE::' tabix/Makefile
 	(cd tabix-0.2.5; make)
 

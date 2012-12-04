@@ -32,4 +32,4 @@ $(LIB_DBG): $(OBJ)
 	g++ -c $(CXXFLAGS) $<
 
 clean:
-	rm -rf $(LIB) $(LIB_DBG) *.o
+	rm -rf $(LIB) $(LIB_DBG) *.o *.d

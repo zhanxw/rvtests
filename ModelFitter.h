@@ -445,10 +445,10 @@ private:
   bool fitOK;
   Matrix cov;
   int homRef;
-int het;
+  int het;
   int homAlt;
   double hweP;
-double callRate;
+  double callRate;
 }; // SingleVariantScoreTest
 
 class SingleVariantFisherExactTest: public ModelFitter{

@@ -3,7 +3,6 @@
 
 #include <gsl/gsl_cdf.h>
 
-
 template<class T>
 class OrderFunction {
 public:
@@ -33,6 +32,26 @@ void order(std::vector<double>& freq, std::vector<int>* ord) {
 
   OrderFunction< std::vector<double> > func(freq);
   std::sort(ord->begin(), ord->end(), func);
+};
+
+void order(std::vector<int>& freq, std::vector<int>* ord) {
+  ord->resize(freq.size());
+  for (int i = 0; i < freq.size(); ++i)
+    (*ord)[i] = i;
+
+  OrderFunction< std::vector<int> > func(freq);
+  std::sort(ord->begin(), ord->end(), func);
+};
+
+/**
+ * Calculate rank, using average for ties.
+ */
+void calculateRank(std::vector<double>& freq, std::vector<int>* res) {
+  std::vector<int> ord;
+  order(freq, &ord);
+  order(ord, res);
+  
+  // calculate the mean of rank if there are ties
 };
 
 double pnorm(double x) {
@@ -65,24 +84,24 @@ double calculateSD(const std::vector<double>& v ){
   return sqrt(s / v.size());
 }
 
-void inverseNormal(std::vector<double>* y){
+void inverseNormalizeLikeMerlin(std::vector<double>* y){
   if (!y || !y->size()) return;
   const int n = y->size();
-  std::vector<int> ord;
-  order(*y, &ord);
+  std::vector<int> yRank;
+  calculateRank(*y, &yRank);
 
   // change order to 1-based rank
   for (size_t i = 0; i < n; ++i ) {
-    (*y)[i] = qnorm( ( 0.5 + ord[i]) / n);
+    (*y)[i] = qnorm( ( 0.5 + yRank[i]) / n);
     // fprintf(stderr, "%zu - %g - %d \n", i,  (*y)[i], ord[i]);
   }
-  // double m = calculateMean(*y);
-  // double sd = calculateSD(*y);
+  double m = calculateMean(*y);
+  double sd = calculateSD(*y);
   // fprintf(stderr, "mean = %g, sd = %g\n", m, sd);
 }
 
 // inverse normal a vector AND center it.
-void inverseNormalLikeR(std::vector<double>* y){
+void inverseNormalizeLikeR(std::vector<double>* y){
   if (!y || !y->size()) return;
   const int n = y->size();
   std::vector<int> ord;
@@ -100,15 +119,18 @@ void inverseNormalLikeR(std::vector<double>* y){
   }
   for (unsigned int i = 0; i < n ; i++)
     (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + (1 - a) - a));
+}
 
-  /* // center */
-  /* double m = calculateMean(*y); */
-  /* double sd = calculateSD(*y); */
-  /* for (unsigned int i = 0; i < n ; i++) { */
-  /*   (*y)[i] -= m; */
-  /*   (*y)[i] /= sd; */
-  /* } */
-  /* logger->info("Done: centering to 0.0 and scaling to 1.0 finished."); */
+void standardize(std::vector<double>* y) {
+  // center
+  size_t n = y->size();
+  double m = calculateMean(*y);
+  double sd = calculateSD(*y);
+  for (size_t i = 0; i < n ; i++) {
+    (*y)[i] -= m;
+    (*y)[i] /= sd;
+  }
+  // logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");
 };
 
 

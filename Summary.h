@@ -8,16 +8,16 @@ public:
 Summary(): min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0){};
   void add(const std::vector<double>& v) {
     n = v.size();
-    
+
     std::vector<double> t = v;
     std::sort(t.begin(), t.end());
-    
+
     min = t[0];
     q1 = t[ (int) n * 0.25];
     median = t[ (int) n * 0.5];
     q3 = t[ (int) n * 0.75];
     max = t[ n - 1];
-    
+
     mean = calculateMean(v);
     sd = calculateSD(v);
   };
@@ -31,6 +31,7 @@ public:
   double sd;
   int n;
 };
+
 /**
  * A class to summarize phenotype and genotypes
  */
@@ -43,7 +44,28 @@ public:
     this->inverseNormal = inverseNormalized;
     transformedPheno.add(phenoInOrder);
   };
-  void recordCovariate();
+  void recordCovariateColumn(Matrix& m, int col) {
+    int nr = m.rows;
+
+    std::vector < double > v(nr);
+    for (int i = 0; i < m.rows; ++i) {
+      v[i] = m[i][col];
+    }
+
+    Summary s;
+    s.add(v);
+    this->cov.push_back(s);
+  }
+  void recordCovariate(Matrix& m) {
+    int nr = m.rows;
+    int nc = m.cols;
+    this->covLabel.clear();
+    this->cov.clear();
+    for (int i = 0 ; i < nc; ++i) {
+      this->covLabel.push_back( m.GetColumnLabel(i));
+      this->recordCovariateColumn(m, i );
+    }
+  };
   void outputHeader(FILE* fp) {
     // write summaries
     int nSample = rawPheno.n;
@@ -73,12 +95,34 @@ public:
             transformedPheno.mean,
             transformedPheno.sd);
 
-    // write more
+    // write covariate
+    fprintf(fp, "##Covariates=");
+    for (size_t i = 0; i < cov.size(); ++i ) {
+      fputs(covLabel[i].c_str(), fp);
+      if (i)
+        fputc(',', fp);
+    }
+    fputc('\n', fp);
+    
+    fprintf(fp, "##CovariateSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
+    for (size_t i = 0; i < cov.size(); ++i ) {
+      fprintf(fp, "##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
+              covLabel[i].c_str(),
+              cov[i].min,
+              cov[i].q1,
+              cov[i].median,
+              cov[i].q3,
+              cov[i].max,
+              cov[i].mean,
+              cov[i].sd);
+    }
   }
 private:
   Summary rawPheno;
   Summary transformedPheno;
   bool inverseNormal;
+  std::vector<std::string> covLabel;
+  std::vector<Summary> cov;
 };
 
 #endif /* _SUMMARY_H_ */

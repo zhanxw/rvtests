@@ -1086,20 +1086,22 @@ int main(int argc, char** argv){
   }
 
     // phenotype transformation
-    g_SummaryHeader->recordRawPhenotype(phenotypeInOrder);
+  g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
     if (FLAG_inverseNormal) {
+      
       if (binaryPhenotype){
         logger->warn("WARNING: Skip transforming binary phenotype, although you required inverse normalization!");
       } else {
         logger->info("Now applying inverse normal transformation.");
         inverseNormalizeLikeMerlin(&phenotypeInOrder);
+        g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);        
+        g_SummaryHeader->recordPhenotype("TransformedTrait", phenotypeInOrder);
         standardize(&phenotypeInOrder);
+        g_SummaryHeader->recordPhenotype("AnalyzedTrait", phenotypeInOrder);
         logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");        
         logger->info("Done: inverse normal transformation finished.");
       }
     };
-    g_SummaryHeader->recordTransformedPhenotype(phenotypeInOrder, FLAG_inverseNormal);
-
 
     if (phenotypeInOrder.empty()) {
       logger->fatal("There are 0 samples with valid phenotypes, quitting...");

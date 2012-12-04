@@ -37,13 +37,23 @@ public:
  */
 class SummaryHeader{
 public:
-  void recordRawPhenotype(const std::vector<double>& phenoInOrder){
-    rawPheno.add(phenoInOrder);
-  };
-  void recordTransformedPhenotype(const std::vector<double>& phenoInOrder, bool inverseNormalized){
-    this->inverseNormal = inverseNormalized;
-    transformedPheno.add(phenoInOrder);
-  };
+  void recordPhenotype(const char* label, const std::vector<double>& pheno){
+    this->phenoLabel.push_back(label);
+    Summary s;
+    s.add(pheno);
+    this->pheno.push_back(s);
+  }
+  void setInverseNormalize(bool b) {
+    this->inverseNormalized = b;
+  }
+
+  /* void recordRawPhenotype(const std::vector<double>& phenoInOrder){ */
+  /*   rawPheno.add(phenoInOrder); */
+  /* }; */
+  /* void recordTransformedPhenotype(const std::vector<double>& phenoInOrder, bool inverseNormalized){ */
+  /*   this->inverseNormal = inverseNormalized; */
+  /*   transformedPheno.add(phenoInOrder); */
+  /* }; */
   void recordCovariateColumn(Matrix& m, int col) {
     int nr = m.rows;
 
@@ -68,32 +78,28 @@ public:
   };
   void outputHeader(FILE* fp) {
     // write summaries
-    int nSample = rawPheno.n;
+    int nSample = pheno.size()? pheno[0].n: 0;
     fprintf(fp, "##Samples=%d\n", nSample);
     fprintf(fp, "##AnalyzedSamples=%d\n", nSample);
     fprintf(fp, "##Families=%d\n", nSample);
     fprintf(fp, "##AnalyzedFamilies=%d\n", nSample);
     fprintf(fp, "##Founders=%d\n", nSample);
     fprintf(fp, "##AnalyzedFounders=%d\n", nSample);
-    fprintf(fp, "##InverseNormal=%s\n", inverseNormal ? "ON" : "OFF");
+    fprintf(fp, "##InverseNormal=%s\n", this->inverseNormalized ? "ON" : "OFF");
+
     // write summaries
     fprintf(fp, "##TraitSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
-    fprintf(fp, "##Triat\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
-            rawPheno.min,
-            rawPheno.q1,
-            rawPheno.median,
-            rawPheno.q3,
-            rawPheno.max,
-            rawPheno.mean,
-            rawPheno.sd);
-    fprintf(fp, "##AnalyzedTrait\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
-            transformedPheno.min,
-            transformedPheno.q1,
-            transformedPheno.median,
-            transformedPheno.q3,
-            transformedPheno.max,
-            transformedPheno.mean,
-            transformedPheno.sd);
+    for (size_t i = 0; i < pheno.size(); ++i) {
+      fprintf(fp, "##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
+              phenoLabel[i].c_str(),
+              pheno[i].min,
+              pheno[i].q1,
+              pheno[i].median,
+              pheno[i].q3,
+              pheno[i].max,
+              pheno[i].mean,
+              pheno[i].sd);
+    }
 
     // write covariate
     fprintf(fp, "##Covariates=");
@@ -103,7 +109,7 @@ public:
         fputc(',', fp);
     }
     fputc('\n', fp);
-    
+
     fprintf(fp, "##CovariateSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
     for (size_t i = 0; i < cov.size(); ++i ) {
       fprintf(fp, "##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
@@ -118,9 +124,12 @@ public:
     }
   }
 private:
-  Summary rawPheno;
+  std::vector<std::string> phenoLabel;
+  std::vector<Summary> pheno;
   Summary transformedPheno;
-  bool inverseNormal;
+
+  bool inverseNormalized;
+
   std::vector<std::string> covLabel;
   std::vector<Summary> cov;
 };

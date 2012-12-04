@@ -17,6 +17,7 @@
 #include "regression/MatrixOperation.h"
 #include "LinearAlgebra.h"
 #include "snp_hwe.c"
+#include "Result.h"
 #include "Summary.h"
 
 extern SummaryHeader* g_SummaryHeader;
@@ -155,14 +156,15 @@ public:
   // fitting model
   virtual int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& w) = 0;
   // write result header
-  virtual void writeHeader(FILE* fp, const char* prependString) = 0;
+  virtual void writeHeader(FILE* fp, const Result& siteInfo) = 0;
   // write model output
-  virtual void writeOutput(FILE* fp, const char* prependString) = 0;
+  virtual void writeOutput(FILE* fp, const Result& siteInfo) = 0;
 
   ModelFitter(){
     this->modelName = "Unassigned_Model_Name";
     this->binaryOutcome = false; // default: using continuous outcome
   };
+  virtual ~ModelFitter() {};
   const std::string& getModelName() const { return this->modelName; };
   // for particular class to call when fitting repeatedly
   // e.g. clear permutation counter
@@ -282,16 +284,16 @@ public:
     return (fitOK ? 0 : 1);
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
     fprintf(fp, "Test\tBeta\tSE\tPvalue\n");
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
+  void writeOutput(FILE* fp, const Result& siteInfo) {
     // skip interecept (column 0)
     for (int i = 1; i < this->X.cols; ++i) {
       if (!fitOK) {
-        fputs(prependString, fp);
+        siteInfo.writeValue(fp);
         fprintf(fp, "%s\tNA\tNA\tNA\n", this->X.GetColumnLabel(i));
       } else {
         double beta, se, pval;
@@ -304,7 +306,7 @@ public:
           se = sqrt(logistic.GetCovB()[i][i]);
           pval = logistic.GetAsyPvalue()[i];
         }
-        fputs(prependString, fp);
+        siteInfo.writeValue(fp);
         fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se, pval);
       }
     }
@@ -382,59 +384,61 @@ public:
   };
 
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
+  void writeHeader(FILE* fp, const Result& siteInfo) {
     if (g_SummaryHeader) {
       g_SummaryHeader->outputHeader(fp);
     }
     
-    fputs(prependString, fp);
+    siteInfo.writeHeaderTab(fp);
     // fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
-    fprintf(fp, "AF\t");
-    fprintf(fp, "INFORMATIVE_ALT_AC\t");
-    fprintf(fp, "CALL_RATE\t");
-    fprintf(fp, "HWE_PVALUE\t");
-    fprintf(fp, "N_REF\t");
-    fprintf(fp, "N_HET\t");
-    fprintf(fp, "N_ALT\t");
-    fprintf(fp, "U_STAT\t");
-    fprintf(fp, "SQRT_V_STAT\t");
-    fprintf(fp, "ALT_EFFSIZE\t");
-    fprintf(fp, "PVALUE\n");
+    result.addHeader("AF");
+    result.addHeader("INFORMATIVE_ALT_AC");
+    result.addHeader("CALL_RATE");
+    result.addHeader("HWE_PVALUE");
+    result.addHeader("N_REF");
+    result.addHeader("N_HET");
+    result.addHeader("N_ALT");
+    result.addHeader("U_STAT");
+    result.addHeader("SQRT_V_STAT");
+    result.addHeader("ALT_EFFSIZE");
+    result.addHeader("PVALUE");
+    result.writeHeaderLine(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+
+    siteInfo.writeValueTab(fp);
     int informativeAC = het + 2* homAlt;
     
+    result.clearValue();
     if (fitOK) {
-      if (!isBinaryOutcome())
-        fprintf(fp, "%g\t%d\t%g\t%g\t%d\t%d\t%d\t%g\t%g\t%g\t%g",
-                af,
-                informativeAC,
-                callRate,
-                hweP,
-                homRef, het, homAlt,
-                linear.GetU()[0][0],
-                sqrt(linear.GetV()[0][0]),
-                linear.GetU()[0][0] / (linear.GetV()[0][0]),
-                linear.GetPvalue());
-      else
-        fprintf(fp, "%g\t%d\t%g\t%g\t%d\t%d\t%d\t%g\t%g\t%g\t%g",
-                af,
-                informativeAC,
-                callRate,
-                hweP,
-                homRef, het, homAlt,
-                logistic.GetU()[0][0],
-                sqrt(logistic.GetV()[0][0]),
-                logistic.GetU()[0][0] / (logistic.GetV()[0][0]),
-                logistic.GetPvalue());
-    }else
-      for (int i = 11; i >= 1; --i) {
-        fputs("NA", fp);
-        if (i!=1) fputs("\t", fp);
+      if (!isBinaryOutcome()) {
+        result.updateValue("AF", af);
+        result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
+        result.updateValue("CALL_RATE", callRate);
+        result.updateValue("HWE_PVALUE", hweP);
+        result.updateValue("N_REF", homRef);
+        result.updateValue("N_HET", het);
+        result.updateValue("N_ALT", homAlt);
+        result.updateValue("U_STAT", linear.GetU()[0][0]);
+        result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]));
+        result.updateValue("ALT_EFFSIZE", linear.GetU()[0][0] / (linear.GetV()[0][0]));
+        result.updateValue("PVALUE", linear.GetPvalue());
+      } else {
+        result.updateValue("AF", af);
+        result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
+        result.updateValue("CALL_RATE", callRate);
+        result.updateValue("HWE_PVALUE", hweP);
+        result.updateValue("N_REF", homRef);
+        result.updateValue("N_HET", het);
+        result.updateValue("N_ALT", homAlt);
+        result.updateValue("U_STAT", logistic.GetU()[0][0]);
+        result.updateValue("SQRT_V_STAT", sqrt(logistic.GetV()[0][0]));
+        result.updateValue("ALT_EFFSIZE", logistic.GetU()[0][0] / (logistic.GetV()[0][0]));
+        result.updateValue("PVALUE", logistic.GetPvalue());
       }
-      fputs("\n", fp);
+    }
+    result.writeValueLine(fp);    
   };
 private:
   double af;
@@ -449,6 +453,7 @@ private:
   int homAlt;
   double hweP;
   double callRate;
+  Result result;
 }; // SingleVariantScoreTest
 
 class SingleVariantFisherExactTest: public ModelFitter{
@@ -457,8 +462,8 @@ public:
     this->modelName = "FisherExact";
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     fputs("Fisher.N00\t", fp);
     fputs("Fisher.N01\t", fp);
     fputs("Fisher.N10\t", fp);
@@ -513,8 +518,8 @@ public:
     this->fitOK = true;
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (fitOK) {
       fprintf(fp, "%d\t", model.Get00());
       fprintf(fp, "%d\t", model.Get01());
@@ -585,8 +590,8 @@ public:
     }
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (isBinaryOutcome()) {
       fprintf(fp, "CMC.Pvalue\n");
     } else {
@@ -594,8 +599,8 @@ public:
     }
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (!fitOK) {
       fprintf(fp, "NA\n");
     } else {
@@ -663,8 +668,8 @@ public:
     this->fitOK = true;
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     fputs("exactCMC.N00\t", fp);
     fputs("exactCMC.N01\t", fp);
     fputs("exactCMC.N10\t", fp);
@@ -674,8 +679,8 @@ public:
     fputs("exactCMC.PvalueGreater\n", fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (fitOK) {
       fprintf(fp, "%d\t", model.Get00());
       fprintf(fp, "%d\t", model.Get01());
@@ -735,13 +740,13 @@ public:
     }
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     fprintf(fp, "Zeggini.Pvalue\n");
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (!fitOK) {
       fprintf(fp, "NA\n");
     } else {
@@ -816,8 +821,8 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->perm.reset();
   }
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (isBinaryOutcome()){
       perm.writeHeader(fp);
     } else {
@@ -826,8 +831,8 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     fprintf(fp, "\n");
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (isBinaryOutcome()) {
       if (fitOK){
         perm.writeOutput(fp);
@@ -886,13 +891,13 @@ public:
     }
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     fprintf(fp, "Fp.Pvalue\n");
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (!fitOK) {
       fprintf(fp, "NA\n");
     } else {
@@ -961,8 +966,8 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->perm.reset();
   }
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (isBinaryOutcome()){
       fprintf(fp, "NumIncMarker\t");
       this->perm.writeHeader(fp);
@@ -971,8 +976,8 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
       fprintf(fp, "NA\n");
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (isBinaryOutcome()) {
       if (fitOK){
         fprintf(fp, "%zu\t", this->selected.size());
@@ -1112,8 +1117,8 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->perm.reset();
   }
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (isBinaryOutcome()) { /// cmat only takes binary output
       this->perm.writeHeader(fp);
       fprintf(fp, "\n");      
@@ -1121,8 +1126,8 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
       fprintf(fp, "NA\n");
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (isBinaryOutcome()) {
       if (fitOK){
         this->perm.writeOutput(fp);
@@ -1294,15 +1299,15 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     return 0;
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     fputs("\tOptFreq\t", fp);
     this->perm.writeHeader(fp);
     fputs("\n", fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     fprintf(fp, "\t%g\t", this->optimalFreq);
     this->perm.writeOutput(fp);
     fprintf(fp, "\n");
@@ -1422,17 +1427,20 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     return 0;
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
-    model[0].writeHeader(fp, "FreqThreshold\t");
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    this->result = siteInfo;
+    result.addHeader("FreqThreshold");
+    result.writeHeader(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
+  void writeOutput(FILE* fp, const Result& siteInfo) {
     char buf[1000];
-    // fputs(prependString, fp);
+    // siteInfo.writeValue(fp);
     for (int i = 0; i < freq.size(); i ++ ){
-      sprintf(buf, "%s\t%f\t", prependString, freq[i]);
-      model[i].writeOutput(fp, buf);
+      /* sprintf(buf, "%s\t%f\t", prependString, freq[i]); */
+      /* model[i].writeOutput(fp, buf); */ 
+      result.updateValue("FreqThreshold", toString(freq[i]));
+      result.writeValue(fp);
     }
   };
   void reset() {
@@ -1447,6 +1455,7 @@ private:
   CMCTest* model;
   int modelLen;
   int modelCapacity;
+  Result result;
 }; // VariableThresholdCMCTest
 
 #if 0
@@ -1614,8 +1623,8 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
     return 0;
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (!usePermutation)
       fprintf(fp, "Q\tPvalue\n");
     else {
@@ -1625,8 +1634,8 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
     }
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (!fitOK){
       fprintf(fp, "NA\tNA");
       if (usePermutation) {
@@ -1675,8 +1684,8 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
     if (this->mafIn) delete[] this->mafIn;
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     fprintf(fp, "KBAC.Pvalue\n");
   };
   void reset() {
@@ -1744,8 +1753,8 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
     return 0;
   };
   // write model output
-  void writeOutput(FILE* fp, const char* prependString) {
-    fputs(prependString, fp);
+  void writeOutput(FILE* fp, const Result& siteInfo) {
+    siteInfo.writeValue(fp);
     if (!fitOK){
       fputs("NA\n", fp);
     } else {
@@ -1802,11 +1811,11 @@ public:
     this->modelName = "DumpData";
   };
   // write result header
-  void writeHeader(FILE* fp, const char* prependString) { // e.g. column headers.
-    fputs(prependString, fp);
+  void writeHeader(FILE* fp, const Result& siteInfo) { // e.g. column headers.
+    siteInfo.writeValue(fp);
     fprintf(fp, "FileName");
-
-    this->header = prependString;
+    
+    this->header = siteInfo.joinHeader(); 
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight) {
@@ -1814,14 +1823,17 @@ public:
     this->genotype = genotype;
     this->covariate = covariate;
   };
+
   // write model output
-  void writeOutput(FILE* fp, const char* prependString){
-    std::string fn = this->prefix + "\t" + prependString + "data";
+  void writeOutput(FILE* fp, const Result& siteInfo){
+    std::string fn = this->prefix + "\t" + siteInfo.joinValue() + "data";
+
+    
     for (int i = 0; i < fn.size(); ++i) {
       if (fn[i] == '\t') fn[i] = '.';
     }
 
-    fputs(prependString, fp);
+    siteInfo.writeValue(fp);
     fprintf(fp, "%s\n", fn.c_str());
 
     // write header
@@ -1845,7 +1857,8 @@ public:
 
     // write content
     for (int i = 0; i < phenotype.rows; ++i) {
-      fputs(prependString, fDump);
+      // fputs(prependString, fDump);
+      siteInfo.writeValue(fDump);
       for (int j = 0; j < phenotype.cols; ++j) {
         if (j) fprintf(fDump, "\t");
         fprintf(fDump, "%f", phenotype[i][j]);

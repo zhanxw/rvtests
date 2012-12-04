@@ -48,6 +48,7 @@
 #include "MathVector.h"
 #include "MathMatrix.h"
 #include "Random.h"
+#include "GitVersion.h"
 
 typedef std::vector<int> Genotype;
 struct Pos{
@@ -98,6 +99,14 @@ int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
   }
 };
 
+int printHeader(FILE* fp) {
+  fprintf(fp, "##ProgramName=%s\n", "RVTests");
+  fprintf(fp, "##Version=%s\n", gitVersion);  
+  fprintf(fp, "##mean=0.0\n");
+  fprintf(fp, "##sigma2_residual=1.0\n");
+  fprintf(fp, "CHROM\tCURRENT_POS\tEND_POS\tNUM_MARKER\tMARKER_POS\tCOV\n");
+  return 0;
+}
 /**
  * @return 0
  * print the covariance for the front of loci to the rest of loci
@@ -124,6 +133,16 @@ int printCovariance(FILE* fp, const std::deque<Loci>& loci){
     fprintf(fp, "%g", cov[i]);
   }
   fputc('\n', fp);
+};
+
+/**
+ * @return a string representing current time, without '\n' at the end
+ */
+std::string currentTime() {
+  time_t t = time(NULL);
+  std::string s (ctime(&t));
+  s = s.substr(0, s.size() - 1);
+  return s;
 };
 
 void banner(FILE* fp) {
@@ -321,9 +340,11 @@ double calculateCov(Matrix& genotype, const int i, const int j){
   return cov_ij;
 };
 
+Logger* logger = NULL;
+
 int main(int argc, char** argv){
-  time_t currentTime = time(0);
-  fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
+  // time_t currentTime = time(0);
+  // fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
@@ -412,12 +433,23 @@ int main(int argc, char** argv){
 
   std::string s = FLAG_outPrefix;
   FILE* fout = fopen( ( s + ".cov" ).c_str(), "wt");
-  FILE* flog = fopen( ( s + ".log" ).c_str(), "wt");
+  Logger _logger( (FLAG_outPrefix + ".cov.log").c_str());
+  logger = &_logger;
+  logger->infoToFile("Program Version");
+  logger->infoToFile(gitVersion);
+  logger->infoToFile("Parameters BEGIN");
+  pl.WriteToFile(logger->getHandle());
+  logger->infoToFile("Parameters END");
 
+  time_t startTime = time(0);
+  logger->info("Analysis started at: %s", currentTime().c_str());
+
+  printHeader(fout);
 
   // std::string chrom;
   // std::vector<int> pos; // store positions
   std::deque< Loci> queue;
+  int numVariant = 0;
 
   // extract genotypes
   while (vin.readRecord()){
@@ -457,17 +489,23 @@ int main(int argc, char** argv){
       queue.pop_front();
     };
     queue.push_back(loci);
+    ++numVariant;
   }
 
-  while(queue.size() > 0 ) { 
+  while(queue.size() > 0 ) {
     printCovariance(fout, queue);
     queue.pop_front();
   }
 
   fclose(fout);
-  fclose(flog);
-  currentTime = time(0);
-  fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));
+  // currentTime = time(0);
+  // fprintf(stderr, "Analysis ended at: %s", ctime(&currentTime));
+
+  logger->info("Total %d variants are processed", numVariant);
+  time_t endTime = time(0);
+  logger->info("Analysis ends at: %s", currentTime().c_str());
+  int elapsedSecond = (int) (endTime - startTime);
+  logger->info("Analysis took %d seconds", elapsedSecond);
 
   return 0;
 };

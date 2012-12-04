@@ -101,6 +101,9 @@ public:
               pheno[i].sd);
     }
 
+    if (cov.empty())
+      return;
+    
     // write covariate
     fprintf(fp, "##Covariates=");
     for (size_t i = 0; i < cov.size(); ++i ) {

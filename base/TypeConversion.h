@@ -16,6 +16,15 @@ inline std::string toString(T i){
     return ss.str();
 }
 
+// convert double/float to string type
+template<class T>
+inline std::string floatToString(T i){
+    std::stringstream ss;
+    ss.precision(6);
+    ss << std::noshowpoint << i;
+    return ss.str();
+}
+
 // convert std::string to integer
 // @return true if conversion succeed
 inline bool str2int(const char* input, int* output) {

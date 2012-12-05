@@ -78,6 +78,7 @@ public:
     // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
 
     // write BED
+    int GTidx = r->getFormatIndex("GT");
     VCFPeople& people = r->getPeople();
     unsigned char c = 0;
     VCFIndividual* indv;
@@ -85,8 +86,8 @@ public:
     for (unsigned int i = 0; i < people.size() ; i ++) {
       indv = people[i];
       offset = i & (4 - 1);
-      if (indv->justGet(0).isHaploid()) { // 0: index of GT
-        int a1 = indv->justGet(0).getAllele1();
+      if (indv->justGet(GTidx).isHaploid()) { // 0: index of GT
+        int a1 = indv->justGet(GTidx).getAllele1();
         if (a1 == 0)
           setGenotype(&c, offset, HOM_REF);
         else if (a1 == 1)
@@ -94,8 +95,8 @@ public:
         else
           setGenotype(&c, offset, MISSING);
       } else {
-        int a1 = indv->justGet(0).getAllele1();
-        int a2 = indv->justGet(0).getAllele2();
+        int a1 = indv->justGet(GTidx).getAllele1();
+        int a2 = indv->justGet(GTidx).getAllele2();
         if (a1 == 0) {
           if (a2 == 0) {
             //homo ref: 0b00
@@ -117,6 +118,83 @@ public:
           // so have to set genotype as missing.
           setGenotype(&c, offset, MISSING); // missing
         };
+      }
+      if ( offset == 3) { // 3: 4 - 1, so every 4 genotype we will flush
+        fwrite(&c, sizeof(char), 1, this->fpBed);
+        c = 0;
+      }
+    };
+    if (people.size() % 4 != 0 ) // remaining some bits
+      fwrite(&c, sizeof(char), 1, this->fpBed);
+
+    return 0;
+  }
+  int writeRecordWithFilter(VCFRecord* r, const double minGD, const double minGQ){
+    int ret;
+    // write BIM
+    // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
+    ret = this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(), r->getAlt());
+    if (ret) return ret; // unsuccess
+    // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
+
+    // write BED
+    int GTidx = r->getFormatIndex("GT");
+    int GDidx = r->getFormatIndex("GD");
+    int GQidx = r->getFormatIndex("GQ");
+    bool missing = false;
+
+    VCFPeople& people = r->getPeople();
+    unsigned char c = 0;
+    VCFIndividual* indv;
+    int offset;
+    for (unsigned int i = 0; i < people.size() ; i ++) {
+      indv = people[i];
+      offset = i & (4 - 1);
+
+      missing = false;
+      if (minGD > 0 && (GDidx < 0 || (GDidx > 0 && indv->justGet(GDidx).toDouble() < minGD))) {
+        missing = true;
+      }
+      if (missing && minGQ > 0 && (GQidx < 0 || (GQidx > 0 && indv->justGet(GQidx).toDouble() < minGQ))) {
+        missing = true;
+      }
+      if (! missing ) {
+
+        if (indv->justGet(GTidx).isHaploid()) { // 0: index of GT
+          int a1 = indv->justGet(GTidx).getAllele1();
+          if (a1 == 0)
+            setGenotype(&c, offset, HOM_REF);
+          else if (a1 == 1)
+            setGenotype(&c, offset, HET);
+          else
+            setGenotype(&c, offset, MISSING);
+        } else {
+          int a1 = indv->justGet(GTidx).getAllele1();
+          int a2 = indv->justGet(GTidx).getAllele2();
+          if (a1 == 0) {
+            if (a2 == 0) {
+              //homo ref: 0b00
+            } else if (a2 == 1) {
+              setGenotype(&c, offset, HET); // het: 0b01
+            } else {
+              setGenotype(&c, offset, MISSING); // missing 0b10
+            }
+          } else if (a1 == 1) {
+            if (a2 == 0) {
+              setGenotype(&c, offset, HET); // het: 0b01
+            } else if (a2 == 1) {
+              setGenotype(&c, offset, HOM_ALT); // hom alt: 0b11
+            } else {
+              setGenotype(&c, offset, MISSING); // missing
+            }
+          } else {
+            // NOTE: Plink does not support tri-allelic
+            // so have to set genotype as missing.
+            setGenotype(&c, offset, MISSING); // missing
+          };
+        }
+      } else { // lower GD or GT
+        setGenotype(&c, offset, MISSING); // missing
       }
       if ( offset == 3) { // 3: 4 - 1, so every 4 genotype we will flush
         fwrite(&c, sizeof(char), 1, this->fpBed);

@@ -62,6 +62,7 @@
 #include "MathMatrix.h"
 #include "Random.h"
 
+#include "ModelParser.h"
 #include "ModelFitter.h"
 #include "GitVersion.h"
 

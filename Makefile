@@ -3,7 +3,7 @@ EXEC = rvtest
 UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcf2geno plink2vcf vcfExtractSite \
             vcf2ld_gene  \
-            vcfSummaryLite vcfIndvSummary \
+            vcfSummaryLite vcfAnnoSummaryLite vcfVariantSummaryLite vcfIndvSummary \
             vcf2ld_window \
             vcfPair
 #            gerp \
@@ -82,7 +82,7 @@ $(GONCALO_LIB_DBG):
 INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
 LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
 LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
-CXX_INCLUDE = $(addprefix -I, $(INCLUDE))
+CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I.
 CXX_LIB = $(LIB) -lz -lbz2 -lm -lgsl -lblas
 CXX_LIB_DBG = $(LIB_DBG) -lz -lbz2 -lm -lgsl -lblas
 

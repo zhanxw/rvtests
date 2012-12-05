@@ -38,11 +38,11 @@ public:
     }
   };
 
-  static int info(const char* fmt, ...);
-  static int infoToFile(const char* fmt, ...); // for some logs not shown on the screen, e.g. parameters
-  static int warn(const char* fmt, ...);
-  static int error(const char* fmt, ...);
-  static int fatal(const char* fmt, ...);
+  static int info(const char* fmt, ...)   __attribute__ ((format (printf, 1, 2)));
+  static int infoToFile(const char* fmt, ...) __attribute__ ((format (printf, 1, 2))); // for some logs not shown on the screen, e.g. parameters
+  static int warn(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
+  static int error(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
+  static int fatal(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
   static FILE*& getHandle();
 public:
   const static LogLevel INFO = _INFO;

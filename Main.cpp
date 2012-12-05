@@ -531,7 +531,7 @@ class GenotypeExtractor{
   int GQmin;
   int GQmax;
   Vector weight;
-};
+}; // clas GenotypeExtractor
 
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
@@ -923,7 +923,7 @@ int main(int argc, char** argv){
   Logger _logger( (FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
   logger->infoToFile("Program Version");
-  logger->infoToFile(gitVersion);
+  logger->infoToFile("%s", gitVersion);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
@@ -1041,6 +1041,7 @@ int main(int argc, char** argv){
       vin.excludePeople(iter->c_str());
     }
   }
+  
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
 

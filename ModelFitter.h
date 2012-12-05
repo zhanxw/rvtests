@@ -1940,10 +1940,11 @@ public:
         s2 += phenotype[i][0] * phenotype[i][0];
       }
       mleVarY = (s2 - s * s / nSample) / nSample;
-      /* logger->info("mle var y = %g, s2 = %g, s = %g, nSample = %d", mleVarY, s2, s, nSample); */
+      fprintf(stderr, "MLE estimation of residual^2 = %g", mleVarY);
     } else {
       if (nSample != genotype.rows){
-        logger->warn("Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+        fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+        
       }
     }
 

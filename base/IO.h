@@ -797,6 +797,7 @@ public:
   /**
    * format string to this->buf, then write it out
    */
+  // since in C++, a hidden this pointer is passed, we will use 2, 3 instead of 1 and 2
   int printf(const char *fmt, ...)   __attribute__ ((format (printf, 2, 3))){
     // we'll put the formatted string  to internal buffer
     va_list args;

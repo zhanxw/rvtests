@@ -23,7 +23,7 @@ LogLevel Logger::consoleLevel = Logger::INFO;
 
 //////////////////////////////////////////////////////////////////////
 // log with format
-int Logger::info(const char *fmt, ...)
+int Logger::info(const char *fmt, ...) 
 {
   if (Logger::fileLevel <= Logger::INFO) {
     INFO_LEADING(Logger::fileHandle);

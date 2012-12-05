@@ -36,6 +36,7 @@ public:
   double GetPvalue() const {return this->pvalue;};
   const Matrix& GetU() const {return this->Umatrix;};
   const Matrix& GetV() const {return this->Vmatrix;};
+  const Matrix& GetBeta() const { return this->betaMatrix;}
 private:
 
   void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
@@ -43,6 +44,7 @@ private:
   double stat;
   Matrix Umatrix;
   Matrix Vmatrix;
+  Matrix betaMatrix;
   LinearRegression lr;
 };
 

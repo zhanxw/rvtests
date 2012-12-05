@@ -11,7 +11,7 @@ LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger RangeList SimpleMatrix
 OBJ = $(BASE:=.o)
 
-DEFAULT_CXXFLAGS = -I. -I../third/tabix
+DEFAULT_CXXFLAGS = -I. -I../third/tabix -I../third/pcre/include
 
 .PHONY: all release debug
 all: release
@@ -34,7 +34,7 @@ $(LIB_DBG): $(OBJ)
 	g++ -c $(CXXFLAGS) $<
 
 clean:
-	rm -rf $(LIB) $(LIB_DBG) *.o
+	rm -rf $(LIB) $(LIB_DBG) *.o *.d
 
 
 # INC=-I. -I./cityhash/include -I/home/zhanxw/software/sparsehash/include

@@ -5,7 +5,8 @@ UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcf2ld_gene  \
             vcfSummaryLite vcfAnnoSummaryLite vcfVariantSummaryLite vcfIndvSummary \
             vcf2ld_window \
-            vcfPair
+            vcfPair \
+            checkScoreResult
 #            gerp \
             # vcf2merlin vcf2ld_neighbor 
 
@@ -31,6 +32,9 @@ PCRE_LIB = third/pcre/lib/libpcreposix.a third/pcre/lib/libpcre.a
 GSL_INC = third/gsl/include
 GSL_LIB = third/gsl/lib/libgsl.a
 
+BZIP2_INC = third/bzip2
+BZIP2_LIB = third/bzip2/libbz2.a
+
 $(TABIX_INC) $(TABIX_LIB):
 	(cd third; make tabix)
 $(EIGEN_INC) $(EIGEN_LIB):
@@ -40,8 +44,11 @@ $(PCRE_INC) $(PCRE_LIB):
 $(GSL_INC) $(GSL_LIB):
 	(cd third; make gsl)
 
-THIRD_INC = $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC)
-THIRD_LIB = $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB)
+$(BZIP2_INC) $(BZIP2_LIB):
+	(cd third; make bzip2)
+
+THIRD_INC = $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(BZIP2_INC)
+THIRD_LIB = $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(BZIP2_LIB)
 ##################################################
 # Our libs.
 BASE_INC = ./base
@@ -83,8 +90,8 @@ INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
 LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
 LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I.
-CXX_LIB = $(LIB) -lz -lbz2 -lm -lgsl -lblas
-CXX_LIB_DBG = $(LIB_DBG) -lz -lbz2 -lm -lgsl -lblas
+CXX_LIB = $(LIB) -lz -lm -lgsl -lblas
+CXX_LIB_DBG = $(LIB_DBG) -lz -lm -lgsl -lblas
 
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x #-Wall
@@ -154,10 +161,12 @@ clean:
         $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
 
 deepclean: clean
+	rm -rf *~
 	(cd base; make clean)
 	(cd regression; make clean)
 	(cd libVcf; make clean)
-
+	(cd third; make deepclean)
+	(cd libsrc; make clean)
 test: test1
 test1: rvtest
 	./rvtest --inVcf test.vcf.gz --outVcf test1.out.vcf 
@@ -201,7 +210,7 @@ autoTest2: rvtest
 # archive 
 DATE=$(shell date '+%m%d')
 tar:
-	tar zvchf rvtest.$(DATE).tgz *.h Main.cpp tabix*tar.bz2 
+	tar zvchf rvtest.$(DATE).tgz *.h *.cpp Makefile .git/HEAD .git/index third base libVcf regression libsrc
 
 # arg: Argument.h Argument.cpp
 # 	g++ -g -o Argument Argument.cpp

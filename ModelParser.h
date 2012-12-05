@@ -1,7 +1,8 @@
 #ifndef _MODELPARSER_H_
 #define _MODELPARSER_H_
 
-class Logger;
+#include "base/Logger.h"
+
 extern Logger* logger;
 
 /**

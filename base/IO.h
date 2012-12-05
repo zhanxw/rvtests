@@ -797,10 +797,7 @@ public:
   /**
    * format string to this->buf, then write it out
    */
-  int printf(const char *fmt, ...){
-
-
-
+  int printf(const char *fmt, ...)   __attribute__ ((format (printf, 2, 3))){
     // we'll put the formatted string  to internal buffer
     va_list args;
     int ret;

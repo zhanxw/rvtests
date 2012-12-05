@@ -22,7 +22,7 @@ logistic.score <- function(Cov=NULL, Y, Xcol){
     mid = mid + v.null[i] * Zi %*% t(Zi)
   }
   V = V - t(left) %*% solve(mid) %*% left
-  pvalue = 1 - pchisq( U*U/V, df=1)
+  pvalue = pchisq( U*U/V, df=1, lower.tail = FALSE)
   list(U=U, V=V, pvalue = pvalue)
 }
 
@@ -49,6 +49,6 @@ linear.score <- function(Cov=NULL, Y, Xcol){
     mid = mid + Zi %*% t(Zi)
   }
   V = v.null * (V - t(left) %*% solve(mid) %*% left)
-  pvalue = 1 - pchisq( U*U/V, df=1)
+  pvalue = pchisq( U*U/V, df=1, lower.tail = FALSE)
   list(U=U, V=V, pvalue = pvalue, sigma2 = v.null)  
 }

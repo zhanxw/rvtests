@@ -5,7 +5,7 @@
    23. Add dominant model
    24. Conditional analysis + burden test
    25. Take optional weight, e.g. GERP
-   
+
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -38,7 +38,7 @@
 
    Future TODO:
    22. Add U-statistics
-   
+
    Not sure if worthy to do:
    None yet.
 */
@@ -53,8 +53,6 @@
 #include <vector>
 #include <algorithm>
 
-#include <gsl/gsl_cdf.h>
-
 #include "Logger.h"
 #include "Utils.h"
 #include "VCFUtil.h"
@@ -62,9 +60,11 @@
 #include "MathMatrix.h"
 #include "Random.h"
 
+#include "CommonFunction.h"
 #include "ModelParser.h"
 #include "ModelFitter.h"
 #include "GitVersion.h"
+#include "Result.h"
 
 Logger* logger = NULL;
 
@@ -76,7 +76,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      August 2012                       ...   \n"
+      "      ...      December 2012                     ...   \n"
       "       ..............................................  \n"
       "                                                       \n"
       ;
@@ -381,7 +381,7 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
         phenotypeValueInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
       }
     }
-    if (nMissingPheno) 
+    if (nMissingPheno)
       logger->warn("Impute [ %d ] missing phenotypes for samples with genotypes but lacks phenotypes", nMissingPheno);
   };
 };
@@ -437,9 +437,9 @@ class GenotypeExtractor{
    * @param g: people by 1 matrix, where column name is like "chr:pos"
    * @param b: extract information, e.g. "1\t100\tA\tC"
    */
-  int extractSingleGenotype(Matrix* g, std::string* b) {
+  int extractSingleGenotype(Matrix* g, Result* b) {
     Matrix& genotype = *g;
-    std::string& buf = *b;
+    Result& buf = *b;
 
     bool hasRead = vin.readRecord();
     if (!hasRead)
@@ -449,13 +449,10 @@ class GenotypeExtractor{
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;
 
-    buf += r.getChrom();
-    buf += '\t';
-    buf += r.getPosStr();
-    buf += '\t';
-    buf += r.getRef();
-    buf += '\t';
-    buf += r.getAlt();
+    buf.updateValue("CHROM", r.getChrom());
+    buf.updateValue("POS", r.getPosStr());
+    buf.updateValue("REF", r.getRef());
+    buf.updateValue("ALT", r.getAlt());
 
     genotype.Dimension(people.size(), 1);
 
@@ -636,7 +633,7 @@ bool isMonomorphicMarker(Matrix& genotype, int col) {
     logger->error("Invalid check of monomorhpic marker.");
     return false;
   }
-  
+
   int nonMissingRow;
   for (int i = 0; i < genotype.rows; ++i) {
     if (genotype[i][col] >= 0) {
@@ -837,68 +834,7 @@ int loadRangeFile(const char* fn, const char* givenRangeName, OrderedMap<std::st
   return m.size();
 };
 
-double pnorm(double x) {
-  return gsl_cdf_gaussian_P(x, 1.0);
-};
-double qnorm(double x) {
-  return gsl_cdf_gaussian_Pinv(x, 1.0);
-};
-
-double calculateMean(const std::vector<double>& v ){
-  double s = 0.0;
-  if (v.empty()) return 0.0;
-
-  for (unsigned int i = 0; i < v.size(); ++i) {
-    s += v[i];
-  }
-  return s / v.size();
-}
-
-// sd ^ 2 = \frac{1}{N}  (v_i - mean of v_i) ^ 2
-double calculateSD(const std::vector<double>& v ){
-  double s = 0.0;
-  if (v.empty()) return 0.0;
-
-  double mean = calculateMean(v);
-  for (unsigned int i = 0; i < v.size(); ++i) {
-    const double t = v[i] - mean;
-    s += t * t;
-  }
-  return sqrt(s / v.size());
-}
-
-// inverse normal a vector AND center it.
-//
-void inverseNormal(std::vector<double>* y){
-  if (!y || !y->size()) return;
-  const int n = y->size();
-  std::vector<int> ord;
-  order(*y, &ord);
-
-  for (unsigned int i = 0; i < n; i++)
-    (*y)[i] = ord[i];
-  order(*y, &ord);
-
-  double a;
-  if ( n <= 10) {
-    a = 0.375;
-  } else {
-    a = 0.5;
-  }
-  for (unsigned int i = 0; i < n ; i++)
-    (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + 1 - 2 * a));
-
-  logger->info("Done: inverse normal transformation finished.");
-
-  // center
-  double m = calculateMean(*y);
-  double sd = calculateSD(*y);
-  for (unsigned int i = 0; i < n ; i++) {
-    (*y)[i] -= m;
-    (*y)[i] /= sd;
-  }
-  logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");
-};
+SummaryHeader* g_SummaryHeader = NULL;
 
 int main(int argc, char** argv){
   ////////////////////////////////////////////////
@@ -910,6 +846,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")
       ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
       ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
+      ADD_BOOL_PARAMETER(pl, useResidualAsPhenotype, "--useResidualAsPhenotype", "fit covariate ~ phenotype, use residual to replace phenotype")
       ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
       // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
       // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
@@ -920,7 +857,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-      
+
       ADD_PARAMETER_GROUP(pl, "Site Filter")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
@@ -941,6 +878,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
+      ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov")
 
       ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
@@ -957,7 +895,7 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Specify either of mean, hwe, and drop")
-      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean by those have genotypes but no phenotpyes")      
+      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean by those have genotypes but no phenotpyes")
       ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
       END_PARAMETER_LIST(pl)
@@ -979,8 +917,6 @@ int main(int argc, char** argv){
     abort();
   }
 
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
-
   if (!FLAG_outPrefix.size())
     FLAG_outPrefix = "rvtest";
 
@@ -991,6 +927,8 @@ int main(int argc, char** argv){
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
+
+  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
 
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
@@ -1103,6 +1041,9 @@ int main(int argc, char** argv){
       vin.excludePeople(iter->c_str());
     }
   }
+  g_SummaryHeader = new SummaryHeader;
+  g_SummaryHeader->recordCovariate(covariate);
+
 
   // adjust phenotype
   bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
@@ -1111,12 +1052,53 @@ int main(int argc, char** argv){
     convertBinaryPhenotype(&phenotypeInOrder);
   }
 
-  if (FLAG_inverseNormal) {
-    if (binaryPhenotype){
-      logger->warn("WARNING: Skip transforming binary phenotype using --inverseNormal!");
+  // use residual as phenotype
+  if (FLAG_useResidualAsPhenotype) {
+    if (binaryPhenotype) {
+      logger->warn("WARNING: Skip transforming binary phenotype, although you want to use residual as phenotype!");
     } else {
-      logger->info("Apply inverse normal transformation.");
-      inverseNormal(&phenotypeInOrder);
+      if (covariate.cols > 0) {
+        LinearRegression lr;
+        Vector pheno;
+        pheno.Dimension(phenotypeInOrder.size());
+        for (size_t i = 0; i < phenotypeInOrder.size(); ++i){
+          pheno[(int)i] = phenotypeInOrder[i];
+        }
+        if (!lr.FitLinearModel(covariate, pheno)) {
+          logger->error("Cannot fit model: [ phenotype ~ covariates ], now use the original phenotype");
+        } else {
+          int n = lr.GetResiduals().Length();
+          for (int i = 0; i < n; ++i) {
+            phenotypeInOrder[i] = lr.GetResiduals()[i];
+          }
+          covariate.Dimension(0,0);
+          logger->info("DONE: Use residuals as phenotypes from model: [ phenotype ~ covariates ]");
+        }
+      } else{ // no covaraites
+        double m = calculateMean(phenotypeInOrder);
+        for (size_t i = 0; i < phenotypeInOrder.size(); ++i) {
+          phenotypeInOrder[i] -= m;
+        }
+        logger->info("DONE: Use residual as phenotype by centerng it");
+      }
+    }
+  }
+
+  // phenotype transformation
+  g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
+  if (FLAG_inverseNormal) {
+
+    if (binaryPhenotype){
+      logger->warn("WARNING: Skip transforming binary phenotype, although you required inverse normalization!");
+    } else {
+      logger->info("Now applying inverse normal transformation.");
+      inverseNormalizeLikeMerlin(&phenotypeInOrder);
+      g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
+      // g_SummaryHeader->recordPhenotype("TransformedTrait", phenotypeInOrder);
+      // standardize(&phenotypeInOrder);
+      g_SummaryHeader->recordPhenotype("AnalyzedTrait", phenotypeInOrder);
+      logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");
+      logger->info("Done: inverse normal transformation finished.");
     }
   };
 
@@ -1125,9 +1107,10 @@ int main(int argc, char** argv){
     abort();
   }
   logger->info("Analysis begin with %zu samples...", phenotypeInOrder.size());
+
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
-  bool singleVariantMode = FLAG_modelSingle.size();
+  bool singleVariantMode = FLAG_modelSingle.size() || FLAG_modelMeta.size();
   bool groupVariantMode =(FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size());
   if ( singleVariantMode && groupVariantMode ) {
     logger->error("Cannot support both single variant and region based tests");
@@ -1242,6 +1225,26 @@ int main(int argc, char** argv){
     }
   };
 
+  if (FLAG_modelMeta != "") {
+    stringTokenize(FLAG_modelMeta, ",", &argModelName);
+    for (int i = 0; i < argModelName.size(); i++ ){
+      parser.parse(argModelName[i]);
+      modelName = parser.getName();
+
+      if (modelName == "score") {
+        model.push_back( new MetaScoreTest() );
+      } else if (modelName == "cov") {
+        int windowSize;
+        parser.assign("windowSize", &windowSize, 1000000);
+        logger->info("Meta analysis window size is %d", windowSize);        
+        model.push_back( new MetaCovTest(windowSize) );
+      } else {
+        logger->error("Unknown model name: %s .", argModelName[i].c_str());
+        abort();
+      };
+    }
+  };
+  
   if (FLAG_outputRaw) {
     model.push_back( new DumpModel(FLAG_outPrefix.c_str()));
   }
@@ -1348,22 +1351,28 @@ int main(int argc, char** argv){
     logger->info("Minimum GQ set to %d (or marked as missing genotype).", FLAG_indvQualMin);
   };
 
-  std::string buf; // we put site sinformation here
-  buf.resize(1024);
-
+  // std::string buf; // we put site sinformation here
+  // buf.resize(1024);
+  Result buf;
+  
   // we have three modes:
   // * single variant reading, single variant test
   // * range variant reading, single variant test
   // * range variant reading, group variant test
   if (rangeMode == "Single" && singleVariantMode) { // use line by line mode
-    buf = "CHROM\tPOS\tREF\tALT\tNumSample\t";
+    buf.addHeader("CHROM");
+    buf.addHeader("POS");
+    buf.addHeader("REF");
+    buf.addHeader("ALT");
+    buf.addHeader("N_INFORMATIVE");
+
     // output headers
     for (int m = 0; m < model.size(); m++) {
-      model[m]->writeHeader(fOuts[m], buf.c_str());
+      model[m]->writeHeader(fOuts[m], buf);
     };
 
     while (true) {
-      buf.clear();
+      buf.clearValue();
       //int ret = extractSiteGenotype(&vin, &genotype, &buf);
       int ret = ge.extractSingleGenotype(&genotype, &buf);
 
@@ -1371,35 +1380,40 @@ int main(int argc, char** argv){
         break;
       }
       if (ret < 0) {
-        logger->error("Extract genotype failed at site: %s!", buf.c_str());
+        logger->error("Extract genotype failed at site: %s:%s!", buf["CHROM"].c_str(), buf["POS"].c_str());
         continue;
       };
       if (genotype.rows == 0) {
-        logger->warn("Extract [ %s ] has 0 variants, skipping", buf.c_str());
+        logger->warn("Extract [ %s:%s ] has 0 variants, skipping",  buf["CHROM"].c_str(), buf["POS"].c_str());
         continue;
       };
 
       dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
 
-      buf += "\t";
-      buf += toString(genotype.rows);
-      buf += "\t";
+      buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
       // fit each model
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
         //model[m]->fit(phenotypeMatrix, genotype, covariate);
-        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
-        model[m]->writeOutput(fOuts[m], buf.c_str());
+        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
+        model[m]->writeOutput(fOuts[m], buf);
       };
+
+      // fit
+      // XXX to add covariance
     }
   } else if (rangeMode != "Single" && singleVariantMode) { // read by gene/range model, single variant test
-    buf = rangeMode;
-    buf += '\t';
-    buf += "CHROM\tPOS\tREF\tALT\tNumSample\t";
+    buf.addHeader(rangeMode);
+    buf.addHeader("CHROM");
+    buf.addHeader("POS");
+    buf.addHeader("REF");
+    buf.addHeader("ALT");
+    buf.addHeader("N_INFORMATIVE");
+
     // output headers
     for (int m = 0; m < model.size(); m++) {
-      model[m]->writeHeader(fOuts[m], buf.c_str());
+      model[m]->writeHeader(fOuts[m], buf);
     };
     std::string geneName;
     RangeList rangeList;
@@ -1408,6 +1422,7 @@ int main(int argc, char** argv){
       vin.setRange(rangeList);
 
       while (true) {
+        buf.clearValue();
         int ret = ge.extractSingleGenotype(&genotype, &buf);
         if (ret == -2) // reach end of this region
           break;
@@ -1422,30 +1437,29 @@ int main(int argc, char** argv){
 
         dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
 
-        buf = geneName;
-        buf += '\t';
-        buf += toString(genotype.rows);
-        buf += '\t';
+        buf.updateValue(rangeMode, geneName);
+        buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
         for (int m = 0; m < model.size(); m++) {
           model[m]->reset();
-          model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
+          model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
           //          model[m]->fit(phenotypeMatrix, genotype, covariate);
-          model[m]->writeOutput(fOuts[m], buf.c_str());
+          model[m]->writeOutput(fOuts[m], buf);
         };
       }
     }
-  } else if (rangeMode != "Single" && groupVariantMode) {// read by gene/range mode, group variant test
-    buf = rangeMode;
-    buf += '\t';
-    buf += "NumSample";
-    buf += '\t';
-    buf += "NumVar";
-    buf += '\t';
+  } else if (rangeMode != "Single" && groupVariantMode) { // read by gene/range mode, group variant test
+    buf.addHeader(rangeMode);
+    buf.addHeader("CHROM");
+    buf.addHeader("POS");
+    buf.addHeader("REF");
+    buf.addHeader("ALT");
+    buf.addHeader("N_INFORMATIVE");
+    buf.addHeader("NumVar");
 
     // output headers
     for (int m = 0; m < model.size(); m++) {
-      model[m]->writeHeader(fOuts[m], buf.c_str());
+      model[m]->writeHeader(fOuts[m], buf);
     };
     std::string geneName;
     RangeList rangeList;
@@ -1453,6 +1467,7 @@ int main(int argc, char** argv){
       geneRange.at(i, &geneName, &rangeList);
       vin.setRange(rangeList);
 
+      buf.clearValue();
       // int ret = extractGenotype(&vin, &genotype);
       int ret = ge.extractMultipleGenotype(&genotype);
       if (ret < 0) {
@@ -1466,34 +1481,39 @@ int main(int argc, char** argv){
 
       dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
 
-      buf = geneName;
-      buf += '\t';
-      buf += toString(genotype.rows);
-      buf += '\t';
-      buf += toString(genotype.cols);
-      buf += '\t';
+      buf.updateValue(rangeMode, geneName);
+      buf.updateValue("N_INFORMATIVE", toString(genotype.rows) );
+      buf.updateValue("NumVar", toString(genotype.cols));
 
       for (int m = 0; m < model.size(); m++) {
         model[m]->reset();
-        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight());
+        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
         // model[m]->fit(phenotypeMatrix, genotype, covariate);
-        model[m]->writeOutput(fOuts[m], buf.c_str());
+        model[m]->writeOutput(fOuts[m], buf);
+        // buf.writeValue(fOuts[m]);
       };
     }
   } else{
     logger->error("Unsupported reading mode and test modes!");
     abort();
   }
-
+  
   // resource cleaning up
+  for (int m = 0; m < model.size() ; ++m ) {
+    delete model[m];
+  }
   for (int m = 0; m < model.size() ; ++m ) {
     fclose(fOuts[m]);
   }
   delete[] fOuts;
-
+  
+  delete pVin;
+  
   time_t endTime = time(0);
   logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);
   logger->info("Analysis took %d seconds", elapsedSecond);
+
+  delete g_SummaryHeader;
   return 0;
 };

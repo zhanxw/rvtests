@@ -541,7 +541,6 @@ class ParameterParser{
     std::string FLAG_##x;                                   \
     (pp).AddParameter(STRING_TYPE, &FLAG_##x, flag, doc);                             
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Helper functions
 static void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){

@@ -17,6 +17,7 @@ inline std::string toString(T i){
 }
 
 // convert double/float to string type
+// we try to mimic the '%g' in printf
 template<class T>
 inline std::string floatToString(T i){
     std::stringstream ss;
@@ -47,9 +48,13 @@ inline bool str2int(const char* input, int* output) {
     *output = val;
     return true;
 }
-inline bool str2int(std::string& input, int* output) {
+
+// convert std::string to integer
+// @return true if conversion succeed
+inline bool str2int(const std::string& input, int* output) {
   return str2int(input.c_str(), output);
 }
+
 // convert std::string to double
 // @return true if conversion succeed
 inline bool str2double(const char* input, double* output) {

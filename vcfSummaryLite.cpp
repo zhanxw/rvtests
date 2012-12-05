@@ -173,6 +173,7 @@ int main(int argc, char** argv){
     inDbSnp = snpSet.isIncluded(chrom.c_str(), pos);
     inHapmap = hmSet.isIncluded(chrom.c_str(), pos);
 
+    
     Variant& v = freq[filt];
     v.total++;
     if ( isTs(ref, alt) ) {

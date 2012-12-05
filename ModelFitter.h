@@ -1944,7 +1944,6 @@ public:
     } else {
       if (nSample != genotype.rows){
         fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
-        
       }
     }
 

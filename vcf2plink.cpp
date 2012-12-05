@@ -40,6 +40,11 @@ int main(int argc, char** argv){
         ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "Specify the gene file (refFlat format), so we know gene start and end.")
         ADD_STRING_PARAMETER(pl, geneName, "--gene", "Specify the gene names to extract")
         ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify the type of annotation to extract")
+        ADD_PARAMETER_GROUP(pl, "Quality Filter")
+        ADD_DOUBLE_PARAMETER(pl, minSiteQual, "--minSiteQual", "Specify minimum site qual")
+        ADD_DOUBLE_PARAMETER(pl, minGQ, "--minGQ", "Specify the minimum genotype quality, otherwise marked as missing genotype")
+        ADD_DOUBLE_PARAMETER(pl, minGD, "--minGD", "Specify the minimum genotype depth, otherwise marked as missing genotype")
+        
         ADD_PARAMETER_GROUP(pl, "Other Function")        
         ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")
         ADD_STRING_PARAMETER(pl, updateId, "--update-id", "Update VCF sample id using given file (column 1 and 2 are old and new id).")
@@ -132,7 +137,10 @@ int main(int argc, char** argv){
     if (FLAG_annoType.size()) {
       regex.readPattern(FLAG_annoType);
     }
-    
+
+    int lowSiteFreq = 0; // counter of low site qualities
+    int lowGDFreq = 0;
+    int lowGQFreq = 0;
     // real working park
     if (vout) vout->writeHeader(vin.getVCFHeader());
     if (pout) pout->writeHeader(vin.getVCFHeader());
@@ -158,7 +166,10 @@ int main(int argc, char** argv){
             continue;
           }
         }
-
+        if (FLAG_minSiteQual > 0 && r.getQualDouble() < FLAG_minSiteQual) {
+          ++lowSiteFreq;
+          continue;
+        }
         if (FLAG_annoType.size()) {
           bool isMissing = false;
           const char* tag = r.getInfoTag("ANNO", &isMissing).toStr();
@@ -172,15 +183,26 @@ int main(int argc, char** argv){
             continue;
           }
         }
-        
-        if (vout) vout->writeRecord(& r);
-        if (pout) pout ->writeRecord(& r);
+        if (FLAG_minGD > 0 || FLAG_minGQ > 0) {
+          if (vout) {
+            vout->writeRecordWithFilter(& r, FLAG_minGD, FLAG_minGQ);
+          }
+          if (pout) {
+            pout->writeRecordWithFilter(& r, FLAG_minGD, FLAG_minGQ);
+          }
+        } else {
+          if (vout) vout->writeRecord(& r);
+          if (pout) pout->writeRecord(& r);        
+        }
+
     };
     fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
     if (FLAG_variantOnly) {
       fprintf(stdout, "Skipped %d non-variant VCF records\n", nonVariantSite);
     }
-
+    if (lowSiteFreq) {
+      fprintf(stdout, "Skipped %d low sites due to site quality lower than %f\n", lowSiteFreq, FLAG_minSiteQual);
+    };
     if (vout) delete vout;
     if (pout) delete pout;
 

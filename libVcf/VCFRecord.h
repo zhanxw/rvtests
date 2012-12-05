@@ -258,7 +258,8 @@ public:
   const char* getRef() { return this->ref.toStr(); };
   const char* getAlt() { return this->alt.toStr(); };
   const char* getQual() { return this->qual.toStr(); };
-  const int getQualInt() { return this->qual.toInt(); };  
+  const int getQualInt() { return this->qual.toInt(); };
+  const int getQualDouble() { return this->qual.toDouble(); };    
   const char* getFilt() { return this->filt.toStr(); };
   const char* getInfo() { return this->vcfInfo.toStr(); };
   const char* getFormat() { return this->format.toStr(); };

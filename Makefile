@@ -3,7 +3,7 @@ EXEC = rvtest
 UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcf2geno plink2vcf vcfExtractSite \
             vcf2ld_gene  \
-            vcfSummaryLite vcfIndvSummary \
+            vcfSummaryLite vcfAnnoSummaryLite vcfVariantSummaryLite vcfIndvSummary \
             vcf2ld_window \
             vcfPair \
             checkScoreResult

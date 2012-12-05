@@ -2,6 +2,7 @@
 #define _MODELPARSER_H_
 
 #include "base/Logger.h"
+
 extern Logger* logger;
 
 /**

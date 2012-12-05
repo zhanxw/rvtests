@@ -93,6 +93,8 @@ public:
   const VCFValue& getSelf() const{
     return this->self;
   };
+
+  size_t size() const {return this->fd.size();}
   /**
    * dump the content of VCFIndividual column
    */

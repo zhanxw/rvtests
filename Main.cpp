@@ -190,7 +190,13 @@ int loadCovariate(const char* fn,
       (*covariate).Dimension( idx + 1, columnNameSet.size());
 
       for (int i = 0; i < columnToExtract.size(); ++i) {
-        (*covariate)[idx][i] = atof(fd[columnToExtract[i]]);
+        double d;
+        if (str2double(fd[columnToExtract[i]], &d)) {
+          (*covariate)[idx][i] = d;
+        } else {
+          logger->warn("Covariate fille line [ %d ] treat value [ %s ] as 0.0 ", lineNo, fd[columnToExtract[i]].c_str());
+          (*covariate)[idx][i] = 0.0;
+        };
       }
     }
   };
@@ -248,6 +254,7 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, i
         pheno[pid] = v;
       } else {
         logger->warn("Skip: Missing or invalid phenotype type, skipping line %d [ %s ] ... ", lineNo, line.c_str());
+        continue;
       }
     } else {
       //logger->warn("line %s have duplicated id, skipped...", pid.c_str());
@@ -943,7 +950,7 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Statistical Model")
       ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact")
-      ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat")
+      ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
       ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov")
@@ -1261,8 +1268,10 @@ int main(int argc, char** argv){
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new CMATTest(nPerm, alpha) );
         logger->info("cmat test significance will be evaluated using %d permutations", nPerm);
+      } else if (modelName == "cmcwald") {
+        model.push_back( new CMCWaldTest );
       } else {
-        logger->error("Unknown model name: %s .", argModelName[i].c_str());
+        logger->error("Unknown model name: [ %s ].", argModelName[i].c_str());
         abort();
       };
     }

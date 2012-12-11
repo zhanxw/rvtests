@@ -8,7 +8,7 @@ endif
 
 LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
-BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger RangeList SimpleMatrix
+BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger RangeList SimpleMatrix Pedigree
 OBJ = $(BASE:=.o)
 
 DEFAULT_CXXFLAGS = -I. -I../third/tabix -I../third/pcre/include

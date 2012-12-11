@@ -6,7 +6,8 @@ UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcfSummaryLite vcfAnnoSummaryLite vcfVariantSummaryLite vcfIndvSummary \
             vcf2ld_window \
             vcfPair \
-            checkScoreResult
+            checkScoreResult \
+            vcf2kinship
 #            gerp \
             # vcf2merlin vcf2ld_neighbor 
 

@@ -290,7 +290,17 @@ RangeList(): isSorted(false) {};
     this->rangeCollection.clear();
     this->isSorted = false;
   };
-
+  std::string toString() {
+    std::string ret;
+    std::string out;
+    for (size_t i = 0; i != this->size(); ++i) {
+      this->obtainRange(i, &out);
+      if (i)
+        ret.push_back(',');
+      ret += out;
+    }
+    return ret;
+  };
   void dump() {
     std::string out;
     for (size_t i = 0; i != this->size(); ++i) {
@@ -298,6 +308,7 @@ RangeList(): isSorted(false) {};
       fprintf(stderr, "range %zu: %s\n", i, out.c_str());
     }
   };
+  
   class iterator{
  public:
  iterator(): rangeCollection(NULL), chromIndex(-1), inChromRegionSize(-1) 

@@ -1,8 +1,8 @@
-EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix
+EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix testPedigree
 all: $(EXE)
 debug: all
 
-CXX_FLAGS = -O0 -ggdb -I.. -I../../base -I../../third/tabix/ \
+CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/tabix/ \
 -I../../third/pcre/include \
 ../../base/lib-dbg-base.a -lz -lbz2 \
 ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \

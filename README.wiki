@@ -14,9 +14,11 @@ Use Wald and Score test statistics in single variant association tests to test e
 == Group test ==
 
 Rvtests supports large range of tests
+* single (--single): score, wald, exact
 * burden (--burden): cmc, zeggini, mb, exactCMC, rarecover, cmat
-* variable threshold: price
-* kernel method: : skat, KBAC
+* variable threshold (--vt): price, cmc
+* kernel method (--kernel): skat, KBAC
+* meta analysis method (--meta): : score, cov
 
 You can flexibly specify testing units.
 To test by gene, use --geneFile to specify the gene range. Optionally, use --gene to specify which gene to test:
@@ -52,10 +54,15 @@ Genotype Filter
            --indvDepthMax : Specify maximum depth(inclusive) of a sample to be incluced in analysis
             --indvQualMin : Specify minimum depth(inclusive) of a sample to be incluced in analysis
 
+== Phenotype file ==
 
+== Covariate file ==
+
+== Use gene/set based rare-variant tests == 
+ 
 = Contact =
 
-Questions and requests should be sent to Xiaowei Zhan ([mailto:zhanxw@umich.edu zhanxw@umich.edu]) or Goncalo Abecasis ([mailto:goncalo@umich.edu goncalo@umich.edu])
+Questions and requests can be sent to Xiaowei Zhan ([mailto:zhanxw@umich.edu zhanxw@umich.edu]) or Goncalo Abecasis ([mailto:goncalo@umich.edu goncalo@umich.edu])
 
 Rvtests is a collaborative effort by Youna Hu, Bingshan Li, Dajiang Liu.
 

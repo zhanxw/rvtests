@@ -80,7 +80,14 @@ private:
 class Permutation{
 public:
 Permutation():numPerm(10000), alpha(0.05) {};
-Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {};
+Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {
+    result.addHeader("NumPerm");
+    result.addHeader("ActualPerm");
+    result.addHeader("Stat");
+    result.addHeader("NumGreater");
+    result.addHeader("NumEqual");
+    result.addHeader("PermPvalue");
+  };
   /**
    * @param observation: observed statistics
    */
@@ -90,6 +97,7 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {};
     this->threshold = 1.0 * this->numPerm * this->alpha * 2;
     this->numX = 0;
     this->numEqual = 0;
+
   };
   /**
    * @return true if need more permutations
@@ -122,18 +130,45 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {};
     numEqual = 0;
   };
   void writeHeader(FILE* fp){
-    fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s",
-            "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue");
+    /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
+    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
+    result.writeHeader(fp);
   }
+  void writeHeaderTab(FILE* fp){
+    /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
+    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
+    result.writeHeaderTab(fp);
+  }
+  void writeHeaderLine(FILE* fp){
+    /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
+    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
+    result.writeHeaderLine(fp);
+  }
+  void updateValue() {
+    result.updateValue("NumPerm", this->numPerm);
+    result.updateValue("ActualPerm", this->actualPerm);
+    result.updateValue("Stat", this->obs);
+    result.updateValue("NumGreater", this->numX);
+    result.updateValue("NumEqual", this->numEqual);
+    result.updateValue("PermPvalue", this->getPvalue());
+  }
+      
   void writeOutput(FILE* fp) {
-    fprintf(fp, "%d\t%d\t%g\t%d\t%d\t%g",
-            this->numPerm,
-            this->actualPerm,
-            this->obs,
-            this->numX,
-            this->numEqual,
-            this->getPvalue());
-  };
+    /* fprintf(fp, "%d\t%d\t%g\t%d\t%d\t%g", */
+    /*         this->numPerm, */
+    /*         this->actualPerm, */
+    /*         this->obs, */
+    /*         this->numX, */
+    /*         this->numEqual, */
+    /*         this->getPvalue()); */
+    updateValue();
+    result.writeValue(fp);
+  }
+  void writeOutputLine(FILE* fp) {
+    updateValue();
+    result.writeValueLine(fp);
+  }  
+  
 
 private:
   double alpha;
@@ -144,7 +179,8 @@ private:
   int threshold;
   int numX;
   int numEqual;
-};
+  Result result;
+}; // class Permutation
 
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
@@ -183,6 +219,7 @@ public:
 protected:
   std::string modelName;
   bool binaryOutcome;
+  Result result;
 }; // end ModelFitter
 
 void copyPhenotype(Matrix& in, Vector* o){
@@ -261,6 +298,11 @@ class SingleVariantWaldTest: public ModelFitter{
 public:
   SingleVariantWaldTest(){
     this->modelName = "SingleWald";
+    result.addHeader("Test");
+    result.addHeader("Beta");
+    result.addHeader("SE");
+    result.addHeader("Pvalue");
+    
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight, const Result& siteInfo) {
@@ -285,16 +327,18 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValueTab(fp);
-    fprintf(fp, "Test\tBeta\tSE\tPvalue\n");
+    siteInfo.writeHeaderTab(fp);
+    // fprintf(fp, "Test\tBeta\tSE\tPvalue\n");
+    result.writeHeaderLine(fp);
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
     // skip interecept (column 0)
     for (int i = 1; i < this->X.cols; ++i) {
+      siteInfo.writeValueTab(fp);
       if (!fitOK) {
-        siteInfo.writeValue(fp);
-        fprintf(fp, "%s\tNA\tNA\tNA\n", this->X.GetColumnLabel(i));
+        // fprintf(fp, "%s\tNA\tNA\tNA\n", this->X.GetColumnLabel(i));
+        result.updateValue("Test", this->X.GetColumnLabel(i));
       } else {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
@@ -306,9 +350,14 @@ public:
           se = sqrt(logistic.GetCovB()[i][i]);
           pval = logistic.GetAsyPvalue()[i];
         }
-        siteInfo.writeValue(fp);
-        fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se, pval);
+
+        // fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se, pval);
+        result.updateValue("Test", this->X.GetColumnLabel(i));
+        result.updateValue("Beta", beta);
+        result.updateValue("SE", se);
+        result.updateValue("Pvalue", pval);
       }
+      result.writeValueLine(fp);
     }
   };
 private:
@@ -422,7 +471,6 @@ private:
   LogisticRegressionScoreTest logistic;
   bool fitOK;
   Matrix cov;
-  Result result;
 }; // SingleVariantScoreTest
 
 class SingleVariantFisherExactTest: public ModelFitter{
@@ -432,16 +480,17 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    fputs("Fisher.N00\t", fp);
-    fputs("Fisher.N01\t", fp);
-    fputs("Fisher.N10\t", fp);
-    fputs("Fisher.N11\t", fp);
-    fputs("CtrlAF\t", fp);
-    fputs("CaseAF\t", fp);
-    fputs("Fisher.PvalueTwoSide\t", fp);
-    fputs("Fisher.PvalueLess\t", fp);
-    fputs("Fisher.PvalueGreater\n", fp);
+    siteInfo.writeHeaderTab(fp);
+    result.addHeader("Fisher.N00");
+    result.addHeader("Fisher.N01");
+    result.addHeader("Fisher.N10");
+    result.addHeader("Fisher.N11");
+    result.addHeader("CtrlAF");
+    result.addHeader("CaseAF");
+    result.addHeader("Fisher.PvalueTwoSide");
+    result.addHeader("Fisher.PvalueLess");
+    result.addHeader("Fisher.PvalueGreater");
+    result.writeHeaderLine(fp);
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight, const Result& siteInfo) {
@@ -488,28 +537,41 @@ public:
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeValueTab(fp);
     if (fitOK) {
-      fprintf(fp, "%d\t", model.Get00());
-      fprintf(fp, "%d\t", model.Get01());
-      fprintf(fp, "%d\t", model.Get10());
-      fprintf(fp, "%d\t", model.Get11());
+      /* fprintf(fp, "%d\t", model.Get00()); */
+      /* fprintf(fp, "%d\t", model.Get01()); */
+      /* fprintf(fp, "%d\t", model.Get10()); */
+      /* fprintf(fp, "%d\t", model.Get11()); */
+      result.updateValue("Fisher.N00", model.Get00());
+      result.updateValue("Fisher.N01", model.Get01());
+      result.updateValue("Fisher.N10", model.Get10());
+      result.updateValue("Fisher.N11", model.Get11());
+      
       if (ctrlAN == 0) {
-        fprintf(fp, "0\t");
+        // fprintf(fp, "0\t");
+        result.updateValue("CtrlAF", 0);
       } else{
-        fprintf(fp, "%g\t", 1.0 * ctrlAC / ctrlAN);
+        // fprintf(fp, "%g\t", 1.0 * ctrlAC / ctrlAN);
+        result.updateValue("CtrlAF", 1.0 * ctrlAC / ctrlAN);
       }
       if (caseAN == 0) {
-        fprintf(fp, "0\t");
+        // fprintf(fp, "0\t");
+        result.updateValue("CaseAF", 0);
       } else{
-        fprintf(fp, "%g\t", 1.0 * caseAC / caseAN);
+        // fprintf(fp, "%g\t", 1.0 * caseAC / caseAN);
+        result.updateValue("CaseAF", 1.0 * caseAC / caseAN);
       }
-      fprintf(fp, "%lf\t", model.getPExactTwoSided());
-      fprintf(fp, "%lf\t", model.getPExactOneSidedLess());
-      fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater());
-    } else {
-      fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n");
-    }
+      /* fprintf(fp, "%lf\t"  , model.getPExactTwoSided()); */
+      /* fprintf(fp, "%lf\t"  , model.getPExactOneSidedLess()); */
+      /* fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater()); OB*/
+      result.updateValue("Fisher.PvalueTwoSide", model.getPExactTwoSided());
+      result.updateValue("Fisher.PvalueLess", model.getPExactOneSidedLess());
+      result.updateValue("Fisher.PvalueGreater", model.getPExactOneSidedGreater());
+    } /* else { */
+    /*   fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n"); */
+    /* } */
+    result.writeValueLine(fp);
   };
   void reset() {
     model.reset();
@@ -529,6 +591,8 @@ class CMCTest: public ModelFitter{
 public:
   CMCTest() {
     this->modelName = "CMC";
+    result.addHeader("NonRefSite");
+    result.addHeader("CMC.Pvalue");
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
@@ -561,33 +625,47 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    if (isBinaryOutcome()) {
-      fprintf(fp, "CMC.Pvalue\n");
-    } else {
-      fprintf(fp, "NonRefSite\tCMC.Pvalue\n");
-    }
+    siteInfo.writeHeaderTab(fp);
+    /* if (isBinaryOutcome()) { */
+    /*   fprintf(fp, "CMC.Pvalue\n"); */
+    /* } else { */
+    /*   fprintf(fp, "NonRefSite\tCMC.Pvalue\n"); */
+    /* } */
+    result.writeHeaderLine(fp);
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    if (!fitOK) {
-      fprintf(fp, "NA\n");
-    } else {
+    siteInfo.writeValueTab(fp);
+    if (fitOK) {
+      result.updateValue("NonRefSite", this->totalNonRefSite());
       if (isBinaryOutcome()) {
-        fprintf(fp, "%f\n", logistic.GetPvalue());
+        result.updateValue("CMC.Pvalue", logistic.GetPvalue());
       } else {
-        fprintf(fp, "%d\t%f\n", this->totalNonRefSite(), linear.GetPvalue());
+        result.updateValue("CMC.Pvalue", linear.GetPvalue());
       }
-    };
+    }
+    result.writeValueLine(fp);
+              
+    /* if (!fitOK) { */
+    /*   fprintf(fp, "NA\n"); */
+    /* } else { */
+    /*   if (isBinaryOutcome()) { */
+    /*     fprintf(fp, "%f\n", logistic.GetPvalue()); */
+    /*   } else { */
+    /*     fprintf(fp, "%d\t%f\n", this->totalNonRefSite(), linear.GetPvalue()); */
+    /*   } */
+    /* }; */
   };
 private:
+  /**
+   * If the genotype is not exactly 0.0, we will count is as non-reference site
+   */
   int totalNonRefSite(){
-    double s = 0.0;
+    int s = 0;
     for (int i = 0; i < collapsedGenotype.rows; ++i) {
-      s += collapsedGenotype[i][0];
+      s += collapsedGenotype[i][0] == 0.0 ? 0 : 1;
     }
-    return (int)(s);
+    return (s);
   }
 
   Matrix collapsedGenotype;
@@ -601,6 +679,13 @@ class CMCFisherExactTest: public ModelFitter{
 public:
   CMCFisherExactTest() {
     this->modelName = "CMCFisherExact";
+    result.addHeader("exactCMC.N00");
+    result.addHeader("exactCMC.N01");
+    result.addHeader("exactCMC.N10");
+    result.addHeader("exactCMC.N11");
+    result.addHeader("exactCMC.PvalueTwoSide");
+    result.addHeader("exactCMC.PvalueLess");
+    result.addHeader("exactCMC.PvalueGreater");
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight, const Result& siteInfo) {
@@ -639,30 +724,43 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    fputs("exactCMC.N00\t", fp);
-    fputs("exactCMC.N01\t", fp);
-    fputs("exactCMC.N10\t", fp);
-    fputs("exactCMC.N11\t", fp);
-    fputs("exactCMC.PvalueTwoSide\t", fp);
-    fputs("exactCMC.PvalueLess\t", fp);
-    fputs("exactCMC.PvalueGreater\n", fp);
+    siteInfo.writeHeaderTab(fp);
+    result.writeHeaderLine(fp);
+    /* fputs("exactCMC.N00\t", fp); */
+    /* fputs("exactCMC.N01\t", fp); */
+    /* fputs("exactCMC.N10\t", fp); */
+    /* fputs("exactCMC.N11\t", fp); */
+    /* fputs("exactCMC.PvalueTwoSide\t", fp); */
+    /* fputs("exactCMC.PvalueLess\t", fp); */
+    /* fputs("exactCMC.PvalueGreater\n", fp); */
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeValueTab(fp);
+    result.clearValue();
     if (fitOK) {
-      fprintf(fp, "%d\t", model.Get00());
-      fprintf(fp, "%d\t", model.Get01());
-      fprintf(fp, "%d\t", model.Get10());
-      fprintf(fp, "%d\t", model.Get11());
+      /* fprintf(fp, "%d\t", model.Get00()); */
+      /* fprintf(fp, "%d\t", model.Get01()); */
+      /* fprintf(fp, "%d\t", model.Get10()); */
+      /* fprintf(fp, "%d\t", model.Get11()); */
 
-      fprintf(fp, "%lf\t", model.getPExactTwoSided());
-      fprintf(fp, "%lf\t", model.getPExactOneSidedLess());
-      fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater());
-    } else {
-      fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n");
+      /* fprintf(fp, "%lf\t", model.getPExactTwoSided()); */
+      /* fprintf(fp, "%lf\t", model.getPExactOneSidedLess()); */
+      /* fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater()); */
+
+      result.updateValue("exactCMC.N00", model.Get00());
+      result.updateValue("exactCMC.N01", model.Get01());
+      result.updateValue("exactCMC.N10", model.Get10());
+      result.updateValue("exactCMC.N11", model.Get11());
+      result.updateValue("exactCMC.PvalueTwoSide", model.getPExactTwoSided());
+      result.updateValue("exactCMC.PvalueLess", model.getPExactOneSidedLess());
+      result.updateValue("exactCMC.PvalueGreater", model.getPExactOneSidedGreater());
+      
     }
+    /*  else { */
+    /*   fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n"); */
+    /* } */
+    result.writeValueLine(fp);
   };
   void reset() {
     model.reset();
@@ -678,6 +776,7 @@ class ZegginiTest: public ModelFitter{
 public:
   ZegginiTest(){
     this->modelName = "Zeggini";
+    result.addHeader("Zeggini.Pvalue");
   };
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
@@ -711,21 +810,32 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    fprintf(fp, "Zeggini.Pvalue\n");
+    siteInfo.writeHeaderTab(fp);
+    //fprintf(fp, "Zeggini.Pvalue\n");
+    result.writeHeaderLine(fp);
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    if (!fitOK) {
-      fprintf(fp, "NA\n");
-    } else {
+    siteInfo.writeValueTab(fp);
+    result.clearValue();
+    if (fitOK) {
       if (isBinaryOutcome()) {
-        fprintf(fp, "%f\n", logistic.GetPvalue());
+        result.updateValue("Zeggini.Pvalue", logistic.GetPvalue());
       } else {
-        fprintf(fp, "%f\n", linear.GetPvalue());
+        result.updateValue("Zeggini.Pvalue", linear.GetPvalue());
       }
-    };
+    }
+    result.writeValueLine(fp);
+    
+    /* if (!fitOK) { */
+    /*   fprintf(fp, "NA\n"); */
+    /* } else { */
+    /*   if (isBinaryOutcome()) { */
+    /*     fprintf(fp, "%f\n", logistic.GetPvalue()); */
+    /*   } else { */
+    /*     fprintf(fp, "%f\n", linear.GetPvalue()); */
+    /*   } */
+    /* }; */
   };
 private:
   Matrix collapsedGenotype;
@@ -739,6 +849,7 @@ class MadsonBrowningTest: public ModelFitter{
 public:
 MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "MadsonBrowning";
+    result.addHeader("MB.Pvalue");
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
@@ -792,9 +903,10 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
   }
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeHeaderTab(fp);
+    
     if (isBinaryOutcome()){
-      perm.writeHeader(fp);
+      perm.writeHeaderTab(fp);
     } else {
       fprintf(fp, "Pvalue\n");
     };
@@ -802,17 +914,24 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeValueTab(fp);
+
     if (isBinaryOutcome()) {
-      if (fitOK){
-        perm.writeOutput(fp);
-        fprintf(fp, "\n");
-      } else {
-        fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n");
-      }
+      perm.writeOutput(fp);
+      fputs("\n", fp);
     } else {
-      fprintf(fp, "NA\n");
+      fputs("NA\n", fp);
     }
+    /* if (isBinaryOutcome()) { */
+    /*   if (fitOK){ */
+    /*     perm.writeOutput(fp); */
+    /*     fprintf(fp, "\n"); */
+    /*   } else { */
+    /*     fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n"); */
+    /*   } */
+    /* } else { */
+    /*   fprintf(fp, "NA\n"); */
+    /* } */
   };
 private:
   Matrix collapsedGenotype;
@@ -862,21 +981,30 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    fprintf(fp, "Fp.Pvalue\n");
+    siteInfo.writeHeaderTab(fp);
+    //fprintf(fp, "Fp.Pvalue\n");
+    result.addHeader("Fp.Pvalue");
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    if (!fitOK) {
-      fprintf(fp, "NA\n");
-    } else {
+    siteInfo.writeValueTab(fp);
+    if (fitOK) {
       if (isBinaryOutcome()) {
-        fprintf(fp, "%f\n", logistic.GetPvalue());
+        result.updateValue("Fp.Pvalue", logistic.GetPvalue());
       } else {
-        fprintf(fp, "%f\n", linear.GetPvalue());
+        result.updateValue("Fp.Pvalue", linear.GetPvalue());
       }
-    };
+    }
+    result.writeValueLine(fp);
+    /* if (!fitOK) { */
+    /*   fprintf(fp, "NA\n"); */
+    /* } else { */
+    /*   if (isBinaryOutcome()) { */
+    /*     fprintf(fp, "%f\n", logistic.GetPvalue()); */
+    /*   } else { */
+    /*     fprintf(fp, "%f\n", linear.GetPvalue()); */
+    /*   } */
+    /* }; */
   };
 private:
   Matrix collapsedGenotype;
@@ -890,6 +1018,7 @@ class RareCoverTest: public ModelFitter{
 public:
 RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "RareCover";
+    this->result.addHeader("NumIncludeMarker");
   }
   // fitting model
   int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
@@ -937,30 +1066,42 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
   }
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    if (isBinaryOutcome()){
-      fprintf(fp, "NumIncMarker\t");
-      this->perm.writeHeader(fp);
-      fprintf(fp, "\n");
-    } else
-      fprintf(fp, "NA\n");
+    siteInfo.writeHeaderTab(fp);
+    result.writeHeaderTab(fp);
+    this->perm.writeHeaderLine(fp);
+    
+    /* if (isBinaryOutcome()){ */
+    /*   fprintf(fp, "NumIncMarker\t"); */
+    /*   this->perm.writeHeader(fp); */
+    /*   fprintf(fp, "\n"); */
+    /* } else */
+    /*   fprintf(fp, "NA\n"); */
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
-    if (isBinaryOutcome()) {
-      if (fitOK){
-        fprintf(fp, "%zu\t", this->selected.size());
-        this->perm.writeOutput(fp);
-        fprintf(fp, "\n");
-      } else {
-        fprintf(fp, "NA\t");
-        this->perm.writeOutput(fp);
-        fprintf(fp, "\n");
+    siteInfo.writeValueTab(fp);
+    if (fitOK) {
+      if (isBinaryOutcome()) {
+        result.updateValue("NumIncludeMarker", (int)this->selected.size());
       }
-    } else {
-      fprintf(fp, "NA\n");
     }
+    result.writeValueTab(fp);
+    this->perm.writeOutputLine(fp);
+        
+    
+    /* if (isBinaryOutcome()) { */
+    /*   if (fitOK){ */
+    /*     fprintf(fp, "%zu\t", this->selected.size()); */
+    /*     this->perm.writeOutput(fp); */
+    /*     fprintf(fp, "\n"); */
+    /*   } else { */
+    /*     fprintf(fp, "NA\t"); */
+    /*     this->perm.writeOutput(fp); */
+    /*     fprintf(fp, "\n"); */
+    /*   } */
+    /* } else { */
+    /*   fprintf(fp, "NA\n"); */
+    /* } */
   };
   /**
    * For a given genotype and phenotype, calculate RareCover stats, which markers are selected
@@ -1088,27 +1229,17 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
   }
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeHeaderTab(fp);
     if (isBinaryOutcome()) { /// cmat only takes binary output
-      this->perm.writeHeader(fp);
-      fprintf(fp, "\n");
-    } else
-      fprintf(fp, "NA\n");
+      this->perm.writeHeaderLine(fp);
+    } 
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeValueTab(fp);
     if (isBinaryOutcome()) {
-      if (fitOK){
-        this->perm.writeOutput(fp);
-        fputs("\n", fp);
-      } else {
-        this->perm.writeOutput(fp);
-        fputs("\n", fp);
-      }
-    } else {
-      fprintf(fp, "\n");
-    }
+      this->perm.writeOutputLine(fp);
+    } 
   };
   double calculateStat(Matrix& genotype, Vector& phenotype,
                        double* p_N_A, double* p_N_U,
@@ -1270,17 +1401,17 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeHeaderTab(fp);
     fputs("\tOptFreq\t", fp);
     this->perm.writeHeader(fp);
     fputs("\n", fp);
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeValueTab(fp);
     fprintf(fp, "\t%g\t", this->optimalFreq);
-    this->perm.writeOutput(fp);
-    fprintf(fp, "\n");
+    this->perm.writeOutputLine(fp);
+    // fprintf(fp, "\n");
   };
   void reset() {
     fitOK = true;
@@ -1366,6 +1497,7 @@ public:
 VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     this->modelName = "VariableThresholdCMC";
     this->resize(32);
+    result.addHeader("FreqThreshold");
   };
   void resize(int n) {
     if (n < modelCapacity) {
@@ -1398,9 +1530,10 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    this->result = siteInfo;
-    result.addHeader("FreqThreshold");
-    result.writeHeader(fp);
+    // this->result = siteInfo;
+    // result.writeHeaderTab(fp);
+    siteInfo.writeHeaderTab(fp);
+    model[0].writeHeader(fp, result);
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
@@ -1410,7 +1543,9 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
       /* sprintf(buf, "%s\t%f\t", prependString, freq[i]); */
       /* model[i].writeOutput(fp, buf); */
       result.updateValue("FreqThreshold", toString(freq[i]));
-      result.writeValue(fp);
+      //result.writeValueTab(fp);
+      siteInfo.writeValueTab(fp);
+      model[i].writeOutput(fp, result);
     }
   };
   void reset() {
@@ -1425,7 +1560,7 @@ private:
   CMCTest* model;
   int modelLen;
   int modelCapacity;
-  Result result;
+  // Result result;
 }; // VariableThresholdCMCTest
 
 #if 0
@@ -1594,7 +1729,7 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeHeaderTab(fp);
     if (!usePermutation)
       fprintf(fp, "Q\tPvalue\n");
     else {
@@ -1605,7 +1740,7 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeValueTab(fp);
     if (!fitOK){
       fprintf(fp, "NA\tNA");
       if (usePermutation) {
@@ -1655,7 +1790,7 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeHeaderTab(fp);
     fprintf(fp, "KBAC.Pvalue\n");
   };
   void reset() {
@@ -1724,7 +1859,7 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    siteInfo.writeValue(fp);
+    siteInfo.writeValueTab(fp);
     if (!fitOK){
       fputs("NA\n", fp);
     } else {
@@ -1881,7 +2016,7 @@ private:
   int homAlt;
   double hweP;
   double callRate;
-  Result result;
+  // Result result;
 }; // MetaScoreTest
 
 class MetaCovTest: public ModelFitter{
@@ -2074,7 +2209,7 @@ private:
   int windowSize;
   Loci loci;
   bool fitOK;
-  Result result;
+  // Result result;
 }; // MetaCovTest
 
 

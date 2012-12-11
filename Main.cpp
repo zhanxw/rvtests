@@ -207,11 +207,16 @@ int loadCovariate(const char* fn,
   return (*covariate).rows;
 }
 
-/**
+  /**
  * @return number of phenotypes read. -1 if errors
- *
+ * @param phenoCol, which phenotype column to use, similar to plink, it should be the order of phenotype, e.g. phenoCol = 2, meaning the second phenotype
+ * @param phenoName, which phenotype header to use.
  */
-int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
+int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, int phenoCol) {
+  if (phenoCol < 0 ) {
+    logger->error("Phenotype column cannot be negative: [ %d ]", phenoCol);
+    return -1;
+  };
   std::map<std::string, double>& pheno = *p;
   std::map<std::string, int> dup; // duplicates
 
@@ -223,21 +228,29 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
   while (lr.readLine(&line)){
     stringNaturalTokenize(line, "\t ", &fd);
     ++ lineNo;
-    if (fd.size() < 6) {
+    if (fd.size() < 5 + phenoCol) {
       logger->warn("Skip line %d (short of columns) in phenotype file [ %s ]", lineNo, fn);
       continue;
+    }
+    if (toupper(fd[0]) == "FID" && toupper(fd[1]) == "IID") {
+      if (lineNo == 1) {
+        // skip header line
+        continue;
+      } else {
+        logger->warn("SKip line %d because the abnormal family and individual ids [ FID ] and [ IID ]", lineNo);
+        continue;
+      }
     }
     std::string& pid = fd[1];
     if (pheno.count(pid) == 0) {
       // check missing
-      if (str2double(fd[5].c_str(), &v)) {
+      if (str2double(fd[5 + phenoCol - 1].c_str(), &v)) {
         pheno[pid] = v;
       } else {
-        logger->error("Missing or invalid phenotype type, skipping line %d [ %s ] ... ", lineNo, line.c_str());
-        abort();
+        logger->warn("Skip: Missing or invalid phenotype type, skipping line %d [ %s ] ... ", lineNo, line.c_str());
       }
     } else {
-      // logger->warn("line %s have duplicated id, skipped...", pid.c_str());
+      //logger->warn("line %s have duplicated id, skipped...", pid.c_str());
       dup[pid] ++;
       continue;
     }
@@ -248,6 +261,57 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
   };
   return pheno.size();
 };
+
+/**
+ * @return number of phenotypes read. -1 if errors
+ * @param phenoName, which phenotype header to use.
+ *
+ */
+int loadPedPhenotypeByHeader(const char* fn, std::map<std::string, double>* p, const char* phenoHeader) {
+  if (!phenoHeader){
+    logger->error("Invalid header");
+    return -1;
+  }
+  std::string header = phenoHeader;
+  if (header.empty()) {
+    logger->error("Invalid header [ %s ]", phenoHeader);    
+    return -1;
+  }
+  std::vector<std::string> fd;
+  std::string line;
+  LineReader lr(fn);
+  int lineNo = 0;
+  int phenoCol = -1;
+  while (lr.readLine(&line)){
+    stringNaturalTokenize(line, "\t ", &fd);
+    ++ lineNo;
+    // check header line
+    if (fd.size() < 5) {
+      logger->error("Incorrect phenotype file format [ %s ], check column number", fn);
+      return -1;
+    }
+    if (toupper(fd[0]) != "FID" || toupper(fd[1]) != "IID" ) {
+      logger->error("Cannot use phenotype [ %s ] because it does not contain header line FID, IID, ....", fn);
+      return -1;
+    }    
+    for (size_t i = 5; i < fd.size(); ++i){ // skip FID, IID, FatID, MatID, Sex
+      if (fd[i] != phenoHeader)
+        continue;
+      if (phenoCol < 0) {
+        phenoCol = i - 5 + 1; // will need to find nth phenotype
+      } else {
+        logger->error("Duplicated header [ %s ] in the phenotype file [ %s ]", phenoHeader, fn);
+        return -1;
+      }
+    }
+    break;
+  }
+  if (phenoCol < 0) {
+    logger->error("Cannot locate phenotype header [ %s ] in file [ %s ]", phenoHeader, fn);
+    return -1;
+  }
+  return loadPedPhenotypeByColumn(fn, p, phenoCol);
+}
 
 /**
  * @return true if @param phenotype is either:  1: unaffected, 2: affected,  -9, 0: missing
@@ -839,15 +903,19 @@ SummaryHeader* g_SummaryHeader = NULL;
 int main(int argc, char** argv){
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
+      ADD_PARAMETER_GROUP(pl, "Basic Input/Output")
       ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
       ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
+      ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
+      ADD_PARAMETER_GROUP(pl, "Specify Covariate")
       ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
       ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")
+      ADD_PARAMETER_GROUP(pl, "Specify Phenotype")
       ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
       ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
       ADD_BOOL_PARAMETER(pl, useResidualAsPhenotype, "--useResidualAsPhenotype", "fit covariate ~ phenotype, use residual to replace phenotype")
-      ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
+      ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "specify which phenotype column to read (default: 1)")      
+      ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name", "specify which phenotype column to read by header")
       // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
       // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
       // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output [prefix].{fam,bed,bim} in Plink BED format")
@@ -874,7 +942,7 @@ int main(int argc, char** argv){
       ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Statistical Model")
-      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, fisher")
+      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
@@ -983,15 +1051,36 @@ int main(int argc, char** argv){
   if (FLAG_pheno.empty()) {
     logger->error("Cannot do association when phenotype is missing!");
     return -1;
-  } else {
-    int ret = loadPedPhenotype(FLAG_pheno.c_str(), &phenotype);
+  }
+
+  // check if alternative phenotype columns are used
+  if (!FLAG_mpheno.empty() && !FLAG_phenoName.empty()) {
+    logger->error("Please specify either --mpheno or --pheno-name");
+    return -1;
+  }
+  if (!FLAG_mpheno.empty()) {
+    int col = atoi(FLAG_mpheno);
+    int ret = loadPedPhenotypeByColumn(FLAG_pheno.c_str(), &phenotype, col);
     if (ret < 0) {
       logger->error("Loading phenotype failed!");
       return -1;
-    } else {
-      logger->info("Loaded %zu sample pheontypes.", phenotype.size());
     }
-  };
+  } else if (!FLAG_phenoName.empty()) {
+    int ret = loadPedPhenotypeByHeader(FLAG_pheno.c_str(), &phenotype, FLAG_phenoName.c_str());
+    if (ret < 0) {
+      logger->error("Loading phenotype failed!");
+      return -1;
+    }
+  } else {    
+    int col = 1; // default use the first phenotype
+    int ret = loadPedPhenotypeByColumn(FLAG_pheno.c_str(), &phenotype, col);
+    if (ret < 0) {
+      logger->error("Loading phenotype failed!");
+      return -1;
+    }
+  }
+  logger->info("Loaded %zu sample pheontypes.", phenotype.size());
+  
 
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;
@@ -1451,10 +1540,7 @@ int main(int argc, char** argv){
     }
   } else if (rangeMode != "Single" && groupVariantMode) { // read by gene/range mode, group variant test
     buf.addHeader(rangeMode);
-    buf.addHeader("CHROM");
-    buf.addHeader("POS");
-    buf.addHeader("REF");
-    buf.addHeader("ALT");
+    buf.addHeader("RANGE");
     buf.addHeader("N_INFORMATIVE");
     buf.addHeader("NumVar");
 
@@ -1483,6 +1569,7 @@ int main(int argc, char** argv){
       dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
 
       buf.updateValue(rangeMode, geneName);
+      buf.updateValue("RANGE", rangeList.toString());
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows) );
       buf.updateValue("NumVar", toString(genotype.cols));
 

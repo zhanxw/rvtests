@@ -7,6 +7,10 @@
 
 class SimpleMatrix{
 public:
+  SimpleMatrix() {};
+  SimpleMatrix(int nr, int nc) {
+    this->resize(nr, nc);
+  }
   /* const static int COLUMN_HEADER = 0x1; */
   /* const static int ROW_HEADER = 0x2; */
   int readFile(const char* f);

@@ -44,6 +44,19 @@ public:
   static int error(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
   static int fatal(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
   static FILE*& getHandle();
+  static void sync(FILE* f) {
+    if (f) {
+      fflush(f);
+      int no = (fileno(f));
+      if ( no > 0) {
+        fsync(no);
+      }
+    }
+  }
+  static void sync() {
+    sync(fileHandle);
+    sync(consoleHandle);
+  }
 public:
   const static LogLevel INFO = _INFO;
   const static LogLevel WARN = _WARN;

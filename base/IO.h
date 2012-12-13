@@ -435,6 +435,11 @@ private:
   AbstractFileReader* fp;
 };
 
+/**
+ * @return number of empty elements filtered out
+ */
+extern int removeEmptyField(std::vector<std::string>* fields);
+
 //////////////////////////////////////////////////////////////////////
 // FileWriter related classes
 class AbstractFileWriter{

@@ -34,6 +34,9 @@ void VCFInputFile::clearRange() {
   this->ti_line = 0;
 };
 
+/**
+ * @param fn: the file contains two column: old_id new_id
+ */
 int VCFInputFile::updateId(const char* fn){
   // load conversion table
   LineReader lr(fn);

@@ -135,10 +135,6 @@ int loadCovariate(const char* fn,
                   std::vector<std::string>* colNames,
                   std::set< std::string >* sampleToDrop
                   ) {
-  // std::map<std::string, int> sampleIdx;
-  // for (int i = 0; i < includedSample.size() ; ++i){
-  //   sampleIdx[includedSample[i]] = i;
-  // }
   std::set< std::string> sampleSet;
   makeSet(includedSample, &sampleSet);
 
@@ -147,6 +143,7 @@ int loadCovariate(const char* fn,
 
 
   std::map< std::string, int > processed; //record how many times a sample is processed
+  std::set< std::pair<int, int>> missing;
   std::vector< int> columnToExtract;
   std::vector< std::string > fd;
   LineReader lr(fn);
@@ -156,10 +153,15 @@ int loadCovariate(const char* fn,
     ++lineNo;
     if (lineNo == 1) { // header line
       fieldLen = fd.size();
-      if (fieldLen < 1) {
+      if (fieldLen < 2) {
         logger->error("Insufficient lenght in covariate file!");
         return -1;
       };
+      if (tolower(fd[0]) != "fid" ||
+          tolower(fd[1]) != "iid") {
+        logger->error("Covariate file header should begin with \"FID IID\"!");
+        return -1;
+      }
       for (int i = 1; i < fd.size(); i++) {
         if (columnNameSet.count(fd[i]) > 0) {
           columnToExtract.push_back(i);
@@ -194,8 +196,9 @@ int loadCovariate(const char* fn,
         if (str2double(fd[columnToExtract[i]], &d)) {
           (*covariate)[idx][i] = d;
         } else {
-          logger->warn("Covariate fille line [ %d ] treat value [ %s ] as 0.0 ", lineNo, fd[columnToExtract[i]].c_str());
-          (*covariate)[idx][i] = 0.0;
+          logger->warn("Covariate fille line [ %d ] has non-numerical value [ %s ], we will impute to its mean.", lineNo, fd[columnToExtract[i]].c_str());
+          (*covariate)[idx][i] = 0.0; // will later be updated
+          missing.insert( std::make_pair(idx, i) );
         };
       }
     }
@@ -209,6 +212,30 @@ int loadCovariate(const char* fn,
       logger->warn("Covariate file does not contain sample [ %s ]", includedSample[i].c_str());
       sampleToDrop->insert(includedSample[i]);
     };
+  }
+
+  // impute missing covariates to mean by column
+  for (int col = 0; col < (*covariate).cols; ++col) {
+    double sum = 0;
+    int nonZero = 0;
+    for (int row = 0; row < (*covariate).rows; ++row) {
+      if (missing.count( std::make_pair(row, col) ) ) continue; // missing
+      sum += (*covariate)[row][col];
+      ++ nonZero ;
+    }
+    if (nonZero == 0) {  // all column are missing, drop column
+      logger->info("Covariate has the whole column missing, drop it!");
+      (*covariate).DeleteColumn(col);
+      --col;
+      continue;
+    }
+    // some elements are missing
+    double mean = sum / nonZero;
+    for (int row = 0; row < (*covariate).rows; ++row) {
+      if (missing.count( std::make_pair(row, col) ) ) {
+        (*covariate)[row][col] = mean;
+      }
+    }
   }
   return (*covariate).rows;
 }
@@ -1002,7 +1029,8 @@ int main(int argc, char** argv){
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
-
+  logger->sync();
+  
   REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
 
   time_t startTime = time(0);

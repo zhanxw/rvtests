@@ -1,0 +1,27 @@
+Conflicting gender!Conflicting gender!Duplicated person [ p1 ] in the duplicated family [ fam2 ], but not consistent to previous entry
+Duplicated person [ p1 ] in the duplicated family [ fam2 ], but not consistent to previous entry
+Duplicated person [ q3 ] in a new family [  ], this is not a supported feature.
+Loaded OK
+Loaded 2 family and 9 people.
+Total 2 family loaded:  fam1,  fam2, 
+Total 6 founder loaded: 
+Total 9 people loaded: 
+p0: founder = no, gender = 1, father = 1, mother = -1, child = 
+p1: founder = yes, gender = 1, father = -1, mother = -1, child = 0, 3, 4, 
+p2: founder = yes, gender = 1, father = -1, mother = -1, child = 3, 4, 
+p3: founder = no, gender = 1, father = 1, mother = 2, child = 
+p4: founder = no, gender = 1, father = 1, mother = 2, child = 
+q0: founder = yes, gender = 1, father = -1, mother = -1, child = 
+q1: founder = yes, gender = 1, father = -1, mother = -1, child = 
+q2: founder = yes, gender = 1, father = -1, mother = -1, child = 
+q3: founder = yes, gender = 1, father = -1, mother = -1, child = 
+
+fam1	p0	p1	0	1
+fam1	p1	0	0	1
+fam1	p2	0	0	1
+fam1	p3	p1	p2	1
+fam1	p4	p1	p2	1
+fam2	q0	0	0	1
+fam2	q1	0	0	1
+fam2	q2	0	0	1
+fam2	q3	0	0	1

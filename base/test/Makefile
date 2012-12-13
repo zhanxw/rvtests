@@ -1,4 +1,4 @@
-EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix testPedigree
+EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix testPedigree testKinship
 all: $(EXE)
 debug: all
 
@@ -17,6 +17,7 @@ define BUILD_each
 endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
+$(EXE): ../lib-dbg-base.a
 check:
 	./testIO && \
 	./testLogger && \
@@ -24,10 +25,12 @@ check:
 	diff testRangeList_output testRangeList_output.correct && \
 	./testUtils && \
 	./testRegex && \
-	./testSimpleMatrix
+	./testSimpleMatrix  && \
+	./testPedigree test.ped >& testPedigree.out && diff testPedigree.correct testPedigree.out && \
+	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct
 
 #diff -q t1.output t1.correct
 
 clean:
-	-rm -f $(EXE) *.o *.d
+	-rm -f $(EXE) *.o *.d *.out
 

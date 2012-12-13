@@ -1,0 +1,35 @@
+Loaded OK
+Loaded 1 family and 14 people.
+Total 1 family loaded:  2, 
+Total 4 founder loaded: 
+Total 14 people loaded: 
+201: founder = yes, gender = 1, father = -1, mother = -1, child = 3, 4, 5, 6, 7, 
+202: founder = yes, gender = 2, father = -1, mother = -1, child = 3, 4, 5, 6, 7, 
+203: founder = yes, gender = 1, father = -1, mother = -1, child = 9, 10, 
+204: founder = no, gender = 2, father = 0, mother = 1, child = 9, 10, 
+205: founder = no, gender = 1, father = 0, mother = 1, child = 
+206: founder = no, gender = 2, father = 0, mother = 1, child = 
+207: founder = no, gender = 2, father = 0, mother = 1, child = 
+208: founder = no, gender = 2, father = 0, mother = 1, child = 11, 12, 13, 
+209: founder = yes, gender = 1, father = -1, mother = -1, child = 11, 12, 13, 
+210: founder = no, gender = 1, father = 2, mother = 3, child = 
+211: founder = no, gender = 1, father = 2, mother = 3, child = 
+212: founder = no, gender = 2, father = 8, mother = 7, child = 
+213: founder = no, gender = 1, father = 8, mother = 7, child = 
+214: founder = no, gender = 1, father = 8, mother = 7, child = 
+
+0 1 2 8 3 4 5 6 7 9 10 11 12 13 
+2	201	0.5	0	0	0.25	0.25	0.25	0.25	0.25	0	0.125	0.125	0.125	0.125	0.125
+2	202	0	0.5	0	0.25	0.25	0.25	0.25	0.25	0	0.125	0.125	0.125	0.125	0.125
+2	203	0	0	0.5	0	0	0	0	0	0	0.25	0.25	0	0	0
+2	204	0.25	0.25	0	0.5	0.25	0.25	0.25	0.25	0	0.25	0.25	0.125	0.125	0.125
+2	205	0.25	0.25	0	0.25	0.5	0.25	0.25	0.25	0	0.125	0.125	0.125	0.125	0.125
+2	206	0.25	0.25	0	0.25	0.25	0.5	0.25	0.25	0	0.125	0.125	0.125	0.125	0.125
+2	207	0.25	0.25	0	0.25	0.25	0.25	0.5	0.25	0	0.125	0.125	0.125	0.125	0.125
+2	208	0.25	0.25	0	0.25	0.25	0.25	0.25	0.5	0	0.125	0.125	0.25	0.25	0.25
+2	209	0	0	0	0	0	0	0	0	0.5	0	0	0.25	0.25	0.25
+2	210	0.125	0.125	0.25	0.25	0.125	0.125	0.125	0.125	0	0.5	0.25	0.0625	0.0625	0.0625
+2	211	0.125	0.125	0.25	0.25	0.125	0.125	0.125	0.125	0	0.25	0.5	0.0625	0.0625	0.0625
+2	212	0.125	0.125	0	0.125	0.125	0.125	0.125	0.25	0.25	0.0625	0.0625	0.5	0.25	0.25
+2	213	0.125	0.125	0	0.125	0.125	0.125	0.125	0.25	0.25	0.0625	0.0625	0.25	0.5	0.25
+2	214	0.125	0.125	0	0.125	0.125	0.125	0.125	0.25	0.25	0.0625	0.0625	0.25	0.25	0.5

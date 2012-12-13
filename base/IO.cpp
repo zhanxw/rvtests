@@ -1,4 +1,5 @@
 #include "IO.h"
+#include <algorithm>
 
 //static method
 AbstractFileReader* AbstractFileReader::open(const char* fileName){
@@ -64,6 +65,17 @@ AbstractFileReader::FileType AbstractFileReader::checkFileType(const char* fileN
     /* }  */
     /* return UNKNOWN; */
 };
+
+/**
+ * @return number of empty elements filtered out
+ */
+int removeEmptyField(std::vector<std::string>* fields) {
+  int s = fields->size();
+  std::remove(fields->begin(), fields->end(), "");
+  s -= fields->size();
+  return s;
+};
+
 
 AbstractFileWriter::~AbstractFileWriter() {
 #ifdef IO_DEBUG

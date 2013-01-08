@@ -273,7 +273,7 @@ RangeList(): isSorted(false) {};
   size_t size() const {return this->rangeCollection.size(); };
   // read gene list file and add these ranges
   void filterGeneName(const char* geneName, const char* fileName);
-  /// argRangeList is a string indicating the range
+  /// @param argRangeList is a string indicating the range
   void addRangeList(const char* argRangeList);
   void addRangeFile(const char* argRangeFile);
   void addRange(const char* chr, unsigned int begin, unsigned int end) {
@@ -308,7 +308,6 @@ RangeList(): isSorted(false) {};
       fprintf(stderr, "range %zu: %s\n", i, out.c_str());
     }
   };
-  
   class iterator{
  public:
  iterator(): rangeCollection(NULL), chromIndex(-1), inChromRegionSize(-1) 

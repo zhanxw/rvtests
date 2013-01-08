@@ -1,4 +1,4 @@
-EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix testPedigree testKinship
+EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix testPedigree testKinship testTabixReader
 all: $(EXE)
 debug: all
 

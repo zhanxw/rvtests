@@ -1221,11 +1221,11 @@ int main(int argc, char** argv){
       g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
       // g_SummaryHeader->recordPhenotype("TransformedTrait", phenotypeInOrder);
       // standardize(&phenotypeInOrder);
-      g_SummaryHeader->recordPhenotype("AnalyzedTrait", phenotypeInOrder);
       logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");
       logger->info("Done: inverse normal transformation finished.");
     }
   };
+  g_SummaryHeader->recordPhenotype("AnalyzedTrait", phenotypeInOrder);
 
   if (phenotypeInOrder.empty()) {
     logger->fatal("There are 0 samples with valid phenotypes, quitting...");

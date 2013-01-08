@@ -37,6 +37,7 @@ public:
  */
 class SummaryHeader{
 public:
+SummaryHeader(): inverseNormalized(false) {};
   void recordPhenotype(const char* label, const std::vector<double>& pheno){
     this->phenoLabel.push_back(label);
     Summary s;

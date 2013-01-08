@@ -3,13 +3,13 @@
 LIB = tabix pcre eigen gsl bzip2
 all: $(LIB)
 
-tabix: tabix-0.2.5.tar.bz2
-	-mv tabix-0.2.5.tar.bz2* tabix-0.2.5.tar.bz2
-	tar jvxf tabix-0.2.5.tar.bz2
-	ln -s -f tabix-0.2.5 tabix
+tabix: tabix-0.2.6.tar.bz2
+	-mv tabix-0.2.6.tar.bz2* tabix-0.2.6.tar.bz2
+	tar jvxf tabix-0.2.6.tar.bz2
+	ln -s -f tabix-0.2.6 tabix
 	sed -i 's:-D_USE_KNETFILE::' tabix/Makefile
 	sed -i 's:-D_USE_KNTFILE::' tabix/Makefile
-	(cd tabix-0.2.5; make)
+	(cd tabix-0.2.6; make; make libtabix.so.1)
 
 pcre: pcre-8.21.tar.gz
 	-mv pcre-8.21.tar.gz* pcre-8.21.tar.gz
@@ -48,7 +48,7 @@ clean:
 	-rm -rf $(LIB)
 deepclean:
 	-rm -rf $(LIB)
-	-rm -rf tabix-0.2.5
+	-rm -rf tabix-0.2.6
 	-rm -rf pcre-8.21
 	-rm -rf gsl-1.15
 	-rm -rf eigen-3.1.0

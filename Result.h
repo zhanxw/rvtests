@@ -129,6 +129,7 @@ public:
         s += '\t';
       }
     }
+    return s;
   }
   
   const std::string& operator[] (const std::string& key) const{

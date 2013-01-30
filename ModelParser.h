@@ -32,7 +32,8 @@ class ModelParser{
     std::vector<std::string> params;
     std::string allParam = arg.substr(l + 1, arg.size() - 1 - 1 -l);
     int ret = stringTokenize(allParam, ',', &params);
-    for (int i = 0; i < params.size(); ++i) {
+    UNUSED(ret);
+    for (size_t i = 0; i < params.size(); ++i) {
       l = params[i].find('=');
       if (l == std::string::npos) {
         this->param[params[i]] = "";

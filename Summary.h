@@ -68,7 +68,7 @@ SummaryHeader(): inverseNormalized(false) {};
     this->cov.push_back(s);
   }
   void recordCovariate(Matrix& m) {
-    int nr = m.rows;
+    // int nr = m.rows;
     int nc = m.cols;
     this->covLabel.clear();
     this->cov.clear();

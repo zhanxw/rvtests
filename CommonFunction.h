@@ -27,7 +27,7 @@ OrderFunction(T& t): v(t) {};
  */
 void order(std::vector<double>& freq, std::vector<int>* ord) {
   ord->resize(freq.size());
-  for (int i = 0; i < freq.size(); ++i)
+  for (size_t i = 0; i < freq.size(); ++i)
     (*ord)[i] = i;
 
   OrderFunction< std::vector<double> > func(freq);
@@ -36,7 +36,7 @@ void order(std::vector<double>& freq, std::vector<int>* ord) {
 
 void order(std::vector<int>& freq, std::vector<int>* ord) {
   ord->resize(freq.size());
-  for (int i = 0; i < freq.size(); ++i)
+  for (size_t i = 0; i < freq.size(); ++i)
     (*ord)[i] = i;
 
   OrderFunction< std::vector<int> > func(freq);
@@ -106,12 +106,12 @@ void inverseNormalizeLikeMerlin(std::vector<double>* y){
   calculateRank(*y, &yRank);
 
   // change order to 1-based rank
-  for (size_t i = 0; i < n; ++i ) {
+  for (int i = 0; i < n; ++i ) {
     (*y)[i] = qnorm( ( 0.5 + yRank[i]) / n);
     // fprintf(stderr, "%zu - %g - %d \n", i,  (*y)[i], ord[i]);
   }
-  double m = calculateMean(*y);
-  double sd = calculateSD(*y);
+  /* double m = calculateMean(*y); */
+  /* double sd = calculateSD(*y); */
   // fprintf(stderr, "mean = %g, sd = %g\n", m, sd);
 }
 
@@ -122,7 +122,7 @@ void inverseNormalizeLikeR(std::vector<double>* y){
   std::vector<int> ord;
   order(*y, &ord);
 
-  for (unsigned int i = 0; i < n; i++)
+  for (int i = 0; i < n; i++)
     (*y)[i] = ord[i];
   order(*y, &ord);
 
@@ -132,7 +132,7 @@ void inverseNormalizeLikeR(std::vector<double>* y){
   } else {
     a = 0.5;
   }
-  for (unsigned int i = 0; i < n ; i++)
+  for (int i = 0; i < n ; i++)
     (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + (1 - a) - a));
 }
 

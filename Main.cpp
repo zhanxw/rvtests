@@ -105,7 +105,7 @@ void makeSet(const char* str, char sep, std::set<std::string>* s) {
 
   std::vector<std::string> fd;
   stringTokenize(str, ",", &fd);
-  for (int i = 0; i < fd.size(); i++)
+  for (size_t i = 0; i < fd.size(); i++)
     s->insert(fd[i]);
 }
 
@@ -114,7 +114,7 @@ void makeSet(const std::vector<std::string> in, std::set<std::string>* s) {
   if (in.empty())
     return;
 
-  for (int i = 0; i < in.size(); i++)
+  for (size_t i = 0; i < in.size(); i++)
     s->insert(in[i]);
 }
 
@@ -164,7 +164,7 @@ int loadCovariate(const char* fn,
         logger->error("Covariate file header should begin with \"FID IID\"!");
         return -1;
       }
-      for (int i = 1; i < fd.size(); i++) {
+      for (size_t i = 1; i < fd.size(); i++) {
         if (columnNameSet.count(fd[i]) > 0) {
           columnToExtract.push_back(i);
           colNames->push_back(fd[i]);
@@ -177,7 +177,7 @@ int loadCovariate(const char* fn,
       //   (*covariate)[i].resize(colNames.size());
       // };
     } else { // body lines
-      if (fd.size() != fieldLen) {
+      if ((int)fd.size() != fieldLen) {
         logger->error("Inconsistent lenght in covariate file [ %s ] line %d - skip this file!", fn, lineNo);
         return -1;
       }
@@ -193,7 +193,7 @@ int loadCovariate(const char* fn,
       int idx = (*covariate).rows;
       (*covariate).Dimension( idx + 1, columnNameSet.size());
 
-      for (int i = 0; i < columnToExtract.size(); ++i) {
+      for (int i = 0; i < (int)columnToExtract.size(); ++i) {
         double d;
         if (str2double(fd[columnToExtract[i]], &d)) {
           (*covariate)[idx][i] = d;
@@ -206,10 +206,10 @@ int loadCovariate(const char* fn,
     }
   };
   // set up labels
-  for (int i = 0 ; i < colNames->size(); ++i) {
+  for (size_t i = 0 ; i < colNames->size(); ++i) {
     (*covariate).SetColumnLabel(i, (*colNames)[i].c_str());
   }
-  for (int i = 0; i <includedSample.size(); i++) {
+  for (size_t i = 0; i <includedSample.size(); i++) {
     if (processed.find(includedSample[i]) == processed.end()) {
       logger->warn("Covariate file does not contain sample [ %s ]", includedSample[i].c_str());
       sampleToDrop->insert(includedSample[i]);
@@ -263,7 +263,7 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, i
   while (lr.readLine(&line)){
     stringNaturalTokenize(line, "\t ", &fd);
     ++ lineNo;
-    if (fd.size() < 5 + phenoCol) {
+    if ((int)fd.size() < 5 + phenoCol) {
       logger->warn("Skip line %d (short of columns) in phenotype file [ %s ]", lineNo, fn);
       continue;
     }
@@ -356,7 +356,7 @@ bool isBinaryPhenotype(const std::vector<double>& phenotype){
   int nCase = 0;
   int nControl = 0;
   int nMissing = 0;
-  for (int i = 0; i < phenotype.size(); ++i) {
+  for (size_t i = 0; i < phenotype.size(); ++i) {
     double d = phenotype[i];
     double p;
     // check fraction part of phenotype
@@ -388,10 +388,10 @@ bool isBinaryPhenotype(const std::vector<double>& phenotype){
  */
 bool convertBinaryPhenotype(std::vector<double>* p){
   std::vector<double>& phenotype = *p;
-  int nCase = 0;
-  int nControl = 0;
-  int nMissing = 0;
-  for (int i = 0; i < phenotype.size(); ++i) {
+  // int nCase = 0;
+  // int nControl = 0;
+  // int nMissing = 0;
+  for (size_t i = 0; i < phenotype.size(); ++i) {
     double d = phenotype[i];
     double p;
     // check fraction part of phenotype
@@ -423,7 +423,7 @@ bool convertBinaryPhenotype(std::vector<double>* p){
  */
 bool isUnique(const std::vector<std::string>& x) {
   std::set<std::string> s;
-  for (int i = 0; i < x.size(); i++) {
+  for (size_t i = 0; i < x.size(); i++) {
     s.insert(x[i]);
     if (s.size() != i + 1) {
       return false;
@@ -471,7 +471,7 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
       }
     }
     double avg = sum / (vcfSampleNames.size() - nMissingPheno);
-    for (int i = 0; i < vcfSampleNames.size(); i++) {
+    for (size_t i = 0; i < vcfSampleNames.size(); i++) {
       if (phenotype.count(vcfSampleNames[i]) == 0) {
         logger->info("Impute phenotype of sample [ %s ] to [ %g ]", vcfSampleNames[i].c_str(), avg);
         phenotypeNameInOrder->push_back(vcfSampleNames[i]);
@@ -510,7 +510,7 @@ class GenotypeExtractor{
       int GDidx = r.getFormatIndex("GD");
       int GQidx = r.getFormatIndex("GQ");
       // e.g.: Loop each (selected) people in the same order as in the VCF
-      for (int i = 0; i < people.size(); i++) {
+      for (int i = 0; i < (int)people.size(); i++) {
         indv = people[i];
         // get GT index. if you are sure the index will not change, call this function only once!
         if (GTidx >= 0) {
@@ -561,7 +561,7 @@ class GenotypeExtractor{
     int GDidx = r.getFormatIndex("GD");
     int GQidx = r.getFormatIndex("GQ");
     // e.g.: Loop each (selected) people in the same order as in the VCF
-    for (int i = 0; i < people.size(); i++) {
+    for (size_t i = 0; i < people.size(); i++) {
       indv = people[i];
 
       if (GTidx >= 0) {
@@ -582,6 +582,7 @@ class GenotypeExtractor{
     label += ':';
     label += r.getPosStr();
     genotype.SetColumnLabel(0, label.c_str());
+    return 0;
   };
 
   // @return true if GD is valid
@@ -624,12 +625,12 @@ class GenotypeExtractor{
   };
  private:
   VCFExtractor& vin;
-  bool needGD;
   int GDmin;
   int GDmax;
-  bool needGQ;
+  bool needGD;
   int GQmin;
   int GQmax;
+  bool needGQ;
   Vector weight;
 }; // clas GenotypeExtractor
 
@@ -863,7 +864,7 @@ class DataConsolidator{
  */
 void toMatrix(const std::vector<double>& v, Matrix* m) {
   m->Dimension(v.size(), 1);
-  for (int i = 0; i < v.size(); i++) {
+  for (size_t i = 0; i < v.size(); i++) {
     (*m)[i][0] = v[i];
   }
 };
@@ -901,7 +902,7 @@ int appendListToRange(const std::string& FLAG_setList, OrderedMap<std::string, R
   int ret = stringNaturalTokenize(FLAG_setList, ',', &fd);
   std::string chr;
   unsigned int beg, end;
-  for (int i = 0; i <fd.size() ; ++i){
+  for (size_t i = 0; i <fd.size() ; ++i){
     if (!parseRangeFormat(fd[i], &chr, &beg, &end)) {
       logger->error("Cannot parse range: %s", fd[i].c_str());
       continue;
@@ -1256,7 +1257,7 @@ int main(int argc, char** argv){
   //if (parseModel(FLAG_modelSingle, &modelName, &modelParams)
   if (FLAG_modelSingle != "") {
     stringTokenize(FLAG_modelSingle, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
+    for (size_t i = 0; i < argModelName.size(); i++ ){
       parser.parse(argModelName[i]);
       modelName = parser.getName();
       if (modelName == "wald") {
@@ -1274,7 +1275,7 @@ int main(int argc, char** argv){
 
   if (FLAG_modelBurden != "") {
     stringTokenize(FLAG_modelBurden, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
+    for (size_t i = 0; i < argModelName.size(); i++ ){
       parser.parse(argModelName[i]);
       modelName = parser.getName();
 
@@ -1308,7 +1309,7 @@ int main(int argc, char** argv){
   };
   if (FLAG_modelVT != "") {
     stringTokenize(FLAG_modelVT, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
+    for (size_t i = 0; i < argModelName.size(); i++ ){
       parser.parse(argModelName[i]);
       modelName = parser.getName();
 
@@ -1334,7 +1335,7 @@ int main(int argc, char** argv){
   };
   if (FLAG_modelKernel != "") {
     stringTokenize(FLAG_modelKernel, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
+    for (size_t i = 0; i < argModelName.size(); i++ ){
       parser.parse(argModelName[i]);
       modelName = parser.getName();
 
@@ -1356,7 +1357,7 @@ int main(int argc, char** argv){
 
   if (FLAG_modelMeta != "") {
     stringTokenize(FLAG_modelMeta, ",", &argModelName);
-    for (int i = 0; i < argModelName.size(); i++ ){
+    for (size_t i = 0; i < argModelName.size(); i++ ){
       parser.parse(argModelName[i]);
       modelName = parser.getName();
 
@@ -1379,7 +1380,7 @@ int main(int argc, char** argv){
   }
 
   if (binaryPhenotype) {
-    for (int i = 0; i < model.size(); i++){
+    for (size_t i = 0; i < model.size(); i++){
       model[i]->setBinaryOutcome();
     }
   }
@@ -1388,7 +1389,7 @@ int main(int argc, char** argv){
   toMatrix(phenotypeInOrder, &phenotypeMatrix);
 
   FILE** fOuts = new FILE*[model.size()];
-  for (int i = 0; i < model.size(); ++i) {
+  for (size_t i = 0; i < model.size(); ++i) {
     std::string s = FLAG_outPrefix;
     s += ".";
     s += model[i]->getModelName();
@@ -1496,7 +1497,7 @@ int main(int argc, char** argv){
     buf.addHeader("N_INFORMATIVE");
 
     // output headers
-    for (int m = 0; m < model.size(); m++) {
+    for (size_t m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf);
     };
 
@@ -1522,7 +1523,7 @@ int main(int argc, char** argv){
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
       // fit each model
-      for (int m = 0; m < model.size(); m++) {
+      for (size_t m = 0; m < model.size(); m++) {
         model[m]->reset();
         //model[m]->fit(phenotypeMatrix, genotype, covariate);
         model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
@@ -1541,12 +1542,12 @@ int main(int argc, char** argv){
     buf.addHeader("N_INFORMATIVE");
 
     // output headers
-    for (int m = 0; m < model.size(); m++) {
+    for (size_t m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf);
     };
     std::string geneName;
     RangeList rangeList;
-    for ( int i = 0; i < geneRange.size(); ++i) {
+    for ( size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
       vin.setRange(rangeList);
 
@@ -1569,7 +1570,7 @@ int main(int argc, char** argv){
         buf.updateValue(rangeMode, geneName);
         buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
-        for (int m = 0; m < model.size(); m++) {
+        for (size_t m = 0; m < model.size(); m++) {
           model[m]->reset();
           model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
           //          model[m]->fit(phenotypeMatrix, genotype, covariate);
@@ -1584,12 +1585,12 @@ int main(int argc, char** argv){
     buf.addHeader("NumVar");
 
     // output headers
-    for (int m = 0; m < model.size(); m++) {
+    for (size_t m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf);
     };
     std::string geneName;
     RangeList rangeList;
-    for ( int i = 0; i < geneRange.size(); ++i) {
+    for ( size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
       vin.setRange(rangeList);
 
@@ -1612,7 +1613,7 @@ int main(int argc, char** argv){
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows) );
       buf.updateValue("NumVar", toString(genotype.cols));
 
-      for (int m = 0; m < model.size(); m++) {
+      for (size_t m = 0; m < model.size(); m++) {
         model[m]->reset();
         model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
         // model[m]->fit(phenotypeMatrix, genotype, covariate);
@@ -1626,10 +1627,10 @@ int main(int argc, char** argv){
   }
   
   // resource cleaning up
-  for (int m = 0; m < model.size() ; ++m ) {
+  for (size_t m = 0; m < model.size() ; ++m ) {
     delete model[m];
   }
-  for (int m = 0; m < model.size() ; ++m ) {
+  for (size_t m = 0; m < model.size() ; ++m ) {
     fclose(fOuts[m]);
   }
   delete[] fOuts;

@@ -95,7 +95,7 @@ CXX_LIB = $(LIB) -lz -lm -lgsl -lblas
 CXX_LIB_DBG = $(LIB_DBG) -lz -lm -lgsl -lblas
 
 
-DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x #-Wall
+DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x -Wall -Wno-unused-function
 
 .PHONY: release debug
 

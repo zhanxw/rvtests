@@ -171,9 +171,8 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {
 
 
 private:
-  double alpha;
   int numPerm;
-
+  double alpha;
   double obs;
   int actualPerm;
   int threshold;
@@ -534,6 +533,7 @@ public:
     model.FullFastFisherExactTest();
 
     this->fitOK = true;
+    return 0;
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
@@ -807,6 +807,7 @@ public:
     model.FullFastFisherExactTest();
 
     this->fitOK = true;
+    return 0;
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) {
@@ -1202,7 +1203,7 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     c.Zero();
 
     double stat;
-    while (selected.size() < genotype.rows) {
+    while ((int)selected.size() < genotype.rows) {
       int maxIdx = -1;
       double maxCorr = -1.0;
       double corr;
@@ -1289,7 +1290,7 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
       fitOK = false;
       return -1;
     }
-    if (covariate.cols = 0){
+    if (covariate.cols != 0){
       fitOK = false;
       return -1;
     }
@@ -1623,9 +1624,9 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
   };
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo) {
-    char buf[1000];
+    // char buf[1000];
     // siteInfo.writeValue(fp);
-    for (int i = 0; i < freq.size(); i ++ ){
+    for (size_t i = 0; i < freq.size(); i ++ ){
       /* sprintf(buf, "%s\t%f\t", prependString, freq[i]); */
       /* model[i].writeOutput(fp, buf); */
       result.updateValue("FreqThreshold", toString(freq[i]));
@@ -1980,16 +1981,16 @@ private:
   int nPerm;
   double alpha;
 
-  int nn;
-  int qq;
-  double aa;
-  double mafUpper;
   double* xdatIn;
   double* ydatIn;
   double* mafIn;
   int xcol;
   int ylen;
-
+  int nn;
+  int qq;
+  double aa;
+  double mafUpper;
+  
   int twosided;
   bool fitOK;
   double pValue;
@@ -2284,6 +2285,7 @@ private:
     }
     result.updateValue("COV", s);
     result.writeValueLine(fp);
+    return 0;
   };
 
 private:
@@ -2317,6 +2319,7 @@ public:
     this->phenotype = phenotype;
     this->genotype = genotype;
     this->covariate = covariate;
+    return 0;
   };
 
   // write model output
@@ -2324,7 +2327,7 @@ public:
     std::string fn = this->prefix + "\t" + siteInfo.joinValue() + "data";
 
 
-    for (int i = 0; i < fn.size(); ++i) {
+    for (size_t i = 0; i < fn.size(); ++i) {
       if (fn[i] == '\t') fn[i] = '.';
     }
 

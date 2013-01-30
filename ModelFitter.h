@@ -395,7 +395,7 @@ int checkHWEandCallRate(Matrix& geno, int* homRef, int* het, int* homAlt, double
   }
   if (totalGeno)
     (*callRate) = 1.0 * nonMissingGeno / totalGeno;
-  if ( (*homRef) > 0 && (*het) > 0 && (*homAlt) > 0)
+  if ( (*homRef) >= 0 && (*het) >= 0 && (*homAlt) >= 0)
     (*hweP) = SNPHWE( (*het), (*homRef), (*homAlt));
   return 0;
 }

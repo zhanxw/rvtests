@@ -66,6 +66,10 @@ private:
   void init(const char* fn) {
     if (Logger::fileHandle == NULL) {
       Logger::fileHandle = fopen(fn, "w");
+      if (Logger::fileHandle == NULL) {
+        fprintf(stderr, "Cannot open log file [ %s ].\n", fn);
+        exit(1);
+      }
     }
     Logger::consoleHandle = stderr;
     Logger::fileLevel = Logger::INFO;

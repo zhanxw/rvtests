@@ -5,7 +5,9 @@
    23. Add dominant model
    24. Conditional analysis + burden test
    25. Take optional weight, e.g. GERP
-
+   26. Take family structure into consideration.
+   27. Output .MetaCov.assoc into gzipped format
+   
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -180,7 +182,7 @@ int loadCovariate(const char* fn,
         return -1;
       }
       if (sampleSet.find(fd[0]) == sampleSet.end()) {
-        logger->info("skip sample [ %s ] as it has no phenotype.", fd[0].c_str());
+        logger->info("skip sample [ %s ] from covariate as it has no phenotype.", fd[0].c_str());
         continue;
       };
       processed[fd[0]] ++;
@@ -452,7 +454,7 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     for (size_t i = 0; i < vcfSampleNames.size(); i++) {
       if (phenotype.count(vcfSampleNames[i]) == 0) {
         vcfSampleToDrop->push_back(vcfSampleNames[i]);
-        logger->warn("Drop sample from VCF file [ %s ]", vcfSampleNames[i].c_str() );
+        logger->warn("Drop sample from VCF file [ %s ] due to missing phenotype", vcfSampleNames[i].c_str() );
       } else {
         phenotypeNameInOrder->push_back( phenotype.find(vcfSampleNames[i])->first);
         phenotypeValueInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);

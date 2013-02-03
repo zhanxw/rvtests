@@ -5,6 +5,9 @@
 #include <string>
 #include <stdio.h>
 
+/**
+ * This matrix class is for convenient store matrix class.
+ */
 class SimpleMatrix{
 public:
   SimpleMatrix() {};
@@ -22,6 +25,7 @@ public:
     return mat[i];
   }
   void resize(int nrow, int ncol) {
+    if (nrow < 0 || ncol < 0) return;
     mat.resize(nrow);
     for (int i = 0; i < nrow; i++)
       mat[i].resize(ncol);
@@ -49,6 +53,23 @@ public:
     }
     return 0;
   }
+  int deleteRow(int i) {
+    if (i < 0 || i > (int)mat.size()) return -1;
+    mat.erase(mat.begin() + i);
+    if (!rowName.empty())
+      rowName.erase(rowName.begin() + i);
+    return 0;
+  }
+  int deleteCol(int i) {
+    if (i < 0 || i > ncol()) return -1;
+    for (size_t nr = 0; nr < mat.size(); ++nr) {
+      mat[nr].erase(mat[nr].begin() + i);
+    }
+    if (!colName.empty()){
+      colName.erase(colName.begin() + i);
+    }
+    return 0;
+  }
   void clear() {
     for (unsigned int i = 0; i < mat.size(); i++){
       for (unsigned int j = 0; j < mat[i].size(); j++){
@@ -64,6 +85,20 @@ public:
       return 0;
     return mat[0].size();
   };
+  const std::vector<std::string>& getRowName() const{ return this->rowName;};
+  const std::vector<std::string>& getColName() const{ return this->colName;};  
+  int setRowName(const int idx, const std::string& s){
+    if (idx < 0 || idx >= nrow()) return -1;
+    rowName.resize(nrow());
+    rowName[idx] = s;
+    return 0;
+  }
+  int setColName(const int idx, const std::string& s){
+    if (idx < 0 || idx >= ncol()) return -1;
+    colName.resize(ncol());
+    colName[idx] = s;
+    return 0;
+  }
 private:
   std::vector<std::string> rowName;
   std::vector<std::string> colName;

@@ -7,6 +7,7 @@
    25. Take optional weight, e.g. GERP
    26. Take family structure into consideration.
    27. Output .MetaCov.assoc into gzipped format
+   28. Display monomorhpic in MetaScore model
    
    DONE:
    2. support access INFO tag
@@ -45,8 +46,9 @@
    None yet.
 */
 
-#include "Argument.h"
-#include "IO.h"
+#include "base/Argument.h"
+#include "base/IO.h"
+#include "base/SimpleMatrix.h"
 
 #include <cassert>
 #include <string>
@@ -98,9 +100,9 @@ std::string currentTime() {
 /**
  * Convert a @param string separated by @param sep to set (stored in @param s)
  */
-void makeSet(const char* str, char sep, std::set<std::string>* s) {
+void makeSet(const std::string& str, char sep, std::set<std::string>* s) {
   s->clear();
-  if (!str || strlen(str) == 0)
+  if (str.empty())
     return;
 
   std::vector<std::string> fd;
@@ -109,7 +111,7 @@ void makeSet(const char* str, char sep, std::set<std::string>* s) {
     s->insert(fd[i]);
 }
 
-void makeSet(const std::vector<std::string> in, std::set<std::string>* s) {
+void makeSet(const std::vector<std::string>& in, std::set<std::string>* s) {
   s->clear();
   if (in.empty())
     return;
@@ -119,7 +121,170 @@ void makeSet(const std::vector<std::string> in, std::set<std::string>* s) {
 }
 
 /**
- * Load covariate from @param fn, using specified @param nameToUse, for given @param includedSample
+ * make a vector to map.
+ *   when there is no duplciation: key is vector[i], value is i
+ *   when there is duplication: key is vector[i], value is the index of the first appearance of vector[i]
+ */
+void makeMap(const std::vector<std::string>& in, std::map<std::string, int>* s) {
+  s->clear();
+  if (in.empty())
+    return;
+
+  for (size_t i = 0; i < in.size(); i++) {
+    if (s->find(in[i]) != s->end()) continue;
+    (*s)[in[i]] = i;
+  }
+}
+
+/**
+ * Test whether x contain unique elements
+ */
+bool isUnique(const std::vector<std::string>& x) {
+  std::set<std::string> s;
+  for (size_t i = 0; i < x.size(); i++) {
+    s.insert(x[i]);
+    if (s.size() != i + 1) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Extract covaraite from file @param fn.
+ * Only samples included in @param includedSample will be processed
+ * If some samples appear more than once, only the first appearance will be readed
+ * Only covaraites provided in @param covNameToUse will be included
+ * Missing values will be imputed to the mean columnwise.
+ * Result will be put to @param mat and @param sampleToDrop
+ * @return number of covariates loaded (>=0); or a minus number meaning error
+ * @param sampleToDrop: store samples that are not found in covariate.
+ */
+int extractCovariate(const std::string& fn,
+                     const std::vector<std::string>& sampleToInclude,
+                     const std::vector<std::string>& covNameToUse,
+                     SimpleMatrix* mat,
+                     std::set<std::string>* sampleToDrop) {
+  std::set<std::string> includeSampleSet;
+  makeSet(sampleToInclude, &includeSampleSet);
+  if (includeSampleSet.size() != sampleToInclude.size()) {
+    logger->info("Some samples have appeared more than once, and we record covariate for its first appearance.");
+  }
+  std::vector<std::string> noPhenotypeSample;
+
+  std::map< std::string, int > processed; // record how many times a sample is processed
+  std::set< std::pair<int, int> > missing; // record which number is covaraite is missing.
+  std::vector<int> columnToExtract;
+  std::vector<std::string> extractColumnName;
+  std::vector< std::string > fd;
+  LineReader lr(fn);
+  int lineNo = 0;
+  int fieldLen = 0;
+  while (lr.readLineBySep(&fd, "\t ")) {
+    ++lineNo;
+    if (lineNo == 1) { // header line
+      fieldLen = fd.size();
+      if (fieldLen < 2) {
+        logger->error("Insufficient column number (<2) in the first line of covariate file!");
+        return -1;
+      };
+      if (tolower(fd[0]) != "fid" ||
+          tolower(fd[1]) != "iid") {
+        logger->error("Covariate file header should begin with \"FID IID\"!");
+        return -1;
+      }
+      std::map<std::string, int> headerMap;
+      makeMap(fd, &headerMap);
+      if (fd.size() != headerMap.size()) {
+        logger->error("Covariate file have duplicated header!");
+        return -1;
+      }
+      for (size_t i = 0; i < covNameToUse.size(); ++i) {
+        if (headerMap.count(covNameToUse[i]) == 0) {
+          logger->error("The covariate [ %s ] you specified cannot be found from covariate file!", covNameToUse[i].c_str());
+          continue;
+        }
+        columnToExtract.push_back(headerMap[covNameToUse[i]]);
+        extractColumnName.push_back(covNameToUse[i]);
+      }
+    } else { // body lines
+      if ((int)fd.size() != fieldLen) {
+        logger->error("Inconsistent column number in covariate file line [ %d ] - skip this file!", lineNo);
+        return -1;
+      }
+      if (includeSampleSet.find(fd[1]) == includeSampleSet.end()) {
+        noPhenotypeSample.push_back(fd[1]);
+        continue;
+      };
+      processed[fd[1]] ++;
+      if (processed[fd[1]] > 1) {
+        logger->info("Duplicate sample [ %s ] in covariate file, skipping.", fd[1].c_str());
+        continue;
+      };
+      int idx = (*mat).nrow();
+      (*mat).resize( idx + 1, columnToExtract.size());
+      (*mat).setRowName(idx, fd[1]);
+      
+      for (int i = 0; i < (int)columnToExtract.size(); ++i) {
+        double d;
+        if (str2double(fd[columnToExtract[i]], &d)) {
+          (*mat)[idx][i] = d;
+        } else {
+          logger->warn("Covariate file line [ %d ] has non-numerical value [ %s ], we will impute to its mean.", lineNo, fd[columnToExtract[i]].c_str());
+          (*mat)[idx][i] = 0.0; // will later be updated
+          missing.insert( std::make_pair(idx, i) );
+        };
+      }
+    }
+  }
+  // output samples in covaraite but without phenotype
+  for (size_t i = 0; i < noPhenotypeSample.size(); ++i) {
+    if (i == 0)
+      logger->warn("Total [ %zu ] samples are skipped from covariate file due to missing phenotype", noPhenotypeSample.size());
+    if (i >= 10) {
+      logger->warn("Skip outputting additional [ %d ] samples from covariate file with missing phenotypes.", ((int)noPhenotypeSample.size() - 10) );
+      break;
+    }
+    logger->warn("Skip sample [ %s ] from covariate file due to missing phenotype", (noPhenotypeSample)[i].c_str() );
+  }
+
+  // set up labels
+  for (size_t i = 0; i < extractColumnName.size(); ++i) {
+    mat->setColName(i, extractColumnName[i]);
+  }
+  for (size_t i = 0; i < sampleToInclude.size(); i++) {
+    if (processed.find(sampleToInclude[i]) == processed.end()) {
+      logger->warn("Covariate file does not contain sample [ %s ]", sampleToInclude[i].c_str());
+      sampleToDrop->insert(sampleToInclude[i]);
+    };
+  }
+
+  // impute missing covariates to mean by column
+  for (int col = 0; col < mat->ncol(); ++col) {
+    double sum = 0;
+    int nonZero = 0;
+    for (int row = 0; row < (*mat).nrow(); ++row) {
+      if (missing.count( std::make_pair(row, col) ) ) continue; // missing
+      sum += (*mat)[row][col];
+      ++ nonZero ;
+    }
+    if (nonZero == 0) {  // all column are missing, drop column
+      logger->info("Covariate [ %s ] is missing for all samples. Exclude please before continue!", mat->getColName()[col].c_str() );
+      return -1;
+    }
+    // some elements are missing
+    double mean = sum / nonZero;
+    for (int row = 0; row < (*mat).nrow(); ++row) {
+      if (missing.count( std::make_pair(row, col) ) ) {
+        (*mat)[row][col] = mean;
+      }
+    }
+  }
+  return (*mat).nrow();
+} // end extractCovariate
+
+/**
+ * Load covariate from @param fn, using specified @param covNameToUse, for given @param includedSample
  * covariate will be stored in @param covariate, and column names will be stored in @colNames
  * if covariate file missed some samples, those sample names will be stored in @sampleToDrop
  * NOTE: for missing values in a covariate, it will drop this covariate out of the following anaylysis
@@ -130,119 +295,66 @@ void makeSet(const std::vector<std::string> in, std::set<std::string>* s) {
  * row C filled by the last C in covariate file
  * sample D will be in sampleToDrop
  */
-int loadCovariate(const char* fn,
+int loadCovariate(const std::string& fn,
                   const std::vector<std::string>& includedSample,
-                  const char* nameToUse,
+                  const std::vector<std::string>& covNameToUse,
                   Matrix* covariate,
                   std::vector<std::string>* colNames,
-                  std::set< std::string >* sampleToDrop
-                  ) {
-  std::set< std::string> sampleSet;
-  makeSet(includedSample, &sampleSet);
-
-  std::set< std::string> columnNameSet;
-  makeSet(nameToUse, ',', &columnNameSet);
-
-
-  std::map< std::string, int > processed; //record how many times a sample is processed
-  std::set< std::pair<int, int>> missing;
-  std::vector< int> columnToExtract;
-  std::vector< std::string > fd;
-  LineReader lr(fn);
-  int lineNo = 0;
-  int fieldLen = 0;
-  while (lr.readLineBySep(&fd, "\t ")) {
-    ++lineNo;
-    if (lineNo == 1) { // header line
-      fieldLen = fd.size();
-      if (fieldLen < 2) {
-        logger->error("Insufficient lenght in covariate file!");
-        return -1;
-      };
-      if (tolower(fd[0]) != "fid" ||
-          tolower(fd[1]) != "iid") {
-        logger->error("Covariate file header should begin with \"FID IID\"!");
-        return -1;
-      }
-      for (size_t i = 1; i < fd.size(); i++) {
-        if (columnNameSet.count(fd[i]) > 0) {
-          columnToExtract.push_back(i);
-          colNames->push_back(fd[i]);
-        };
-      }
-
-      // // init output array
-      // (*covariate).resize( includedSample.size());
-      // for (int i = 0; i < includedSample.size(); i++) {
-      //   (*covariate)[i].resize(colNames.size());
-      // };
-    } else { // body lines
-      if ((int)fd.size() != fieldLen) {
-        logger->error("Inconsistent lenght in covariate file [ %s ] line %d - skip this file!", fn, lineNo);
-        return -1;
-      }
-      if (sampleSet.find(fd[0]) == sampleSet.end()) {
-        logger->info("skip sample [ %s ] from covariate as it has no phenotype.", fd[0].c_str());
-        continue;
-      };
-      processed[fd[0]] ++;
-      if (processed[fd[0]] > 1) {
-        logger->info("Duplicate sample [ %s ] in covariate file, skipping", fd[0].c_str());
-      };
-      // int idx = sampleIdx[fd[0]];
-      int idx = (*covariate).rows;
-      (*covariate).Dimension( idx + 1, columnNameSet.size());
-
-      for (int i = 0; i < (int)columnToExtract.size(); ++i) {
-        double d;
-        if (str2double(fd[columnToExtract[i]], &d)) {
-          (*covariate)[idx][i] = d;
-        } else {
-          logger->warn("Covariate fille line [ %d ] has non-numerical value [ %s ], we will impute to its mean.", lineNo, fd[columnToExtract[i]].c_str());
-          (*covariate)[idx][i] = 0.0; // will later be updated
-          missing.insert( std::make_pair(idx, i) );
-        };
-      }
-    }
-  };
-  // set up labels
-  for (size_t i = 0 ; i < colNames->size(); ++i) {
-    (*covariate).SetColumnLabel(i, (*colNames)[i].c_str());
+                  std::set< std::string >* sampleToDrop) {
+  // load covariate
+  SimpleMatrix mat;
+  int ret = extractCovariate(fn, includedSample, covNameToUse, &mat, sampleToDrop);
+  if (ret < 0) {
+    return -1;
   }
-  for (size_t i = 0; i <includedSample.size(); i++) {
-    if (processed.find(includedSample[i]) == processed.end()) {
-      logger->warn("Covariate file does not contain sample [ %s ]", includedSample[i].c_str());
+
+  // create covariate sample index
+  // const int nr = mat.nrow();
+  const int nc = mat.ncol();
+  
+  std::map<std::string, int> covIndex;
+  makeMap(mat.getRowName(), &covIndex);
+  int idx = 0;
+  for (size_t i = 0; i < includedSample.size(); ++i) {
+    if (covIndex.find(includedSample[i]) == covIndex.end()) {
       sampleToDrop->insert(includedSample[i]);
-    };
-  }
-
-  // impute missing covariates to mean by column
-  for (int col = 0; col < (*covariate).cols; ++col) {
-    double sum = 0;
-    int nonZero = 0;
-    for (int row = 0; row < (*covariate).rows; ++row) {
-      if (missing.count( std::make_pair(row, col) ) ) continue; // missing
-      sum += (*covariate)[row][col];
-      ++ nonZero ;
-    }
-    if (nonZero == 0) {  // all column are missing, drop column
-      logger->info("Covariate has the whole column missing, drop it!");
-      (*covariate).DeleteColumn(col);
-      --col;
       continue;
     }
-    // some elements are missing
-    double mean = sum / nonZero;
-    for (int row = 0; row < (*covariate).rows; ++row) {
-      if (missing.count( std::make_pair(row, col) ) ) {
-        (*covariate)[row][col] = mean;
-      }
+    const int match = covIndex[includedSample[i]];
+    covariate->Dimension(idx + 1, nc);
+    for (int j = 0; j < mat.ncol() ; ++j){
+      (*covariate)[idx][j] = mat[match][j];
+      // skip row label, as MathMatrix class does not have row label
     }
+    ++idx;
   }
-  return (*covariate).rows;
-}
+  // set col label
+  for (int i = 0; i < mat.ncol(); ++i) {
+    (*covariate).SetColumnLabel(i, mat.getColName()[i].c_str());
+  }
+  return 0;
+} // end loadCovariate
 
-  /**
+int loadCovariate(const std::string& fn,
+                  const std::vector<std::string>& includedSample,
+                  const std::string& covNameToUse,
+                  Matrix* covariate,
+                  std::vector<std::string>* colNames,
+                  std::set< std::string >* sampleToDrop) {
+  std::vector<std::string> fd;
+  stringTokenize(covNameToUse, ',', &fd);
+  if (!isUnique(fd)) {
+    logger->error("Remove duplicated covariates in the model before continue.");
+    return -1;
+  }
+  if (!isUnique(includedSample)) {
+    logger->error("Unable to include duplicated samples.");
+    return -1;
+  }
+  return loadCovariate(fn, includedSample, fd, covariate, colNames, sampleToDrop);
+}
+  
+/**
  * @return number of phenotypes read. -1 if errors
  * @param phenoCol, which phenotype column to use, similar to plink, it should be the order of phenotype, e.g. phenoCol = 2, meaning the second phenotype
  * @param phenoName, which phenotype header to use.
@@ -293,7 +405,8 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, i
   }
 
   for (auto iter = dup.begin(); iter != dup.end(); ++iter){
-    logger->warn("Sample [%s] removed from phenotype file [ %s ] for its duplicity [ %d ].", iter->first.c_str(), fn, iter->second + 1);
+    logger->warn("Sample [ %s ] removed from phenotype file [ %s ] for its duplicity [ %d ].", iter->first.c_str(), fn, iter->second + 1);
+    pheno.erase(iter->first);
   };
   return pheno.size();
 };
@@ -419,20 +532,6 @@ bool convertBinaryPhenotype(std::vector<double>* p){
 }
 
 /**
- * Test whether x contain unique elements
- */
-bool isUnique(const std::vector<std::string>& x) {
-  std::set<std::string> s;
-  for (size_t i = 0; i < x.size(); i++) {
-    s.insert(x[i]);
-    if (s.size() != i + 1) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
  * according to the order of @param vcfSampleNames, put phenotypes to @param phenotypeInOrder
  * @param imputePhenotype: if true, we will impute phenotpye to the average for those have genotype but no phenotype;
  *                         if false, we will drop those samples
@@ -454,7 +553,6 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     for (size_t i = 0; i < vcfSampleNames.size(); i++) {
       if (phenotype.count(vcfSampleNames[i]) == 0) {
         vcfSampleToDrop->push_back(vcfSampleNames[i]);
-        logger->warn("Drop sample from VCF file [ %s ] due to missing phenotype", vcfSampleNames[i].c_str() );
       } else {
         phenotypeNameInOrder->push_back( phenotype.find(vcfSampleNames[i])->first);
         phenotypeValueInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
@@ -966,12 +1064,12 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Site Filter")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
+      ADD_STRING_PARAMETER(pl, siteFile,  "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
       ADD_INT_PARAMETER(pl, siteDepthMin, "--siteDepthMin", "Specify minimum depth(inclusive) to be incluced in analysis")
       ADD_INT_PARAMETER(pl, siteDepthMax, "--siteDepthMax", "Specify maximum depth(inclusive) to be incluced in analysis")
       // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis")
-      ADD_INT_PARAMETER(pl, siteMACMin,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis")
-      ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field, regular expression is allowed ")
+      ADD_INT_PARAMETER(pl, siteMACMin,   "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis")
+      ADD_STRING_PARAMETER(pl, annoType,  "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field, regular expression is allowed ")
 
       ADD_PARAMETER_GROUP(pl, "Genotype Filter")
       ADD_INT_PARAMETER(pl, indvDepthMin, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
@@ -1119,7 +1217,6 @@ int main(int argc, char** argv){
   }
   logger->info("Loaded %zu sample pheontypes.", phenotype.size());
   
-
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;
   vin.getVCFHeader()->getPeopleName(&vcfSampleNames);
@@ -1128,16 +1225,29 @@ int main(int argc, char** argv){
   std::vector<double> phenotypeInOrder; // phenotype arranged in the same order as in VCF
   rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeNameInOrder, &phenotypeInOrder, FLAG_imputePheno);
   if (vcfSampleToDrop.size()) {
-    logger->warn("Drop %zu sample from VCF file since we don't have their phenotypes", vcfSampleToDrop.size());
+    // exclude this sample from parsing VCF
     vin.excludePeople(vcfSampleToDrop);
+    // output dropped samples
+    for (size_t i = 0; i < vcfSampleToDrop.size(); ++i) {
+      if (i == 0)
+        logger->warn("Total [ %zu ] samples are dropped from VCF file due to missing phenotype", vcfSampleToDrop.size());
+      if (i >= 10) {
+        logger->warn("Skip outputting additional [ %d ] samples with missing phenotypes.", ((int)vcfSampleToDrop.size() - 10) );
+        break;
+      }
+      logger->warn("Drop sample [ %s ] from VCF file due to missing phenotype", (vcfSampleToDrop)[i].c_str() );
+    }
+    // logger->warn("Drop %zu sample from VCF file since we don't have their phenotypes", vcfSampleToDrop.size());
   }
   if (phenotypeInOrder.size() != phenotype.size()) {
-    logger->warn("Drop %d sample from phenotype file since we don't have their genotpyes from VCF files", (int) (phenotype.size() - phenotypeInOrder.size()));
+    logger->warn("Drop [ %d ] samples from phenotype file due to missing genotypes from VCF files", (int) (phenotype.size() - phenotypeInOrder.size()));
+    // We may output these samples by comparing keys of phenotype and phenotypeNameInOrder
   }
 
   // load covariate
   Matrix covariate;
   if (!FLAG_cov.empty()) {
+    logger->info("Begin to read covariate file.");
     std::vector<std::string> columnNamesInCovariate;
     std::set< std::string > sampleToDropInCovariate;
     int ret = loadCovariate(FLAG_cov.c_str(), phenotypeNameInOrder, FLAG_covName.c_str(), &covariate, &columnNamesInCovariate, &sampleToDropInCovariate );
@@ -1145,6 +1255,7 @@ int main(int argc, char** argv){
       logger->error("Load covariate file failed !");
       abort();
     }
+
     // drop phenotype samples
     if (!sampleToDropInCovariate.empty()){
       int idx = 0;
@@ -1159,7 +1270,7 @@ int main(int argc, char** argv){
       }
       phenotypeNameInOrder.resize(idx);
       phenotypeInOrder.resize(idx);
-      logger->warn("%zu sample phenotypes are dropped due to lacking covariates.", sampleToDropInCovariate.size());
+      logger->warn("[ %zu ] sample phenotypes are dropped due to lacking covariates.", sampleToDropInCovariate.size());
     };
     // drop vcf samples;
     for (auto iter = sampleToDropInCovariate.begin();

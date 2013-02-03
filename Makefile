@@ -113,7 +113,7 @@ $(DIR_EXEC)/$(EXEC): lib \
                      |$(DIR_EXEC)
 	g++ -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB)
 
-debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS) 
+debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)  -pg
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
 $(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
                          Main.o \

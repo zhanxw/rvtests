@@ -108,9 +108,9 @@ SummaryHeader(): inverseNormalized(false) {};
     // write covariate
     fprintf(fp, "##Covariates=");
     for (size_t i = 0; i < cov.size(); ++i ) {
-      fputs(covLabel[i].c_str(), fp);
       if (i)
         fputc(',', fp);
+      fputs(covLabel[i].c_str(), fp);
     }
     fputc('\n', fp);
 

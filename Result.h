@@ -112,22 +112,22 @@ public:
     std::string s;
     int n = data.size();
     for (int i = 0; i < n; ++i) {
-      s += data.keyAt(i);
       if (i){
         s += '\t';
       }
+      s += data.keyAt(i);
     }
     return s;
   }
 
-  std::string joinValue() const{
+  std::string joinValue(const char c = '\t') const{
     std::string s;
     int n = data.size();
     for (int i = 0; i < n; ++i) {
-      s += data.valueAt(i);
       if (i){
-        s += '\t';
+        s += c;
       }
+      s += data.valueAt(i);
     }
     return s;
   }

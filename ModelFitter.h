@@ -1990,7 +1990,7 @@ private:
   int qq;
   double aa;
   double mafUpper;
-  
+
   int twosided;
   bool fitOK;
   double pValue;
@@ -2309,8 +2309,8 @@ public:
   };
   // write result header
   void writeHeader(FILE* fp, const Result& siteInfo) { // e.g. column headers.
-    siteInfo.writeValue(fp);
-    fprintf(fp, "FileName");
+    siteInfo.writeHeaderTab(fp);
+    fprintf(fp, "FileName\n");
 
     this->header = siteInfo.joinHeader();
   }
@@ -2324,14 +2324,14 @@ public:
 
   // write model output
   void writeOutput(FILE* fp, const Result& siteInfo){
-    std::string fn = this->prefix + "\t" + siteInfo.joinValue() + "data";
+    std::string fn = this->prefix + "\t" + siteInfo.joinValue() + ".data";
 
 
     for (size_t i = 0; i < fn.size(); ++i) {
       if (fn[i] == '\t') fn[i] = '.';
     }
 
-    siteInfo.writeValue(fp);
+    siteInfo.writeValueTab(fp);
     fprintf(fp, "%s\n", fn.c_str());
 
     // write header
@@ -2358,8 +2358,7 @@ public:
       // fputs(prependString, fDump);
       siteInfo.writeValue(fDump);
       for (int j = 0; j < phenotype.cols; ++j) {
-        if (j) fprintf(fDump, "\t");
-        fprintf(fDump, "%f", phenotype[i][j]);
+        fprintf(fDump, "\t%f", phenotype[i][j]);
       }
       for (int j = 0; j < genotype.cols; ++j) {
         fprintf(fDump, "\t%f", genotype[i][j]);

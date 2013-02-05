@@ -1202,7 +1202,7 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     c.Dimension(phenotype.Length());
     c.Zero();
 
-    double stat;
+    double stat = -1;
     while ((int)selected.size() < genotype.rows) {
       int maxIdx = -1;
       double maxCorr = -1.0;

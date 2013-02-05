@@ -3,6 +3,9 @@
 
 #include <gsl/gsl_cdf.h>
 
+//////////////////////////////////////////////////
+// Statistics functions
+//////////////////////////////////////////////////
 template<class T>
 class OrderFunction {
 public:
@@ -55,10 +58,13 @@ void calculateRank(std::vector<double>& freq, std::vector<int>* res) {
 };
 
 double pnorm(double x) {
-  return gsl_cdf_gaussian_P(x, 1.0);
+  return gsl_cdf_ugaussian_P(x);
 };
 double qnorm(double x) {
-  return gsl_cdf_gaussian_Pinv(x, 1.0);
+  return gsl_cdf_ugaussian_Pinv(x);
+};
+double qnorm(double x, double sigma) {
+  return gsl_cdf_gaussian_Pinv(x, sigma);
 };
 
 double calculateMean(const std::vector<double>& v ){
@@ -107,7 +113,7 @@ void inverseNormalizeLikeMerlin(std::vector<double>* y){
 
   // change order to 1-based rank
   for (int i = 0; i < n; ++i ) {
-    (*y)[i] = qnorm( ( 0.5 + yRank[i]) / n);
+    (*y)[i] = qnorm( ( 0.5 + yRank[i]) / n );
     // fprintf(stderr, "%zu - %g - %d \n", i,  (*y)[i], ord[i]);
   }
   /* double m = calculateMean(*y); */
@@ -148,5 +154,61 @@ void standardize(std::vector<double>* y) {
   // logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");
 };
 
+//////////////////////////////////////////////////
+// STL based functions
+//////////////////////////////////////////////////
+
+/**
+ * Convert a @param string separated by @param sep to set (stored in @param s)
+ */
+void makeSet(const std::string& str, char sep, std::set<std::string>* s) {
+  s->clear();
+  if (str.empty())
+    return;
+
+  std::vector<std::string> fd;
+  stringTokenize(str, ",", &fd);
+  for (size_t i = 0; i < fd.size(); i++)
+    s->insert(fd[i]);
+}
+
+void makeSet(const std::vector<std::string>& in, std::set<std::string>* s) {
+  s->clear();
+  if (in.empty())
+    return;
+
+  for (size_t i = 0; i < in.size(); i++)
+    s->insert(in[i]);
+}
+
+/**
+ * make a vector to map.
+ *   when there is no duplciation: key is vector[i], value is i
+ *   when there is duplication: key is vector[i], value is the index of the first appearance of vector[i]
+ */
+void makeMap(const std::vector<std::string>& in, std::map<std::string, int>* s) {
+  s->clear();
+  if (in.empty())
+    return;
+
+  for (size_t i = 0; i < in.size(); i++) {
+    if (s->find(in[i]) != s->end()) continue;
+    (*s)[in[i]] = i;
+  }
+}
+
+/**
+ * Test whether x contain unique elements
+ */
+bool isUnique(const std::vector<std::string>& x) {
+  std::set<std::string> s;
+  for (size_t i = 0; i < x.size(); i++) {
+    s.insert(x[i]);
+    if (s.size() != i + 1) {
+      return false;
+    }
+  }
+  return true;
+}
 
 #endif /* _COMMONFUNCTION_H_ */

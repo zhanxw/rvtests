@@ -99,20 +99,6 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
 };
 
 /**
- * Test whether x contain unique elements
- */
-bool isUnique(const std::vector<std::string>& x) {
-  std::set<std::string> s;
-  for (int i = 0; i < x.size(); i++) {
-    s.insert(x[i]);
-    if (s.size() != i + 1) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
  * according to the order of @param vcfSampleNames, put phenotypes to @param phenotypeInOrder
  */
 void rearrange(const std::map< std::string, double>& phenotype, const std::vector<std::string>& vcfSampleNames,

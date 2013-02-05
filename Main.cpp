@@ -66,6 +66,7 @@
 
 #include "CommonFunction.h"
 #include "DataLoader.h"
+#include "DataConsolidator.h"
 #include "ModelParser.h"
 #include "ModelFitter.h"
 #include "GitVersion.h"
@@ -246,232 +247,6 @@ class GenotypeExtractor{
   bool needGQ;
   Vector weight;
 }; // clas GenotypeExtractor
-
-/**
- * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
- */
-void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
-  Matrix& m = *genotype;
-  for (int i = 0; i < m.cols; i++ ) {
-    int ac = 0;
-    int an = 0;
-    for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] >= 0) {
-        ac += m[j][i];
-        an += 2;
-      }
-    }
-    double p = 1.0 * ac / an;
-    double pRef = p * p;
-    double pHet = pRef + 2.0*p * (1.0 - p);
-    for (int j = 0; j < m.rows; j++){
-      if (m[j][i] < 0) {
-        double v = r->Next();
-        if (v < pRef) {
-          m[j][i] = 0;
-        } else if (v < pHet) {
-          m[j][i] = 1;
-        } else {
-          m[j][i] = 2;
-        }
-      }
-    }
-  }
-};
-
-/**
- * Impute missing genotype (<0) according to its mean genotype
- * @param genotype (people by marker matrix)
- */
-void imputeGenotypeToMean(Matrix* genotype) {
-  Matrix& m = *genotype;
-  for (int i = 0; i < m.cols; i++ ) {
-    int ac = 0;
-    int an = 0;
-    for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] >= 0) {
-        ac += m[j][i];
-        an += 2;
-      }
-    }
-    double p = 1.0 * ac / an;
-    for (int j = 0; j < m.rows; j++){
-      if (m[j][i] < 0) {
-        m[j][i] = p;
-      }
-    }
-  }
-};
-
-/**
- * @return true if any of the markers (@param col) of @param genotype (people by marker) is missing
- */
-bool hasMissingMarker(Matrix& genotype, int col) {
-  if (col >= genotype.cols || col < 0) {
-    logger->error("Invalid check of missing marker.");
-    return false;
-  }
-
-  for (int r = 0; r < genotype.rows; ++r) {
-    if (genotype[r][col] < 0)
-      return true;
-  }
-  return false;
-};
-
-/**
- * Remove columns of markers in @param genotype (people by marker) where there are missing genotypes
- */
-void removeMissingMarker(Matrix* genotype) {
-  Matrix& g = *genotype;
-  int col = 0;
-  while (col < g.cols) {
-    if (hasMissingMarker(g, col)) {
-      // move last column to this column
-      const int lastCol = g.cols - 1 ;
-      for (int r = 0; r < g.rows; ++r){
-        g[r][col] = g[r][lastCol];
-      }
-      g.SetColumnLabel(col, g.GetColumnLabel(lastCol));
-      g.Dimension(g.rows, lastCol);
-      continue;
-    };
-    ++ col;
-  };
-};
-/**
- * @return true if markers on @param col of @param genotype (people by marker) is monomorphic (genotypes are all the same)
- */
-bool isMonomorphicMarker(Matrix& genotype, int col) {
-  if (col >= genotype.cols || col < 0) {
-    logger->error("Invalid check of monomorhpic marker.");
-    return false;
-  }
-
-  // first first non-missing genotype
-  int nonMissingRow = genotype.rows;
-  for (int i = 0; i < genotype.rows; ++i) {
-    if (genotype[i][col] >= 0) {
-      nonMissingRow = i;
-      break;
-    }
-  }
-
-  for (int r = nonMissingRow + 1; r < genotype.rows; ++r) {
-    if (genotype[r][col] < 0) // missing
-      continue;
-    if (genotype[r][col] != genotype[nonMissingRow][col])
-      return false;
-  }
-  return true;
-};
-
-/**
- * remove monomorphic columns of @param genotype
- */
-void removeMonomorphicSite(Matrix* genotype) {
-  Matrix& g = *genotype;
-  int col = 0;
-  while (col < g.cols) {
-    if (isMonomorphicMarker(g, col)) {
-      // move last column to this column
-      const int lastCol = g.cols - 1 ;
-      for (int r = 0; r < g.rows; ++r){
-        g[r][col] = g[r][lastCol];
-      }
-      g.Dimension(g.rows, lastCol);
-      continue;
-    };
-    ++ col;
-  };
-};
-
-// remove monomorphic sites
-// handle missing data genotype (impute to mean, impute by HWE, filter out and its corresponding phenotypes, covariates)
-class DataConsolidator{
- public:
-  const static int UNINITIALIZED = 0;
-  const static int IMPUTE_MEAN = 1;
-  const static int IMPUTE_HWE = 2;
-  const static int DROP = 3;
-  DataConsolidator(): strategy(UNINITIALIZED) {
-  };
-  void setStrategy(const int s){
-    this->strategy = s;
-  };
-  /**
-   * @param pheno, @param cov @param genotype are all ordered and sorted by the same people
-   * @param phenoOut, @param covOut and @param genotype are outputted
-   * NOTE: @param covOut may be filled as column vector of 1 if @param cov is empty
-   */
-  void consolidate(Matrix& pheno, Matrix& cov,
-                   Matrix* phenoOut, Matrix* covOut, Matrix* genotype) {
-    // remove monomorphic site
-    removeMonomorphicSite(genotype);
-
-    copyColName(pheno, phenoOut);
-    copyColName(cov, covOut);
-    if (this->strategy == IMPUTE_MEAN) {
-      // impute missing genotypes
-      imputeGenotypeToMean(genotype);
-      *phenoOut = pheno;
-      *covOut = cov;
-    } else if (this->strategy == IMPUTE_HWE) {
-      // impute missing genotypes
-      imputeGenotypeByFrequency(genotype, &this->random);
-      *phenoOut = pheno;
-      *covOut = cov;
-    } else if (this->strategy == DROP) {
-      // we process genotype matrix (people by marker)
-      // if for the same people, any marker is empty, we will remove this people
-      int idxToCopy = 0;
-      for (int i = 0; i < (*genotype).rows; ++i) {
-        if (hasNoMissingGenotype(*genotype, i)) {
-          copyRow(*genotype, i, genotype, idxToCopy);
-          copyRow(cov, i, covOut, idxToCopy);
-          copyRow(pheno, i, phenoOut, idxToCopy);
-          idxToCopy++;
-        }
-      }
-      genotype->Dimension(idxToCopy, genotype->cols);
-      covOut->Dimension(idxToCopy, cov.cols);
-      phenoOut->Dimension(idxToCopy, pheno.cols);
-    } else {
-      logger->error("Uninitialized consolidation methods to handle missing data!");
-      // return -1;
-    };
-  };
-  bool hasNoMissingGenotype(Matrix& g, int r) {
-    const int n = g.cols;
-    for (int i = 0; i < n; ++i){
-      if (g[r][i] < 0) return false;
-    }
-    return true;
-  };
-  void copyRow(Matrix& src, const int srcRow,
-               Matrix* dest, const int destRow) {
-    Matrix& m = *dest;
-    if (m.cols < src.cols) {
-      m.Dimension(m.rows, src.cols);
-    }
-    if (m.rows <= destRow) {
-      m.Dimension(destRow + 1, m.cols);
-    }
-    const int n = m.cols;
-    for (int i = 0; i < n; ++i){
-      m[destRow][i] = src[srcRow][i];
-    }
-  };
-  void copyColName(Matrix& src, Matrix* dest){
-    dest->Dimension(dest->rows, src.cols);
-    for (int i = 0; i < src.cols; ++i){
-      dest->SetColumnLabel(i, src.GetColumnLabel(i));
-    }
-  };
- private:
-  int strategy;
-  Random random;
-}; // end DataConsolidator
 
 /**
  * convert the vector @param v to column Matrix format @param m
@@ -867,7 +642,7 @@ int main(int argc, char** argv){
   ////////////////////////////////////////////////////////////////////////////////
   // prepare each model
   bool singleVariantMode = FLAG_modelSingle.size() || FLAG_modelMeta.size();
-  bool groupVariantMode =(FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size());
+  bool groupVariantMode = (FLAG_modelBurden.size() || FLAG_modelVT.size() || FLAG_modelKernel.size());
   if ( singleVariantMode && groupVariantMode ) {
     logger->error("Cannot support both single variant and region based tests");
     abort();
@@ -1146,7 +921,7 @@ int main(int argc, char** argv){
         continue;
       };
 
-      dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
+      dc.consolidate(phenotypeMatrix, covariate, genotype);
 
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
@@ -1190,7 +965,7 @@ int main(int argc, char** argv){
           continue;
         };
 
-        dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
+        dc.consolidate(phenotypeMatrix, covariate, genotype);
 
         buf.updateValue(rangeMode, geneName);
         buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
@@ -1231,7 +1006,7 @@ int main(int argc, char** argv){
         continue;
       };
 
-      dc.consolidate(phenotypeMatrix, covariate, &workingPheno, &workingCov, &genotype);
+      dc.consolidate(phenotypeMatrix, covariate, genotype);
 
       buf.updateValue(rangeMode, geneName);
       buf.updateValue("RANGE", rangeList.toString());

@@ -780,6 +780,11 @@ public:
   ~FileWriter(){
     this->close();
   };
+  int write(const char c){
+    char s[]="0";
+    s[0] = c;
+    return this->fp->write(s);
+  };
   int write(const char* s){
     return this->fp->write(s);
   };

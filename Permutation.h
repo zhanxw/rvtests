@@ -97,17 +97,17 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {
     numX = 0;
     numEqual = 0;
   };
-  void writeHeader(FILE* fp){
+  void writeHeader(FileWriter* fp){
     /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
     /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
     result.writeHeader(fp);
   }
-  void writeHeaderTab(FILE* fp){
+  void writeHeaderTab(FileWriter* fp){
     /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
     /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
     result.writeHeaderTab(fp);
   }
-  void writeHeaderLine(FILE* fp){
+  void writeHeaderLine(FileWriter* fp){
     /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
     /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
     result.writeHeaderLine(fp);
@@ -121,7 +121,7 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {
     result.updateValue("PermPvalue", this->getPvalue());
   }
 
-  void writeOutput(FILE* fp) {
+  void writeOutput(FileWriter* fp) {
     /* fprintf(fp, "%d\t%d\t%g\t%d\t%d\t%g", */
     /*         this->numPerm, */
     /*         this->actualPerm, */
@@ -132,7 +132,7 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {
     updateValue();
     result.writeValue(fp);
   }
-  void writeOutputLine(FILE* fp) {
+  void writeOutputLine(FileWriter* fp) {
     updateValue();
     result.writeValueLine(fp);
   }

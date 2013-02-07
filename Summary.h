@@ -1,6 +1,7 @@
 #ifndef _SUMMARY_H_
 #define _SUMMARY_H_
 
+#include "base/IO.h"
 #include "CommonFunction.h"
 
 class Summary{
@@ -77,54 +78,54 @@ SummaryHeader(): inverseNormalized(false) {};
       this->recordCovariateColumn(m, i );
     }
   };
-  void outputHeader(FILE* fp) {
+  void outputHeader(FileWriter* fp) {
     // write summaries
     int nSample = pheno.size()? pheno[0].n: 0;
-    fprintf(fp, "##Samples=%d\n", nSample);
-    fprintf(fp, "##AnalyzedSamples=%d\n", nSample);
-    fprintf(fp, "##Families=%d\n", nSample);
-    fprintf(fp, "##AnalyzedFamilies=%d\n", nSample);
-    fprintf(fp, "##Founders=%d\n", nSample);
-    fprintf(fp, "##AnalyzedFounders=%d\n", nSample);
-    fprintf(fp, "##InverseNormal=%s\n", this->inverseNormalized ? "ON" : "OFF");
+    fp->printf("##Samples=%d\n", nSample);
+    fp->printf("##AnalyzedSamples=%d\n", nSample);
+    fp->printf("##Families=%d\n", nSample);
+    fp->printf("##AnalyzedFamilies=%d\n", nSample);
+    fp->printf("##Founders=%d\n", nSample);
+    fp->printf("##AnalyzedFounders=%d\n", nSample);
+    fp->printf("##InverseNormal=%s\n", this->inverseNormalized ? "ON" : "OFF");
 
     // write summaries
-    fprintf(fp, "##TraitSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
+    fp->write("##TraitSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
     for (size_t i = 0; i < pheno.size(); ++i) {
-      fprintf(fp, "##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
-              phenoLabel[i].c_str(),
-              pheno[i].min,
-              pheno[i].q1,
-              pheno[i].median,
-              pheno[i].q3,
-              pheno[i].max,
-              pheno[i].mean,
-              pheno[i].sd * pheno[i].sd );
+      fp->printf("##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
+                 phenoLabel[i].c_str(),
+                 pheno[i].min,
+                 pheno[i].q1,
+                 pheno[i].median,
+                 pheno[i].q3,
+                 pheno[i].max,
+                 pheno[i].mean,
+                 pheno[i].sd * pheno[i].sd );
     }
 
     if (cov.empty())
       return;
-    
+
     // write covariate
-    fprintf(fp, "##Covariates=");
+    fp->write("##Covariates=");
     for (size_t i = 0; i < cov.size(); ++i ) {
       if (i)
-        fputc(',', fp);
-      fputs(covLabel[i].c_str(), fp);
+        fp->write(',');
+      fp->write(covLabel[i].c_str());
     }
-    fputc('\n', fp);
+    fp->write('\n');
 
-    fprintf(fp, "##CovariateSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
+    fp->write("##CovariateSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
     for (size_t i = 0; i < cov.size(); ++i ) {
-      fprintf(fp, "##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
-              covLabel[i].c_str(),
-              cov[i].min,
-              cov[i].q1,
-              cov[i].median,
-              cov[i].q3,
-              cov[i].max,
-              cov[i].mean,
-              cov[i].sd * cov[i].sd);
+      fp->printf("##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
+                covLabel[i].c_str(),
+                cov[i].min,
+                cov[i].q1,
+                cov[i].median,
+                cov[i].q3,
+                cov[i].max,
+                cov[i].mean,
+                cov[i].sd * cov[i].sd);
     }
   }
 private:

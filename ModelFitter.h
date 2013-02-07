@@ -45,9 +45,9 @@ public:
   virtual int fit(DataConsolidator* dc) = 0;
     
   // write result header
-  virtual void writeHeader(FILE* fp, const Result& siteInfo) = 0;
+  virtual void writeHeader(FileWriter* fp, const Result& siteInfo) = 0;
   // write model output
-  virtual void writeOutput(FILE* fp, const Result& siteInfo) = 0;
+  virtual void writeOutput(FileWriter* fp, const Result& siteInfo) = 0;
 
   ModelFitter(){
     this->modelName = "Unassigned_Model_Name";
@@ -186,13 +186,13 @@ public:
     return (fitOK ? 0 : 1);
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     // fprintf(fp, "Test\tBeta\tSE\tPvalue\n");
     result.writeHeaderLine(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     // skip interecept (column 0)
     for (int i = 1; i < this->X.cols; ++i) {
       siteInfo.writeValueTab(fp);
@@ -295,7 +295,7 @@ public:
   };
 
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     if (g_SummaryHeader) {
       g_SummaryHeader->outputHeader(fp);
     }
@@ -309,7 +309,7 @@ public:
     result.writeHeaderLine(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     result.clearValue();
     if (fitOK) {
@@ -343,7 +343,7 @@ public:
     this->modelName = "FisherExact";
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     result.addHeader("Fisher.N00");
     result.addHeader("Fisher.N01");
@@ -405,7 +405,7 @@ public:
     return 0;
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (fitOK) {
       /* fprintf(fp, "%d\t", model.Get00()); */
@@ -499,7 +499,7 @@ public:
     }
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     /* if (isBinaryOutcome()) { */
     /*   fprintf(fp, "CMC.Pvalue\n"); */
@@ -509,7 +509,7 @@ public:
     result.writeHeaderLine(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (fitOK) {
       result.updateValue("NonRefSite", this->totalNonRefSite());
@@ -593,12 +593,12 @@ public:
     return (fitOK ? 0 : -1);
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     result.writeHeaderLine(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     for (int i = 1; i < this->X.cols; ++i) {
       siteInfo.writeValueTab(fp);
       if (fitOK) {
@@ -693,7 +693,7 @@ public:
     return 0;
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     result.writeHeaderLine(fp);
     /* fputs("exactCMC.N00\t", fp); */
@@ -705,7 +705,7 @@ public:
     /* fputs("exactCMC.PvalueGreater\n", fp); */
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     result.clearValue();
     if (fitOK) {
@@ -783,13 +783,13 @@ public:
     }
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     //fprintf(fp, "Zeggini.Pvalue\n");
     result.writeHeaderLine(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     result.clearValue();
     if (fitOK) {
@@ -880,25 +880,25 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->perm.reset();
   }
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
 
     if (isBinaryOutcome()){
       perm.writeHeaderTab(fp);
     } else {
-      fprintf(fp, "Pvalue\n");
+      fp->write("Pvalue\n");
     };
-    fprintf(fp, "\n");
+    fp->write("\n");
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
 
     if (isBinaryOutcome()) {
       perm.writeOutput(fp);
-      fputs("\n", fp);
+      fp->write("\n");
     } else {
-      fputs("NA\n", fp);
+      fp->write("NA\n");
     }
     /* if (isBinaryOutcome()) { */
     /*   if (fitOK){ */
@@ -962,13 +962,13 @@ public:
     }
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     //fprintf(fp, "Fp.Pvalue\n");
     result.addHeader("Fp.Pvalue");
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (fitOK) {
       if (isBinaryOutcome()) {
@@ -1051,7 +1051,7 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->perm.reset();
   }
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     result.writeHeaderTab(fp);
     this->perm.writeHeaderLine(fp);
@@ -1064,7 +1064,7 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     /*   fprintf(fp, "NA\n"); */
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (fitOK) {
       if (isBinaryOutcome()) {
@@ -1218,14 +1218,14 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->perm.reset();
   }
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     if (isBinaryOutcome()) { /// cmat only takes binary output
       this->perm.writeHeaderLine(fp);
     }
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (isBinaryOutcome()) {
       this->perm.writeOutputLine(fp);
@@ -1395,16 +1395,16 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     return 0;
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
-    fputs("\tOptFreq\t", fp);
+    fp->write("\tOptFreq\t");
     this->perm.writeHeader(fp);
-    fputs("\n", fp);
+    fp->write("\n");
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
-    fprintf(fp, "\t%g\t", this->optimalFreq);
+    fp->printf("\t%g\t", this->optimalFreq);
     this->perm.writeOutputLine(fp);
     // fprintf(fp, "\n");
   };
@@ -1528,14 +1528,14 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     return 0;
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     // this->result = siteInfo;
     // result.writeHeaderTab(fp);
     siteInfo.writeHeaderTab(fp);
     model[0].writeHeader(fp, result);
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     // char buf[1000];
     // siteInfo.writeValue(fp);
     for (size_t i = 0; i < freq.size(); i ++ ){
@@ -1566,7 +1566,7 @@ private:
 class VariableThresholdFreqTest: public ModelFitter{
 public:
   // write result header
-  void writeHeader(FILE* fp) {
+  void writeHeader(FileWriter* fp) {
     fprintf(fp, "VT.FreqCutoff\tVT.PermPvalue");
   };
   // fitting model
@@ -1611,7 +1611,7 @@ public:
     return 0;
   };
   // write model output
-  void writeOutput(FILE* fp) {
+  void writeOutput(FileWriter* fp) {
     assert(outFreq.size() == pvalue.size());
 
     for (int i = 0; i < outFreq.size(); i++) {
@@ -1732,33 +1732,33 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
     return 0;
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     if (!usePermutation)
-      fprintf(fp, "Q\tPvalue\n");
+      fp->write("Q\tPvalue\n");
     else {
-      fprintf(fp, "Q\tPvalue\t");
+      fp->write("Q\tPvalue\t");
       this->perm.writeHeader(fp);
-      fprintf(fp, "\n");
+      fp->write("\n");
     }
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (!fitOK){
-      fprintf(fp, "NA\tNA");
+      fp->write("NA\tNA");
       if (usePermutation) {
-        fprintf(fp, "\tNA\tNA\tNA\tNA\tNA\tNA");
+        fp->write("\tNA\tNA\tNA\tNA\tNA\tNA");
       };
-      fprintf(fp, "\n");
+      fp->write("\n");
     } else {
       // binary outcome and quantative trait are similar output
-      fprintf(fp, "%g\t%g", this->skat.GetQ(), this->pValue);
+      fp->printf("%g\t%g", this->skat.GetQ(), this->pValue);
       if (usePermutation) {
-        fprintf(fp, "\t");
+        fp->write("\t");
         this->perm.writeOutput(fp);
       }
-      fprintf(fp, "\n");
+      fp->write("\n");
     }
   };
 private:
@@ -1793,9 +1793,9 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
     if (this->mafIn) delete[] this->mafIn;
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
-    fprintf(fp, "KBAC.Pvalue\n");
+    fp->write("KBAC.Pvalue\n");
   };
   void reset() {
     // clear_kbac_test();
@@ -1866,15 +1866,15 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
     return 0;
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (!fitOK){
-      fputs("NA\n", fp);
+      fp->write("NA\n");
     } else {
       if (isBinaryOutcome() ) {
-        fprintf(fp, "%f\n", this->pValue);
+        fp->printf("%f\n", this->pValue);
       } else {
-        fprintf(fp, "%f\n", this->pValue);
+        fp->printf("%f\n", this->pValue);
       }
     }
   };
@@ -1962,7 +1962,7 @@ public:
   };
 
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     if (g_SummaryHeader) {
       g_SummaryHeader->outputHeader(fp);
     }
@@ -1983,7 +1983,7 @@ public:
     result.writeHeaderLine(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
 
     siteInfo.writeValueTab(fp);
     int informativeAC = het + 2* homAlt;
@@ -2084,7 +2084,6 @@ public:
       fitOK = false;
       return -1;
     }
-
     if (nSample < 0) {
       nSample = genotype.rows;
 
@@ -2099,10 +2098,10 @@ public:
     } else {
       if (nSample != genotype.rows){
         fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+        fitOK = false;
+        return -1;
       }
     }
-
-
     loci.pos.chrom = siteInfo["CHROM"];
     loci.pos.pos = atoi(siteInfo["POS"]);
 
@@ -2111,7 +2110,6 @@ public:
       fitOK = false;
       return -1;
     };
-
     loci.geno.resize(nSample);
     for (int i = 0; i < nSample; ++i) {
       loci.geno[i] = genotype[i][0];
@@ -2121,7 +2119,7 @@ public:
   };
 
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) {
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
     if (g_SummaryHeader) {
       g_SummaryHeader->outputHeader(fp);
     }
@@ -2131,7 +2129,7 @@ public:
     result.writeHeaderLine(fp);
   };
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo) {
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
     this->fout = fp;
     while (queue.size() && getWindowSize(queue, loci) > windowSize) {
       printCovariance(fout, queue);
@@ -2188,7 +2186,7 @@ private:
    * @return 0
    * print the covariance for the front of loci to the rest of loci
    */
-  int printCovariance(FILE* fp, const std::deque<Loci>& lociQueue){
+  int printCovariance(FileWriter* fp, const std::deque<Loci>& lociQueue){
     auto iter = lociQueue.begin();
     std::vector<int> position( lociQueue.size());
     std::vector<double> cov (lociQueue.size());
@@ -2198,7 +2196,7 @@ private:
       cov[idx] = getCovariance(lociQueue.front().geno, iter->geno) * this-> mleVarY;
       idx ++;
     };
-    /* fprintf(fp, "%s\t%d\t%d\t", lociQueue.front().pos.chrom.c_str(), lociQueue.front().pos.pos, lociQueue.back().pos.pos); */
+    /* fprintf(stderr, "%s\t%d\t%d\t", lociQueue.front().pos.chrom.c_str(), lociQueue.front().pos.pos, lociQueue.back().pos.pos);  */
     result.updateValue("CHROM", lociQueue.front().pos.chrom);
     result.updateValue("START_POS", lociQueue.front().pos.pos);
     result.updateValue("END_POS", lociQueue.back().pos.pos);
@@ -2226,7 +2224,7 @@ private:
   int numVariant;
   int nSample;
   double mleVarY;
-  FILE* fout;
+  FileWriter* fout;
   int windowSize;
   Loci loci;
   bool fitOK;
@@ -2241,9 +2239,9 @@ public:
     this->modelName = "DumpData";
   };
   // write result header
-  void writeHeader(FILE* fp, const Result& siteInfo) { // e.g. column headers.
+  void writeHeader(FileWriter* fp, const Result& siteInfo) { // e.g. column headers.
     siteInfo.writeHeaderTab(fp);
-    fprintf(fp, "FileName\n");
+    fp->write("FileName\n");
 
     this->header = siteInfo.joinHeader();
   }
@@ -2266,7 +2264,7 @@ public:
   };
 
   // write model output
-  void writeOutput(FILE* fp, const Result& siteInfo){
+  void writeOutput(FileWriter* fp, const Result& siteInfo){
     std::string fn = this->prefix + "\t" + siteInfo.joinValue() + ".data";
 
 
@@ -2275,7 +2273,7 @@ public:
     }
 
     siteInfo.writeValueTab(fp);
-    fprintf(fp, "%s\n", fn.c_str());
+    fp->printf("%s\n", fn.c_str());
 
     // write header
     FILE* fDump= fopen(fn.c_str(), "wt");

@@ -304,5 +304,4 @@ private:
   std::vector<std::string> rowLabel;
 }; // end DataConsolidator
 
-
 #endif /* _DATACONSOLIDATOR_H_ */

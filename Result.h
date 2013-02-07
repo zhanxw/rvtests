@@ -2,6 +2,7 @@
 #define _RESULT_H_
 
 #include "base/TypeConversion.h"
+#include "base/IO.h"
 
 /**
  * Store key-value pair for minimal typing
@@ -72,6 +73,9 @@ public:
       this->data.valueAt(i) = defaultValue;
     }
   }
+
+  //////////////////////////////////////////////////
+  // Use FILE* to output
   /**
    * Write the keys separated by '\t'
    */
@@ -114,6 +118,51 @@ public:
     writeValue(fp);
     fputc('\n', fp);    
   }
+//////////////////////////////////////////////////
+  // Use FileWriter* to output
+  /**
+   * Write the keys separated by '\t'
+   */
+  void writeHeader(FileWriter* fp) const {
+    int n = data.size();
+    for (int i = 0; i < n; ++i) {
+      if (i){
+        fp->write('\t');
+      }
+      fp->write(data.keyAt(i).c_str());
+    }
+  }
+  void writeHeaderTab(FileWriter* fp) const {
+    writeHeader(fp);
+    fp->write('\t');
+  }
+
+  void writeHeaderLine(FileWriter* fp) const {
+    writeHeader(fp);
+    fp->write('\n');    
+  }
+  
+  /**
+   * Write the values separated by '\t'
+   */
+  void writeValue(FileWriter* fp) const{
+    int n = data.size();
+    for (int i = 0; i < n; ++i) {
+      if (i){
+        fp->write('\t');
+      }
+      fp->write(data.valueAt(i).c_str());
+    }
+  }
+  void writeValueTab(FileWriter* fp) const{
+    writeValue(fp);
+    fp->write('\t');
+  }
+  void writeValueLine(FileWriter* fp) const{
+    writeValue(fp);
+    fp->write('\n');
+  }
+  
   /**
    * Use '\t' to join headers
    */

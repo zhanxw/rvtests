@@ -157,7 +157,7 @@ class GenotypeExtractor{
 
     bool hasRead = vin.readRecord();
     if (!hasRead)
-      return -2;
+      return -2; // meaning end of file
 
     VCFRecord& r = vin.getVCFRecord();
     VCFPeople& people = r.getPeople();
@@ -607,7 +607,7 @@ int main(int argc, char** argv){
             phenotypeInOrder[i] = lr.GetResiduals()[i];
           }
           covariate.Dimension(0,0);
-          logger->info("DONE: Use residuals as phenotypes from model: [ phenotype ~ covariates ]");
+          logger->info("DONE: Fit model [ phenotype ~ covariates ] and model residuals will be used as responses.");
         }
       } else{ // no covaraites
         double m = calculateMean(phenotypeInOrder);
@@ -626,13 +626,13 @@ int main(int argc, char** argv){
     if (binaryPhenotype){
       logger->warn("WARNING: Skip transforming binary phenotype, although you required inverse normalization!");
     } else {
-      logger->info("Now applying inverse normal transformation.");
+      logger->info("Now applying inverse normalize transformation.");
       inverseNormalizeLikeMerlin(&phenotypeInOrder);
       g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
       // g_SummaryHeader->recordPhenotype("TransformedTrait", phenotypeInOrder);
       // standardize(&phenotypeInOrder);
-      logger->info("Done: centering to 0.0 and scaling to 1.0 finished.");
-      logger->info("Done: inverse normal transformation finished.");
+      // logger->info("DONE: centering to 0.0 and scaling to 1.0 finished.");
+      logger->info("DONE: inverse normal transformation finished.");
     }
   };
   g_SummaryHeader->recordPhenotype("AnalyzedTrait", phenotypeInOrder);
@@ -795,13 +795,18 @@ int main(int argc, char** argv){
   Matrix phenotypeMatrix;
   toMatrix(phenotypeInOrder, &phenotypeMatrix);
 
-  FILE** fOuts = new FILE*[model.size()];
+  FileWriter** fOuts = new FileWriter*[model.size()];
   for (size_t i = 0; i < model.size(); ++i) {
     std::string s = FLAG_outPrefix;
     s += ".";
     s += model[i]->getModelName();
     s += ".assoc";
-    fOuts[i] = fopen(s.c_str(), "wt");
+    if (model[i]->getModelName() == "MetaCov") {
+      s += ".gz";
+      fOuts[i] = new FileWriter(s.c_str(), BGZIP);  
+    } else {
+      fOuts[i] = new FileWriter(s.c_str());  
+    }
   }
 
   // determine VCF file reading pattern
@@ -891,7 +896,7 @@ int main(int argc, char** argv){
 
   // std::string buf; // we put site sinformation here
   // buf.resize(1024);
-  Result buf;
+  Result& buf = dc.getResult();
   
   // we have three modes:
   // * single variant reading, single variant test
@@ -1032,7 +1037,7 @@ int main(int argc, char** argv){
     delete model[m];
   }
   for (size_t m = 0; m < model.size() ; ++m ) {
-    fclose(fOuts[m]);
+    delete fOuts[m];
   }
   delete[] fOuts;
   

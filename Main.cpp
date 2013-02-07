@@ -538,6 +538,10 @@ int main(int argc, char** argv){
 
   // load covariate
   Matrix covariate;
+  if (FLAG_cov.empty() && !FLAG_covName.empty()) {
+    logger->info("Use phenotype file as covarite file [ %s ]", FLAG_pheno.c_str());
+    FLAG_cov = FLAG_pheno;
+  }
   if (!FLAG_cov.empty()) {
     logger->info("Begin to read covariate file.");
     std::vector<std::string> columnNamesInCovariate;
@@ -850,7 +854,7 @@ int main(int argc, char** argv){
     };
   }
 
-  // set imptation method
+  // set imputation method
   DataConsolidator dc;
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");
@@ -865,7 +869,8 @@ int main(int argc, char** argv){
     logger->info("Drop missing genotypes");
     dc.setStrategy(DataConsolidator::DROP);
   }
-
+  dc.setPhenotypeName(phenotypeNameInOrder);
+  
   // genotype will be extracted and stored
   Matrix genotype;
   Matrix workingCov;
@@ -928,8 +933,7 @@ int main(int argc, char** argv){
       // fit each model
       for (size_t m = 0; m < model.size(); m++) {
         model[m]->reset();
-        //model[m]->fit(phenotypeMatrix, genotype, covariate);
-        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
+        model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
       };
     }
@@ -972,8 +976,7 @@ int main(int argc, char** argv){
 
         for (size_t m = 0; m < model.size(); m++) {
           model[m]->reset();
-          model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
-          //          model[m]->fit(phenotypeMatrix, genotype, covariate);
+          model[m]->fit(&dc);
           model[m]->writeOutput(fOuts[m], buf);
         };
       }
@@ -1015,10 +1018,8 @@ int main(int argc, char** argv){
 
       for (size_t m = 0; m < model.size(); m++) {
         model[m]->reset();
-        model[m]->fit(workingPheno, genotype, workingCov, ge.getWeight(), buf);
-        // model[m]->fit(phenotypeMatrix, genotype, covariate);
+        model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
-        // buf.writeValue(fOuts[m]);
       };
     }
   } else{

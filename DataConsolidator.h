@@ -1,7 +1,9 @@
 #ifndef _DATACONSOLIDATOR_H_
 #define _DATACONSOLIDATOR_H_
 
+#include "Result.h"
 
+extern Logger* logger;
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
  */
@@ -151,12 +153,12 @@ void removeMonomorphicSite(Matrix* genotype) {
  *  (future) take-in kinship matrix
  */
 class DataConsolidator{
- public:
+public:
   const static int UNINITIALIZED = 0;
   const static int IMPUTE_MEAN = 1;
   const static int IMPUTE_HWE = 2;
   const static int DROP = 3;
-  DataConsolidator(): strategy(UNINITIALIZED) {
+DataConsolidator(): strategy(UNINITIALIZED) {
   };
   void setStrategy(const int s){
     this->strategy = s;
@@ -167,8 +169,9 @@ class DataConsolidator{
    * NOTE: @param covOut may be filled as column vector of 1 if @param cov is empty
    */
   void consolidate(Matrix& pheno, Matrix& cov, Matrix& geno) {
+    this->originalGenotype = geno;
     this->genotype = geno;
-    
+
     // remove monomorphic site
     removeMonomorphicSite(&genotype);
 
@@ -179,14 +182,14 @@ class DataConsolidator{
       imputeGenotypeToMean(&this->genotype);
       /* *phenoOut = pheno; */
       /* *covOut = cov; */
-      this->phenotype = phenotype;
+      this->phenotype = pheno;
       this->covariate = cov;
     } else if (this->strategy == IMPUTE_HWE) {
       // impute missing genotypes
       imputeGenotypeByFrequency(&genotype, &this->random);
       /* *phenoOut = pheno; */
       /* *covOut = cov; */
-      this->phenotype = phenotype;
+      this->phenotype = pheno;
       this->covariate = cov;
     } else if (this->strategy == DROP) {
       // we process genotype matrix (people by marker)
@@ -197,6 +200,7 @@ class DataConsolidator{
           copyRow(genotype, i, &genotype, idxToCopy);
           copyRow(cov, i, &covariate, idxToCopy);
           copyRow(pheno, i, &phenotype, idxToCopy);
+          rowLabel[idxToCopy] = originalRowLabel[i];
           idxToCopy++;
         }
       }
@@ -235,21 +239,69 @@ class DataConsolidator{
       dest->SetColumnLabel(i, src.GetColumnLabel(i));
     }
   };
-  const Matrix& getGenotype() const{
+  void setPhenotypeName(const std::vector<std::string>& name) {
+    this->originalRowLabel = name;
+    this->rowLabel = name;
+  }
+  const std::vector<std::string>& getRowLabel() const {
+    return this->rowLabel;
+  }
+  Matrix& getGenotype(){
     return this->genotype;
   }
-  const Matrix& getPhenotype() const{
+  Matrix& getPhenotype() {
     return this->phenotype;
   }
-  const Matrix& getCovariate() const{
+  Matrix& getCovariate() {
     return this->covariate;
   }
- private:
+  Vector& getWeight() {
+    return this->weight;
+  }
+  Result& getResult() {
+    return this->result;
+  }
+  const int countGenotype(int columnIndex,
+                          int* homRef,
+                          int* het,
+                          int* homAlt,
+                          int* missing) const {
+    if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
+      return -1;
+    }
+    (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
+    for (int i = 0; i < originalGenotype.rows; ++i){
+      int g = (int)originalGenotype[i][columnIndex];
+      switch (g) {
+        case 0:
+          ++(*homRef);
+          break;
+        case 1:
+          ++(*het);
+          break;
+        case 2:
+          ++(*homAlt);
+          break;
+        default:
+          if (originalGenotype[i][columnIndex] < 0) {
+            ++(*missing);
+          }
+          break;
+      }
+    }
+    return 0; //success
+  }
+private:
   int strategy;
   Random random;
   Matrix genotype;
   Matrix phenotype;
   Matrix covariate;
+  Vector weight;
+  Result result;
+  Matrix originalGenotype;
+  std::vector<std::string> originalRowLabel;
+  std::vector<std::string> rowLabel;
 }; // end DataConsolidator
 
 

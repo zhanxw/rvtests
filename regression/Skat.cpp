@@ -1,7 +1,7 @@
 #include "Skat.h"
 #include "MathMatrix.h"
 #include <Eigen/Eigenvalues>
-#include <Eigen/Dense>
+//#include <Eigen/Dense>
 
 #define ZBOUND 1e-30
 

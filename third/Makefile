@@ -20,10 +20,10 @@ gsl: gsl-1.15.tar.gz
 	tar zvxf gsl-1.15.tar.gz
 	-(DIR=`pwd`; cd gsl-1.15; ./configure --prefix="$${DIR}"/gsl; make -j; make install)
 
-eigen: eigen-3.1.0.tar.bz2
-	tar jvxf eigen-3.1.0.tar.bz2
-	-mv eigen-eigen-ca142d0540d3 eigen-3.1.0
-	ln -s -f eigen-3.1.0 eigen
+eigen: eigen-3.1.2.tar.bz2
+	tar jvxf eigen-3.1.2.tar.bz2
+	-mv eigen-eigen-5097c01bcdc4 eigen-3.1.2
+	ln -s -f eigen-3.1.2 eigen
 
 bzip2: bzip2-1.0.6.tar.gz
 	tar zvxf $<
@@ -32,10 +32,10 @@ bzip2: bzip2-1.0.6.tar.gz
 
 ######################################################################
 # download sources
-eigen-3.1.0.tar.bz2:
+eigen-3.1.2.tar.bz2:
 	echo "obtain Eigen..."
-	wget http://bitbucket.org/eigen/eigen/get/3.1.0.tar.bz2
-	mv 3.1.0.tar.bz2 $@
+	wget http://bitbucket.org/eigen/eigen/get/3.1.2.tar.bz2
+	mv 3.1.2.tar.bz2 $@
 
 gsl-1.15.tar.gz:
 	echo "obtain GSL"
@@ -51,6 +51,6 @@ deepclean:
 	-rm -rf tabix-0.2.6
 	-rm -rf pcre-8.21
 	-rm -rf gsl-1.15
-	-rm -rf eigen-3.1.0
+	-rm -rf eigen-3.1.2
 	-rm -rf bzip2-1.0.6
 

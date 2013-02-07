@@ -4,7 +4,16 @@
 #include "base/TypeConversion.h"
 
 /**
- * Store key-value pair, 
+ * Store key-value pair for minimal typing
+ * Internally, all keys and values are strings
+ * Memory layout:
+ *  key1 -> val, val, val....
+ *  key2 -> val, val, val....
+ *           ^    ^    ^
+ *           |    |    |
+ *           L1   L2   L3
+ *           We assume updating data are performed layer by layer
+ *           If cross layout updating value happened, we will generate an error.
  */
 class Result{
 public:
@@ -15,7 +24,7 @@ public:
   void addHeader(const std::string& key) {
     data[key] = defaultValue;
   }
-
+  
   bool existHeader(const char* key) {
     if (!data.find(key)) {
       fprintf(stderr, "Cannot find [ %s ] in result header...\n", key);

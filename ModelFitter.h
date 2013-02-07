@@ -42,15 +42,8 @@ void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* 
 // and collapsing results are stored internally.
 class ModelFitter{
 public:
-  /* // fitting model */
-  /* virtual int fit(Matrix& phenotype, Matrix& genotype) = 0; */
-  // fitting model
-  int fit(DataConsolidator* dc) {
-    return this->fit(dc->getPhenotype(),
-                     dc->getGenotype(),
-                     dc->getCovariate());
-  }
-  virtual int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& w, const Result& siteInfo) = 0;
+  virtual int fit(DataConsolidator* dc) = 0;
+    
   // write result header
   virtual void writeHeader(FILE* fp, const Result& siteInfo) = 0;
   // write model output
@@ -75,6 +68,9 @@ public:
   };
   void setContinuousOutcome() {
     this->binaryOutcome = false;
+  };
+  const Result& getResult() const {
+    return this->result;
   };
 protected:
   std::string modelName;
@@ -165,7 +161,11 @@ public:
 
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& cov= dc->getCovariate();
+    
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -228,37 +228,37 @@ private:
   bool fitOK;
 }; // SingleVariantWaldTest
 
-/**
- * @return 0 if success
- */
-int checkHWEandCallRate(Matrix& geno, int* homRef, int* het, int* homAlt, double* hweP, double* callRate) {
-  *homRef = *het = *homAlt = 0;
-  *hweP = 0.0;
-  *callRate = 0.0;
+/* /\** */
+/*  * @return 0 if success */
+/*  *\/ */
+/* int checkHWEandCallRate(Matrix& geno, int* homRef, int* het, int* homAlt, double* hweP, double* callRate) { */
+/*   *homRef = *het = *homAlt = 0; */
+/*   *hweP = 0.0; */
+/*   *callRate = 0.0; */
 
-  int nonMissingGeno = 0;
-  int totalGeno = geno.rows;
+/*   int nonMissingGeno = 0; */
+/*   int totalGeno = geno.rows; */
 
-  for (int i = 0; i < totalGeno; ++i) {
-    const int& g = geno[i][0];
-    if (g < 0) continue;
-    if (g == 0) {
-      ++ (*homRef);
-      ++ (nonMissingGeno);
-    } else if (g == 1) {
-      ++ (*het);
-      ++ (nonMissingGeno);
-    } else if (g == 2) {
-      ++ (*homAlt);
-      ++ (nonMissingGeno);
-    }
-  }
-  if (totalGeno)
-    (*callRate) = 1.0 * nonMissingGeno / totalGeno;
-  if ( (*homRef) >= 0 && (*het) >= 0 && (*homAlt) >= 0)
-    (*hweP) = SNPHWE( (*het), (*homRef), (*homAlt));
-  return 0;
-}
+/*   for (int i = 0; i < totalGeno; ++i) { */
+/*     const int& g = geno[i][0]; */
+/*     if (g < 0) continue; */
+/*     if (g == 0) { */
+/*       ++ (*homRef); */
+/*       ++ (nonMissingGeno); */
+/*     } else if (g == 1) { */
+/*       ++ (*het); */
+/*       ++ (nonMissingGeno); */
+/*     } else if (g == 2) { */
+/*       ++ (*homAlt); */
+/*       ++ (nonMissingGeno); */
+/*     } */
+/*   } */
+/*   if (totalGeno) */
+/*     (*callRate) = 1.0 * nonMissingGeno / totalGeno; */
+/*   if ( (*homRef) >= 0 && (*het) >= 0 && (*homAlt) >= 0) */
+/*     (*hweP) = SNPHWE( (*het), (*homRef), (*homAlt)); */
+/*   return 0; */
+/* } */
 
 class SingleVariantScoreTest: public ModelFitter{
 public:
@@ -266,7 +266,11 @@ public:
     this->modelName = "SingleScore";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate= dc->getCovariate();
+    
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -353,7 +357,11 @@ public:
     result.writeHeaderLine(fp);
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight, const Result& siteInfo) {
+    int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& cov= dc->getCovariate();
+
     if (genotype.cols == 0 || !isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -456,7 +464,13 @@ public:
     result.addHeader("CMC.Pvalue");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+    int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+    return this->fit(phenotype, genotype, covariate);
+  }
+  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -546,7 +560,11 @@ public:
     result.addHeader("CMCWald.Pvalue");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -635,7 +653,11 @@ public:
     result.addHeader("exactCMC.PvalueGreater");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& cov, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& cov= dc->getCovariate();
+    
     if (!isBinaryOutcome()){
       fitOK = false;
       return -1;
@@ -727,7 +749,11 @@ public:
     result.addHeader("Zeggini.Pvalue");
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+    
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -800,7 +826,11 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     result.addHeader("MB.Pvalue");
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+    
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -898,7 +928,11 @@ public:
     this->modelName = "Fp";
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+    
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -969,7 +1003,11 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->result.addHeader("NumIncludeMarker");
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+    
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1146,7 +1184,11 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "CMAT";
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate= dc->getCovariate();
+    
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1273,7 +1315,12 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "VariableThresholdPrice";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate= dc->getCovariate();
+    Vector& weight = dc->getWeight();
+    
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -1461,7 +1508,11 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     this->modelCapacity = n;
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate= dc->getCovariate();
+    
     if (genotype.cols > modelLen) {
       resize(genotype.cols);
       reset();
@@ -1469,7 +1520,7 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     for (int i = genotype.cols - 1; i >=0; --i){
       sortedGenotype.Dimension( genotype.rows, i + 1);
-      if ( model[i].fit(phenotype, sortedGenotype, covariate, weight, siteInfo) ) {
+      if ( model[i].fit(phenotype, sortedGenotype, covariate) ) {
         fitOK = false;
       }
     }
@@ -1608,7 +1659,12 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
     stat = -9999;
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate= dc->getCovariate();
+    Vector& weight = dc->getWeight();
+    
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -1745,7 +1801,11 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
     // clear_kbac_test();
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate= dc->getCovariate();
+    
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1868,7 +1928,11 @@ public:
     this->modelName = "MetaScore";
   };
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate= dc->getCovariate();
+
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -1880,7 +1944,10 @@ public:
 
     copyPhenotype(phenotype, &this->pheno);
 
-    checkHWEandCallRate(genotype, &homRef, &het, &homAlt, &hweP, &callRate);
+    dc->countGenotype(0, &homRef, &het, &homAlt, &missing);
+    callRate = 1.0 - 1.0 * missing / (homRef + het + homAlt + missing);
+    hweP = SNPHWE( het, homRef, homAlt);
+    // checkHWEandCallRate(genotype, , &hweP, &callRate);
 
     if (!isBinaryOutcome()) {
       fitOK = linear.FitNullModel(cov, pheno);
@@ -1962,6 +2029,7 @@ private:
   int homRef;
   int het;
   int homAlt;
+  int missing;
   double hweP;
   double callRate;
   // Result result;
@@ -2002,7 +2070,11 @@ public:
   }
 
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Result& siteInfo = dc->getResult();
+
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -2176,10 +2248,20 @@ public:
     this->header = siteInfo.joinHeader();
   }
   // fitting model
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate, Vector& weight, const Result& siteInfo) {
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate= dc->getCovariate();
+
     this->phenotype = phenotype;
     this->genotype = genotype;
     this->covariate = covariate;
+    // copy covaraite column label
+    for (int i = 0; i < covariate.cols; ++i){
+      this->covariate.SetColumnLabel(i, covariate.GetColumnLabel(i));
+    }
+    // copy row labels
+    this->rowLabel = dc->getRowLabel();
     return 0;
   };
 
@@ -2197,6 +2279,7 @@ public:
 
     // write header
     FILE* fDump= fopen(fn.c_str(), "wt");
+    fprintf(fDump, "ID\t");
     fprintf(fDump, "%s\t", this->header.c_str());
     if (phenotype.cols == 1)  {
       fprintf(fDump, "Y");
@@ -2210,12 +2293,17 @@ public:
       fprintf(fDump, "\tX%d", i);
     };
     for (int i = 0; i < covariate.cols; i++) {
-      fprintf(fDump, "\tC%d", i);
+      if (strlen(covariate.GetColumnLabel(i)) == 0) {
+        fprintf(fDump, "\tC%d", i); 
+      } else{
+        fprintf(fDump, "\t%s", covariate.GetColumnLabel(i));
+      }
     };
     fprintf(fDump, "\n");
 
     // write content
     for (int i = 0; i < phenotype.rows; ++i) {
+      fprintf(fDump, "%s\t", rowLabel[i].c_str());
       // fputs(prependString, fDump);
       siteInfo.writeValue(fDump);
       for (int j = 0; j < phenotype.cols; ++j) {
@@ -2241,6 +2329,7 @@ private:
   Matrix covariate;
   std::string prefix;
   std::string header;
+  std::vector<std::string> rowLabel;
 }; // end DumpModel
 
 

@@ -1,3 +1,5 @@
+CXX=g++
+
 all: release
 EXEC = rvtest
 UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
@@ -111,15 +113,15 @@ $(DIR_EXEC)/$(EXEC): lib \
                      Main.o \
                      ModelFitter.h \
                      |$(DIR_EXEC)
-	g++ -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB)
+	$(CXX) -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB)
 
-debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)  -pg
+debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
 $(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
                          Main.o \
                          Collapsor.h ModelFitter.h \
                          | $(DIR_EXEC_DBG)
-	g++ -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
+	$(CXX) -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
 
 
 ##################################################
@@ -128,7 +130,7 @@ GitVersion.h: .git/HEAD .git/index
 
 -include Main.d
 Main.o: Main.cpp GitVersion.h
-	g++ -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+	$(CXX) -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 
 ##################################################
@@ -140,7 +142,7 @@ define BUILD_util
   -include  $(1).d
   $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS) -static
   $$(TAR): $$(SRC) $(LIB) | $(DIR_EXEC)
-	g++ -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
+	$(CXX) -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
 endef
 $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util, $(s))))
 
@@ -151,7 +153,7 @@ define BUILD_util_dbg
   -include  $(1).d
   $$(TAR): CXX_FLAGS = -O0 -ggdb $(DEFAULT_CXXFLAGS)
   $$(TAR): $$(SRC) $(LIB_DBG) | $(DIR_EXEC_DBG)
-	g++ -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB_DBG)
+	$(CXX) -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB_DBG)
 endef
 $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util_dbg, $(s))))
 
@@ -194,7 +196,7 @@ testKernel: rvtest $(DajiangDataSet)
 
 # mem test:
 testMemLeak: testMemLeak.cpp $(LIB)
-	g++ -g -O0 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
+	$(CXX) -g -O0 -o $@ $<  -I. $(INC)  $(LIB) -lz -lbz2 -lm -lpcre -lpcreposix
 
 # automated tests
 autoTest: autoTest1 autoTest2
@@ -214,14 +216,14 @@ tar:
 	tar zvchf rvtest.$(DATE).tgz *.h *.cpp Makefile .git/HEAD .git/index third base libVcf regression libsrc
 
 # arg: Argument.h Argument.cpp
-# 	g++ -g -o Argument Argument.cpp
+# 	$(CXX) -g -o Argument Argument.cpp
 # RangeList: RangeList_test.cpp RangeList.h RangeList_test_input
-# 	g++ -c $(CXXFLAGS) RangeList_test.cpp -I../statgen/lib/include -I. -D__ZLIB_AVAILABLE__ -lz
-# 	g++ -o $@ RangeList_test.o $(TABIX_LIB) $(STATGEN_LIB)  -lz -lm
+# 	$(CXX) -c $(CXXFLAGS) RangeList_test.cpp -I../statgen/lib/include -I. -D__ZLIB_AVAILABLE__ -lz
+# 	$(CXX) -o $@ RangeList_test.o $(TABIX_LIB) $(STATGEN_LIB)  -lz -lm
 
 # IO: IO_test.cpp IO.h 
-# 	g++ -c $(CXXFLAGS) IO_test.cpp -I../statgen/lib/include -I. -D__ZLIB_AVAILABLE__ 
-# 	g++ -o $@ IO_test.o $(TABIX_LIB) $(STATGEN_LIB)  -lz -lm -lbz2
+# 	$(CXX) -c $(CXXFLAGS) IO_test.cpp -I../statgen/lib/include -I. -D__ZLIB_AVAILABLE__ 
+# 	$(CXX) -o $@ IO_test.o $(TABIX_LIB) $(STATGEN_LIB)  -lz -lm -lbz2
 README.md:README.wiki
 doc: README.md
 	java -jar third/wiki2html.jar README.wiki > README.html 

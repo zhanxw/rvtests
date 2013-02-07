@@ -49,7 +49,7 @@
 #include "MathMatrix.h"
 #include "Random.h"
 
-#include "ModelFitter.h"
+#include "CommonFunction.h"
 #include "GitVersion.h"
 
 // #include "Analysis.h"
@@ -109,7 +109,7 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     fprintf(stderr, "VCF file have duplicated sample id. Quitting!\n");
     abort();
   }
-  for (int i = 0; i < vcfSampleNames.size(); i++) {
+  for (size_t i = 0; i < vcfSampleNames.size(); i++) {
     if (phenotype.count(vcfSampleNames[i]) == 0) {
       vcfSampleToDrop->push_back(vcfSampleNames[i]);
     } else {
@@ -175,30 +175,30 @@ void imputeGenotypeToMean(Matrix* genotype) {
   }
 };
 
-/**
- * convert the vector @param v to Matrix format @param m
- */
-void toMatrix(const std::vector<double>& v, Matrix* m) {
-  m->Dimension(v.size(), 1);
-  for (int i = 0; i < v.size(); i++) {
-    (*m)[i][0] = v[i];
-  }
-};
+// /**
+//  * convert the vector @param v to Matrix format @param m
+//  */
+// void toMatrix(const std::vector<double>& v, Matrix* m) {
+//   m->Dimension(v.size(), 1);
+//   for (size_t i = 0; i < v.size(); i++) {
+//     (*m)[i][0] = v[i];
+//   }
+// };
 
 
-/**
- * Convert a @param string separated by @param sep to set (stored in @param s)
- */
-void makeSet(const char* str, char sep, std::set<std::string>* s) {
-  s->clear();
-  if (!str || strlen(str) == 0)
-    return;
+// /**
+//  * Convert a @param string separated by @param sep to set (stored in @param s)
+//  */
+// void makeSet(const char* str, char sep, std::set<std::string>* s) {
+//   s->clear();
+//   if (!str || strlen(str) == 0)
+//     return;
 
-  std::vector<std::string> fd;
-  stringTokenize(str, ",", &fd);
-  for (int i = 0; i < fd.size(); i++)
-    s->insert(fd[i]);
-}
+//   std::vector<std::string> fd;
+//   stringTokenize(str, ",", &fd);
+//   for (int i = 0; i < fd.size(); i++)
+//     s->insert(fd[i]);
+// }
 
 int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, RangeList>* geneMap) {
   std::set<std::string> geneSet;
@@ -496,7 +496,7 @@ int main(int argc, char** argv){
 
   std::string geneName;
   RangeList rangeList;
-  for ( int i = 0; i < geneRange.size(); ++i){
+  for ( size_t i = 0; i < geneRange.size(); ++i){
     geneRange.at(i, &geneName, &rangeList);
 
     vin.setRange(rangeList);
@@ -515,7 +515,7 @@ int main(int argc, char** argv){
       genotype.Dimension(row + 1, people.size());
 
       // e.g.: Loop each (selected) people in the same order as in the VCF
-      for (int i = 0; i < people.size(); i++) {
+      for (int i = 0; i < (int)people.size(); i++) {
         indv = people[i];
         // get GT index. if you are sure the index will not change, call this function only once!
         int GTidx = r.getFormatIndex("GT");
@@ -541,12 +541,12 @@ int main(int argc, char** argv){
     if (!pos.size()) continue;
     fprintf(fout, "%s\t%d\t%d\t%s\t", chrom.c_str(), pos.front(), pos.back(), geneName.c_str());
 
-    for (int i = 0; i < pos.size(); i++){
+    for (size_t i = 0; i < pos.size(); i++){
       fprintf(fout, "%d,", pos[i]);
     }
     fprintf(fout, "\t");
-    for (int i = 0; i < pos.size(); i++) {
-      for (int j = i; j < pos.size(); j++) {
+    for (int i = 0; i < (int)pos.size(); i++) {
+      for (int j = i; j < (int)pos.size(); j++) {
         fprintf(fout, "%g,", calculateCov(genotype, i, j));
       }
     }

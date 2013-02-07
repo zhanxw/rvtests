@@ -2339,7 +2339,7 @@ private:
  */
 double getMarkerFrequency(Matrix& in, int col){
   int& numPeople = in.rows;
-  int ac = 0;
+  double ac = 0; // NOTE: here genotype may be imputed, thus not integer
   int an = 0;
   for (int p = 0; p < numPeople; p++) {
     if (in[p][col] >= 0) {
@@ -2349,13 +2349,13 @@ double getMarkerFrequency(Matrix& in, int col){
   }
   if ( an == 0 ) return 0.0;
   //double freq = 1.0 * (ac + 1) / (an + 1);
-  double freq = 1.0 * ac / an;
+  double freq = ac / an;
   return freq;
 };
 
 double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col){
   int& numPeople = in.rows;
-  int ac = 0;
+  double ac = 0; // NOTE: here genotype may be imputed, thus not integer
   int an = 0;
   for (int p = 0; p < numPeople; p++) {
     if (pheno[p] == 1) continue;

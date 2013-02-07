@@ -8,6 +8,7 @@
    26. Take family structure into consideration.
    27. Output .MetaCov.assoc into gzipped format
    28. Display monomorhpic in MetaScore model
+   29. Cache score test to speed things up.
    
    DONE:
    2. support access INFO tag

@@ -51,12 +51,19 @@ void imputeGenotypeToMean(Matrix* genotype) {
         an += 2;
       }
     }
-    double p = 1.0 * ac / an;
+    double p;
+    if (an == 0) {
+      p = 0.0;
+    } else {
+      p = 1.0 * ac / an;
+    }
+    double g = 2.0 * p;
     for (int j = 0; j < m.rows; j++){
       if (m[j][i] < 0) {
-        m[j][i] = p;
+        m[j][i] = g;
       }
     }
+    // fprintf(stderr, "impute to mean = %g, ac = %d, an = %d", g, ac, an);
   }
 };
 

@@ -6,7 +6,6 @@
    24. Conditional analysis + burden test
    25. Take optional weight, e.g. GERP
    26. Take family structure into consideration.
-   27. Output .MetaCov.assoc into gzipped format
    28. Display monomorhpic in MetaScore model
    29. Cache score test to speed things up.
    
@@ -39,7 +38,8 @@
    18. Add filtering on GD, GQ
    19. Add command line support for different imputation methods
    5. loading covariate
-
+   27. Output .MetaCov.assoc into gzipped format
+   
    Future TODO:
    22. Add U-statistics
 

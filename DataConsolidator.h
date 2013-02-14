@@ -268,7 +268,7 @@ DataConsolidator(): strategy(UNINITIALIZED) {
   Result& getResult() {
     return this->result;
   }
-  const int countGenotype(int columnIndex,
+  const int countRawGenotype(int columnIndex,
                           int* homRef,
                           int* het,
                           int* homAlt,

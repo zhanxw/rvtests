@@ -8,6 +8,7 @@
    26. Take family structure into consideration.
    28. Display monomorhpic in MetaScore model
    29. Cache score test to speed things up.
+   30. When taking covariates, check if the covariates are unique, if so, generate a warning and kick it out.
    
    DONE:
    2. support access INFO tag

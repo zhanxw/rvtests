@@ -43,7 +43,7 @@ void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* 
 class ModelFitter{
 public:
   virtual int fit(DataConsolidator* dc) = 0;
-    
+
   // write result header
   virtual void writeHeader(FileWriter* fp, const Result& siteInfo) = 0;
   // write model output
@@ -165,7 +165,7 @@ public:
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& cov= dc->getCovariate();
-    
+
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -270,7 +270,7 @@ public:
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
-    
+
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -357,7 +357,7 @@ public:
     result.writeHeaderLine(fp);
   };
   // fitting model
-    int fit(DataConsolidator* dc) {
+  int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& cov= dc->getCovariate();
@@ -464,7 +464,7 @@ public:
     result.addHeader("CMC.Pvalue");
   };
   // fitting model
-    int fit(DataConsolidator* dc) {
+  int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
@@ -657,7 +657,7 @@ public:
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& cov= dc->getCovariate();
-    
+
     if (!isBinaryOutcome()){
       fitOK = false;
       return -1;
@@ -753,7 +753,7 @@ public:
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
-    
+
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -830,7 +830,7 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
-    
+
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -932,7 +932,7 @@ public:
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
-    
+
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -1007,7 +1007,7 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
-    
+
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1188,7 +1188,7 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
-    
+
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1320,7 +1320,7 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
     Vector& weight = dc->getWeight();
-    
+
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -1512,7 +1512,7 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
-    
+
     if (genotype.cols > modelLen) {
       resize(genotype.cols);
       reset();
@@ -1664,7 +1664,7 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
     Vector& weight = dc->getWeight();
-    
+
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -1805,7 +1805,7 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
-    
+
     if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
@@ -1933,22 +1933,26 @@ public:
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
 
+    dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
+    // dc->getResult().writeValueLine(stderr);
+    // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
+    int nSample = (homRef + het + homAlt + missing);
+    callRate = 1.0 - 1.0 * missing / nSample;
+    if (homRef + het + homAlt == 0 ||
+        (het < 0 || homRef || 0 || homAlt < 0)) {
+      hweP = 0.0;
+      af = 0.0;
+    } else {
+      hweP = SNPHWE( het, homRef, homAlt);
+      af = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
+    }
+
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
     }
-    nSample = genotype.rows;
-    af = getMarkerFrequency(genotype, 0);
-
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-
     copyPhenotype(phenotype, &this->pheno);
-
-    dc->countGenotype(0, &homRef, &het, &homAlt, &missing);
-    callRate = 1.0 - 1.0 * missing / (homRef + het + homAlt + missing);
-    hweP = SNPHWE( het, homRef, homAlt);
-    // checkHWEandCallRate(genotype, , &hweP, &callRate);
-
     if (!isBinaryOutcome()) {
       fitOK = linear.FitNullModel(cov, pheno);
       if (!fitOK) return -1;
@@ -1989,27 +1993,20 @@ public:
     int informativeAC = het + 2* homAlt;
 
     result.clearValue();
+    result.updateValue("AF", af);
+    result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
+    result.updateValue("CALL_RATE", callRate);
+    result.updateValue("HWE_PVALUE", hweP);
+    result.updateValue("N_REF", homRef);
+    result.updateValue("N_HET", het);
+    result.updateValue("N_ALT", homAlt);
     if (fitOK) {
       if (!isBinaryOutcome()) {
-        result.updateValue("AF", af);
-        result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
-        result.updateValue("CALL_RATE", callRate);
-        result.updateValue("HWE_PVALUE", hweP);
-        result.updateValue("N_REF", homRef);
-        result.updateValue("N_HET", het);
-        result.updateValue("N_ALT", homAlt);
         result.updateValue("U_STAT", linear.GetU()[0][0]);
         result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]));
         result.updateValue("ALT_EFFSIZE", linear.GetU()[0][0] / (linear.GetV()[0][0]));
         result.updateValue("PVALUE", linear.GetPvalue());
       } else {
-        result.updateValue("AF", af);
-        result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
-        result.updateValue("CALL_RATE", callRate);
-        result.updateValue("HWE_PVALUE", hweP);
-        result.updateValue("N_REF", homRef);
-        result.updateValue("N_HET", het);
-        result.updateValue("N_ALT", homAlt);
         result.updateValue("U_STAT", logistic.GetU()[0][0]);
         result.updateValue("SQRT_V_STAT", sqrt(logistic.GetV()[0][0]));
         result.updateValue("ALT_EFFSIZE", logistic.GetU()[0][0] / (logistic.GetV()[0][0]));
@@ -2020,7 +2017,7 @@ public:
   };
 private:
   double af;
-  int nSample;
+  // int nSample;
   Vector pheno;
   LinearRegressionScoreTest linear;
   LogisticRegressionScoreTest logistic;
@@ -2292,7 +2289,7 @@ public:
     };
     for (int i = 0; i < covariate.cols; i++) {
       if (strlen(covariate.GetColumnLabel(i)) == 0) {
-        fprintf(fDump, "\tC%d", i); 
+        fprintf(fDump, "\tC%d", i);
       } else{
         fprintf(fDump, "\t%s", covariate.GetColumnLabel(i));
       }
@@ -2329,8 +2326,6 @@ private:
   std::string header;
   std::vector<std::string> rowLabel;
 }; // end DumpModel
-
-
 
 //////////////////////////////////////////////////////////////////////
 // Implementation of various collpasing methods

@@ -8,6 +8,10 @@
   // Written by Jan Wigginton
   */
 
+/**
+ * NOTE (by zhanxw)
+ * !! Makesure not all parameters equal to 0, or the program will crash.
+ */
 double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
 {
   if (obs_hom1 < 0 || obs_hom2 < 0 || obs_hets < 0)

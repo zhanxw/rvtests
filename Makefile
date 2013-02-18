@@ -111,6 +111,7 @@ release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) -static
 release: $(DIR_EXEC)/$(EXEC) util
 $(DIR_EXEC)/$(EXEC): lib \
                      Main.o \
+                     DataConsolidator.o \
                      ModelFitter.h \
                      |$(DIR_EXEC)
 	$(CXX) -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB)
@@ -119,6 +120,7 @@ debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
 $(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
                          Main.o \
+                         DataConsolidator.o \
                          Collapsor.h ModelFitter.h \
                          | $(DIR_EXEC_DBG)
 	$(CXX) -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
@@ -132,6 +134,9 @@ GitVersion.h: .git/HEAD .git/index
 Main.o: Main.cpp GitVersion.h
 	$(CXX) -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
+-include DataConsolidator.d
+DataConsolidator.o: DataConsolidator.cpp DataConsolidator.h
+	$(CXX) -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 ##################################################
 # build utils

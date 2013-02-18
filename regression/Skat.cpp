@@ -1,7 +1,10 @@
 #include "Skat.h"
 #include "MathMatrix.h"
+#include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 //#include <Eigen/Dense>
+#include "MixtureChiSquare.h"
+
 
 #define ZBOUND 1e-30
 
@@ -12,13 +15,17 @@ void G_to_Eigen(Matrix &GM, Eigen::MatrixXf* EigenM);
 
 void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf* out);
 
-
-int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permuting
-              Vector& v_G,      // variance under NULL -- may change when permuting
-              Matrix& X_G,      // covariance
-              Matrix & G_G,     // genotype
-              Vector &w_G)     // weight 
-{
+class Skat::SkatImpl{
+ public:
+    void Reset() {
+    this->pValue = -999.0;
+  };
+  int Fit(Vector & res_G,   // residual under NULL -- may change when permuting
+          Vector& v_G,      // variance under NULL -- may change when permuting
+          Matrix& X_G,      // covariance
+          Matrix & G_G,     // genotype
+          Vector &w_G)    // weight
+  {
   this->nPeople = X_G.rows;
   this->nMarker = G_G.cols;
   this->nCovariate = X_G.cols;
@@ -55,6 +62,7 @@ int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permut
   // Eigen::MatrixXf tmp = K_sqrt * P0 * K_sqrt.transpose();
   // dumpToFile(tmp, "out.tmp");
   // eigen decomposition
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
   es.compute( K_sqrt * P0 * K_sqrt.transpose());
   // std::ofstream k("K");
   // k << K_sqrt;
@@ -79,128 +87,71 @@ int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permut
   // calculate p-value
   this->pValue = this->mixChiSq.getPvalue(this->Q);
   return 0;
+  };
+
+  
+  double GetQFromNewResidual(Vector & res_G)   // e.g. permuted residual under NULL
+  {
+    // calculate Q
+    Eigen::VectorXf res;
+    G_to_Eigen(res_G, &res);
+    double Q = (this->K_sqrt * res).squaredNorm();
+
+    return Q;
+  }
+
+  double GetPvalue() const {return this->pValue;};
+
+  double GetQ() const {return this->Q;};
+  
+ private:
+  //Eigen::MatrixXf K;        // G * W * G'
+  Eigen::MatrixXf K_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
+  Eigen::VectorXf w_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
+  Eigen::MatrixXf P0;         // V - VX ( X' V X)^{-1} X V
+  Eigen::VectorXf res;        // residual
+  //
+  // bool hasCache;              // hasCache == true: no need to recalculate P0
+
+  int nPeople;
+  int nMarker;
+  int nCovariate;
+  MixtureChiSquare mixChiSq;
+
+  double pValue;
+  double Q;
+};
+Skat::Skat() {
+  this->skatImpl =  new SkatImpl;
+}
+Skat::~Skat() {
+  delete this->skatImpl;
+}
+void Skat::Reset() {
+  this->skatImpl->Reset();
+}
+  
+int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permuting
+              Vector& v_G,      // variance under NULL -- may change when permuting
+              Matrix& X_G,      // covariance
+              Matrix & G_G,     // genotype
+              Vector &w_G)     // weight 
+{
+  return this->skatImpl->Fit(res_G, v_G, X_G, G_G, w_G);
 };
 
 double Skat::GetQFromNewResidual(Vector & res_G){   // residual under NULL -- may change when permuting
-  // calculate Q
-  Eigen::VectorXf res;
-  G_to_Eigen(res_G, &res);
-  double Q = (this->K_sqrt * res).squaredNorm();
-
-  return Q;
-};
-
-#if 0
-int Skat::CalculatePValue(Vector & y_G, Vector& y0_G, Matrix& X_G, Vector& v_G,
-                          Matrix & G_G, Vector &w_G) {
-  // Eigen::VectorXf y;
-  // Eigen::VectorXf y0;
-  Eigen::MatrixXf X;
-  Eigen::VectorXf v;
-  Eigen::MatrixXf G;
-  Eigen::VectorXf w;
-
-  // G_to_Eigen(y_G, y);
-  // G_to_Eigen(y0_G, y0);
-  G_to_Eigen(X_G, X);
-  G_to_Eigen(v_G, v);
-  G_to_Eigen(G_G, G);
-  G_to_Eigen(w_G, w);
-
-  // get residual
-  int yLen = y_G.Length();
-  res.resize(yLen);
-  for (int i = 0; i < yLen; i++) {
-    res(i) = y_G[i] - y0_G[i];
-  }
-
-  // cache P0
-  // P0 = V - V * X * (X' * V * X)^{-1} * X' * V        NOTE: V is symmetric
-  // when X is column vector of 1,
-  // P0 = V - V * X * X' V / \sum(v_i)        v_i is ith element on V
-  //    = V - v * v' / \sum(v_i)              v is column vector of v_i
-  if (X_G.cols == 1) {
-    P0 = v.asDiagonal();
-    P0 -= v * v.transpose() / v.sum();
-  } else {
-    Eigen::MatrixXf XtV;        // X^t V
-    XtV = X.transpose() * v.asDiagonal();
-    P0 = v.asDiagonal();
-    P0 -= XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
-  }
-  //outputMat(P0, "mat.P0");
-
-  // prep parameters to qf()
-  lambda = new double[v.size()];
-  noncen = new double[v.size()];
-  df = new int[v.size()];
-  lambda_size = v.size();
-
-  //Re-allocate memory if # of markers is > # of samples
-  if(lambda_size < G.cols())
-  {
-	lambda_size = G.cols();
-	delete [] lambda; delete [] noncen; delete [] df;
-    lambda = new double[lambda_size];
-    noncen = new double[lambda_size];
-    df = new int[lambda_size];
-  }
-  // w_sqrt <- W
-  w_sqrt.resize(w_G.Length());
-  for (int i = 0; i < w_G.Length(); i++) {
-    if (w_G[i] > ZBOUND)
-      w_sqrt(i) = sqrt(w_G[i]);
-    else
-      w_sqrt(i) = 0.0;
-  }
-
-  // get K_sqrt
-  K_sqrt = w_sqrt.asDiagonal() * G.transpose();
-
-  // get Q = (K_sqrt * res)' * (K_sqrt * res)
-  Eigen::VectorXf tmp = (K_sqrt * res);
-  this->Q = tmp.squaredNorm();
-
-  // get P1 = w
-  Eigen::MatrixXf P1 = w_sqrt.asDiagonal() * G.transpose() * P0 * G * w_sqrt.asDiagonal();
-
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
-  es.compute(P1);
-
-  // Input to qf
-  int r_ub = G.rows() > G.cols() ? G.cols() : G.rows();
-  int r = 0; // es.eigenvalues().size();
-  int eigen_len = es.eigenvalues().size();
-  for(int i=eigen_len-1; i>=0; i--)
-  {
-    if (es.eigenvalues()[i] > ZBOUND && r<r_ub) {
-      lambda[r] = es.eigenvalues()[i];
-      noncen[r] = 0.0;
-      df[r] = 1;
-      r++;
-    }
-	else break;
-  }
-
-
-  // Output from qf
-  double pvalue;
-  int fault;
-  double trace[7];
-
-  // note: qf give distribution but we want p-value.
-  this->pValue = 1.0 - qf(lambda, noncen, df, r, sigma, Q, lim, acc, trace, &fault);
-  if(this->pValue>1.0) this->pValue = 1.0; //this occurs when eigen values are very large
-
-  // TIME();
-
-  if (fault) {
-    return fault;
-  }
-
-  return 0;
+  return this->skatImpl->GetQFromNewResidual(res_G);
 }
-#endif
+double Skat::GetPvalue() const //  {return this->pValue;};
+{
+  return this->skatImpl->GetPvalue();
+}
+
+double Skat::GetQ() const // {return this->Q;};
+{
+  return this->skatImpl->GetQ();
+}
 
 void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* _EigenM)
 {

@@ -1,6 +1,7 @@
 #ifndef _RESULT_H_
 #define _RESULT_H_
 
+#include "base/OrderedMap.h"
 #include "base/TypeConversion.h"
 #include "base/IO.h"
 

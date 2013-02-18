@@ -1,7 +1,10 @@
 #ifndef _COMMONFUNCTION_H_
 #define _COMMONFUNCTION_H_
 
+#include <algorithm>
+#include <set>
 #include <gsl/gsl_cdf.h>
+#include "base/Utils.h"
 
 //////////////////////////////////////////////////
 // Statistics functions

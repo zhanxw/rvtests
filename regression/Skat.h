@@ -1,21 +1,18 @@
 #ifndef __SKAT_H__
 #define __SKAT_H__
 
-#include <Eigen/Dense>
-#include <fstream>
-
-#include "MixtureChiSquare.h"
-
 class Matrix;
 class Vector;
 
 class Skat
 {
+private:
+  class SkatImpl;
+  SkatImpl* skatImpl;
 public:
-Skat():pValue(-999) {};
-  void Reset() {
-    this->pValue = -999.0;
-  };
+  Skat();
+  ~Skat();
+  void Reset();
   /**
    * _G suffix: Data structure for Goncalo
    * y phenotype
@@ -34,39 +31,13 @@ Skat():pValue(-999) {};
   
   double GetQFromNewResidual(Vector & res_G);   // e.g. permuted residual under NULL
 
-  double GetPvalue() const {return this->pValue;};
+  double GetPvalue() const; //  {return this->pValue;};
 
-  double GetQ() const {return this->Q;};
-
-  /* void dump() { */
-  /*   dumpToFile(K_sqrt, "out.Ksqrt"); */
-  /*   dumpToFile(w_sqrt, "out.Wsqrt"); */
-  /*   dumpToFile(P0, "out.P0"); */
-  /*   dumpToFile(res, "out.res"); */
-  /* }; */
-  /* template <class T> */
-  /* void dumpToFile(T& v, const char* f){ */
-  /*   std::ofstream fout(f); */
-  /*   fout << v; */
-  /*   fout.close(); */
-  /* } */
-  
+  double GetQ() const; // {return this->Q;};
+    
 private:
-  //Eigen::MatrixXf K;        // G * W * G'
-  Eigen::MatrixXf K_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
-  Eigen::VectorXf w_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
-  Eigen::MatrixXf P0;         // V - VX ( X' V X)^{-1} X V
-  Eigen::VectorXf res;        // residual
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
-  // bool hasCache;              // hasCache == true: no need to recalculate P0
-
-  int nPeople;
-  int nMarker;
-  int nCovariate;
-  MixtureChiSquare mixChiSq;
-
-  double pValue;
-  double Q;
+  // don't copy
+  Skat(const Skat& s);
+  Skat& operator=(const Skat& s);
 };
-
 #endif

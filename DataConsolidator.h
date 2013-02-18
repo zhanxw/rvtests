@@ -2,8 +2,14 @@
 #define _DATACONSOLIDATOR_H_
 
 #include "Result.h"
+#include "base/Logger.h"
+#include "MathMatrix.h"
+#include "Random.h"
 
 extern Logger* logger;
+
+class EigenMatrix;
+
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
  */
@@ -165,7 +171,7 @@ public:
   const static int IMPUTE_MEAN = 1;
   const static int IMPUTE_HWE = 2;
   const static int DROP = 3;
-DataConsolidator(): strategy(UNINITIALIZED) {
+DataConsolidator(): strategy(DataConsolidator::UNINITIALIZED) {
   };
   void setStrategy(const int s){
     this->strategy = s;
@@ -187,10 +193,19 @@ DataConsolidator(): strategy(UNINITIALIZED) {
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(&this->genotype);
-      /* *phenoOut = pheno; */
-      /* *covOut = cov; */
-      this->phenotype = pheno;
-      this->covariate = cov;
+      if (this->phenotype != pheno ) {
+        this->phenotype = pheno;
+        this->phenotypeUpdated = true;
+      } else{
+        this->phenotypeUpdated = false;
+      }
+      if (this->covariate != cov) {
+        this->covariate = cov;
+        this->covariateUpdated = true;
+      } else{
+        this->covariateUpdated = false;
+      }
+      
     } else if (this->strategy == IMPUTE_HWE) {
       // impute missing genotypes
       imputeGenotypeByFrequency(&genotype, &this->random);
@@ -211,6 +226,7 @@ DataConsolidator(): strategy(UNINITIALIZED) {
           idxToCopy++;
         }
       }
+      this->phenotypeUpdated = this->covariateUpdated = true;
       genotype.Dimension(idxToCopy, genotype.cols);
       covariate.Dimension(idxToCopy, cov.cols);
       phenotype.Dimension(idxToCopy, pheno.cols);
@@ -298,6 +314,17 @@ DataConsolidator(): strategy(UNINITIALIZED) {
     }
     return 0; //success
   }
+  bool isPhenotypeUpdated() const {
+    return this->phenotypeUpdated;
+  }
+  bool isCovariateUpdated() const {
+    return this->covariateUpdated;
+  }
+  /**
+   * Load kinship matrix in the order of @params names
+   */
+  int loadKinship(const std::string& fn, const std::vector<std::string>& names);
+  const EigenMatrix& getKinship() const;
 private:
   int strategy;
   Random random;
@@ -307,8 +334,11 @@ private:
   Vector weight;
   Result result;
   Matrix originalGenotype;
+  bool phenotypeUpdated;
+  bool covariateUpdated;
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
+  EigenMatrix* kinship;
 }; // end DataConsolidator
 
 #endif /* _DATACONSOLIDATOR_H_ */

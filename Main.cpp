@@ -64,7 +64,6 @@
 #include "VCFUtil.h"
 #include "MathVector.h"
 #include "MathMatrix.h"
-#include "Random.h"
 
 #include "CommonFunction.h"
 #include "DataLoader.h"
@@ -1041,9 +1040,10 @@ int main(int argc, char** argv){
   for (size_t m = 0; m < model.size() ; ++m ) {
     delete fOuts[m];
   }
-  delete[] fOuts;
-  
-  delete pVin;
+  if (fOuts)
+    delete[] fOuts;
+  if (pVin)
+    delete pVin;
   
   time_t endTime = time(0);
   logger->info("Analysis ends at: %s", currentTime().c_str());

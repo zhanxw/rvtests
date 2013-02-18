@@ -20,8 +20,6 @@ namespace zhanxw{
         printf("\n");
       }
     };
-    int constructFromGenotype(const SimpleMatrix& m);
-    
  private:
     SimpleMatrix mat;
   };

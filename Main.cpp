@@ -682,6 +682,9 @@ int main(int argc, char** argv){
       } else if (modelName == "famscore") {
         model.push_back( new SingleVariantFamilyScore);
         hasFamilyModel = true;
+      } else if (modelName == "famlrt") {
+        model.push_back( new SingleVariantFamilyLRT);
+        hasFamilyModel = true;
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();

@@ -11,7 +11,7 @@ public:
     LRT
   };
   enum Model {
-    MLE = 0, 
+    MLE = 0,
     REML
   };
 public: // Make this Impl public to make optimization function easy to write
@@ -20,7 +20,7 @@ public: // Make this Impl public to make optimization function easy to write
 public:
   FastLMM(Test test, Model model);
   ~FastLMM();
-  
+
   // @return 0 when success
   int FitNullModel(Matrix& Xnull, Matrix& y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
@@ -28,6 +28,10 @@ public:
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   double GetPValue();
+  // for LRT Test
+  double GetNullLogLikelihood();
+  double GetAltLogLikelihood();
+  // for Score Test
   double GetUStat();
   double GetVStat();
 };

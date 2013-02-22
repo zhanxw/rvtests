@@ -33,7 +33,7 @@ class FastLMM::Impl{
     // rotate
     this->ux = U.transpose() * this->ux;
     this->uy = U.transpose() * this->uy;
-    
+
     // get beta, sigma and delta
     // where delta = sigma2_e / sigma2_g
     double loglik[101];
@@ -73,7 +73,9 @@ class FastLMM::Impl{
     // store some intermediate results
     // fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
     // fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
-    if (this->test == FastLMM::SCORE) {
+    if (this->test == FastLMM::LRT) {
+      this->nullLikelihood = getLogLikelihood(this->delta);
+    } else if (this->test == FastLMM::SCORE) {
       this->uResid = this->uy - this->ux * this->beta;
     }
     return 0;
@@ -82,14 +84,20 @@ class FastLMM::Impl{
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
     // obtain U
     const Eigen::MatrixXf& U = kinshipU.mat;
-    
+    Eigen::MatrixXf g;
+    G_to_Eigen(Xcol, &g);
+    this->ug = U.transpose() * g;
+
     // depends on LRT test or Score tests
     if (this->test == FastLMM::LRT) {
       // need to fit alternative model
       // 1. assign obs and parameters
+
       Eigen::MatrixXf altUx; // X under alternative model
-      cbind_G_to_Eigen(Xnull, Xcol, &altUx);
-      altUx = U.transpose() * altUx;
+      // cbind_G_to_Eigen(Xnull, Xcol, &altUx);
+      altUx.resize(this->ux.rows(), this->ux.cols() + this->ug.cols());
+      altUx << this->ux, this->ug;
+      
       Eigen::MatrixXf& altUy =  this->uy;
       Eigen::MatrixXf& altLambda =  this->lambda;
       // 2. estimate beta and sigma2 using delta under the null model
@@ -126,12 +134,6 @@ class FastLMM::Impl{
 
     if (this->test == FastLMM::SCORE) {
       // just return score test statistics
-      Eigen::MatrixXf g;
-      G_to_Eigen(Xcol, &g);
-      this->ug = U.transpose() * g;
-      // Eigen::MatrixXf y; /// = this->uy - this->ux * this->beta;
-      // G_to_Eigen(Y, &y);
-      //Eigen::RowVectorXf y_mean = y.colwise().mean();
       Eigen::RowVectorXf g_mean = g.colwise().mean();
       this->Ustat = (  (  (U.transpose() *  (g.rowwise() - g_mean)).array() *
                           (  (this->uResid)).array() ) /
@@ -208,6 +210,13 @@ class FastLMM::Impl{
   double GetVStat() const {
     return this->Vstat;
   }
+  double GetNullLogLikelihood() const {
+    return this->nullLikelihood;
+  }
+  double GetAltLogLikelihood() const {
+    return this->altLikelihood;
+  }
+
  private:
   // Eigen::MatrixXf S;
   float sigma2;     // sigma2_g
@@ -257,11 +266,14 @@ int FastLMM::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
 double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
   return this->impl->GetAF(kinshipU, kinshipS);
 }
-double FastLMM::GetUStat() { return this->impl->GetUStat();};
-double FastLMM::GetVStat() { return this->impl->GetVStat();};
 double FastLMM::GetPValue(){
   return this->impl->GetPValue();
 }
+double FastLMM::GetUStat() { return this->impl->GetUStat();};
+double FastLMM::GetVStat() { return this->impl->GetVStat();};
+double FastLMM::GetNullLogLikelihood() { return this->impl->GetNullLogLikelihood(); };
+double FastLMM::GetAltLogLikelihood() { return this->impl->GetAltLogLikelihood(); };
+
 
 // need to negaive the MLE to minize it
 double goalFunction(double x, void* param) {

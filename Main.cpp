@@ -83,8 +83,9 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      December 2012                     ...   \n"
-      "       ..............................................  \n"
+      "      ...      Feburary 2013                     ...   \n"
+      "       ...      github.com/zhanxw/rvtests         ...  \n"
+      "        .............................................. \n"
       "                                                       \n"
       ;
   fputs(string, fp);
@@ -369,12 +370,15 @@ int main(int argc, char** argv){
       ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Statistical Model")
-      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact")
+      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
       ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov")
-
+      
+      ADD_PARAMETER_GROUP(pl, "Family-based Models")
+      ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file, use vcf2kinship to specify")
+      
       ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
@@ -391,6 +395,7 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Specify either of mean, hwe, and drop")
       ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean by those have genotypes but no phenotpyes")
+
       ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
       END_PARAMETER_LIST(pl)
@@ -654,7 +659,7 @@ int main(int argc, char** argv){
   }
 
   std::vector< ModelFitter* > model;
-
+  bool hasFamilyModel = false;
   std::string modelName;
   std::vector< std::string> modelParams;
   std::vector< std::string> argModelName;
@@ -674,6 +679,9 @@ int main(int argc, char** argv){
         model.push_back( new SingleVariantScoreTest);
       } else if (modelName == "exact") {
         model.push_back( new SingleVariantFisherExactTest);
+      } else if (modelName == "famscore") {
+        model.push_back( new SingleVariantFamilyScore);
+        hasFamilyModel = true;
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
@@ -860,8 +868,24 @@ int main(int argc, char** argv){
     };
   }
 
-  // set imputation method
   DataConsolidator dc;
+  // load kinshp if needed
+  if (hasFamilyModel) {
+    if (FLAG_kinship.empty()) {
+      logger->error("To use family based method, you need to use --kinship to specify a kinship file (you use vcf2kinship to generate one).");
+      abort();
+    }
+    if (dc.loadKinshipFile(FLAG_kinship, phenotypeNameInOrder)){
+      logger->error("Failed to load kinship file");
+      abort();
+    }
+    if (dc.decomposeKinship()) {
+      logger->error("Failed to decompose kinship file");
+      abort();
+    }
+    logger->info("Loaded kinship file successfully.");
+  }
+  // set imputation method
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");
     dc.setStrategy(DataConsolidator::IMPUTE_MEAN);

@@ -1,5 +1,6 @@
 #include "Skat.h"
 #include "MathMatrix.h"
+#include "EigenMatrixInterface.h"
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 //#include <Eigen/Dense>
@@ -7,12 +8,6 @@
 
 
 #define ZBOUND 1e-30
-
-void Eigen_to_G(Eigen::MatrixXf &EigenM, Matrix* GM);
-void Eigen_to_G(Eigen::VectorXf &EigenV, Vector* GV);
-void G_to_Eigen(Vector &GV, Eigen::VectorXf* EigenV);
-void G_to_Eigen(Matrix &GM, Eigen::MatrixXf* EigenM);
-
 void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf* out);
 
 class Skat::SkatImpl{
@@ -151,40 +146,6 @@ double Skat::GetPvalue() const //  {return this->pValue;};
 double Skat::GetQ() const // {return this->Q;};
 {
   return this->skatImpl->GetQ();
-}
-
-void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* _EigenM)
-{
-  Eigen::MatrixXf& EigenM = *_EigenM;
-  EigenM.resize(GM.rows, GM.cols);
-  for(int i=0; i<GM.rows; i++)
-    for(int j=0; j<GM.cols; j++)
-      EigenM(i, j) = GM[i][j];
-}
-void G_to_Eigen(Vector& GV, Eigen::VectorXf* _EigenV)
-{
-  Eigen::VectorXf& EigenV = *_EigenV;
-  EigenV.resize(GV.Length());
-  for(int i=0; i<GV.Length(); i++)
-    EigenV(i) = GV[i];
-}
-
-void Eigen_to_G(Eigen::MatrixXf& EigenM, Matrix* _GM)
-{
-  Matrix& GM = *_GM;
-  GM.Dimension(EigenM.rows(), EigenM.cols());
-  for(int i=0; i<GM.rows; i++)
-    for(int j=0; j<GM.cols; j++)
-      GM[i][j] = EigenM(i, j);
-}
-
-
-void Eigen_to_G(Eigen::VectorXf& EigenV, Vector* _GV)
-{
-  Vector& GV = *_GV;
-  EigenV.resize(GV.Length());
-  for(int i=0; i<GV.Length(); i++)
-    EigenV(i) = GV[i];
 }
 
 /**

@@ -114,7 +114,7 @@ $(DIR_EXEC)/$(EXEC): lib \
                      DataConsolidator.o \
                      ModelFitter.h \
                      |$(DIR_EXEC)
-	$(CXX) -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB)
+	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB)
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
@@ -123,7 +123,7 @@ $(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
                          DataConsolidator.o \
                          Collapsor.h ModelFitter.h \
                          | $(DIR_EXEC_DBG)
-	$(CXX) -o $@ Main.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
+	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
 
 
 ##################################################

@@ -17,7 +17,7 @@ void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
 
 #define PI 3.1415926535897
 
-double goalFunction(double x, void* param);
+static double goalFunction(double x, void* param);
 
 class FastLMM::Impl{
  public:
@@ -59,9 +59,9 @@ class FastLMM::Impl{
       F.params = this;
 
       Minimizer minimizer;
-      double lb = exp(-10 + (maxIndex-1) * 0.2);;;
-      double ub = exp(-10 + (maxIndex+1) * 0.2);;;
-      double start =  exp(-10 + maxIndex * 0.2);;
+      double lb = exp(-10 + (maxIndex-1) * 0.2);
+      double ub = exp(-10 + (maxIndex+1) * 0.2);
+      double start =  exp(-10 + maxIndex * 0.2);
       if (minimizer.minimize(F, start, lb, ub)) {
         fprintf(stderr, "Minimization failed, fall back to initial guess.\n");
         this->delta = start;

@@ -73,6 +73,8 @@
 #include "GitVersion.h"
 #include "Result.h"
 
+#include "Eigen/Core"
+
 Logger* logger = NULL;
 
 void banner(FILE* fp) {
@@ -328,6 +330,8 @@ int loadRangeFile(const char* fn, const char* givenRangeName, OrderedMap<std::st
 
 SummaryHeader* g_SummaryHeader = NULL;
 
+#define VERSION "20130202"
+
 int main(int argc, char** argv){
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
@@ -370,7 +374,7 @@ int main(int argc, char** argv){
       ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Statistical Model")
-      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt")
+      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt, famGrammarGamma")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
@@ -423,7 +427,7 @@ int main(int argc, char** argv){
   Logger _logger( (FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
   logger->infoToFile("Program Version");
-  logger->infoToFile("%s", gitVersion);
+  logger->infoToFile("%s - %s", gitVersion, VERSION);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
@@ -685,6 +689,9 @@ int main(int argc, char** argv){
       } else if (modelName == "famlrt") {
         model.push_back( new SingleVariantFamilyLRT);
         hasFamilyModel = true;
+      } else if (modelName == "famgrammargamma") {
+        model.push_back( new SingleVariantFamilyGrammarGamma);
+        hasFamilyModel = true;
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
@@ -874,6 +881,7 @@ int main(int argc, char** argv){
   DataConsolidator dc;
   // load kinshp if needed
   if (hasFamilyModel) {
+    logger->info("Family-based model specified. Loading kinship file...");
     if (FLAG_kinship.empty()) {
       logger->error("To use family based method, you need to use --kinship to specify a kinship file (you use vcf2kinship to generate one).");
       abort();
@@ -882,12 +890,16 @@ int main(int argc, char** argv){
       logger->error("Failed to load kinship file");
       abort();
     }
+    logger->info("DONE: Loaded kinship file successfully.");
     if (dc.decomposeKinship()) {
       logger->error("Failed to decompose kinship file");
       abort();
     }
-    logger->info("Loaded kinship file successfully.");
+    logger->info("DONE: Spectral decomposition of kinship matrix succeeded.");
+  } else if (!FLAG_kinship.empty()){
+    logger->info("Family-based model not specified. Skip --kinship option and not load kinship file.");
   }
+  
   // set imputation method
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");

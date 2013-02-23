@@ -12,7 +12,8 @@ SRC = LogisticRegression \
       Table2by2 \
       EigenMatrixInterface \
       FastLMM \
-      GSLMinimizer
+      GSLMinimizer \
+      GrammarGamma
 
 .PHONY: all release debug
 all: release

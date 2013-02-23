@@ -324,6 +324,10 @@ public:
    * Load kinship matrix in the order of @params names
    */
   int loadKinshipFile(const std::string& fn, const std::vector<std::string>& names);
+  /**
+   * will decompose original kinship matrix and release the memory of original kinship upon successful decomposition
+   * Kinship = U * S * U'  where S is diagonal matrix from smallest to largest
+   */
   int decomposeKinship();
   const EigenMatrix* getKinship() const;
   const EigenMatrix* getKinshipU() const;

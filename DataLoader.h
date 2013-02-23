@@ -228,6 +228,7 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, i
   LineReader lr(fn);
   int lineNo = 0;
   double v;
+  int numMissingPhenotype = 0;
   while (lr.readLine(&line)){
     stringNaturalTokenize(line, "\t ", &fd);
     ++ lineNo;
@@ -250,7 +251,10 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, i
       if (str2double(fd[5 + phenoCol - 1].c_str(), &v)) {
         pheno[pid] = v;
       } else {
-        logger->warn("Skip: Missing or invalid phenotype type, skipping line %d [ %s ] ... ", lineNo, line.c_str());
+        ++numMissingPhenotype;
+        if (numMissingPhenotype <= 10 ) {
+          logger->warn("Skip: Missing or invalid phenotype type, skipping line %d [ %s ] ... ", lineNo, line.c_str());
+        }
         continue;
       }
     } else {
@@ -259,7 +263,10 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, i
       continue;
     }
   }
-
+  if (numMissingPhenotype > 10) {
+    logger->warn("Skip: Additional [ %d ] lines have missing or invalid phenotype type", numMissingPhenotype - 10);
+  }
+  
   for (auto iter = dup.begin(); iter != dup.end(); ++iter){
     logger->warn("Sample [ %s ] removed from phenotype file [ %s ] for its duplicity [ %d ].", iter->first.c_str(), fn, iter->second + 1);
     pheno.erase(iter->first);

@@ -14,6 +14,7 @@
 #include "regression/Table2by2.h"
 #include "regression/kbac_interface.h"
 #include "regression/FastLMM.h"
+#include "regression/GrammarGamma.h"
 
 #include "regression/MatrixOperation.h"
 #include "DataConsolidator.h"
@@ -587,6 +588,73 @@ private:
   double af;
   double nullLogLik;
   double altLogLik;
+  double pvalue;
+};
+
+class SingleVariantFamilyGrammarGamma: public ModelFitter{
+public:
+SingleVariantFamilyGrammarGamma():model() {
+    this->modelName = "FamGrammarGamma";
+    result.addHeader("AF");
+    result.addHeader("Beta");
+    result.addHeader("BetaVar");
+    result.addHeader("FamGrammarGamma.Pvalue");
+    needToFitNullModel = true;
+  }
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    if (isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+
+    if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+    }
+    
+    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+    af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+    beta = model.GetBeta();
+    betaVar = model.GetBetaVar();
+    pvalue = model.GetPValue();
+    return (fitOK ? 0 : -1);
+  }
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    result.writeHeaderLine(fp);
+  };
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
+    if (fitOK) {
+      // result.updateValue("NonRefSite", this->totalNonRefSite());
+      if (isBinaryOutcome()) {
+        //result.updateValue("CMC.Pvalue", logistic.GetPvalue());
+      } else {
+        result.updateValue("AF", af);
+        result.updateValue("Beta", beta);
+        result.updateValue("BetaVar", betaVar);
+        result.updateValue("FamGrammarGamma.Pvalue", pvalue);
+      }
+    }
+    result.writeValueLine(fp);
+  };
+  
+private:
+  Matrix cov;
+  GrammarGamma model;
+  bool needToFitNullModel;
+  bool fitOK;
+  double af;
+  double beta;
+  double betaVar;
   double pvalue;
 };
 

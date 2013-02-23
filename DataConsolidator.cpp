@@ -34,7 +34,7 @@ int DataConsolidator::loadKinshipFile(const std::string& fn, const std::vector<s
     kinship->mat.resize(names.size(), names.size());
     kinship->mat.setZero();
     kinship->mat.diagonal().setOnes();
-    kinship->mat /= 2.0;
+    kinship->mat *= 0.5;
     return 0;
   }
   
@@ -102,6 +102,7 @@ int DataConsolidator::loadKinshipFile(const std::string& fn, const std::vector<s
       }
     }
   }
+  // fprintf(stderr, "Kinship matrix [ %d x %d ] loaded", (int)mat.rows(), (int)mat.cols());
   return 0;
 }
 int DataConsolidator::decomposeKinship(){
@@ -110,6 +111,11 @@ int DataConsolidator::decomposeKinship(){
   if (es.info() == Eigen::Success) {
     (this->kinshipU->mat) = es.eigenvectors();
     (this->kinshipS->mat) = es.eigenvalues();
+
+    if (this->kinship) {
+      delete this->kinship;
+      this->kinship = NULL;
+    }
     return 0;  
   }
   return -1;

@@ -1,7 +1,10 @@
 #ifndef _COMMONFUNCTION_H_
 #define _COMMONFUNCTION_H_
 
+#include <algorithm>
+#include <set>
 #include <gsl/gsl_cdf.h>
+#include "base/Utils.h"
 
 //////////////////////////////////////////////////
 // Statistics functions
@@ -28,7 +31,7 @@ OrderFunction(T& t): v(t) {};
  * extract second element:
  * 2, 1, 0, 3
  */
-void order(std::vector<double>& freq, std::vector<int>* ord) {
+inline void order(std::vector<double>& freq, std::vector<int>* ord) {
   ord->resize(freq.size());
   for (size_t i = 0; i < freq.size(); ++i)
     (*ord)[i] = i;
@@ -37,7 +40,7 @@ void order(std::vector<double>& freq, std::vector<int>* ord) {
   std::sort(ord->begin(), ord->end(), func);
 };
 
-void order(std::vector<int>& freq, std::vector<int>* ord) {
+inline void order(std::vector<int>& freq, std::vector<int>* ord) {
   ord->resize(freq.size());
   for (size_t i = 0; i < freq.size(); ++i)
     (*ord)[i] = i;
@@ -49,7 +52,7 @@ void order(std::vector<int>& freq, std::vector<int>* ord) {
 /**
  * Calculate rank, using average for ties.
  */
-void calculateRank(std::vector<double>& freq, std::vector<int>* res) {
+inline void calculateRank(std::vector<double>& freq, std::vector<int>* res) {
   std::vector<int> ord;
   order(freq, &ord);
   order(ord, res);
@@ -57,17 +60,17 @@ void calculateRank(std::vector<double>& freq, std::vector<int>* res) {
   // calculate the mean of rank if there are ties
 };
 
-double pnorm(double x) {
+inline double pnorm(double x) {
   return gsl_cdf_ugaussian_P(x);
 };
-double qnorm(double x) {
+inline double qnorm(double x) {
   return gsl_cdf_ugaussian_Pinv(x);
 };
-double qnorm(double x, double sigma) {
+inline double qnorm(double x, double sigma) {
   return gsl_cdf_gaussian_Pinv(x, sigma);
 };
 
-double calculateMean(const std::vector<double>& v ){
+inline double calculateMean(const std::vector<double>& v ){
   double s = 0.0;
   if (v.empty()) return 0.0;
 
@@ -79,7 +82,7 @@ double calculateMean(const std::vector<double>& v ){
 
 // this calculate standard deviation by dividing N
 // sd ^ 2 = \frac{1}{N}  (v_i - mean of v_i) ^ 2
-double calculateSD(const std::vector<double>& v ){
+inline double calculateSD(const std::vector<double>& v ){
   double s = 0.0;
   if (v.empty()) return 0.0;
 
@@ -93,7 +96,7 @@ double calculateSD(const std::vector<double>& v ){
 
 // this calculate standard deviation by dividing N
 // sd ^ 2 = \frac{1}{N-1}  (v_i - mean of v_i) ^ 2
-double calculateSampleSD(const std::vector<double>& v ){
+inline double calculateSampleSD(const std::vector<double>& v ){
   double s = 0.0;
   if (v.size() <= 1) return 0.0;
 
@@ -105,7 +108,7 @@ double calculateSampleSD(const std::vector<double>& v ){
   return sqrt(s / ( v.size() - 1));
 }
 
-void inverseNormalizeLikeMerlin(std::vector<double>* y){
+inline void inverseNormalizeLikeMerlin(std::vector<double>* y){
   if (!y || !y->size()) return;
   const int n = y->size();
   std::vector<int> yRank;
@@ -122,7 +125,7 @@ void inverseNormalizeLikeMerlin(std::vector<double>* y){
 }
 
 // inverse normal a vector AND center it.
-void inverseNormalizeLikeR(std::vector<double>* y){
+inline void inverseNormalizeLikeR(std::vector<double>* y){
   if (!y || !y->size()) return;
   const int n = y->size();
   std::vector<int> ord;
@@ -142,7 +145,7 @@ void inverseNormalizeLikeR(std::vector<double>* y){
     (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + (1 - a) - a));
 }
 
-void standardize(std::vector<double>* y) {
+inline void standardize(std::vector<double>* y) {
   // center
   size_t n = y->size();
   double m = calculateMean(*y);
@@ -161,7 +164,7 @@ void standardize(std::vector<double>* y) {
 /**
  * Convert a @param string separated by @param sep to set (stored in @param s)
  */
-void makeSet(const std::string& str, char sep, std::set<std::string>* s) {
+inline void makeSet(const std::string& str, char sep, std::set<std::string>* s) {
   s->clear();
   if (str.empty())
     return;
@@ -172,7 +175,7 @@ void makeSet(const std::string& str, char sep, std::set<std::string>* s) {
     s->insert(fd[i]);
 }
 
-void makeSet(const std::vector<std::string>& in, std::set<std::string>* s) {
+inline void makeSet(const std::vector<std::string>& in, std::set<std::string>* s) {
   s->clear();
   if (in.empty())
     return;
@@ -186,7 +189,7 @@ void makeSet(const std::vector<std::string>& in, std::set<std::string>* s) {
  *   when there is no duplciation: key is vector[i], value is i
  *   when there is duplication: key is vector[i], value is the index of the first appearance of vector[i]
  */
-void makeMap(const std::vector<std::string>& in, std::map<std::string, int>* s) {
+inline void makeMap(const std::vector<std::string>& in, std::map<std::string, int>* s) {
   s->clear();
   if (in.empty())
     return;
@@ -200,7 +203,7 @@ void makeMap(const std::vector<std::string>& in, std::map<std::string, int>* s) 
 /**
  * Test whether x contain unique elements
  */
-bool isUnique(const std::vector<std::string>& x) {
+inline bool isUnique(const std::vector<std::string>& x) {
   std::set<std::string> s;
   for (size_t i = 0; i < x.size(); i++) {
     s.insert(x[i]);

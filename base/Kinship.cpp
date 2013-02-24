@@ -112,7 +112,4 @@ int Kinship::constructFromPedigree(const Pedigree& ped) {
   }
   return 0;
 };
-int Kinship::constructFromGenotype(const SimpleMatrix& m) {
-  return 0;
-};
 }// end namespacd

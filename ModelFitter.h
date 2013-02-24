@@ -13,6 +13,8 @@
 #include "regression/Skat.h"
 #include "regression/Table2by2.h"
 #include "regression/kbac_interface.h"
+#include "regression/FastLMM.h"
+#include "regression/GrammarGamma.h"
 
 #include "regression/MatrixOperation.h"
 #include "DataConsolidator.h"
@@ -455,6 +457,221 @@ private:
   bool fitOK;
 }; // SingleVariantFisherExactTest
 
+class SingleVariantFamilyScore: public ModelFitter{
+public:
+SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE) {
+    this->modelName = "FamScore";
+    result.addHeader("AF");
+    result.addHeader("U.Stat");
+    result.addHeader("V.Stat");
+    result.addHeader("FamScore.Pvalue");
+    needToFitNullModel = true;
+  }
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    if (isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    
+    if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+    }
+    
+    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+    af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+    u = model.GetUStat();
+    v = model.GetVStat();
+    pvalue = model.GetPValue();
+    return (fitOK ? 0 : -1);
+  }
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    result.writeHeaderLine(fp);
+  };
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
+    if (fitOK) {
+      // result.updateValue("NonRefSite", this->totalNonRefSite());
+      if (isBinaryOutcome()) {
+        //result.updateValue("CMC.Pvalue", logistic.GetPvalue());
+      } else {
+        result.updateValue("AF", af);
+        result.updateValue("U.Stat", u);
+        result.updateValue("V.Stat", v);
+        result.updateValue("FamScore.Pvalue", pvalue);
+      }
+    }
+    result.writeValueLine(fp);
+  };
+  
+private:
+  Matrix cov;
+  FastLMM model;
+  bool needToFitNullModel;
+  bool fitOK;
+  double af;
+  double u;
+  double v;
+  double pvalue;
+}; // end SingleVariantFamilyScore
+
+class SingleVariantFamilyLRT: public ModelFitter{
+public:
+SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE) {
+    this->modelName = "FamLRT";
+    result.addHeader("AF");
+    result.addHeader("NullLogLik");
+    result.addHeader("AltLogLik");
+    result.addHeader("FamLRT.Pvalue");
+    needToFitNullModel = true;
+  }
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    if (isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+
+    if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+    }
+    
+    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+    af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+    nullLogLik = model.GetNullLogLikelihood();
+    altLogLik = model.GetAltLogLikelihood();
+    pvalue = model.GetPValue();
+    return (fitOK ? 0 : -1);
+  }
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    result.writeHeaderLine(fp);
+  };
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
+    if (fitOK) {
+      // result.updateValue("NonRefSite", this->totalNonRefSite());
+      if (isBinaryOutcome()) {
+        //result.updateValue("CMC.Pvalue", logistic.GetPvalue());
+      } else {
+        result.updateValue("AF", af);
+        result.updateValue("NullLogLik", nullLogLik);
+        result.updateValue("AltLogLik", altLogLik);
+        result.updateValue("FamLRT.Pvalue", pvalue);
+      }
+    }
+    result.writeValueLine(fp);
+  };
+  
+private:
+  Matrix cov;
+  FastLMM model;
+  bool needToFitNullModel;
+  bool fitOK;
+  double af;
+  double nullLogLik;
+  double altLogLik;
+  double pvalue;
+}; // end SingleVariantFamilyLRT
+
+class SingleVariantFamilyGrammarGamma: public ModelFitter{
+public:
+SingleVariantFamilyGrammarGamma():model() {
+    this->modelName = "FamGrammarGamma";
+    result.addHeader("AF");
+    result.addHeader("Beta");
+    result.addHeader("BetaVar");
+    result.addHeader("FamGrammarGamma.Pvalue");
+    needToFitNullModel = true;
+  }
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    if (isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    
+    if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+    }
+    
+    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+    af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+    beta = model.GetBeta();
+    betaVar = model.GetBetaVar();
+    pvalue = model.GetPValue();
+    return (fitOK ? 0 : -1);
+  }
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    result.writeHeaderLine(fp);
+  };
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
+    if (fitOK) {
+      // result.updateValue("NonRefSite", this->totalNonRefSite());
+      if (isBinaryOutcome()) {
+        //result.updateValue("CMC.Pvalue", logistic.GetPvalue());
+      } else {
+        result.updateValue("AF", af);
+        result.updateValue("Beta", beta);
+        result.updateValue("BetaVar", betaVar);
+        result.updateValue("FamGrammarGamma.Pvalue", pvalue);
+      }
+    }
+    result.writeValueLine(fp);
+  };
+  
+private:
+  Matrix cov;
+  GrammarGamma model;
+  bool needToFitNullModel;
+  bool fitOK;
+  double af;
+  double beta;
+  double betaVar;
+  double pvalue;
+}; // SingleVariantFamilyGrammarGamma
 
 class CMCTest: public ModelFitter{
 public:
@@ -501,11 +718,6 @@ public:
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
-    /* if (isBinaryOutcome()) { */
-    /*   fprintf(fp, "CMC.Pvalue\n"); */
-    /* } else { */
-    /*   fprintf(fp, "NonRefSite\tCMC.Pvalue\n"); */
-    /* } */
     result.writeHeaderLine(fp);
   };
   // write model output
@@ -520,16 +732,6 @@ public:
       }
     }
     result.writeValueLine(fp);
-
-    /* if (!fitOK) { */
-    /*   fprintf(fp, "NA\n"); */
-    /* } else { */
-    /*   if (isBinaryOutcome()) { */
-    /*     fprintf(fp, "%f\n", logistic.GetPvalue()); */
-    /*   } else { */
-    /*     fprintf(fp, "%d\t%f\n", this->totalNonRefSite(), linear.GetPvalue()); */
-    /*   } */
-    /* }; */
   };
 private:
   /**
@@ -1924,7 +2126,7 @@ private:
 // output files for meta-analysis
 class MetaScoreTest: public ModelFitter{
 public:
-  MetaScoreTest(){
+MetaScoreTest(): needToFitNullModel(true){
     this->modelName = "MetaScore";
   };
   // fitting model
@@ -1939,7 +2141,7 @@ public:
     int nSample = (homRef + het + homAlt + missing);
     callRate = 1.0 - 1.0 * missing / nSample;
     if (homRef + het + homAlt == 0 ||
-        (het < 0 || homRef || 0 || homAlt < 0)) {
+        (het < 0 || homRef < 0 || homAlt < 0)) {
       hweP = 0.0;
       af = 0.0;
     } else {
@@ -1951,15 +2153,23 @@ public:
       fitOK = false;
       return -1;
     }
-    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-    copyPhenotype(phenotype, &this->pheno);
     if (!isBinaryOutcome()) {
-      fitOK = linear.FitNullModel(cov, pheno);
-      if (!fitOK) return -1;
+      if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+        copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+        copyPhenotype(phenotype, &this->pheno);
+        fitOK = linear.FitNullModel(cov, pheno);
+        if (!fitOK) return -1;
+        needToFitNullModel = false;
+      }
       fitOK = linear.TestCovariate(cov, pheno, genotype);
     } else {
-      fitOK = logistic.FitNullModel(cov, pheno, 100);
-      if (!fitOK) return -1;
+      if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+        copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+        copyPhenotype(phenotype, &this->pheno);
+        fitOK = logistic.FitNullModel(cov, pheno, 100);
+        if (!fitOK) return -1;
+        needToFitNullModel = false;
+      }
       fitOK = logistic.TestCovariate(cov, pheno, genotype);
     }
     return (fitOK ? 0 : -1);
@@ -2029,7 +2239,7 @@ private:
   int missing;
   double hweP;
   double callRate;
-  // Result result;
+  bool needToFitNullModel;
 }; // MetaScoreTest
 
 class MetaCovTest: public ModelFitter{
@@ -2337,7 +2547,7 @@ double getMarkerFrequency(Matrix& in, int col){
   double ac = 0; // NOTE: here genotype may be imputed, thus not integer
   int an = 0;
   for (int p = 0; p < numPeople; p++) {
-    if (in[p][col] >= 0) {
+    if ( (int) in[p][col] >= 0) {
       ac += in[p][col];
       an += 2;
     }

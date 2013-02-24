@@ -9,7 +9,11 @@ SRC = LogisticRegression \
       LinearRegressionPermutationTest \
       kbac_interface kbac \
       Skat qfc MixtureChiSquare \
-      Table2by2
+      Table2by2 \
+      EigenMatrixInterface \
+      FastLMM \
+      GSLMinimizer \
+      GrammarGamma
 
 .PHONY: all release debug
 all: release

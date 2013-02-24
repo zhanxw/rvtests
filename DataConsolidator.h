@@ -2,12 +2,18 @@
 #define _DATACONSOLIDATOR_H_
 
 #include "Result.h"
+#include "base/Logger.h"
+#include "MathMatrix.h"
+#include "Random.h"
 
 extern Logger* logger;
+
+class EigenMatrix;
+
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
  */
-void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
+inline void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
   Matrix& m = *genotype;
   for (int i = 0; i < m.cols; i++ ) {
     int ac = 0;
@@ -40,7 +46,7 @@ void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
  * Impute missing genotype (<0) according to its mean genotype
  * @param genotype (people by marker matrix)
  */
-void imputeGenotypeToMean(Matrix* genotype) {
+inline void imputeGenotypeToMean(Matrix* genotype) {
   Matrix& m = *genotype;
   for (int i = 0; i < m.cols; i++ ) {
     int ac = 0;
@@ -70,7 +76,7 @@ void imputeGenotypeToMean(Matrix* genotype) {
 /**
  * @return true if any of the markers (@param col) of @param genotype (people by marker) is missing
  */
-bool hasMissingMarker(Matrix& genotype, int col) {
+inline bool hasMissingMarker(Matrix& genotype, int col) {
   if (col >= genotype.cols || col < 0) {
     logger->error("Invalid check of missing marker.");
     return false;
@@ -86,7 +92,7 @@ bool hasMissingMarker(Matrix& genotype, int col) {
 /**
  * Remove columns of markers in @param genotype (people by marker) where there are missing genotypes
  */
-void removeMissingMarker(Matrix* genotype) {
+inline void removeMissingMarker(Matrix* genotype) {
   Matrix& g = *genotype;
   int col = 0;
   while (col < g.cols) {
@@ -106,7 +112,7 @@ void removeMissingMarker(Matrix* genotype) {
 /**
  * @return true if markers on @param col of @param genotype (people by marker) is monomorphic (genotypes are all the same)
  */
-bool isMonomorphicMarker(Matrix& genotype, int col) {
+inline bool isMonomorphicMarker(Matrix& genotype, int col) {
   if (col >= genotype.cols || col < 0) {
     logger->error("Invalid check of monomorhpic marker.");
     return false;
@@ -133,7 +139,7 @@ bool isMonomorphicMarker(Matrix& genotype, int col) {
 /**
  * remove monomorphic columns of @param genotype
  */
-void removeMonomorphicSite(Matrix* genotype) {
+inline void removeMonomorphicSite(Matrix* genotype) {
   Matrix& g = *genotype;
   int col = 0;
   while (col < g.cols) {
@@ -165,8 +171,8 @@ public:
   const static int IMPUTE_MEAN = 1;
   const static int IMPUTE_HWE = 2;
   const static int DROP = 3;
-DataConsolidator(): strategy(UNINITIALIZED) {
-  };
+  DataConsolidator();
+  ~DataConsolidator();
   void setStrategy(const int s){
     this->strategy = s;
   };
@@ -187,10 +193,19 @@ DataConsolidator(): strategy(UNINITIALIZED) {
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(&this->genotype);
-      /* *phenoOut = pheno; */
-      /* *covOut = cov; */
-      this->phenotype = pheno;
-      this->covariate = cov;
+      if (this->phenotype != pheno ) {
+        this->phenotype = pheno;
+        this->phenotypeUpdated = true;
+      } else{
+        this->phenotypeUpdated = false;
+      }
+      if (this->covariate != cov) {
+        this->covariate = cov;
+        this->covariateUpdated = true;
+      } else{
+        this->covariateUpdated = false;
+      }
+      
     } else if (this->strategy == IMPUTE_HWE) {
       // impute missing genotypes
       imputeGenotypeByFrequency(&genotype, &this->random);
@@ -211,6 +226,7 @@ DataConsolidator(): strategy(UNINITIALIZED) {
           idxToCopy++;
         }
       }
+      this->phenotypeUpdated = this->covariateUpdated = true;
       genotype.Dimension(idxToCopy, genotype.cols);
       covariate.Dimension(idxToCopy, cov.cols);
       phenotype.Dimension(idxToCopy, pheno.cols);
@@ -298,6 +314,28 @@ DataConsolidator(): strategy(UNINITIALIZED) {
     }
     return 0; //success
   }
+  bool isPhenotypeUpdated() const {
+    return this->phenotypeUpdated;
+  }
+  bool isCovariateUpdated() const {
+    return this->covariateUpdated;
+  }
+  /**
+   * Load kinship matrix in the order of @params names
+   */
+  int loadKinshipFile(const std::string& fn, const std::vector<std::string>& names);
+  /**
+   * will decompose original kinship matrix and release the memory of original kinship upon successful decomposition
+   * Kinship = U * S * U'  where S is diagonal matrix from smallest to largest
+   */
+  int decomposeKinship();
+  const EigenMatrix* getKinship() const;
+  const EigenMatrix* getKinshipU() const;
+  const EigenMatrix* getKinshipS() const;
+private:
+  //don't copy
+  DataConsolidator(const DataConsolidator&);
+  DataConsolidator& operator=(const DataConsolidator&);
 private:
   int strategy;
   Random random;
@@ -307,8 +345,14 @@ private:
   Vector weight;
   Result result;
   Matrix originalGenotype;
+  bool phenotypeUpdated;
+  bool covariateUpdated;
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
+  EigenMatrix* kinship;
+  // K = U %*% S %*%* t(U)
+  EigenMatrix* kinshipU; 
+  EigenMatrix* kinshipS; // n by 1 column matrix 
 }; // end DataConsolidator
 
 #endif /* _DATACONSOLIDATOR_H_ */

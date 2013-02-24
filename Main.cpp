@@ -53,6 +53,7 @@
 #include "base/SimpleMatrix.h"
 
 #include <cassert>
+#include <ctime>
 #include <string>
 #include <set>
 #include <map>
@@ -886,16 +887,22 @@ int main(int argc, char** argv){
       logger->error("To use family based method, you need to use --kinship to specify a kinship file (you use vcf2kinship to generate one).");
       abort();
     }
+    clock_t start;
+    double diff;
+    start = clock();
     if (dc.loadKinshipFile(FLAG_kinship, phenotypeNameInOrder)){
       logger->error("Failed to load kinship file");
       abort();
     }
-    logger->info("DONE: Loaded kinship file successfully.");
+    diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
+    logger->info("DONE: Loaded kinship file successfully (in %.1f seconds).", diff);
+    start = clock();
     if (dc.decomposeKinship()) {
       logger->error("Failed to decompose kinship file");
       abort();
     }
-    logger->info("DONE: Spectral decomposition of kinship matrix succeeded.");
+    diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
+    logger->info("DONE: Spectral decomposition of kinship matrix succeeded (in %.1f seconds).", diff );
   } else if (!FLAG_kinship.empty()){
     logger->info("Family-based model not specified. Skip --kinship option and not load kinship file.");
   }

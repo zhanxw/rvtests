@@ -477,6 +477,11 @@ SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE) {
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
 
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
@@ -522,7 +527,7 @@ private:
   double u;
   double v;
   double pvalue;
-};
+}; // end SingleVariantFamilyScore
 
 class SingleVariantFamilyLRT: public ModelFitter{
 public:
@@ -543,6 +548,11 @@ SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE) {
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
+
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
 
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
@@ -589,7 +599,7 @@ private:
   double nullLogLik;
   double altLogLik;
   double pvalue;
-};
+}; // end SingleVariantFamilyLRT
 
 class SingleVariantFamilyGrammarGamma: public ModelFitter{
 public:
@@ -611,6 +621,11 @@ SingleVariantFamilyGrammarGamma():model() {
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
 
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
@@ -656,7 +671,7 @@ private:
   double beta;
   double betaVar;
   double pvalue;
-};
+}; // SingleVariantFamilyGrammarGamma
 
 class CMCTest: public ModelFitter{
 public:
@@ -2111,7 +2126,7 @@ private:
 // output files for meta-analysis
 class MetaScoreTest: public ModelFitter{
 public:
-  MetaScoreTest(){
+MetaScoreTest(): needToFitNullModel(true){
     this->modelName = "MetaScore";
   };
   // fitting model
@@ -2138,15 +2153,23 @@ public:
       fitOK = false;
       return -1;
     }
-    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-    copyPhenotype(phenotype, &this->pheno);
     if (!isBinaryOutcome()) {
-      fitOK = linear.FitNullModel(cov, pheno);
-      if (!fitOK) return -1;
+      if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+        copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+        copyPhenotype(phenotype, &this->pheno);
+        fitOK = linear.FitNullModel(cov, pheno);
+        if (!fitOK) return -1;
+        needToFitNullModel = false;
+      }
       fitOK = linear.TestCovariate(cov, pheno, genotype);
     } else {
-      fitOK = logistic.FitNullModel(cov, pheno, 100);
-      if (!fitOK) return -1;
+      if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+        copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+        copyPhenotype(phenotype, &this->pheno);
+        fitOK = logistic.FitNullModel(cov, pheno, 100);
+        if (!fitOK) return -1;
+        needToFitNullModel = false;
+      }
       fitOK = logistic.TestCovariate(cov, pheno, genotype);
     }
     return (fitOK ? 0 : -1);
@@ -2216,7 +2239,7 @@ private:
   int missing;
   double hweP;
   double callRate;
-  // Result result;
+  bool needToFitNullModel;
 }; // MetaScoreTest
 
 class MetaCovTest: public ModelFitter{

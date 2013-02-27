@@ -3,7 +3,9 @@ R(are) V(ariant) tests is a flexible software aimed to help association tests.
 
 = Quick Tutorial = 
 
-We will show how to use ''rvtests'' software in typical use cases.
+To build, just type 'make'. The executable will be placed under the directory ''executable''.
+
+We will show how to use ''rvtests'' software in typical association analyses.
 
 == Single variant test ==
 
@@ -13,7 +15,7 @@ Use Wald and Score test statistics in single variant association tests to test e
 
 == Group test ==
 
-Rvtests supports large range of tests
+Rvtests supports large range of tests, and their command line shortcuts are listed below:
 * single (--single): score, wald, exact
 * burden (--burden): cmc, zeggini, mb, exactCMC, rarecover, cmat
 * variable threshold (--vt): price, cmc
@@ -58,7 +60,9 @@ Genotype Filter
 
 == Covariate file ==
 
-== Use gene/set based rare-variant tests == 
+== Trait transformation ==
+
+== Gene-based (Set-based) association tests == 
  
 = Contact =
 

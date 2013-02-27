@@ -1,23 +1,32 @@
-* This will become a table of contents (this text will be scraped).
-{:toc}
+**Table of Contents**  <!--*generated with [DocToc](http://doctoc.herokuapp.com/)*-->
 
-<!--
-## Contents
+- [Introduction](#introduction)
+- [Quick Tutorial](#quick-tutorial)
+	- [Single variant tests](#single-variant-tests)
+	- [Groupwise tests](#groupwise-tests)
+	- [Related individual tests](#related-individual-tests)
+	- [Meta-analysis tests](#meta-analysis-tests)
+- [Input files](#input-files)
+	- [Genotype file (VCF)](#genotype-file-vcf)
+	- [Phenotype file](#phenotype-file)
+	- [Covariate file](#covariate-file)
+	- [Trait transformation](#trait-transformation)
+- [Models](#models)
+	- [Single variant tests](#single-variant-tests-1)
+	- [Burden tests](#burden-tests)
+	- [Variable threshold models](#variable-threshold-models)
+	- [Kernel models](#kernel-models)
+	- [Utility models](#utility-models)
+- [Association test options](#association-test-options)
+	- [Sample inclusion/exclusion](#sample-inclusionexclusion)
+	- [Variant site filters](#variant-site-filters)
+	- [Genotyep filters](#genotyep-filters)
+	- [Handle missing genotypes and phenotypes](#handle-missing-genotypes-and-phenotypes)
+	- [Specify groups (e.g burden unit)](#specify-groups-eg-burden-unit)
+- [Contact](#contact)
 
--   [Introduction](#Introduction)
--   [Quick Tutorial](#Quick_Tutorial)
--   -   [Single variant test](#Single_variant_test)
-    -   [Group test](#Group_test)
-    -   [Options in association tests](#Options_in_association_tests)
-    -   [Phenotype file](#Phenotype_file)
-    -   [Covariate file](#Covariate_file)
-    -   [Use gene/set based rare-variant tests](#Use_gene.2Fset_based_rare-variant_tests)
-
--   [Contact](#Contact)
 
 
-* * * * *
--->
 # Introduction
 
 Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrealted individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf] format as genotype input file and takes PLINK format phenotype file and covariate file. From our practice, it is capable to analyze 8,000 related individuals using less than 400 Mb memory. 

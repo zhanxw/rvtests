@@ -7,8 +7,7 @@ tabix: tabix-0.2.6.tar.bz2
 	-mv tabix-0.2.6.tar.bz2* tabix-0.2.6.tar.bz2
 	tar jvxf tabix-0.2.6.tar.bz2
 	ln -s -f tabix-0.2.6 tabix
-	sed -i 's:-D_USE_KNETFILE::' tabix/Makefile
-	sed -i 's:-D_USE_KNTFILE::' tabix/Makefile
+	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
 	(cd tabix-0.2.6; make; make libtabix.so.1)
 
 pcre: pcre-8.21.tar.gz
@@ -34,7 +33,7 @@ bzip2: bzip2-1.0.6.tar.gz
 # download sources
 eigen-3.1.2.tar.bz2:
 	echo "obtain Eigen..."
-	wget http://bitbucket.org/eigen/eigen/get/3.1.2.tar.bz2
+	wget --no-check-certificate http://bitbucket.org/eigen/eigen/get/3.1.2.tar.bz2
 	mv 3.1.2.tar.bz2 $@
 
 gsl-1.15.tar.gz:

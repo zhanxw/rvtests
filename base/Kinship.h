@@ -20,6 +20,9 @@ namespace zhanxw{
         printf("\n");
       }
     };
+    const SimpleMatrix& getKinship() const{
+      return this->mat;
+    }
  private:
     SimpleMatrix mat;
   };

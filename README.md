@@ -33,6 +33,11 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 
 [vcf]: http://www.1000genomes.com/
 
+# Download
+
+Source file can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
+Executable binary file can be downloaded from [here](http://www.sph.umich.edu/csg/zhanxw/software/rvtests/rvtests-latest.tar.gz).
+
 # Quick Tutorial
 
 Here is a quick example of how to use *rvtests* software in typical use cases.

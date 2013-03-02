@@ -10,7 +10,7 @@
 DataConsolidator::DataConsolidator()
   :
   strategy(DataConsolidator::UNINITIALIZED),
-      kinship(NULL), kinshipU(NULL), kinshipS(NULL)
+  kinship(NULL), kinshipU(NULL), kinshipS(NULL), kinshipLoaded(false)
 {
 };
 DataConsolidator::~DataConsolidator(){
@@ -103,6 +103,7 @@ int DataConsolidator::loadKinshipFile(const std::string& fn, const std::vector<s
     }
   }
   // fprintf(stderr, "Kinship matrix [ %d x %d ] loaded", (int)mat.rows(), (int)mat.cols());
+  this->kinshipLoaded = true;
   return 0;
 }
 int DataConsolidator::decomposeKinship(){
@@ -120,6 +121,7 @@ int DataConsolidator::decomposeKinship(){
   }
   return -1;
 }
+
 const EigenMatrix* DataConsolidator::getKinship() const{
   if (!this->kinship) return false;  
   return this->kinship;

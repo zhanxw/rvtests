@@ -74,7 +74,6 @@
 #include "GitVersion.h"
 #include "Result.h"
 
-#include "Eigen/Core"
 
 Logger* logger = NULL;
 
@@ -333,6 +332,13 @@ SummaryHeader* g_SummaryHeader = NULL;
 
 #define VERSION "20130202"
 
+void welcome() {
+  fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
+  fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");
+  fprintf(stdout, "  For questions and comments, send to Xiaowei Zhan <zhanxw@umich.edu>\n");
+  fprintf(stdout, "\n");
+}
+
 int main(int argc, char** argv){
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
@@ -412,7 +418,8 @@ int main(int argc, char** argv){
     pl.Help();
     return 0;
   }
-
+  
+  welcome();
   pl.Status();
   if (FLAG_REMAIN_ARG.size() > 0){
     fprintf(stderr, "Unparsed arguments: ");
@@ -884,7 +891,7 @@ int main(int argc, char** argv){
 
   DataConsolidator dc;
   // load kinshp if needed
-  if (hasFamilyModel) {
+  if (hasFamilyModel || (!FLAG_modelMeta.empty() && !FLAG_kinship.empty())) {
     logger->info("Family-based model specified. Loading kinship file...");
     if (FLAG_kinship.empty()) {
       logger->error("To use family based method, you need to use --kinship to specify a kinship file (you use vcf2kinship to generate one).");
@@ -906,7 +913,7 @@ int main(int argc, char** argv){
     }
     diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
     logger->info("DONE: Spectral decomposition of kinship matrix succeeded (in %.1f seconds).", diff );
-  } else if (!FLAG_kinship.empty()){
+  } else if (!FLAG_kinship.empty() && FLAG_modelMeta.empty()){
     logger->info("Family-based model not specified. Skip --kinship option and not load kinship file.");
   }
   

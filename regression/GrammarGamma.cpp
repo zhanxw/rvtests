@@ -46,10 +46,17 @@ class GrammarGamma::Impl{
       getBetaSigma2(d);
       loglik[i] = getLogLikelihood(d);
       // fprintf(stderr, "%d\tdelta=%g\tll=%lf\n", i, delta, loglik[i]);
+      if (isnan(loglik[i])) {
+        continue;
+      }
       if (maxIndex < 0 || loglik[i] > maxLogLik) {
         maxIndex = i;
         maxLogLik = loglik[i];
       }
+    }
+    if (maxIndex < -1) {
+      fprintf(stderr, "Cannot optimize\n");
+      return -1;
     }
     if (maxIndex == 0 || maxIndex == 100) {
       // on the boundary

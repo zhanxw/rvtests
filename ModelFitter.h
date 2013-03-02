@@ -15,6 +15,7 @@
 #include "regression/kbac_interface.h"
 #include "regression/FastLMM.h"
 #include "regression/GrammarGamma.h"
+#include "regression/MetaCov.h"
 
 #include "regression/MatrixOperation.h"
 #include "DataConsolidator.h"
@@ -481,14 +482,14 @@ SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE) {
       fitOK = false;
       return -1;
     }
-    
+
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
-    
+
     fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
     af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
     u = model.GetUStat();
@@ -517,7 +518,7 @@ SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE) {
     }
     result.writeValueLine(fp);
   };
-  
+
 private:
   Matrix cov;
   FastLMM model;
@@ -560,7 +561,7 @@ SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE) {
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
-    
+
     fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
     af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
     nullLogLik = model.GetNullLogLikelihood();
@@ -589,7 +590,7 @@ SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE) {
     }
     result.writeValueLine(fp);
   };
-  
+
 private:
   Matrix cov;
   FastLMM model;
@@ -625,14 +626,14 @@ SingleVariantFamilyGrammarGamma():model() {
       fitOK = false;
       return -1;
     }
-    
+
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
-    
+
     fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
     af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
     beta = model.GetBeta();
@@ -661,7 +662,7 @@ SingleVariantFamilyGrammarGamma():model() {
     }
     result.writeValueLine(fp);
   };
-  
+
 private:
   Matrix cov;
   GrammarGamma model;
@@ -2126,7 +2127,7 @@ private:
 // output files for meta-analysis
 class MetaScoreTest: public ModelFitter{
 public:
-MetaScoreTest(): needToFitNullModel(true){
+MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullModel(true){
     this->modelName = "MetaScore";
   };
   // fitting model
@@ -2153,24 +2154,50 @@ MetaScoreTest(): needToFitNullModel(true){
       fitOK = false;
       return -1;
     }
-    if (!isBinaryOutcome()) {
-      if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
-        copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-        copyPhenotype(phenotype, &this->pheno);
-        fitOK = linear.FitNullModel(cov, pheno);
-        if (!fitOK) return -1;
-        needToFitNullModel = false;
+
+    this->useFamilyModel = dc->hasKinship();
+    if (this->useFamilyModel) {
+      if (!isBinaryOutcome()) {
+        if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+          copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+          // copyPhenotype(phenotype, &this->pheno);
+          fitOK = (0 == linearFamScore.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+          if (!fitOK) return -1;
+          needToFitNullModel = false;
+        }
+        fitOK = (0 == linearFamScore.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+        this->af = linearFamScore.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+      } else {
+        /* if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) { */
+        /*   copyCovariateAndIntercept(genotype.rows, covariate, &cov); */
+        /*   copyPhenotype(phenotype, &this->pheno); */
+        /*   fitOK = logistic.FitNullModel(cov, pheno, 100); */
+        /*   if (!fitOK) return -1; */
+        /*   needToFitNullModel = false; */
+        /* } */
+        /* fitOK = logistic.TestCovariate(cov, pheno, genotype); */
+        return -1;
       }
-      fitOK = linear.TestCovariate(cov, pheno, genotype);
     } else {
-      if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
-        copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-        copyPhenotype(phenotype, &this->pheno);
-        fitOK = logistic.FitNullModel(cov, pheno, 100);
-        if (!fitOK) return -1;
-        needToFitNullModel = false;
+      if (!isBinaryOutcome()) {
+        if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+          copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+          copyPhenotype(phenotype, &this->pheno);
+          fitOK = linear.FitNullModel(cov, pheno);
+          if (!fitOK) return -1;
+          needToFitNullModel = false;
+        }
+        fitOK = linear.TestCovariate(cov, pheno, genotype);
+      } else {
+        if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+          copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+          copyPhenotype(phenotype, &this->pheno);
+          fitOK = logistic.FitNullModel(cov, pheno, 100);
+          if (!fitOK) return -1;
+          needToFitNullModel = false;
+        }
+        fitOK = logistic.TestCovariate(cov, pheno, genotype);
       }
-      fitOK = logistic.TestCovariate(cov, pheno, genotype);
     }
     return (fitOK ? 0 : -1);
   };
@@ -2211,16 +2238,31 @@ MetaScoreTest(): needToFitNullModel(true){
     result.updateValue("N_HET", het);
     result.updateValue("N_ALT", homAlt);
     if (fitOK) {
-      if (!isBinaryOutcome()) {
-        result.updateValue("U_STAT", linear.GetU()[0][0]);
-        result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]));
-        result.updateValue("ALT_EFFSIZE", linear.GetU()[0][0] / (linear.GetV()[0][0]));
-        result.updateValue("PVALUE", linear.GetPvalue());
+      if (this->useFamilyModel) {
+        if (!isBinaryOutcome()) {
+          result.updateValue("U_STAT", linearFamScore.GetUStat());
+          result.updateValue("SQRT_V_STAT", sqrt(linearFamScore.GetVStat()));
+          result.updateValue("ALT_EFFSIZE", linearFamScore.GetUStat() / (linearFamScore.GetVStat()));
+          result.updateValue("PVALUE", linearFamScore.GetPValue());
+        } else {
+          /* result.updateValue("U_STAT", logistic.GetU()[0][0]); */
+          /* result.updateValue("SQRT_V_STAT", sqrt(logistic.GetV()[0][0])); */
+          /* result.updateValue("ALT_EFFSIZE", logistic.GetU()[0][0] / (logistic.GetV()[0][0])); */
+          /* result.updateValue("PVALUE", logistic.GetPvalue()); */
+        }
       } else {
-        result.updateValue("U_STAT", logistic.GetU()[0][0]);
-        result.updateValue("SQRT_V_STAT", sqrt(logistic.GetV()[0][0]));
-        result.updateValue("ALT_EFFSIZE", logistic.GetU()[0][0] / (logistic.GetV()[0][0]));
-        result.updateValue("PVALUE", logistic.GetPvalue());
+        if (!isBinaryOutcome()) {
+          result.updateValue("U_STAT", linear.GetU()[0][0]);
+          result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]));
+          result.updateValue("ALT_EFFSIZE", linear.GetU()[0][0] / (linear.GetV()[0][0]));
+          result.updateValue("PVALUE", linear.GetPvalue());
+        } else {
+          result.updateValue("U_STAT", logistic.GetU()[0][0]);
+          result.updateValue("SQRT_V_STAT", sqrt(logistic.GetV()[0][0]));
+          result.updateValue("ALT_EFFSIZE", logistic.GetU()[0][0] / (logistic.GetV()[0][0]));
+          result.updateValue("PVALUE", logistic.GetPvalue());
+        }
+
       }
     }
     result.writeValueLine(fp);
@@ -2231,6 +2273,7 @@ private:
   Vector pheno;
   LinearRegressionScoreTest linear;
   LogisticRegressionScoreTest logistic;
+  FastLMM linearFamScore;
   bool fitOK;
   Matrix cov;
   int homRef;
@@ -2240,6 +2283,7 @@ private:
   double hweP;
   double callRate;
   bool needToFitNullModel;
+  bool useFamilyModel;
 }; // MetaScoreTest
 
 class MetaCovTest: public ModelFitter{
@@ -2259,7 +2303,7 @@ public:
     this->modelName = "MetaCov";
     this->numVariant = 0;
     this->nSample = -1;
-    this->mleVarY = -1.;
+    // this->mleVarY = -1.;
     this->fout = NULL;
     this->windowSize = windowSize;
     result.addHeader("CHROM");
@@ -2286,21 +2330,45 @@ public:
       fitOK = false;
       return -1;
     }
-
     if (genotype.rows == 0){
       fitOK = false;
       return -1;
     }
+    this->useFamilyModel = dc->hasKinship();
     if (nSample < 0) {
+      // calculate variance of y
       nSample = genotype.rows;
-
-      double s = 0;
-      double s2 = 0;
-      for (int i = 0; i < nSample; ++i) {
-        s += phenotype[i][0];
-        s2 += phenotype[i][0] * phenotype[i][0];
+      weight.Dimension(nSample);
+      if (useFamilyModel) {
+        // copyPhenotype(phenotype, pheno);
+        // fit null model
+        fitOK = (0 == metaCov.FitNullModel(genotype, phenotype, *dc->getKinshipU(), *dc->getKinshipS()));
+        fprintf(stderr, "fitok!\n");
+        if (!fitOK)
+          return -1;
+        // get weight
+        metaCov.GetWeight(&this->weight);
+        fprintf(stderr, "weight [0] = %g\n", weight[0]);
+      } else {
+        double s = 0;
+        double s2 = 0;
+        for (int i = 0; i < nSample; ++i) {
+          s += phenotype[i][0];
+          s2 += phenotype[i][0] * phenotype[i][0];
+        }
+        double sigma2 = (s2 - s * s / nSample) / nSample;
+        fprintf(stderr, "sigma2 = %g\n", sigma2);
+        if (sigma2 != 0) {
+          for (int i = 0; i < nSample ; ++i) {
+            weight[i]  = 1.0 / sigma2;  // mleVarY
+          }
+        } else{
+          fprintf(stderr, "sigma2 = 0.0 for the phenotype!");
+          for (int i = 0; i < nSample ; ++i) {
+            weight[i]  = 1.0;
+          }
+        }
       }
-      mleVarY = (s2 - s * s / nSample) / nSample;
       // fprintf(stderr, "MLE estimation of residual^2 = %g", mleVarY);
     } else {
       if (nSample != genotype.rows){
@@ -2320,6 +2388,21 @@ public:
     loci.geno.resize(nSample);
     for (int i = 0; i < nSample; ++i) {
       loci.geno[i] = genotype[i][0];
+    }
+    if (useFamilyModel) {
+      metaCov.TransformCentered(&loci.geno,
+                                *dc->getKinshipU(),
+                                *dc->getKinshipS());
+    } else {
+      // center genotype
+      double s = 0.0;
+      for (int i = 0; i < nSample; ++i) {
+        s += loci.geno[i];
+      }
+      s /= nSample;
+      for (int i = 0; i < nSample; ++i) {
+        loci.geno[i] -= s;
+      }
     }
     fitOK = true;
     return (fitOK ? 0 : -1);
@@ -2348,26 +2431,32 @@ public:
     }
     // result.writeValueLine(fp);
   };
-
+  
 private:
 
   /**
    * @return \sum g1 * g2 - \sum(g1) * \sum(g2)/n
+   * NOTE: we already centered g1, g2, so the above reduced to
+   *        (U %*% (g1 - \bar(g1)*))' %*% weight %*% (U %*% (g2 - \bar(g2)))
    */
   double getCovariance(const Genotype& g1, const Genotype& g2) {
-    double sum_i = 0.0 ; // sum of genotype[,i]
+    // double sum_i = 0.0 ; // sum of genotype[,i]
     double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]
-    double sum_j = 0.0 ; // sum of genotype[,j]
-    int n = 0;
-    for (size_t c = 0; c < g1.size(); ++c) { //iterator each people
-      if (g1[c] < 0 || g2[c] < 0) continue;
-      ++n;
-      sum_i += g1[c];
-      sum_ij += g1[c]*g2[c];
-      sum_j += g2[c];
+    // double sum_j = 0.0 ; // sum of genotype[,j]
+    int n = g1.size();
+    if (n == 0) return 0.0;
+    for (int c = 0; c < n; ++c) { //iterator each people
+      // if (g1[c] < 0 || g2[c] < 0) continue;
+      // ++n;
+      // sum_i += g1[c];
+      // fprintf(stderr, "weight[%d] = %g\n", (int)c, weight[int(c)]);
+      sum_ij += g1[c]*g2[c] / this->weight[(int)c];
+      // sum_j += g2[c];
     };
     // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij, sum_i, sum_j);
-    double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
+    //double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
+    double cov_ij = sum_ij / n;
+    // fprintf(stderr, "cov_ij = %g\n", cov_ij);
     // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
     return cov_ij;
   };
@@ -2400,7 +2489,8 @@ private:
     int idx = 0;
     for (; iter != lociQueue.end(); ++iter){
       position[idx] = iter->pos.pos;
-      cov[idx] = getCovariance(lociQueue.front().geno, iter->geno) * this-> mleVarY;
+      // cov[idx] = getCovariance(lociQueue.front().geno, iter->geno) * this-> mleVarY;
+      cov[idx] = getCovariance(lociQueue.front().geno, iter->geno);
       idx ++;
     };
     /* fprintf(stderr, "%s\t%d\t%d\t", lociQueue.front().pos.chrom.c_str(), lociQueue.front().pos.pos, lociQueue.back().pos.pos);  */
@@ -2430,12 +2520,15 @@ private:
   std::deque< Loci> queue;
   int numVariant;
   int nSample;
-  double mleVarY;
+  // Vector mleVarY;  // variance term of Y_i for i = 1,..., N th sample
   FileWriter* fout;
   int windowSize;
   Loci loci;
   bool fitOK;
   // Result result;
+  MetaCov metaCov;
+  bool useFamilyModel;
+  Vector weight; // per individual weight
 }; // MetaCovTest
 
 

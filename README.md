@@ -1,6 +1,7 @@
 **Table of Contents**  <!--*generated with [DocToc](http://doctoc.herokuapp.com/)*-->
 
 - [Introduction](#introduction)
+- [Download](#download)
 - [Quick Tutorial](#quick-tutorial)
 	- [Single variant tests](#single-variant-tests)
 	- [Groupwise tests](#groupwise-tests)

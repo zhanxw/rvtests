@@ -1,4 +1,5 @@
 #include "Pedigree.h"
+#include "Utils.h"
 namespace zhanxw{
 
 
@@ -120,7 +121,7 @@ int Pedigree::add(const std::string& family,
 
 } // end namespace zhanxw
 
-int loadPedigree(const char* fn, zhanxw::Pedigree* ped) {
+int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
   zhanxw::Pedigree& p = *ped;
   std::vector<std::string> fd;
   LineReader lr(fn);
@@ -129,9 +130,14 @@ int loadPedigree(const char* fn, zhanxw::Pedigree* ped) {
     if (fd.empty()) {
       continue;
     }
+    // skip headers
+    if (toupper(fd[0]) == "FAM" || toupper(fd[0]) == "FID") {
+      continue;
+    }
     p.add(fd[0], fd[1], fd[2], fd[3]);
     if (fd.size() >= 5 )
       p.addGender(fd[1], fd[4]);
   };
+  
   return 0;
 }

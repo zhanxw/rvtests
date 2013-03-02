@@ -74,7 +74,6 @@
 #include "GitVersion.h"
 #include "Result.h"
 
-#include "Eigen/Core"
 
 Logger* logger = NULL;
 
@@ -333,6 +332,13 @@ SummaryHeader* g_SummaryHeader = NULL;
 
 #define VERSION "20130202"
 
+void welcome() {
+  fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
+  fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");
+  fprintf(stdout, "  For questions and comments, send to Xiaowei Zhan <zhanxw@umich.edu>\n");
+  fprintf(stdout, "\n");
+}
+
 int main(int argc, char** argv){
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
@@ -388,8 +394,8 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
       ADD_STRING_PARAMETER(pl, setList, "--setList", "specify a list to test (for burden tests)")
-      ADD_STRING_PARAMETER(pl, setFile, "--setFile", "specify a list file (for burden tests, first 4 columns: chr beg end setName)")
-      ADD_STRING_PARAMETER(pl, set, "--set", "specify which set to test (4th column)")
+      ADD_STRING_PARAMETER(pl, setFile, "--setFile", "specify a list file (for burden tests, first 2 columns: setName chr:beg-end)")
+      ADD_STRING_PARAMETER(pl, set, "--set", "specify which set to test (1st column)")
 
       ADD_PARAMETER_GROUP(pl, "Frequency Cutoff")
       /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
@@ -412,7 +418,8 @@ int main(int argc, char** argv){
     pl.Help();
     return 0;
   }
-
+  
+  welcome();
   pl.Status();
   if (FLAG_REMAIN_ARG.size() > 0){
     fprintf(stderr, "Unparsed arguments: ");
@@ -425,16 +432,19 @@ int main(int argc, char** argv){
   if (!FLAG_outPrefix.size())
     FLAG_outPrefix = "rvtest";
 
+  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+
   Logger _logger( (FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
-  logger->infoToFile("Program Version");
-  logger->infoToFile("%s - %s", gitVersion, VERSION);
+  logger->info("Program version: %s", VERSION);
+  logger->infoToFile("Git Version");
+  logger->infoToFile("%s", gitVersion);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
   logger->sync();
   
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+
 
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
@@ -881,7 +891,7 @@ int main(int argc, char** argv){
 
   DataConsolidator dc;
   // load kinshp if needed
-  if (hasFamilyModel) {
+  if (hasFamilyModel || (!FLAG_modelMeta.empty() && !FLAG_kinship.empty())) {
     logger->info("Family-based model specified. Loading kinship file...");
     if (FLAG_kinship.empty()) {
       logger->error("To use family based method, you need to use --kinship to specify a kinship file (you use vcf2kinship to generate one).");
@@ -903,7 +913,7 @@ int main(int argc, char** argv){
     }
     diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
     logger->info("DONE: Spectral decomposition of kinship matrix succeeded (in %.1f seconds).", diff );
-  } else if (!FLAG_kinship.empty()){
+  } else if (!FLAG_kinship.empty() && FLAG_modelMeta.empty()){
     logger->info("Family-based model not specified. Skip --kinship option and not load kinship file.");
   }
   

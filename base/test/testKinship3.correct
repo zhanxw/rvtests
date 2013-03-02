@@ -1,0 +1,11 @@
+Loaded OK
+Loaded 1 family and 2 people.
+Total 1 family loaded:  1_1183, 
+Total 1 founder loaded: 
+Total 2 people loaded: 
+41674: founder = no, gender = 2, father = -1, mother = 1, child = 
+41937: founder = yes, gender = 2, father = -1, mother = -1, child = 0, 
+
+Seq: 1 0 
+1_1183	41674	0.5	0.25
+1_1183	41937	0.25	0.5

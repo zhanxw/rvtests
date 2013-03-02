@@ -14,10 +14,10 @@ void updateCache(Cache* cache, int i, int j, double kin) {
 /**
  * @param i th people should be ancestrier than @param j th people
  */
-double getKinship(int i, int j, const Pedigree& ped, const std::map<int, int>& order, Cache* cache) {
+double getKinship_(int i, int j, const Pedigree& ped, const std::map<int, int>& order, Cache* cache) {
   // enforce order of i and j
   if (order.find(i)->second > order.find(j)->second ) {
-    return getKinship(j, i, ped, order, cache);
+    return getKinship_(j, i, ped, order, cache);
   }
   
   // different family
@@ -39,7 +39,7 @@ double getKinship(int i, int j, const Pedigree& ped, const std::map<int, int>& o
     } else {
       double fatherId = ped.getPeople()[i].getFather();
       double motherId = ped.getPeople()[i].getMother();
-      double kin = 0.5 * (1 + getKinship(motherId, fatherId, ped, order, cache));
+      double kin = 0.5 * (1 + getKinship_(motherId, fatherId, ped, order, cache));
       // (*cache)[ std::make_pair(i, j) ] = kin;
       updateCache(cache, i, j, kin);
       return kin;
@@ -58,21 +58,21 @@ double getKinship(int i, int j, const Pedigree& ped, const std::map<int, int>& o
     // double k1 = getKinship(i, fatherId, ped, order, cache);
     // double k2 = getKinship(i, motherId, ped, order, cache);
     // printf("k1 = %lf, k2 = %lf\n", k1, k2);
-    double kin = 0.5 * (getKinship(i, fatherId, ped, order, cache) + getKinship(i, motherId, ped, order, cache));
+    double kin = 0.5 * (getKinship_(i, fatherId, ped, order, cache) + getKinship_(i, motherId, ped, order, cache));
     updateCache(cache, i, j, kin);
     return kin;
   } else if (!ped.getPeople()[i].isFounder() && ped.getPeople()[j].isFounder()) {
     // i not founder; j founder
     double fatherId = ped.getPeople()[i].getFather();
     double motherId = ped.getPeople()[i].getMother();
-    double kin = 0.5 * (getKinship(fatherId, j, ped, order, cache) + getKinship(motherId, j, ped, order, cache));
+    double kin = 0.5 * (getKinship_(fatherId, j, ped, order, cache) + getKinship_(motherId, j, ped, order, cache));
     updateCache(cache, i, j, kin);
     return kin;
   } else {
     // i not founder; j not founder
     double fatherId = ped.getPeople()[j].getFather();
     double motherId = ped.getPeople()[j].getMother();
-    double kin = 0.5 * (getKinship(i, fatherId, ped, order, cache) + getKinship(i, motherId, ped, order, cache));
+    double kin = 0.5 * (getKinship_(i, fatherId, ped, order, cache) + getKinship_(i, motherId, ped, order, cache));
     updateCache(cache, i, j, kin);
     return kin;
   }
@@ -102,7 +102,7 @@ int Kinship::constructFromPedigree(const Pedigree& ped) {
 
   for (int i = nFounder; i < nPeople; ++i) {
     for (int j = 0; j <= i; ++j ) {
-      mat[ seq[i] ][ seq[j] ] = getKinship( seq[i], seq[j] , ped, order, &cache);
+      mat[ seq[i] ][ seq[j] ] = getKinship_( seq[i], seq[j] , ped, order, &cache);
 
       if (j != i) {
         mat[ seq[j] ][ seq[i] ] = mat[ seq[i] ][ seq[j] ];

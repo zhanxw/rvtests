@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
   if (ped.calculateIterationSequence(&seq)) {
     fprintf(stderr, "Cannot get sequenced!\n");
   }  else {
+    printf("Seq: ");
     for (size_t i = 0; i < seq.size(); ++i) {
       printf("%d ", seq[i]);
     }

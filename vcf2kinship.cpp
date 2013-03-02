@@ -16,9 +16,11 @@
 #include "base/Kinship.h"
 #include "base/Pedigree.h"
 
+#include "third/eigen/Eigen/Core"
+#include "third/eigen/Eigen/Eigenvalues"
+
 #include "IO.h"
 #include "Regex.h"
-
 
 class EmpiricalKinship{
  public:
@@ -78,6 +80,7 @@ class IBSKinshipImpute: public EmpiricalKinship {
       }
     }
     ++n;
+    return 0;
   }
   void calculate() {
     if ( n == 0) return;
@@ -237,6 +240,13 @@ class BaldingNicolsKinship: public EmpiricalKinship {
 }; // Balding-Nicols matrix
 
 
+
+int output( const std::vector<std::string>& famName,
+            const std::vector<std::string>& indvName,
+            const SimpleMatrix& mat,
+            bool performPCA,
+            const std::string& outPrefix);
+
 int main(int argc, char** argv){
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
@@ -245,12 +255,13 @@ int main(int argc, char** argv){
   BEGIN_PARAMETER_LIST(pl)
       ADD_PARAMETER_GROUP(pl, "Input/Output")
       ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, inPed, "--inPed", "input PED File")
+      // ADD_STRING_PARAMETER(pl, inPed, "--inPed", "input PED File")
       ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
       ADD_PARAMETER_GROUP(pl, "Algorithm")
-      ADD_BOOL_PARAMETER(pl, ped, "--pedigree", "using PED file.")
+      ADD_STRING_PARAMETER(pl, ped, "--ped", "using PED file.")
       ADD_BOOL_PARAMETER(pl, ibs, "--ibs", "using IBS method.")
       ADD_BOOL_PARAMETER(pl, bn, "--bn", "using Balding-Nicols method.")
+      ADD_BOOL_PARAMETER(pl, pca, "--pca", "decomoposite calculated kinship matrix.")      
       ADD_PARAMETER_GROUP(pl, "People Filter")
       ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -286,25 +297,47 @@ int main(int argc, char** argv){
     abort();
   }
 
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide output prefix using: --out");
+  // REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+  if (FLAG_inVcf.empty() && FLAG_ped.empty()) {
+    fprintf(stderr, "Please provide input file using: --inVcf or --ped");
+    abort();
+  }
+  REQUIRE_STRING_PARAMETER(FLAG_outPrefix, "Please provide output prefix using: --out");
 
-  if (FLAG_ped) {
-    if (FLAG_inPed.empty()) {
-      fprintf(stderr, "Need PED file to calculate empirical kinship.");
-      abort();
-    }
-
+  if (!FLAG_ped.empty()) {
+    fprintf(stderr, "Create kinship from pedigree file.\n");
+    
     zhanxw::Pedigree ped;
     zhanxw::Kinship kin;
+
+    if (loadPedigree(FLAG_ped, &ped)) {
+      fprintf(stderr, "Failed to load pedigree file [ %s ]!", FLAG_ped.c_str());
+      exit(1);
+    }
+    
+    int nPeople = ped.getPeopleNumber();
+    // printf("Total %d people loaded: \n", nPeople);
+    std::vector<std::string> famName;
+    std::vector<std::string> indvName;
+    for (int i = 0; i < nPeople; ++i){
+      const zhanxw::Person& p = ped.getPeople()[i];
+      famName.push_back(ped.getFamilyName(p.getFamily()));
+      indvName.push_back(ped.getPersonName(i));
+      // printf("%s: ", ped.getPersonName(i));
+      // ped.getPeople()[i].dump();
+    }
+    
     // std::vector<int> seq;
     // if (ped.calculateIterationSequence(&seq)) {
-
+    
     // }
     kin.constructFromPedigree(ped);
+    const SimpleMatrix& m = kin.getKinship();
 
+    output(famName, indvName, m, FLAG_pca, FLAG_outPrefix);
+    return 0;
   }
-
+  fprintf(stderr, "Create empirical kinship from VCF file.\n");
   if (FLAG_maxMissing == 0.0) {
     fprintf(stderr, "Using default maximum missing rate = 0.05\n");
     FLAG_maxMissing = 0.05;
@@ -451,22 +484,11 @@ int main(int argc, char** argv){
   // output
   kinship->calculate();
   const SimpleMatrix& ret = kinship->getKinship();
-  FILE* out = fopen( (FLAG_outPrefix + ".kinship").c_str(), "w");
-  fprintf(out, "FID\tIID");
-  for (size_t i = 0; i < names.size(); ++i) {
-    fprintf(out, "\t%s", names[i].c_str());
-  }
-  fprintf(out, "\n");
-  for (int i = 0; i < ret.ncol(); ++i) {
-    fprintf(out, "%s\t%s", names[i].c_str(), names[i].c_str());
-    for (int j = 0; j < ret.ncol(); ++j) {
-      fprintf(out, "\t%g", ret[i][j]);
-    }
-    fprintf(out, "\n");
-  }
-  fclose(out);
-  delete kinship;
 
+  output(names, names, ret, FLAG_pca, FLAG_outPrefix);
+  if (!kinship)
+    delete kinship;
+  
   // end
   fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
   if (nonVariantSite) {
@@ -481,3 +503,75 @@ int main(int argc, char** argv){
   fprintf(stdout, "Total %d variants are used to calculate kinship matrix.\n", lineNo - nonVariantSite - lowSiteFreq - filterSite);
   return 0;
 };
+
+int output( const std::vector<std::string>& famName,
+            const std::vector<std::string>& indvName,
+            const SimpleMatrix& mat,
+            bool performPCA,
+            const std::string& outPrefix) {
+  if (famName.size() != indvName.size()) {
+    return -1;
+  }
+
+  if (mat.nrow() != mat.ncol() || mat.nrow() != (int)indvName.size()) {
+    return -1;
+  }
+  
+  FILE* out = fopen( (outPrefix + ".kinship").c_str(), "w");
+  // write heade
+  fprintf(out, "FID\tIID");
+  for (size_t i = 0; i < famName.size(); ++i) {
+    fprintf(out, "\t%s", indvName[i].c_str());
+  }
+  fprintf(out, "\n");
+  // write content
+  for (int i = 0; i < mat.ncol(); ++i) {
+    fprintf(out, "%s\t%s", famName[i].c_str(), indvName[i].c_str());
+    for (int j = 0; j < mat.ncol(); ++j) {
+      fprintf(out, "\t%g", mat[i][j]);
+    }
+    fprintf(out, "\n");
+  }
+  fclose(out);
+
+  if (performPCA) {
+    Eigen::MatrixXf m;
+    m.resize(famName.size(), famName.size());
+    for (size_t i = 0; i < famName.size(); ++i){
+      for (size_t j = 0; j < famName.size(); ++j){
+        m(i, j) = mat[i][j];
+      }
+    }
+    
+    // delete kinship; // release memory
+    // kinship = NULL;
+    
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(m);
+    if (es.info() == Eigen::Success) {
+      const Eigen::MatrixXf& U = es.eigenvectors();
+      const Eigen::MatrixXf& V = es.eigenvalues();
+
+      // output
+      FILE* out = fopen( (outPrefix + ".pca").c_str(), "w");
+      fprintf(out, "FID\tIID");
+      fprintf(out, "\tLambda");
+      for (size_t i = 0; i < famName.size(); ++i) {
+        fprintf(out, "\tU%zu", (i + 1));
+      }
+      fprintf(out, "\n");
+      // output eigenvalue from the biggest to smallest
+      for (size_t i = 0; i < famName.size(); ++i) {
+        fprintf(out, "%s\t%s", famName[i].c_str(), indvName[i].c_str());
+        fprintf(out, "\t%g", V(famName.size() - 1 - i));
+        for (size_t j = 0; j < famName.size(); ++j) {
+          fprintf(out, "\t%g", U(famName.size() - 1 - i, j));
+        }
+        fprintf(out, "\n");
+      }
+      fclose(out);
+    } else{
+      fprintf(stderr, "Kinship decomposition failed!\n");
+    }
+  }
+  return 0;
+}

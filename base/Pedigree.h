@@ -102,9 +102,15 @@ namespace zhanxw {
     int getFather() const {
       return father;
     }
+    bool hasFather() const {
+      return father >= 0;
+    }
     void addMother(int id);
     int getMother() const {
       return mother;
+    }
+    bool hasMother() const {
+      return mother >= 0;
     }
     void addChild(int id);
     int setGender(int g) {
@@ -323,15 +329,24 @@ namespace zhanxw {
         added = 0;
         for (size_t i = 0; i < people.size(); ++i) {
           if (processed.count(i)) continue;
-          if (processed.count ( people[i].getFather() ) &&
-              processed.count ( people[i].getMother() )) {
+          int fat = people[i].getFather();
+          int mot = people[i].getMother();
+          if ( (processed.count ( fat ) && processed.count ( mot ) ) ||
+               (!people[i].hasFather() && processed.count ( mot ) ) ||
+               (processed.count ( fat ) && !people[i].hasMother() ) 
+              ) {
             ++added;
             v[idx++] = i;
             processed.insert(i);
           }
         }
         if (added == 0) {
-          fprintf(stderr, "some people are not added, pedigree may have problem\n");
+          fprintf(stderr, "Some people are not added, pedigree may have problem (%d total, %zu processed ):\n", totalPeople, processed.size());
+          fprintf(stderr, "idx = %d\n", idx);
+          for (size_t i = 0; i < people.size(); ++i){
+            if (processed.count(i)) continue;
+            fprintf(stderr, "Unprocessed individual: %s\n", getPersonName(i));
+          }
           return -1;
         }
       }
@@ -348,7 +363,7 @@ namespace zhanxw {
 
 }
 
-int loadPedigree(const char* fn, zhanxw::Pedigree* ped);
+int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped);
 
 inline void dumpPedigree(const zhanxw::Pedigree& ped) {
   int nFam = ped.getFamilyNumber();

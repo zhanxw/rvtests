@@ -163,7 +163,6 @@ inline void removeMonomorphicSite(Matrix* genotype) {
  *  handle missing data genotype (impute to mean, impute by HWE, filter out and its corresponding phenotypes, covariates)
  *  (future) include weights (GERP, Sift)
  *  (future) re-weight genotype (dominate model, recessive model)
- *  (future) take-in kinship matrix
  */
 class DataConsolidator{
 public:
@@ -332,6 +331,9 @@ public:
   const EigenMatrix* getKinship() const;
   const EigenMatrix* getKinshipU() const;
   const EigenMatrix* getKinshipS() const;
+  bool hasKinship() const {
+    return this->kinshipLoaded;
+  };
 private:
   //don't copy
   DataConsolidator(const DataConsolidator&);
@@ -349,10 +351,13 @@ private:
   bool covariateUpdated;
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
+
+  //Kinship related
   EigenMatrix* kinship;
   // K = U %*% S %*%* t(U)
   EigenMatrix* kinshipU; 
-  EigenMatrix* kinshipS; // n by 1 column matrix 
+  EigenMatrix* kinshipS; // n by 1 column matrix
+  bool kinshipLoaded;
 }; // end DataConsolidator
 
 #endif /* _DATACONSOLIDATOR_H_ */

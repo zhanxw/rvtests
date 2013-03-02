@@ -14,6 +14,8 @@ void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
   out.close();
 }
 #endif
+// #define EIGEN_NO_DEBUG
+#undef DEBUG
 
 #define PI 3.1415926535897
 
@@ -37,18 +39,26 @@ class FastLMM::Impl{
     // get beta, sigma and delta
     // where delta = sigma2_e / sigma2_g
     double loglik[101];
-    double delta;
     int maxIndex = -1;
     double maxLogLik = 0;
     for (int i = 0; i <= 100; ++i ){
       delta = exp(-10 + i * 0.2);
       getBetaSigma2(delta);
       loglik[i] = getLogLikelihood(delta);
-      // fprintf(stderr, "%d\tdelta=%g\tll=%lf\n", i, delta, loglik[i]);
+#ifdef DEBUG
+      fprintf(stderr, "%d\tdelta=%g\tll=%lf\n", i, delta, loglik[i]);
+#endif
+      if (isnan(loglik[i])) {
+        continue;
+      }
       if (maxIndex < 0 || loglik[i] > maxLogLik) {
         maxIndex = i;
         maxLogLik = loglik[i];
       }
+    }
+    if (maxIndex < -1) {
+      fprintf(stderr, "Cannot optimize\n");
+      return -1;
     }
     if (maxIndex == 0 || maxIndex == 100) {
       // on the boundary
@@ -67,12 +77,16 @@ class FastLMM::Impl{
         this->delta = start;
       } else {
         this->delta = minimizer.getX();
-        // fprintf(stderr, "minimization succeed when delta = %g, sigma2 = %g\n", this->delta, this->sigma2);
+#ifdef DEBUG       
+        fprintf(stderr, "minimization succeed when delta = %g, sigma2 = %g\n", this->delta, this->sigma2);
+#endif
       }
     }
     // store some intermediate results
-    // fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
+#ifdef DEBUG       
+    fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
     // fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
+#endif
     if (this->test == FastLMM::LRT) {
       this->nullLikelihood = getLogLikelihood(this->delta);
     } else if (this->test == FastLMM::SCORE) {

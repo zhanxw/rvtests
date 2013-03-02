@@ -13,7 +13,8 @@ SRC = LogisticRegression \
       EigenMatrixInterface \
       FastLMM \
       GSLMinimizer \
-      GrammarGamma
+      GrammarGamma \
+      MetaCov
 
 .PHONY: all release debug
 all: release

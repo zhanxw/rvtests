@@ -93,8 +93,8 @@ INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
 LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
 LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I.
-CXX_LIB = $(LIB) -lz -lm -lgsl -lblas
-CXX_LIB_DBG = $(LIB_DBG) -lz -lm -lgsl -lblas
+CXX_LIB = $(LIB) -lz -lm -lgsl #-lblas
+CXX_LIB_DBG = $(LIB_DBG) -lz -lm -lgsl #-lblas
 
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x -Wall -Wno-unused-function
@@ -116,7 +116,7 @@ $(DIR_EXEC)/$(EXEC): lib \
                      |$(DIR_EXEC)
 	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB)
 
-debug: CXX_FLAGS = -pg -ggdb -O0 $(DEFAULT_CXXFLAGS)
+debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
 $(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
                          Main.o \

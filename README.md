@@ -73,7 +73,7 @@ The option `--bn` means calculating empirical kinship using Balding-Nicols metho
 
 Then you can use linear mixed model based association tests such as Fast-LMM score test, Fast-LMM LRT test and Grammar-gamma tests. An exemplar command is shown: 
 
-    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --kinship output.kinship --model famScore,famLRT,famGrammarGamma
+    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --kinship output.kinship --single famScore,famLRT,famGrammarGamma
 
 ## Meta-analysis tests
 

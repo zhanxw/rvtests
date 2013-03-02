@@ -15,7 +15,7 @@ void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
 }
 #endif
 // #define EIGEN_NO_DEBUG
-// #define DEBUG
+#undef DEBUG
 
 #define PI 3.1415926535897
 

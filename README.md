@@ -94,17 +94,59 @@ Rvtests supports VCF (Variant Call Format) files. Files in both plain txt format
 Here are the commands to convert plain text format to bgzipped VCF format:
 
     (grep ^"#" $your_old_vcf; grep -v ^"#" $your_old_vcf | sed 's:^chr::ig' | sort -k1,1n -k2,2n) | bgzip -c > $your_vcf_file 
-    tabix -f -p vcf $your_vcf_fileThe above commands will (1) remove the `chr` prefix from chromosome names; (2) sort VCF files by chromosome first, then by chromosomal positions; (3) compress using bgzip; (4) create tabix index.
+    tabix -f -p vcf $your_vcf_file
+
+The above commands will (1) remove the `chr` prefix from chromosome names; (2) sort VCF files by chromosome first, then by chromosomal positions; (3) compress using bgzip; (4) create tabix index.
+
 ## Phenotype file
 
-You can use `--mpheno $phenoypeColumnNumber` or `--pheno-name` to specify a given phenotype.An example phenotype file, (`example.pheno`), has the following format:     fid iid fatid matid sex y1 y2 y3 y4    P1 P1 0 0 0 1.7642934435605 -0.733862638327895 -0.980843608339726 1    P2 P2 0 0 0 0.457111744989746 0.623297281416372 -2.24266162284447 0    P3 P3 0 0 0 0.566689682543218 1.44136462889459 -1.6490100777089 0    P4 P4 0 0 0 0.350528353203767 -1.79533911725537 -1.11916876241804 0    P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 1Phenotype file is specified by the option `--pheno example.pheno` . The default phenotype column header is “`y1`”. If you want to use alternative columns as phenotype for association analysis (e.g the column with header y2), you may specific the header names using either* --mpheno 2 * --pheno-name y2**NOTE:** to use “`--pheno-name`”, the  header line must starts with “`fid iid`” as PLINK requires.In phenotype file, missing values can be denoted by NA or any non-numeric values. Individuals with missing phenotypes will be automatically dropped from subsequent association analysis. For each missing phenotype value, a warning will be generated and recorded in the log file.## Covariate file
+You can use `--mpheno $phenoypeColumnNumber` or `--pheno-name` to specify a given phenotype.
 
-You can use `--covar` and `--covar-name` to specify covariates that will be used for single variant association analysis. This is an optional parameter. If you do not have covariate in the data, this option can be ignored. The covariate file, (e.g. `example.covar`) has a similar format as the phenotype file:    fid iid age bmi pc1 pc2 pc3    P1 P1 23 24.2 1.7642934435605 -0.733862638327895 -0.980843608339726    P2 P2 32 29.0 0.457111744989746 0.623297281416372 -2.24266162284447    P3 P3 44 32.4 0.566689682543218 1.44136462889459 -1.6490100777089    P4 P4 25 28.2 0.350528353203767 -1.79533911725537 -1.11916876241804    P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589The covariate file is specified by the `--covar` option (e.g. `--covar example.covar`). To specify covariates that will be used in the association analysis, the option `--covar-name` can be used. For example, when age, bmi and 3 PCs are used for association analysis, the following option can be specified for the rvtest program, i.e. `--covar example.covar --covar-name age,bmi,pc1,pc2,pc3`.Note: Missing data in the covariate file can be labeled by any non-numeric value (e.g. NA). They will be automatically imputed to the mean value in the data file. ## Trait transformation
+An example phenotype file, (`example.pheno`), has the following format: 
+
+    fid iid fatid matid sex y1 y2 y3 y4
+    P1 P1 0 0 0 1.7642934435605 -0.733862638327895 -0.980843608339726 1
+    P2 P2 0 0 0 0.457111744989746 0.623297281416372 -2.24266162284447 0
+    P3 P3 0 0 0 0.566689682543218 1.44136462889459 -1.6490100777089 0
+    P4 P4 0 0 0 0.350528353203767 -1.79533911725537 -1.11916876241804 0
+    P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 1
+
+Phenotype file is specified by the option `--pheno example.pheno` . The default phenotype column header is “`y1`”. If you want to use alternative columns as phenotype for association analysis (e.g the column with header y2), you may specific the header names using either
+
+* --mpheno 2 
+* --pheno-name y2
+
+**NOTE:** to use “`--pheno-name`”, the  header line must starts with “`fid iid`” as PLINK requires.
+
+In phenotype file, missing values can be denoted by NA or any non-numeric values. Individuals with missing phenotypes will be automatically dropped from subsequent association analysis. For each missing phenotype value, a warning will be generated and recorded in the log file.
+
+## Covariate file
+
+You can use `--covar` and `--covar-name` to specify covariates that will be used for single variant association analysis. This is an optional parameter. If you do not have covariate in the data, this option can be ignored. 
+
+The covariate file, (e.g. `example.covar`) has a similar format as the phenotype file:
+
+    fid iid age bmi pc1 pc2 pc3
+    P1 P1 23 24.2 1.7642934435605 -0.733862638327895 -0.980843608339726
+    P2 P2 32 29.0 0.457111744989746 0.623297281416372 -2.24266162284447
+    P3 P3 44 32.4 0.566689682543218 1.44136462889459 -1.6490100777089
+    P4 P4 25 28.2 0.350528353203767 -1.79533911725537 -1.11916876241804
+    P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
+
+The covariate file is specified by the `--covar` option (e.g. `--covar example.covar`). To specify covariates that will be used in the association analysis, the option `--covar-name` can be used. For example, when age, bmi and 3 PCs are used for association analysis, the following option can be specified for the rvtest program, i.e. 
+`--covar example.covar --covar-name age,bmi,pc1,pc2,pc3`.
+
+Note: Missing data in the covariate file can be labeled by any non-numeric value (e.g. NA). They will be automatically imputed to the mean value in the data file. 
+
+
+## Trait transformation
 
 In this meta-analysis, we use inversed normal transformed residuals in the association analysis, which is achieved by using a combination of `--inverseNormal`  and `--useResidualAsPhenotype`. Specifically, we first fit the null model by regressing phenotype on covariates. The residuals are then inverse normal transformed (see Appendix A more detailed formulae for transformation). Transformed residuals will be used to obtain score statistics. 
 
 In meta analysis, an exemplar command for using rvtest looks like the following:
-    ./rvtest --inVcf $vcf --pheno $example.pheno --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out $output_prefix  
+
+    ./rvtest --inVcf $vcf --pheno $example.pheno --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out $output_prefix  
+
 # Models
 	
 Rvtests support various association models.
@@ -306,8 +348,7 @@ Questions and requests can be sent to Xiaowei Zhan
 or Goncalo Abecasis
 ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
 
-Rvtests is a collaborative effort by Youna Hu, Bingshan Li, Dajiang
-Liu.
+Rvtests is a collaborative effort by Youna Hu, Bingshan Li, Dajiang Liu.
 
 
 

@@ -4,7 +4,7 @@
 #include "Eigen/Dense"
 #include "GSLMinimizer.h"
 
-// #define DEBUG
+#undef DEBUG
 
 #define PI 3.1415926535897
 

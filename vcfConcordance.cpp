@@ -49,8 +49,8 @@ class Value{
 };
 
 void dump(const StringArray& a) {
-  for (int i = 0; i < a.size(); i++) {
-    fprintf(stderr, "[ %d ] = \"%s\", ", i, a[i].c_str());
+  for (size_t i = 0; i < a.size(); i++) {
+    fprintf(stderr, "[ %zu ] = \"%s\", ", i, a[i].c_str());
   }
   fprintf(stderr, "\n");
 }
@@ -71,7 +71,7 @@ int loadGenotype(VCFInputFile& vin, AllConcordanceType* input, int idx) {
     VCFIndividual* indv;
     int GTidx = r.getFormatIndex("GT");
     if (GTidx < 0) continue;
-    for (int i = 0; i < people.size(); ++i) {
+    for (size_t i = 0; i < people.size(); ++i) {
       indv = people[i];
       const VCFValue& v = indv->justGet(GTidx);
       int a1 = v.getAllele1();
@@ -126,7 +126,7 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
     }
 
     // count type (fill in 4 by 4 matrix) , we intentionally left row 0 and column 0 unused.
-    int c[5][5] = {0}; // concordance matrix
+    int c[5][5] = {{0},{0},{0},{0},{0}}; // concordance matrix
 
     // calculate non-ref concordance
     // calculate discovery rate
@@ -195,8 +195,8 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
                      c[Value::HOMREF][Value::HOMREF] + c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
                      c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
                      c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
-    // 8 cells in overlap, removing bottom top one
-    int nonRefOverlap = overlap - c[Value::HOMREF][Value::HOMREF];
+//     // 8 cells in overlap, removing bottom top one
+//     int nonRefOverlap = overlap - c[Value::HOMREF][Value::HOMREF];
     // stdVariant: 2 (het, homalt) by 4 matrix
     int stdVariant = c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
                      c[Value::HOMALT][Value::UNDEF] + c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];

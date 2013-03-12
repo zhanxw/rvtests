@@ -114,6 +114,7 @@ class Variant{
     this->tvInDbSnp += v.tvInDbSnp;
     this->dbSnp += v.dbSnp;
     this->hapmap += v.hapmap;
+    return *this;
   };
   void dump() {
     printf("total = %d\n", total);
@@ -237,7 +238,7 @@ int main(int argc, char** argv){
     // loop each individual
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;
-    for (int i = 0; i < people.size(); ++i) {
+    for (size_t i = 0; i < people.size(); ++i) {
       indv = people[i];
       const std::string& name = indv->getName();
 

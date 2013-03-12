@@ -123,14 +123,14 @@ int DataConsolidator::decomposeKinship(){
 }
 
 const EigenMatrix* DataConsolidator::getKinship() const{
-  if (!this->kinship) return false;  
+  if (!this->kinship) return NULL;  
   return this->kinship;
 }
 const EigenMatrix* DataConsolidator::getKinshipU() const{
-  if (!this->kinshipU) return false;  
+  if (!this->kinshipU) return NULL;  
   return this->kinshipU;
 }
 const EigenMatrix* DataConsolidator::getKinshipS() const{
-    if (!this->kinshipS) return false;
+    if (!this->kinshipS) return NULL;
   return this->kinshipS;
 }

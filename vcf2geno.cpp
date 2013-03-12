@@ -137,9 +137,9 @@ int main(int argc, char** argv){
           bool hasVariant = false;
           int geno;
           int GTidx = r.getFormatIndex("GT");
-          for (int i = 0; i < people.size() ;i ++) {
+          for (size_t i = 0; i < people.size() ;i ++) {
             indv = people[i];
-            geno = indv->justGet(0).getGenotype();
+            geno = indv->justGet(GTidx).getGenotype();
             if (geno != 0 && geno != MISSING_GENOTYPE)
               hasVariant = true;
           }
@@ -165,7 +165,7 @@ int main(int argc, char** argv){
         
         fprintf(stdout, "%s\t%s", r.getChrom(), r.getPosStr());
 
-        for (int i = 0; i < people.size(); i++) {
+        for (size_t i = 0; i < people.size(); i++) {
           indv = people[i];
           fprintf(stdout, "\t%d", indv->justGet(0).getGenotype());
         }

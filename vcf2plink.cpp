@@ -139,8 +139,8 @@ int main(int argc, char** argv){
     }
 
     int lowSiteFreq = 0; // counter of low site qualities
-    int lowGDFreq = 0;
-    int lowGQFreq = 0;
+//     int lowGDFreq = 0;
+//     int lowGQFreq = 0;
     // real working park
     if (vout) vout->writeHeader(vin.getVCFHeader());
     if (pout) pout->writeHeader(vin.getVCFHeader());
@@ -155,9 +155,9 @@ int main(int argc, char** argv){
           bool hasVariant = false;
           int geno;
           int GTidx = r.getFormatIndex("GT");
-          for (int i = 0; i < people.size() ;i ++) {
+          for (size_t i = 0; i < people.size() ;i ++) {
             indv = people[i];
-            geno = indv->justGet(0).getGenotype();
+            geno = indv->justGet(GTidx).getGenotype();
             if (geno != 0 && geno != MISSING_GENOTYPE)
               hasVariant = true;
           }

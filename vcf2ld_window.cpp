@@ -133,6 +133,7 @@ int printCovariance(FILE* fp, const std::deque<Loci>& loci){
     fprintf(fp, "%g", cov[i]);
   }
   fputc('\n', fp);
+  return 0;
 };
 
 /**
@@ -194,7 +195,7 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
  */
 bool isUnique(const std::vector<std::string>& x) {
   std::set<std::string> s;
-  for (int i = 0; i < x.size(); i++) {
+  for (size_t i = 0; i < x.size(); i++) {
     s.insert(x[i]);
     if (s.size() != i + 1) {
       return false;
@@ -214,7 +215,7 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     fprintf(stderr, "VCF file have duplicated sample id. Quitting!\n");
     abort();
   }
-  for (int i = 0; i < vcfSampleNames.size(); i++) {
+  for (size_t i = 0; i < vcfSampleNames.size(); i++) {
     if (phenotype.count(vcfSampleNames[i]) == 0) {
       vcfSampleToDrop->push_back(vcfSampleNames[i]);
     } else {
@@ -285,7 +286,7 @@ void imputeGenotypeToMean(Matrix* genotype) {
  */
 void toMatrix(const std::vector<double>& v, Matrix* m) {
   m->Dimension(v.size(), 1);
-  for (int i = 0; i < v.size(); i++) {
+  for (size_t i = 0; i < v.size(); i++) {
     (*m)[i][0] = v[i];
   }
 };
@@ -470,7 +471,7 @@ int main(int argc, char** argv){
     loci.geno.resize(people.size());
 
     // e.g.: Loop each (selected) people in the same order as in the VCF
-    for (int i = 0; i < people.size(); i++) {
+    for (size_t i = 0; i < people.size(); i++) {
       indv = people[i];
       // get GT index. if you are sure the index will not change, call this function only once!
       int GTidx = r.getFormatIndex("GT");

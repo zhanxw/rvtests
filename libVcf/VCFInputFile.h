@@ -58,7 +58,7 @@ public:
     this->clearRange();
     this->ti_line = 0;
   };
-  ~VCFInputFile(){
+  virtual ~VCFInputFile(){
     this->close();
   };
   void close() {

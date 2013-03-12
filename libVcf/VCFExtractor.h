@@ -7,6 +7,7 @@ class VCFExtractor: public VCFInputFile, public VCFSiteFilter {
 public:
 VCFExtractor(const char* fn): VCFInputFile(fn){
   };
+  virtual ~VCFExtractor() {};
   bool passFilter() {
     VCFRecord& r = this->getVCFRecord();
     VCFPeople& people = r.getPeople();

@@ -83,6 +83,7 @@ class Variant{
     this->tvInDbSnp += v.tvInDbSnp;
     this->dbSnp += v.dbSnp;
     this->hapmap += v.hapmap;
+    return *this;
   };
   void dump() {
     printf("total = %d\n", total);

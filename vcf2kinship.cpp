@@ -391,7 +391,8 @@ int main(int argc, char** argv){
   vin.getVCFHeader()->getPeopleName(&names);
   std::vector<double> genotype;
   genotype.resize(names.size());
-
+  fprintf(stderr, "Total %zu individuals from VCF are used.\n", names.size());
+  
   // set threshold
   double maxMissing = 1.0 * FLAG_maxMissing * names.size();
   // double maxAllele = (1.0 - FLAG_minMAF) * 2.0 * names.size();

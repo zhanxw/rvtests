@@ -5,6 +5,8 @@
 
 
 int laodReference(const std::string& FLAG_reference, std::map<std::string, char>* reference){
+  if (FLAG_reference.empty()) return 0;
+  
   reference->clear();
 
   LineReader lr(FLAG_reference);

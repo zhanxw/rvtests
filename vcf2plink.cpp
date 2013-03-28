@@ -44,6 +44,8 @@ int main(int argc, char** argv){
         ADD_DOUBLE_PARAMETER(pl, minSiteQual, "--minSiteQual", "Specify minimum site qual")
         ADD_DOUBLE_PARAMETER(pl, minGQ, "--minGQ", "Specify the minimum genotype quality, otherwise marked as missing genotype")
         ADD_DOUBLE_PARAMETER(pl, minGD, "--minGD", "Specify the minimum genotype depth, otherwise marked as missing genotype")
+        ADD_PARAMETER_GROUP(pl, "Filter Option")
+        ADD_BOOL_PARAMETER(pl, passFilter, "--pass", "Only output variants that pass filters")
         
         ADD_PARAMETER_GROUP(pl, "Other Function")        
         ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")
@@ -141,6 +143,7 @@ int main(int argc, char** argv){
     int lowSiteFreq = 0; // counter of low site qualities
     int lowGDFreq = 0;
     int lowGQFreq = 0;
+    const std::string PassFilter = "PASS";
     // real working park
     if (vout) vout->writeHeader(vin.getVCFHeader());
     if (pout) pout->writeHeader(vin.getVCFHeader());
@@ -151,6 +154,7 @@ int main(int argc, char** argv){
         VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
         VCFIndividual* indv;
+        if (FLAG_passFilter && PassFilter != r.getFilt()) continue;
         if (FLAG_variantOnly) {
           bool hasVariant = false;
           int geno;

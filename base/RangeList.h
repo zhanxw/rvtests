@@ -108,7 +108,8 @@ RangeCollection():_size(0){};
   };
 
   void obtainRange(const int index, std::string* range) const {
-    unsigned int beg, end;
+    unsigned int beg = 0;
+    unsigned int end = 0;
     this->obtainRange(index, range, &beg, &end);
     range->push_back(':');
     (*range) += toString(beg);

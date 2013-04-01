@@ -93,8 +93,8 @@ int main(int argc, char *argv[])
   SimpleMatrix mat;
   ret = pin->readIntoMatrix(&mat);
 
-  char ref = 'N';
-  char alt = 'N';
+//   const char ref = 'N';
+//   const char alt = 'N';
   bool switchRefAlt;
   int switchSite = 0 ;
   int needFlip = 0;

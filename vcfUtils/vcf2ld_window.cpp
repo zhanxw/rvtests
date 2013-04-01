@@ -1,34 +1,5 @@
 /**
-   immediately TODO:
-   14. for vcflib, getInfoTag(), also return how many tags are there.
-   5. loading phenotype and covariate (need tests now).
-   6. Test CMC
-   7. Test VT (combine Collapsor and ModelFitter)
-   11. Fast VCF Individual inner field retrieve
-   12. Add support multi-thread
-   13. Add optional weight
-   14. support VCF specify given locations
-   15. region class support union, support region names
-
-   DONE:
-   2. support access INFO tag
-   5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
-   8. Make code easy to use ( hide PeopleSet and RangeList)
-   9. Inclusion/Exclusion set should be considered sequentially.
-   8. force loading index when read by region.
-   3. support tri-allelic (fix some relateds codes when output vcf/plink file)
-   9. Add more filter to individuals (see VCFExtractor)
-   10. Fast VCF INFO field retrieve (VCFInfo class has cache)
-   1. fix suppport PLINK output
-   1. handle different format GT:GD:DP ... // use getFormatIndex()
-   8. Test permutation test
-
-   futher TODO:
-   12. Design command line various models (collapsing method, freq-cutoff)
-
-   Not sure if worthy to do:
-   4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
-
+   Calculate pairwise LD for markers within a window
 */
 
 #include "Argument.h"
@@ -82,6 +53,42 @@ double getCovariance(const Genotype& g1, const Genotype& g2) {
 };
 
 /**
+ * @return \sum g1 * g2 - \sum(g1) * \sum(g2)/n
+ */
+double getCorrelation(const Genotype& g1, const Genotype& g2) {
+  double sum_i = 0.0 ;  // sum of genotype[,i]
+  double sum_i2 = 0.0 ; // sum of genotype[,i]*genotype[,i]
+  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]
+  double sum_j = 0.0 ;  // sum of genotype[,j]
+  double sum_j2 = 0.0 ; // sum of genotype[,j]*genotype[,j]
+  int n = 0;
+  for (size_t c = 0; c < g1.size(); ++c) { //iterator each people
+    if (g1[c] < 0 || g2[c] < 0) continue;
+    ++n;
+    sum_i += g1[c];
+    sum_i2 += g1[c]*g1[c];
+    sum_ij += g1[c]*g2[c];
+    sum_j += g2[c];
+    sum_j2 += g2[c]*g2[c];
+  };
+  if (n == 0) {
+    return 0.0;
+  }
+  // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij, sum_i, sum_j);
+  double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
+  double cov_ii = (sum_i2 - sum_i * sum_i / n) / n;
+  double cov_jj = (sum_j2 - sum_j * sum_j / n) / n;
+  double c = sqrt(cov_ii * cov_jj);
+  if (c < 1e-20) {
+    return 0.0;
+  }
+  double cor = cov_ij / c;
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+  return cor;
+};
+
+
+/**
  * @return max integer if different chromosome; or return difference between head and tail locus.
  */
 int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
@@ -100,10 +107,10 @@ int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
 };
 
 int printHeader(FILE* fp) {
-  fprintf(fp, "##ProgramName=%s\n", "RVTests");
-  fprintf(fp, "##Version=%s\n", gitVersion);  
-  fprintf(fp, "##mean=0.0\n");
-  fprintf(fp, "##sigma2_residual=1.0\n");
+  // fprintf(fp, "##ProgramName=%s\n", "RVTests");
+  // fprintf(fp, "##Version=%s\n", gitVersion);
+  // fprintf(fp, "##mean=0.0\n");
+  // fprintf(fp, "##sigma2_residual=1.0\n");
   fprintf(fp, "CHROM\tCURRENT_POS\tEND_POS\tNUM_MARKER\tMARKER_POS\tCOV\n");
   return 0;
 }
@@ -133,6 +140,25 @@ int printCovariance(FILE* fp, const std::deque<Loci>& loci){
     fprintf(fp, "%g", cov[i]);
   }
   fputc('\n', fp);
+  return 0;
+};
+
+/**
+ * @return 0
+ * print the covariance for the front of loci to the rest of loci
+ */
+int printCovariance(FILE* fp, const std::deque<Loci>& anchor, const Loci& loci){
+  double cov;
+  double r2;
+  for (auto iter=anchor.begin(); iter!=anchor.end(); ++iter) {
+    cov = getCovariance(iter->geno, loci.geno);
+    r2 =  getCorrelation(iter->geno, loci.geno);
+    fprintf(fp, "%s\t%d\t", iter->pos.chrom.c_str(), iter->pos.pos);
+    fprintf(fp, "%s\t%d\t", loci.pos.chrom.c_str(), loci.pos.pos);
+    fprintf(fp, "%g\t", cov);
+    fprintf(fp, "%g\n", r2);
+  }
+  return 0;
 };
 
 /**
@@ -194,7 +220,7 @@ int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
  */
 bool isUnique(const std::vector<std::string>& x) {
   std::set<std::string> s;
-  for (int i = 0; i < x.size(); i++) {
+  for (size_t i = 0; i < x.size(); i++) {
     s.insert(x[i]);
     if (s.size() != i + 1) {
       return false;
@@ -214,7 +240,7 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
     fprintf(stderr, "VCF file have duplicated sample id. Quitting!\n");
     abort();
   }
-  for (int i = 0; i < vcfSampleNames.size(); i++) {
+  for (size_t i = 0; i < vcfSampleNames.size(); i++) {
     if (phenotype.count(vcfSampleNames[i]) == 0) {
       vcfSampleToDrop->push_back(vcfSampleNames[i]);
     } else {
@@ -285,7 +311,7 @@ void imputeGenotypeToMean(Matrix* genotype) {
  */
 void toMatrix(const std::vector<double>& v, Matrix* m) {
   m->Dimension(v.size(), 1);
-  for (int i = 0; i < v.size(); i++) {
+  for (size_t i = 0; i < v.size(); i++) {
     (*m)[i][0] = v[i];
   }
 };
@@ -340,6 +366,27 @@ double calculateCov(Matrix& genotype, const int i, const int j){
   return cov_ij;
 };
 
+void setRangeFilter(VCFInputFile* pVin,
+                    const std::string& FLAG_rangeList,
+                    const std::string& FLAG_rangeFile) {
+  pVin->setRangeList(FLAG_rangeList.c_str());
+  pVin->setRangeFile(FLAG_rangeFile.c_str());
+}
+
+void setPeopleFilter(VCFInputFile* pVin,
+                     const std::string& FLAG_peopleIncludeID,
+                     const std::string& FLAG_peopleIncludeFile,
+                     const std::string& FLAG_peopleExcludeID,
+                     const std::string& FLAG_peopleExcludeFile) {
+  if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
+    pVin->excludeAllPeople();
+    pVin->includePeople(FLAG_peopleIncludeID.c_str());
+    pVin->includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+  }
+  pVin->excludePeople(FLAG_peopleExcludeID.c_str());
+  pVin->excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+}
+
 Logger* logger = NULL;
 
 int main(int argc, char** argv){
@@ -368,17 +415,12 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
-      // ADD_INT_PARAMETER(pl, siteMinDepth, "--siteDepthMin", "Specify minimum depth(inclusive) to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, siteMaxDepth, "--siteDepthMax", "Specify maximum depth(inclusive) to be incluced in analysis");
-      // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis");
-      // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
-      // ADD_STRING_PARAMETER(pl, annoGene, "--annoGene", "Specify gene name that is followed by ANNO= in the VCF INFO field")
-      // ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field")
-      // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any valid Python expression, will output if eval is > 0")
 
       ADD_PARAMETER_GROUP(pl, "Window Parameter")
       ADD_INT_PARAMETER(pl, windowSize, "--window", "specify sliding window size to calculate covariance")
+
+      ADD_PARAMETER_GROUP(pl, "Anchor SNPs")
+      ADD_STRING_PARAMETER(pl, anchor, "--anchor", "specify anchors SNPs to compare with. e.g. 1:20-20")
 
       ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
       /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
@@ -411,6 +453,10 @@ int main(int argc, char** argv){
   }
 
   REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+  if (FLAG_windowSize <= 0) {
+    fprintf(stderr, "Please specify positive window size (--windowSize)\n");
+    exit(1);
+  }
   if (!FLAG_outPrefix.size())
     FLAG_outPrefix = "rvtest";
 
@@ -419,17 +465,12 @@ int main(int argc, char** argv){
   VCFInputFile& vin = *pVin;
 
   // set range filters here
-  vin.setRangeList(FLAG_rangeList.c_str());
-  vin.setRangeFile(FLAG_rangeFile.c_str());
+  setRangeFilter(pVin, FLAG_rangeList, FLAG_rangeFile);
 
   // set people filters here
-  if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
-    vin.excludeAllPeople();
-    vin.includePeople(FLAG_peopleIncludeID.c_str());
-    vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
-  }
-  vin.excludePeople(FLAG_peopleExcludeID.c_str());
-  vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+  setPeopleFilter(pVin,
+                  FLAG_peopleIncludeID, FLAG_peopleIncludeFile,
+                  FLAG_peopleExcludeID, FLAG_peopleExcludeFile);
 
   std::string s = FLAG_outPrefix;
   FILE* fout = fopen( ( s + ".cov" ).c_str(), "wt");
@@ -444,7 +485,52 @@ int main(int argc, char** argv){
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 
-  printHeader(fout);
+  
+
+  // load anchor SNPs if any
+  std::deque<Loci> anchor;
+  if (!FLAG_anchor.empty()) {
+    VCFInputFile* pVin = new VCFInputFile(fn);
+    VCFInputFile& vin = *pVin;
+    pVin->setRangeList(FLAG_anchor);
+    setPeopleFilter(pVin,
+                    FLAG_peopleIncludeID, FLAG_peopleIncludeFile,
+                    FLAG_peopleExcludeID, FLAG_peopleExcludeFile);
+    // extract genotypes
+    while (vin.readRecord()){
+      VCFRecord& r = vin.getVCFRecord();
+      VCFPeople& people = r.getPeople();
+      VCFIndividual* indv;
+
+      Loci loci;
+      loci.pos.chrom = r.getChrom();
+      loci.pos.pos = r.getPos();
+
+      if (strlen(r.getRef()) != 1 ||
+          strlen(r.getAlt()) != 1) { // not snp
+        continue;
+      };
+
+      loci.geno.resize(people.size());
+
+      // e.g.: Loop each (selected) people in the same order as in the VCF
+      for (size_t i = 0; i < people.size(); i++) {
+        indv = people[i];
+        // get GT index. if you are sure the index will not change, call this function only once!
+        int GTidx = r.getFormatIndex("GT");
+        if (GTidx >= 0)
+          loci.geno[i] = indv->justGet(GTidx).getGenotype();
+        else
+          loci.geno[i] = -9;
+      }
+      anchor.push_back(loci);
+    }
+    logger->info("Load %d anchor SNPs", (int)anchor.size());
+    delete pVin;
+    fprintf(fout, "CHROM\tPOS\tCHROM\tPOS\tCOV\tr2\n");
+  } else {
+    fprintf(fout, "CHROM\tCURRENT_POS\tEND_POS\tNUM_MARKER\tMARKER_POS\tCOV\n");
+  }
 
   // std::string chrom;
   // std::vector<int> pos; // store positions
@@ -470,7 +556,7 @@ int main(int argc, char** argv){
     loci.geno.resize(people.size());
 
     // e.g.: Loop each (selected) people in the same order as in the VCF
-    for (int i = 0; i < people.size(); i++) {
+    for (size_t i = 0; i < people.size(); i++) {
       indv = people[i];
       // get GT index. if you are sure the index will not change, call this function only once!
       int GTidx = r.getFormatIndex("GT");
@@ -480,16 +566,22 @@ int main(int argc, char** argv){
       else
         loci.geno[i] = -9;
     }
-
+    ++numVariant;
+    
     // // remove missing genotype by imputation
     // imputeGenotypeToMean(&genotype);
 
+    // have anchor snps, do not need to use queue
+    if (!anchor.empty()) {
+      printCovariance(fout, anchor, loci);
+      continue;
+    }
+    
     while (queue.size() && getWindowSize(queue, loci) > FLAG_windowSize) {
       printCovariance(fout, queue);
       queue.pop_front();
     };
     queue.push_back(loci);
-    ++numVariant;
   }
 
   while(queue.size() > 0 ) {

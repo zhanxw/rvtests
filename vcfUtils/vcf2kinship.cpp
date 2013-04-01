@@ -27,6 +27,7 @@ class EmpiricalKinship{
   virtual int addGenotype(const std::vector<double>& g) = 0;
   virtual void calculate() = 0;
   virtual const SimpleMatrix& getKinship() const = 0;
+  virtual ~EmpiricalKinship() {};
 };
 
 /**

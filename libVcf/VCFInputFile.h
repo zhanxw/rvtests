@@ -58,7 +58,7 @@ public:
     this->clearRange();
     this->ti_line = 0;
   };
-  ~VCFInputFile(){
+  virtual ~VCFInputFile(){
     this->close();
   };
   void close() {
@@ -127,12 +127,12 @@ public:
     this->range = rl;
     this->setRangeMode();
   };
-  void setRangeList(const char* l){
-    if (!l || strlen(l) == 0)
+  void setRangeList(const std::string& l){
+    if (l.empty())
       return;
 
     this->clearRange();
-    this->range.addRangeList(l);
+    this->range.addRangeList(l.c_str());
     this->setRangeMode();
   };
   void setRangeList(RangeList& rl){

@@ -1,6 +1,7 @@
 **Table of Contents**  <!--*generated with [DocToc](http://doctoc.herokuapp.com/)*-->
 
 - [Introduction](#introduction)
+- [Download](#download)
 - [Quick Tutorial](#quick-tutorial)
 	- [Single variant tests](#single-variant-tests)
 	- [Groupwise tests](#groupwise-tests)
@@ -32,6 +33,11 @@
 Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrealted individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf] format as genotype input file and takes PLINK format phenotype file and covariate file. From our practice, it is capable to analyze 8,000 related individuals using less than 400 Mb memory. 
 
 [vcf]: http://www.1000genomes.com/
+
+# Download
+
+Source file can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
+Executable binary file can be downloaded from [here](http://www.sph.umich.edu/csg/zhanxw/software/rvtests/rvtests-latest.tar.gz).
 
 # Quick Tutorial
 

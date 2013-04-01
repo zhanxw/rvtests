@@ -9,12 +9,8 @@
 #include <vector>
 #include <algorithm>
 
-#include "Utils.h"
-#include "VCFUtil.h"
-
-#include "MathVector.h"
-#include "MathMatrix.h"
-
+#include "base/Utils.h"
+#include "base/TypeConversion.h"
 #include "SiteSet.h"
 
 bool isTs(char ref, char alt) {
@@ -87,6 +83,7 @@ class Variant{
     this->tvInDbSnp += v.tvInDbSnp;
     this->dbSnp += v.dbSnp;
     this->hapmap += v.hapmap;
+    return *this;
   };
   void dump() {
     printf("total = %d\n", total);
@@ -99,6 +96,40 @@ class Variant{
     
   };
 };
+
+/**
+ * @return -1: if there is missing genotypes
+ */
+int countVariant(const std::string& indv) {
+  size_t pos = indv.find(":");
+  if (pos == std::string::npos) {
+    pos = indv.size();
+  }
+  std::string gt = indv.substr(0, pos);
+
+  // if there are missing genotypes, we will count this genotype as missing
+  if (gt.find(".") != std::string::npos) {
+    return -1;
+  }
+
+  std::vector<std::string> fd;
+  stringTokenize(gt, "/|", &fd);
+  if (fd.size() > 2) {
+    fprintf(stderr, "Strange genotype: %s\n", gt.c_str());
+    return -1;
+  }
+  int count = 0;
+  int v = 0;
+  for (size_t i = 0; i < fd.size(); ++i) {
+    if (str2int(fd[i], &v)) {
+      count += v;
+    } else {
+      fprintf(stderr, "Strange genotype: %s\n", gt.c_str());      
+      return -1;
+    }
+  }
+  return count;
+}
 
 int main(int argc, char** argv){
   time_t currentTime = time(0);
@@ -149,30 +180,52 @@ int main(int argc, char** argv){
   fprintf(stderr, "%zu Hapmap sites loaded.\n", hmSet.getTotalSite());
 
   const char* fn = FLAG_inVcf.c_str();
-  VCFInputFile vin(fn);
+  LineReader lr(fn);
 
-  // set range filters here
-  // e.g.
-  // vin.setRangeList("1:69500-69600");
-  vin.setRangeList(FLAG_rangeList.c_str());
-  vin.setRangeFile(FLAG_rangeFile.c_str());
+  // // set range filters here
+  // // e.g.
+  // // vin.setRangeList("1:69500-69600");
+  // vin.setRangeList(FLAG_rangeList.c_str());
+  // vin.setRangeFile(FLAG_rangeFile.c_str());
 
   std::map<std::string, Variant> freq;
-  std::string filt;
+  std::string chrom;
+  int pos;
+  // std::string filt;
+  // std::string anno;
+  std::string numVariant;
   char ref, alt;
   bool inDbSnp;
   bool inHapmap;
   int lineNo = 0;
-  while (vin.readRecord()){
+  std::vector<std::string> fd;
+  while(lr.readLineBySep(&fd, " \t")){
     lineNo ++;
-    VCFRecord& r = vin.getVCFRecord();
-    ref = r.getRef()[0];
-    alt = r.getAlt()[0];
-    filt = r.getFilt();
-    inDbSnp = snpSet.isIncluded(r.getChrom(), r.getPos());
-    inHapmap = hmSet.isIncluded(r.getChrom(), r.getPos());
+    if (fd[0][0] == '#') continue; // skip header
+    chrom = fd[0]; // ref is on column 0 (0-based)
+    pos = atoi(fd[1]); // ref is on column 1 (0-based)    
+    ref = fd[3][0]; // ref is on column 3 (0-based)
+    alt = fd[4][0]; // ref is on column 4 (0-based)
+    // filt = fd[6]; // filt is on column 6 (0-based)
+    // anno = extractAnno(fd[7]); // info is on column 7 (0-based), we will extract ANNO=
 
-    Variant& v = freq[filt];
+    // obtain number of variants
+    if (fd.size() <= 9) { // first 9 columns are not individuals
+      numVariant = toString(0);
+    } else {
+      int numVar = 0;
+      for (size_t i = 9; i < fd.size(); ++i) {
+        int varCount = countVariant(fd[i]);
+        if (varCount > 0) 
+          numVar += varCount;
+      }
+      numVariant = toString(numVar);
+    }
+    
+    inDbSnp = snpSet.isIncluded(chrom.c_str(), pos);
+    inHapmap = hmSet.isIncluded(chrom.c_str(), pos);
+
+    Variant& v = freq[numVariant];
     v.total++;
     if ( isTs(ref, alt) ) {
       v.ts ++;
@@ -189,60 +242,32 @@ int main(int argc, char** argv){
     };
     if (inHapmap)
       v.hapmap ++;
+
+    if (lineNo % 10000 == 0) {
+      fprintf(stderr, "\rProcessed %d lines...\r", lineNo);
+    }
   };
-  fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+  fprintf(stdout, "Total %d VCF records have been read successfully\n", lineNo);
 
   //////////////////////////////////////////////////////////////////////
-  std::string title = "Summarize per combined filter";
+  std::string title = "Summarize per annotation type";
   int pad = (170 - title.size() ) /2 ;
   std::string outTitle = std::string(pad, '-') + title + std::string(pad, '-');
   puts(outTitle.c_str());
   printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known_Ts/Tv", "Novel_Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
+         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known Ts/Tv", "Novel Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
   std::map<std::string, Variant> indvFreq;
-  Variant pass;
-  Variant fail;
   Variant total;
-  std::vector<std::string> filters; //individual filter
+
+  // to sort variants by its integer order, we use a temporary map
+  std::map<int, Variant> tmp;
   for (std::map<std::string, Variant>::iterator i = freq.begin() ; i != freq.end(); ++i ){
-    const std::string& filt = i->first;
-    const Variant& v = i->second;
-    v.print(filt, hmSet);
-
-    // calculate indvFreq, pass, fail and total
-    stringTokenize(filt, ';', &filters);
-    for (unsigned int j = 0; j < filters.size(); j++) {
-      const std::string& filt = filters[j];
-      indvFreq[filt] += v;
-    }
-    if (filt == "PASS")
-      pass += v;
-    else
-      fail += v;
-    total += v;
+    tmp[atoi(i->first) ] = i->second;
   };
-  //////////////////////////////////////////////////////////////////////
-  title = "Summarize per individual filter";
-  pad = (170 - title.size() ) /2 ;
-  outTitle = std::string(pad, '-') + title + std::string(pad, '-');
-  puts(outTitle.c_str());
-  printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known_Ts/Tv", "Novel_Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
-  for (std::map<std::string, Variant>::iterator i = indvFreq.begin() ; i != indvFreq.end(); ++i ){
-    const std::string& filt = i->first;
-    const Variant& v = i->second;
-    v.print(filt, hmSet);
-  }
-  //////////////////////////////////////////////////////////////////////
-  title = "Summarize per pass/fail filter";
-  pad = (170 - title.size() ) /2 ;
-  outTitle = std::string(pad, '-') + title + std::string(pad, '-');
-  puts(outTitle.c_str());
-  printf("%40s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n",
-         "Filter", "#SNPs", "#dbSNP", "%dbSNP", "Known_Ts/Tv", "Novel_Ts/Tv", "Overall", "%TotalHM3", "%HMCalled");
-
-  pass.print("PASS", hmSet);
-  fail.print("FAIL", hmSet);
+  for (std::map<int, Variant>::iterator i = tmp.begin() ; i != tmp.end(); ++i ){
+    i->second.print(toString(i->first), hmSet);
+    total += i->second;
+  };
   total.print("TOTAL", hmSet);
 
   currentTime = time(0);

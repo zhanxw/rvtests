@@ -62,12 +62,12 @@ int main(int argc, char** argv){
   const char* fn = FLAG_inVcf.c_str();
   VCFInputFile vin(fn);
 
-    VCFOutputFile* vout = NULL;
-    PlinkOutputFile* pout = NULL;
-    if (FLAG_outVcf.size() > 0) {
-        vout = new VCFOutputFile(FLAG_outVcf.c_str());
-    };
-    if (vout) vout->writeHeader(vin.getVCFHeader());
+  VCFOutputFile* vout = NULL;
+  // PlinkOutputFile* pout = NULL;
+  if (FLAG_outVcf.size() > 0) {
+    vout = new VCFOutputFile(FLAG_outVcf.c_str());
+  };
+  if (vout) vout->writeHeader(vin.getVCFHeader());
   
   // set range filters here
   // e.g.
@@ -76,7 +76,7 @@ int main(int argc, char** argv){
   vin.setRangeFile(FLAG_rangeFile.c_str());
 
   std::string filt;
-  char ref, alt;
+  /// char ref, alt;
   bool keep;
   int lineNo = 0;
   int lineOut = 0;

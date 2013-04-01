@@ -5,13 +5,13 @@ EXEC = rvtest
 UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcf2geno plink2vcf vcfExtractSite \
             vcf2ld_gene  \
-            vcfSummaryLite vcfAnnoSummaryLite vcfVariantSummaryLite vcfIndvSummary \
             vcf2ld_window \
+            vcfSummaryLite vcfAnnoSummaryLite vcfVariantSummaryLite vcfIndvSummary \
             vcfPair \
-            checkScoreResult \
-            vcf2kinship
+            vcf2kinship \
+            vcf2ld_neighbor 
 #            gerp \
-            # vcf2merlin vcf2ld_neighbor 
+            # vcf2merlin 
 
 DIR_EXEC = ./executable
 DIR_EXEC_DBG = ./executable/dbg
@@ -93,8 +93,8 @@ INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
 LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
 LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I.
-CXX_LIB = $(LIB) -lz -lm -lgsl #-lblas
-CXX_LIB_DBG = $(LIB_DBG) -lz -lm -lgsl #-lblas
+CXX_LIB = $(LIB) -lz -lm #-lgsl #-lblas
+CXX_LIB_DBG = $(LIB_DBG) -lz -lm #-lgsl #-lblas
 
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x -Wall -Wno-unused-function
@@ -143,7 +143,7 @@ DataConsolidator.o: DataConsolidator.cpp DataConsolidator.h
 util: $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC))
 define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
-  SRC := $(1).cpp
+  SRC := $(addprefix vcfUtils/, $(1).cpp)
   -include  $(1).d
   $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS) -static
   $$(TAR): $$(SRC) $(LIB) | $(DIR_EXEC)
@@ -154,7 +154,7 @@ $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util, $(s))))
 util-dbg: $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
 define BUILD_util_dbg
   TAR := $(DIR_EXEC_DBG)/$(notdir $(basename $(1)))
-  SRC := $(1).cpp
+  SRC := $(addprefix vcfUtils/, $(1).cpp)
   -include  $(1).d
   $$(TAR): CXX_FLAGS = -O0 -ggdb $(DEFAULT_CXXFLAGS)
   $$(TAR): $$(SRC) $(LIB_DBG) | $(DIR_EXEC_DBG)

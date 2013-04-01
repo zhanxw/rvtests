@@ -1,0 +1,10 @@
+fam1 p0 p1 0 1 2
+fam1 p1 0 0 1 2
+fam1 p2 0 0 1 2
+fam1 p3 p1 p2 1 2
+fam1 p4 p1 p2 1 2
+fam2 q0 p1 0 1 2
+fam2 q1 0 0 1 2
+fam2 q2 0 0 1 2
+fam2 q3 p1 p2 1 2
+

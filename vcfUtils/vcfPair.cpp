@@ -149,7 +149,8 @@ int main(int argc, char** argv){
   p1.Zero();
   p2.Zero();
   p9.Zero();
-  Vector g(num); // store genotype matrix
+  std::vector<int> g; // store genotype matrix
+  g.reserve(num); 
   std::string foutName = FLAG_out + ".pairDiff.log";
   FILE* fLog = fopen(foutName.c_str(), "wt");
   if (!fLog) {
@@ -168,7 +169,7 @@ int main(int argc, char** argv){
       bool hasVariant = false;
       int geno;
       int GTidx = r.getFormatIndex("GT");
-      for (int i = 0; i < people.size() ;i ++) {
+      for (size_t i = 0; i < people.size() ;i ++) {
         indv = people[i];
         geno = indv->justGet(GTidx).getGenotype();
         if (geno != 0 && geno != MISSING_GENOTYPE)
@@ -197,7 +198,7 @@ int main(int argc, char** argv){
     // calculate pair wise difference
     int GTidx = r.getFormatIndex("GT");
     int GQidx = r.getFormatIndex("GQ");        
-    for (int i = 0; i < people.size() ;i ++) {
+    for (size_t i = 0; i < people.size() ;i ++) {
       indv = people[i];
       int gq = indv->justGet(GQidx).toInt();
       if (FLAG_minGQ > 0) {

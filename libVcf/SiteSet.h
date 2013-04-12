@@ -62,12 +62,13 @@ public:
     size_t s = 0;
     std::unordered_map<std::string, std::unordered_set<int> >::const_iterator it = this->site.begin();
     for (; it != this->site.end(); it++) {
+      
       s += it->second.size();
     }
     return s;
   }
 private:
-  std::unordered_map<std::string, std::unordered_set<int> > site;
+  std::unordered_map<std::string, std::unordered_set<int> > site; // key: chorom val: positions
 };
 
 #endif /* _SITESET_H_ */

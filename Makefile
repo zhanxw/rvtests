@@ -142,7 +142,7 @@ DataConsolidator.o: DataConsolidator.cpp DataConsolidator.h
 util: $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC))
 define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
-  SRC := vcfUtils/$(1).cpp
+  SRC := $(addprefix vcfUtils/, $(1).cpp)
   -include  $(1).d
   $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS) -static
   $$(TAR): $$(SRC) $(LIB) | $(DIR_EXEC)
@@ -153,7 +153,7 @@ $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util, $(s))))
 util-dbg: $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
 define BUILD_util_dbg
   TAR := $(DIR_EXEC_DBG)/$(notdir $(basename $(1)))
-  SRC := vcfUtils/$(1).cpp
+  SRC := $(addprefix vcfUtils/, $(1).cpp)
   -include  $(1).d
   $$(TAR): CXX_FLAGS = -O0 -ggdb $(DEFAULT_CXXFLAGS)
   $$(TAR): $$(SRC) $(LIB_DBG) | $(DIR_EXEC_DBG)

@@ -93,17 +93,6 @@ void banner(FILE* fp) {
   fputs(string, fp);
 };
 
-/**
- * @return a string representing current time, without '\n' at the end
- */
-std::string currentTime() {
-  time_t t = time(NULL);
-  std::string s (ctime(&t));
-  s = s.substr(0, s.size() - 1);
-  return s;
-};
-
-
 class GenotypeExtractor{
  public:
   GenotypeExtractor(VCFExtractor* v): vin(*v),

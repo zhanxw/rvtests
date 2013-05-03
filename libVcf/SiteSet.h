@@ -62,7 +62,8 @@ public:
     size_t s = 0;
     std::unordered_map<std::string, std::unordered_set<int> >::const_iterator it = this->site.begin();
     for (; it != this->site.end(); it++) {
-      s += it->second.size();
+      const std::unordered_set<int>& pos = it->second;
+      s += pos.size();
     }
     return s;
   }

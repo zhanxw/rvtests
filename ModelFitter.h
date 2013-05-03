@@ -299,10 +299,9 @@ public:
 
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
-    if (g_SummaryHeader) {
-      g_SummaryHeader->outputHeader(fp);
-    }
-
+    /* if (g_SummaryHeader) { */
+    /*   g_SummaryHeader->outputHeader(fp); */
+    /* } */
     siteInfo.writeHeaderTab(fp);
     // fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
     result.addHeader("AF");

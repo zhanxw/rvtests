@@ -265,6 +265,12 @@ public:
   void excludeAllPeople(){
     this->record.excludeAllPeople();
   };
+  void enableAutoMerge() {
+    this->autoMergeRange = true;
+  }
+  void disableAutoMerge() {
+    this->autoMergeRange = false;
+  }
   /**
    * @return number of ids have been changed.
    */
@@ -295,9 +301,11 @@ private:
   RangeList::iterator rangeIterator;
   ti_iter_t iter;
   const char* ti_line;
+  bool autoMergeRange;
 
   Mode mode;
   std::string line;
+  
 };
 
 #endif /* _VCFINPUTFILE_H_ */

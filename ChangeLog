@@ -1,0 +1,9 @@
+2013-05-03  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Change frequency cutoff to minor allele frequency cutoffs when using --freqLower / --freqUpper
+
+2013-04-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Add conditional analysis
+	* Add family burden tests
+

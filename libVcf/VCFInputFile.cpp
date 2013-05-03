@@ -19,6 +19,9 @@ void VCFInputFile::setRangeMode() {
     abort();
   };
   this->mode = VCFInputFile::RANGE_MODE;
+  if (this->autoMergeRange) {
+    this->range.sort();
+  }
   this->rangeBegin = this->range.begin();
   this->rangeEnd = this->range.end();
   this->rangeIterator = this->range.begin();

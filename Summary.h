@@ -9,7 +9,8 @@ public:
 Summary(): min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0){};
   void add(const std::vector<double>& v) {
     n = v.size();
-
+    if (n == 0 ) return;
+    
     std::vector<double> t = v;
     std::sort(t.begin(), t.end());
 

@@ -1,15 +1,15 @@
 /**
    immediately TODO:
+   24. Conditional analysis + burden test
+   31. Family burden
    12. Add support multi-thread
    13. Add optional weight
    23. Add dominant model
-   24. Conditional analysis + burden test
    25. Take optional weight, e.g. GERP
-   26. Take family structure into consideration.
-   28. Display monomorhpic in MetaScore model
    29. Cache score test to speed things up.
    30. When taking covariates, check if the covariates are unique, if so, generate a warning and kick it out.
-   
+   32. Optional output tag from VCF
+
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -40,7 +40,9 @@
    19. Add command line support for different imputation methods
    5. loading covariate
    27. Output .MetaCov.assoc into gzipped format
-   
+   26. Take family structure into consideration.
+   28. Display monomorhpic in MetaScore model
+
    Future TODO:
    22. Add U-statistics
 
@@ -117,6 +119,8 @@ class GenotypeExtractor{
   int extractMultipleGenotype(Matrix* g) {
     Matrix m;
     int row = 0;
+    std::vector<std::string> colNames;
+    std::string name;
     while (vin.readRecord()){
       VCFRecord& r = vin.getVCFRecord();
       VCFPeople& people = r.getPeople();
@@ -143,10 +147,17 @@ class GenotypeExtractor{
           return -1;
         }
       }
+      name  = r.getChrom();
+      name += ":";
+      name += r.getPosStr();
+      colNames.push_back(name);
       ++ row;
     }
     // now transpose (marker by people -> people by marker)
     g->Transpose(m);
+    for (int i = 0; i < row; ++i) {
+      g->SetColumnLabel(i, colNames[i].c_str());
+    }
     return 0;
   };
   /**
@@ -328,10 +339,118 @@ int loadRangeFile(const char* fn, const char* givenRangeName, OrderedMap<std::st
   return m.size();
 };
 
+/**
+ * @return 0 if succeed
+ */
+int loadMarkerFromVCF(const std::string& fileName,
+                      const std::string& marker,
+                      std::vector<std::string>* rowLabel,
+                      Matrix* genotype) {
+  if (!rowLabel || !genotype) {
+    // invalid parameter
+    return -1;
+  }
+  Matrix& m = *genotype;
+  int col = 0;
+
+  VCFInputFile vin(fileName);
+  vin.setRangeList(marker);
+
+  while (vin.readRecord()) {
+    VCFRecord& r = vin.getVCFRecord();
+    VCFPeople& people = r.getPeople();
+    VCFIndividual* indv;
+
+    m.Dimension(people.size(), col + 1);
+
+    int GTidx = r.getFormatIndex("GT");
+    for (int i = 0; i < (int)people.size(); i++) {
+      indv = people[i];
+      // get GT index. if you are sure the index will not change,
+      // call this function only once!
+      if (GTidx >= 0) {
+        //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
+        m[i][col] = indv->justGet(GTidx).getGenotype();
+      } else {
+        logger->error("Cannot find GT field!");
+        return -1;
+      }
+    }
+    if (col == 0) {
+      // set-up names
+      rowLabel->resize(people.size());
+      for (size_t i = 0; i < people.size(); ++i) {
+        (*rowLabel)[i] = people[i]->getName();
+      }
+    }
+    std::string colLabel = r.getChrom();
+    colLabel += ":";
+    colLabel += r.getPosStr();
+    m.SetColumnLabel(col, colLabel.c_str());
+    ++ col;
+  }
+
+  return 0;
+}
+
+class Indexer{
+ public:
+  Indexer(const std::vector<std::string>& a) {
+    for (size_t i = 0; i < a.size(); ++i) {
+      if (m.count(a[i]) == 0) {
+        m[a[i]] = i;
+      } else {
+        duplication.insert(a[i]);
+      }
+    }
+  }
+  bool hasDuplication() {
+    return this->duplication.size() > 0;
+  }
+  int operator[](const std::string& s) const {
+    if (m.count(s) == 0) return -1;
+    return m.find(s)->second;
+  }
+ private:
+  std::map<std::string, int> m;
+  std::set<std::string> duplication;
+};
+
+int appendGenotype(Matrix* covariate,
+                   const std::vector<std::string>& phenotypeNameInOrder,
+                   Matrix& geno,
+                   const std::vector<std::string>& rowLabel) {
+  if (!covariate) {
+    return -1;
+  }
+  Matrix& m = *covariate;
+  int baseCols = m.cols;
+  m.Dimension(phenotypeNameInOrder.size(), m.cols + geno.cols);
+
+  Indexer indexer(rowLabel);
+  if (indexer.hasDuplication()) {
+    return -1;
+  }
+  for (size_t i = 0; i < phenotypeNameInOrder.size(); ++i) {
+    for (int j = 0; j < m.cols; ++j) {
+      int index =  indexer[phenotypeNameInOrder[i]];
+      if (index < 0 ) { // did not find a person
+        return -1;
+      }
+      m[i][baseCols + j] = geno[index][j];
+
+      if (i == 0) {
+        m.SetColumnLabel(baseCols + j , geno.GetColumnLabel(j));
+      }
+    }
+
+  }
+  return 0;
+}
+
 SummaryHeader* g_SummaryHeader = NULL;
 
-#define VERSION "20130202"
-
+#define VERSION "20130503"
 void welcome() {
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
   fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");
@@ -353,7 +472,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
       ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
       ADD_BOOL_PARAMETER(pl, useResidualAsPhenotype, "--useResidualAsPhenotype", "fit covariate ~ phenotype, use residual to replace phenotype")
-      ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "specify which phenotype column to read (default: 1)")      
+      ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "specify which phenotype column to read (default: 1)")
       ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name", "specify which phenotype column to read by header")
       // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
       // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
@@ -386,10 +505,10 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
       ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov")
-      
+
       ADD_PARAMETER_GROUP(pl, "Family-based Models")
-      ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file, use vcf2kinship to specify")
-      
+      ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file, use vcf2kinship to generate")
+
       ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
@@ -407,6 +526,9 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Specify either of mean, hwe, and drop")
       ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean by those have genotypes but no phenotpyes")
 
+      ADD_PARAMETER_GROUP(pl, "Conditional Analysis")
+      ADD_STRING_PARAMETER(pl, condition, "--condition", "Specify markers to be conditions (specify range)")
+
       ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
       END_PARAMETER_LIST(pl)
@@ -418,7 +540,7 @@ int main(int argc, char** argv){
     pl.Help();
     return 0;
   }
-  
+
   welcome();
   pl.Status();
   if (FLAG_REMAIN_ARG.size() > 0){
@@ -443,7 +565,7 @@ int main(int argc, char** argv){
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
   logger->sync();
-  
+
 
 
   time_t startTime = time(0);
@@ -519,7 +641,7 @@ int main(int argc, char** argv){
       logger->error("Loading phenotype failed!");
       return -1;
     }
-  } else {    
+  } else {
     int col = 1; // default use the first phenotype
     int ret = loadPedPhenotypeByColumn(FLAG_pheno.c_str(), &phenotype, col);
     if (ret < 0) {
@@ -528,7 +650,7 @@ int main(int argc, char** argv){
     }
   }
   logger->info("Loaded %zu sample pheontypes.", phenotype.size());
-  
+
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;
   vin.getVCFHeader()->getPeopleName(&vcfSampleNames);
@@ -596,7 +718,19 @@ int main(int argc, char** argv){
       vin.excludePeople(iter->c_str());
     }
   }
-  
+  // load conditional markers
+  if (!FLAG_condition.empty()) {
+    Matrix geno;
+    std::vector<std::string> rowLabel;
+    if (loadMarkerFromVCF(FLAG_inVcf, FLAG_condition, &rowLabel, &geno) < 0) {
+      logger->error("Load conditional markers [ %s ] from [ %s ] failed.", FLAG_condition.c_str(), FLAG_inVcf.c_str() );
+      abort();
+    }
+    if (appendGenotype(&covariate, phenotypeNameInOrder, geno, rowLabel) < 0) {
+      logger->error("Failed to combine conditional markers [ %s ] from [ %s ] failed.", FLAG_condition.c_str(), FLAG_inVcf.c_str() );
+      abort();
+    }
+  }
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
 
@@ -803,7 +937,7 @@ int main(int argc, char** argv){
       } else if (modelName == "cov") {
         int windowSize;
         parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis window size is %d", windowSize);        
+        logger->info("Meta analysis window size is %d", windowSize);
         model.push_back( new MetaCovTest(windowSize) );
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
@@ -811,7 +945,7 @@ int main(int argc, char** argv){
       };
     }
   };
-  
+
   if (FLAG_outputRaw) {
     model.push_back( new DumpModel(FLAG_outPrefix.c_str()));
   }
@@ -833,9 +967,9 @@ int main(int argc, char** argv){
     s += ".assoc";
     if (model[i]->getModelName() == "MetaCov") {
       s += ".gz";
-      fOuts[i] = new FileWriter(s.c_str(), BGZIP);  
+      fOuts[i] = new FileWriter(s.c_str(), BGZIP);
     } else {
-      fOuts[i] = new FileWriter(s.c_str());  
+      fOuts[i] = new FileWriter(s.c_str());
     }
   }
 
@@ -916,7 +1050,7 @@ int main(int argc, char** argv){
   } else if (!FLAG_kinship.empty() && FLAG_modelMeta.empty()){
     logger->info("Family-based model not specified. Skip --kinship option and not load kinship file.");
   }
-  
+
   // set imputation method
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");
@@ -932,7 +1066,7 @@ int main(int argc, char** argv){
     dc.setStrategy(DataConsolidator::DROP);
   }
   dc.setPhenotypeName(phenotypeNameInOrder);
-  
+
   // genotype will be extracted and stored
   Matrix genotype;
   Matrix workingCov;
@@ -951,10 +1085,11 @@ int main(int argc, char** argv){
     logger->info("Minimum GQ set to %d (or marked as missing genotype).", FLAG_indvQualMin);
   };
 
+  logger->info("Analysis started");
   // std::string buf; // we put site sinformation here
   // buf.resize(1024);
   Result& buf = dc.getResult();
-  
+
   // we have three modes:
   // * single variant reading, single variant test
   // * range variant reading, single variant test
@@ -1055,6 +1190,7 @@ int main(int argc, char** argv){
     };
     std::string geneName;
     RangeList rangeList;
+    vin.enableAutoMerge();
     for ( size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
       vin.setRange(rangeList);
@@ -1088,7 +1224,7 @@ int main(int argc, char** argv){
     logger->error("Unsupported reading mode and test modes!");
     abort();
   }
-  
+
   // resource cleaning up
   for (size_t m = 0; m < model.size() ; ++m ) {
     delete model[m];
@@ -1100,7 +1236,7 @@ int main(int argc, char** argv){
     delete[] fOuts;
   if (pVin)
     delete pVin;
-  
+
   time_t endTime = time(0);
   logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);

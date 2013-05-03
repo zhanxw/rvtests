@@ -17,7 +17,7 @@ VCFSiteFilter():
       siteQualMin(-1),
 
       siteFreqFromInfo(false),      // read AF from INFO field
-      siteFreqMin(-1.0),
+      siteFreqMin(-1.0),            // here freq means minor allele frequency
       siteFreqMax(-1.0),
       siteMACMin(-1),
 
@@ -104,6 +104,9 @@ VCFSiteFilter():
     return this->siteFreqFromInfo;
   };
   bool siteFreqOK(double f) const {
+    if (f > 0.5) {
+      f = 1.0 - f ;
+    };
     if (this->siteFreqMin > 0  && this->siteFreqMin > f) return false;
     if (this->siteFreqMax > 0  && this->siteFreqMax < f) return false;
     return true;

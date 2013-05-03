@@ -161,5 +161,4 @@ inline void dumpStringVector(const std::vector<std::string> s) {
   }
 };
 
-
 #endif /* _UTILS_H_ */

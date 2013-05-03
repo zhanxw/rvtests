@@ -68,7 +68,7 @@ public:
     return s;
   }
 private:
-  std::unordered_map<std::string, std::unordered_set<int> > site;
+  std::unordered_map<std::string, std::unordered_set<int> > site; // key: chorom val: positions
 };
 
 #endif /* _SITESET_H_ */

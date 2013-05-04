@@ -53,6 +53,7 @@
 #include "base/Argument.h"
 #include "base/IO.h"
 #include "base/SimpleMatrix.h"
+#include "base/Time.h"
 
 #include <cassert>
 #include <ctime>

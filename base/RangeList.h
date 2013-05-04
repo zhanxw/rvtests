@@ -186,9 +186,9 @@ private:
   } compareChromName;
 
   void sortChrVector() {
-    dumpStringVector(chrVector);
+    // dumpStringVector(chrVector);
     std::sort(chrVector.begin(), chrVector.end(), compareChromName);
-    dumpStringVector(chrVector);
+    // dumpStringVector(chrVector);
   };
   void dump(const std::vector<PositionPair>& v){
     for (unsigned int i = 0; i < v.size(); i++){

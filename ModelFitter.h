@@ -2553,6 +2553,10 @@ public:
     this->phenotype = phenotype;
     this->genotype = genotype;
     this->covariate = covariate;
+    // copy genotype column label
+    for (int i = 0; i < genotype.cols; ++i){
+      this->genotype.SetColumnLabel(i, genotype.GetColumnLabel(i));
+    }
     // copy covaraite column label
     for (int i = 0; i < covariate.cols; ++i){
       this->covariate.SetColumnLabel(i, covariate.GetColumnLabel(i));
@@ -2587,7 +2591,11 @@ public:
       }
     }
     for (int i = 0; i < genotype.cols; i++) {
-      fprintf(fDump, "\tX%d", i);
+      if (strlen(genotype.GetColumnLabel(i)) == 0) {
+        fprintf(fDump, "\tX%d", i);
+      } else {
+        fprintf(fDump, "\t%s", genotype.GetColumnLabel(i));
+      }
     };
     for (int i = 0; i < covariate.cols; i++) {
       if (strlen(covariate.GetColumnLabel(i)) == 0) {

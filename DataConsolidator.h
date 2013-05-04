@@ -185,10 +185,11 @@ public:
     this->genotype = geno;
 
     // remove monomorphic site
-    removeMonomorphicSite(&genotype);
+    removeMonomorphicSite(&this->genotype);
 
     copyColName(pheno, &this->phenotype);
     copyColName(cov,   &this->covariate);
+    copyColName(geno,  &this->genotype);
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(&this->genotype);

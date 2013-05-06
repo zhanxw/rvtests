@@ -129,7 +129,8 @@ $(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
 ##################################################
 GitVersion.h: .git/HEAD .git/index
 	echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
-
+.git/HEAD:
+	git init -q .
 -include Main.d
 Main.o: Main.cpp GitVersion.h
 	$(CXX) -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__

@@ -26,7 +26,7 @@
 	- [Specify groups (e.g burden unit)](#specify-groups-eg-burden-unit)
 - [Contact](#contact)
 
-
+[![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
 # Introduction
 

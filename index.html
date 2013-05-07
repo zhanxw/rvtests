@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Rvtests by zhanxw</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Rvtests</h1>
+        <h2>Rare variant test software for next generation sequencing data</h2>
+        <a href="https://github.com/zhanxw/rvtests" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <p><strong>Table of Contents</strong>  </p>
+
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#download">Download</a></li>
+<li>
+<a href="#quick-tutorial">Quick Tutorial</a>
+
+<ul>
+<li><a href="#single-variant-tests">Single variant tests</a></li>
+<li><a href="#groupwise-tests">Groupwise tests</a></li>
+<li><a href="#related-individual-tests">Related individual tests</a></li>
+<li><a href="#meta-analysis-tests">Meta-analysis tests</a></li>
+</ul>
+</li>
+<li>
+<a href="#input-files">Input files</a>
+
+<ul>
+<li><a href="#genotype-file-vcf">Genotype file (VCF)</a></li>
+<li><a href="#phenotype-file">Phenotype file</a></li>
+<li><a href="#covariate-file">Covariate file</a></li>
+<li><a href="#trait-transformation">Trait transformation</a></li>
+</ul>
+</li>
+<li>
+<a href="#models">Models</a>
+
+<ul>
+<li><a href="#single-variant-tests-1">Single variant tests</a></li>
+<li><a href="#burden-tests">Burden tests</a></li>
+<li><a href="#variable-threshold-models">Variable threshold models</a></li>
+<li><a href="#kernel-models">Kernel models</a></li>
+<li><a href="#utility-models">Utility models</a></li>
+</ul>
+</li>
+<li>
+<a href="#association-test-options">Association test options</a>
+
+<ul>
+<li><a href="#sample-inclusionexclusion">Sample inclusion/exclusion</a></li>
+<li><a href="#variant-site-filters">Variant site filters</a></li>
+<li><a href="#genotyep-filters">Genotyep filters</a></li>
+<li><a href="#handle-missing-genotypes-and-phenotypes">Handle missing genotypes and phenotypes</a></li>
+<li><a href="#specify-groups-eg-burden-unit">Specify groups (e.g burden unit)</a></li>
+</ul>
+</li>
+<li><a href="#contact">Contact</a></li>
+</ul><p><a href="https://travis-ci.org/zhanxw/rvtests"><img src="https://travis-ci.org/zhanxw/rvtests.png?branch=master" alt="Build Status"></a></p>
+
+<h1>Introduction</h1>
+
+<p>Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrealted individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes <a href="http://www.1000genomes.com/">VCF</a> format as genotype input file and takes PLINK format phenotype file and covariate file. From our practice, it is capable to analyze 8,000 related individuals using less than 400 Mb memory. </p>
+
+<h1>Download</h1>
+
+<p>Source file can be downloaded from <a href="https://github.com/zhanxw/rvtests/archive/master.zip">github</a> or <a href="https://github.com/zhanxw/rvtests">github page</a>.
+Executable binary file can be downloaded from <a href="http://www.sph.umich.edu/csg/zhanxw/software/rvtests/rvtests-latest.tar.gz">here</a>.</p>
+
+<h1>Quick Tutorial</h1>
+
+<p>Here is a quick example of how to use <em>rvtests</em> software in typical use cases.</p>
+
+<h2>Single variant tests</h2>
+
+<pre><code>rvtests --inVcf input.vcf --pheno phenotype.ped --out output --single wald,score
+</code></pre>
+
+<p>This specifies single variant Wald and score test for association
+tests for every variant in the <code>input.vcf</code> file. The 6th column of the phenotype file, <code>phenotype.ped</code>, which is in PLINK format, is used. Rvtests will automatically check whether the phenotype is binary trait or quantitative trait.</p>
+
+<p>For other types of association tests, you can refer to <a href="#Models">Models</a></p>
+
+<h2>Groupwise tests</h2>
+
+<p>Groupwise tests includes three major kinds of tests.</p>
+
+<ul>
+<li>Burden tests: group variants, which are usually less than 1% or 5% rare variants, for association tests. The category includes: CMC test, Zeggini test, Madsen-Browning test, CMAT test, and rare-cover test.</li>
+<li>Variable threshold tests: group variants under different frequency thresholds.</li>
+<li>Kernel methods: suitable to tests rare variants having different directions of effects. These includes SKAT test and KBAC test. </li>
+</ul><p>All above tests requires to group variants into a unit. The simplist case is to use gene as grouping unit. For different grouping method, see <a href="#Grouping">Grouping</a>. </p>
+
+<p>To perform rare variant tests by gene, you need to use <code>--geneFile</code> to specify the gene range in a refFlat format. We provided different gene definitions in the <a href="#Resources">Resources</a> section. You can use <code>--gene</code> to specify which gene(s) to test. For example, specify <code>--gene CFH,ARMS2</code> will perform association tests on CFH and ARMS2 genes. If there is no providing <code>--gene</code> option, all genes will be tests.</p>
+
+<p>The following command line demonstrate how to use CMC method, variable threshold method(proposed by Price) and kernel based method (SKAT by Shawn Lee and KBAC by
+Dajiang Liu) to test every gene listed in <em>refFlat_hg19_uniq_gene.txt.gz</em>.</p>
+
+<pre><code>rvtests --inVcf input.vcf --pheno phenotype.ped --out output --geneFile refFlat_hg19_uniq_gene.txt.gz --burden cmc --vt price --kernel skat,kbac
+</code></pre>
+
+<h2>Related individual tests</h2>
+
+<p>To test related individuals, you will need to first create a kinship matrix:</p>
+
+<pre><code>vcf2kinship --inVcf input.vcf --bn --out output
+</code></pre>
+
+<p>The option <code>--bn</code> means calculating empirical kinship using Balding-Nicols method. You can specifiy <code>--ibs</code> to obtain IBS kinship or use <code>--pedigree input.ped</code> to calculate kinship from known pedigree information.</p>
+
+<p>Then you can use linear mixed model based association tests such as Fast-LMM score test, Fast-LMM LRT test and Grammar-gamma tests. An exemplar command is shown: </p>
+
+<pre><code>rvtests --inVcf input.vcf --pheno phenotype.ped --out output --kinship output.kinship --single famScore,famLRT,famGrammarGamma
+</code></pre>
+
+<h2>Meta-analysis tests</h2>
+
+<p>The meta-analysis models outputs association test results and genotype covariance matrix. These statistics can be used in rare variant association analysis.
+We provide single variant score test and generate genotype covariance matrix. 
+You can use command:</p>
+
+<pre><code>rvtests --inVcf input.vcf --pheno phenotype.ped --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out output
+</code></pre>
+
+<p>Here the <code>--covar</code> specify a covariate file, and <code>--covar-name</code> specify which covariates can used in the analysis. Covariate file format can be found <a href="#Covariate%20file">here</a>. <code>--inverseNormal --useResidualAsPhenotype</code> specifies trait transformation method. That means first fit a regression model of the phenotype on covariates (intercept automatically added), then the residuals are inverse normalized. Trait transformation details can be found <a href="#Trait%20transformation">here</a>.</p>
+
+<h1>Input files</h1>
+
+<h2>Genotype file (VCF)</h2>
+
+<p>Rvtests supports VCF (Variant Call Format) files. Files in both plain txt format or gzipped format are supported. To use group-based rare variant tests, indexed the VCF files using <a href="http://samtools.sourceforge.net/tabix.shtml">tabix</a> are required. </p>
+
+<p>Here are the commands to convert plain text format to bgzipped VCF format:</p>
+
+<pre><code>(grep ^"#" $your_old_vcf; grep -v ^"#" $your_old_vcf | sed 's:^chr::ig' | sort -k1,1n -k2,2n) | bgzip -c &gt; $your_vcf_file 
+tabix -f -p vcf $your_vcf_file
+</code></pre>
+
+<p>The above commands will (1) remove the <code>chr</code> prefix from chromosome names; (2) sort VCF files by chromosome first, then by chromosomal positions; (3) compress using bgzip; (4) create tabix index.</p>
+
+<h2>Phenotype file</h2>
+
+<p>You can use <code>--mpheno $phenoypeColumnNumber</code> or <code>--pheno-name</code> to specify a given phenotype.</p>
+
+<p>An example phenotype file, (<code>example.pheno</code>), has the following format: </p>
+
+<pre><code>fid iid fatid matid sex y1 y2 y3 y4
+P1 P1 0 0 0 1.7642934435605 -0.733862638327895 -0.980843608339726 1
+P2 P2 0 0 0 0.457111744989746 0.623297281416372 -2.24266162284447 0
+P3 P3 0 0 0 0.566689682543218 1.44136462889459 -1.6490100777089 0
+P4 P4 0 0 0 0.350528353203767 -1.79533911725537 -1.11916876241804 0
+P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 1
+</code></pre>
+
+<p>Phenotype file is specified by the option <code>--pheno example.pheno</code> . The default phenotype column header is “<code>y1</code>”. If you want to use alternative columns as phenotype for association analysis (e.g the column with header y2), you may specific the header names using either</p>
+
+<ul>
+<li>--mpheno 2 </li>
+<li>--pheno-name y2</li>
+</ul><p><strong>NOTE:</strong> to use “<code>--pheno-name</code>”, the  header line must starts with “<code>fid iid</code>” as PLINK requires.</p>
+
+<p>In phenotype file, missing values can be denoted by NA or any non-numeric values. Individuals with missing phenotypes will be automatically dropped from subsequent association analysis. For each missing phenotype value, a warning will be generated and recorded in the log file.</p>
+
+<h2>Covariate file</h2>
+
+<p>You can use <code>--covar</code> and <code>--covar-name</code> to specify covariates that will be used for single variant association analysis. This is an optional parameter. If you do not have covariate in the data, this option can be ignored. </p>
+
+<p>The covariate file, (e.g. <code>example.covar</code>) has a similar format as the phenotype file:</p>
+
+<pre><code>fid iid age bmi pc1 pc2 pc3
+P1 P1 23 24.2 1.7642934435605 -0.733862638327895 -0.980843608339726
+P2 P2 32 29.0 0.457111744989746 0.623297281416372 -2.24266162284447
+P3 P3 44 32.4 0.566689682543218 1.44136462889459 -1.6490100777089
+P4 P4 25 28.2 0.350528353203767 -1.79533911725537 -1.11916876241804
+P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
+</code></pre>
+
+<p>The covariate file is specified by the <code>--covar</code> option (e.g. <code>--covar example.covar</code>). To specify covariates that will be used in the association analysis, the option <code>--covar-name</code> can be used. For example, when age, bmi and 3 PCs are used for association analysis, the following option can be specified for the rvtest program, i.e. 
+<code>--covar example.covar --covar-name age,bmi,pc1,pc2,pc3</code>.</p>
+
+<p>Note: Missing data in the covariate file can be labeled by any non-numeric value (e.g. NA). They will be automatically imputed to the mean value in the data file. </p>
+
+<h2>Trait transformation</h2>
+
+<p>In this meta-analysis, we use inversed normal transformed residuals in the association analysis, which is achieved by using a combination of <code>--inverseNormal</code>  and <code>--useResidualAsPhenotype</code>. Specifically, we first fit the null model by regressing phenotype on covariates. The residuals are then inverse normal transformed (see Appendix A more detailed formulae for transformation). Transformed residuals will be used to obtain score statistics. </p>
+
+<p>In meta analysis, an exemplar command for using rvtest looks like the following:</p>
+
+<pre><code>./rvtest --inVcf $vcf --pheno $example.pheno --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out $output_prefix  
+</code></pre>
+
+<h1>Models</h1>
+
+<p>Rvtests support various association models.</p>
+
+<h2>Single variant tests</h2>
+
+<table>
+<tr>
+<th align="left">Single variant</th>
+<th align="center">Model(*)</th>
+<th align="center">Traits(#)</th>
+<th align="center">Covariates</th>
+<th align="center">Related / unrelated</th>
+<th align="left">Description</th>
+</tr>
+<tr>
+<td align="left">Score test</td>
+<td align="center">score</td>
+<td align="center">B, Q</td>
+<td align="center">Y</td>
+<td align="center">U</td>
+<td align="left">Only null model is used to performed the test</td>
+</tr>
+<tr>
+<td align="left">Wald  test</td>
+<td align="center">wald</td>
+<td align="center">B, Q</td>
+<td align="center">Y</td>
+<td align="center">U</td>
+<td align="left">Only fit alternative model, and effect size will be estimated</td>
+</tr>
+<tr>
+<td align="left">Exact test</td>
+<td align="center">exact</td>
+<td align="center">B</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Fisher's test</td>
+</tr>
+<tr>
+<td align="left">Fam LRT</td>
+<td align="center">famLRT</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">Fast-LMM model</td>
+</tr>
+<tr>
+<td align="left">Fam Score</td>
+<td align="center">famScore</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">Fast-LMM model style likelihood ratio test</td>
+</tr>
+<tr>
+<td align="left">Grammar-gamma</td>
+<td align="center">famGrammarGamma</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">Grammar-gamma method</td>
+</tr>
+</table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--single score</code> will apply score test.</p>
+
+<p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
+
+<h2>Burden tests</h2>
+
+<table>
+<tr>
+<th align="left">Burden tests</th>
+<th align="center">Model(*)</th>
+<th align="center">Traits(#)</th>
+<th align="center">Covariates</th>
+<th align="center">Related / unrelated</th>
+<th align="left">Description</th>
+</tr>
+<tr>
+<td align="left">CMC</td>
+<td align="center">cmc</td>
+<td align="center">B, Q</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Collapsing and combine rare variants by Bingshan Li.</td>
+</tr>
+<tr>
+<td align="left">Zeggini</td>
+<td align="center">zeggini</td>
+<td align="center">B, Q</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Aggregate counts of rare variants by Morris Zeggini.</td>
+</tr>
+<tr>
+<td align="left">Madsen-Browning</td>
+<td align="center">mb</td>
+<td align="center">B</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Up-weight rare variant using inverse frequency from controls by Madsen.</td>
+</tr>
+<tr>
+<td align="left">Fp</td>
+<td align="center">fp</td>
+<td align="center">B</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Up-weight rare variant using inverse frequency from controls by Danyu Lin.</td>
+</tr>
+<tr>
+<td align="left">Exact CMC</td>
+<td align="center">exactCMC</td>
+<td align="center">B</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Collapsing and combine rare variants, then pefore Fisher's exact test.</td>
+</tr>
+<tr>
+<td align="left">RareCover</td>
+<td align="center">rarecover</td>
+<td align="center">B</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Find optimal grouping unit for rare variant tests by Thomas Hoffman.</td>
+</tr>
+<tr>
+<td align="left">CMAT</td>
+<td align="center">cmat</td>
+<td align="center">B</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Test non-coding variants by Matt Z.</td>
+</tr>
+<tr>
+<td align="left">CMC Wald</td>
+<td align="center">cmcWald</td>
+<td align="center">B, Q</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Collapsing and combine rare variants, then pefore Wald test.</td>
+</tr>
+</table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--burden cmc</code> will apply CMC test.</p>
+
+<p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
+
+<h2>Variable threshold models</h2>
+
+<table>
+<tr>
+<th align="left">Single variant</th>
+<th align="center">Model(*)</th>
+<th align="center">Traits(#)</th>
+<th align="center">Covariates</th>
+<th align="center">Related / unrelated</th>
+<th align="left">Description</th>
+</tr>
+<tr>
+<td align="left">Variable threshold model</td>
+<td align="center">vt</td>
+<td align="center">B, Q</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Every rare-variant frequency cutoffs are tests by Alkes Price.</td>
+</tr>
+<tr>
+<td align="left">Variable threshold CMC</td>
+<td align="center">cmc</td>
+<td align="center">B, Q</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">This models is natiive so that it output CMC test statistics under all possible frequency cutoffs.</td>
+</tr>
+</table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--vt price</code> will apply score test.</p>
+
+<p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
+
+<h2>Kernel models</h2>
+
+<table>
+<tr>
+<th align="left">Kernel</th>
+<th align="center">Model(*)</th>
+<th align="center">Traits(#)</th>
+<th align="center">Covariates</th>
+<th align="center">Related / unrelated</th>
+<th align="left">Description</th>
+</tr>
+<tr>
+<td align="left">SKAT</td>
+<td align="center">skat</td>
+<td align="center">B, Q</td>
+<td align="center">Y</td>
+<td align="center">U</td>
+<td align="left">Sequencing kernel association test by Shawn Lee.</td>
+</tr>
+<tr>
+<td align="left">KBAC</td>
+<td align="center">kbac</td>
+<td align="center">B</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Kernel-based adaptive clustering model by Dajiang Liu.</td>
+</tr>
+</table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--kernel skat</code> will apply SKAT test.</p>
+
+<p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
+
+<h2>Utility models</h2>
+
+<p>Rvtests has an usually option <code>--outputRaw</code>. When specify this, rvtests can output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files. These files can be imported into other software (e.g. R) for further analysis.</p>
+
+<h1>Association test options</h1>
+
+<h2>Sample inclusion/exclusion</h2>
+
+<p>Rvtests can flexibly specify which sample(s) to include or exclude:</p>
+
+<pre><code>       --peopleIncludeID : give IDs of people that will be included in study
+     --peopleIncludeFile : from given file, set IDs of people that will be included in study
+       --peopleExcludeID : give IDs of people that will be included in study
+     --peopleExcludeFile : from given file, set IDs of people that will be included in study
+</code></pre>
+
+<p><code>--peopleIncludeID</code> and <code>--peopleExcludeID</code> are used to include/exclude samples from command line. 
+For example, specify <code>--peopleIncludeID A,B,C</code> will include A, B and C sample from the VCF files if they exists.
+<code>--peopleIncludeID</code> and <code>--peopleExcludeID</code> followed by a file name will include or exclude the IDs in the file.
+So to include sample A, B and C, you can provide a file, <code>people.txt</code>, looks like:</p>
+
+<pre><code>A
+B
+C
+</code></pre>
+
+<p>Then use <code>--peopleIncludeFile people.txt</code> to include them in the analysis.</p>
+
+<h2>Variant site filters</h2>
+
+<p>It is common that different frequency cutoffs are applied in rare-variant analysis.
+Therefore, rvtests specify frequency cutoffs.</p>
+
+<p>Frequency Cutoff</p>
+
+<pre><code>             --freqUpper : Specify upper frequency bound to be included in analysis
+             --freqLower : Specify lower frequency bound to be included in analysis
+</code></pre>
+
+<p>Similar to sample inclusion/exclusion options, you can specify a range of variants to be included by 
+specifying <code>--rangeList</code> option. For example <code>--rangeList 1:100-200</code> will include the chromosome 1 position 100bp to 200bp region.
+Alternatively, use a separate file, <code>range.txt</code>, and <code>--rangeFile range.txt</code> to speicify association tests range.</p>
+
+<pre><code>             --rangeList : Specify some ranges to use, please use chr:begin-end format.
+             --rangeFile : Specify the file containing ranges, please use chr:begin-end format.
+              --siteFile : Specify the file containing sites to include, please use "chr pos" format.
+</code></pre>
+
+<p>It is supported to filter variant site by site depth, minor allele count or annotation (annotated VCF file is needed).</p>
+
+<pre><code>          --siteDepthMin : Specify minimum depth(inclusive) to be incluced in analysis
+          --siteDepthMax : Specify maximum depth(inclusive) to be incluced in analysis
+            --siteMACMin : Specify minimum Minor Allele Count(inclusive) to be incluced in analysis
+              --annoType : Specify annotation type that is follwed by ANNO= in the VCF INFO field, regular expression is allowed
+</code></pre>
+
+<p><em>NOTE</em>: <code>--annoType Nonsynonymous</code> will only analyze nonsynonymous variants where they have <code>ANNO=Nonsynonymous</code> in the INFO field. 
+VCF with annotatino information are called annotated VCF here. And to annotate 
+a VCF file, you can use <a href="https://github.com/zhanxw/anno">ANNO</a>, a fast and accurate annotation software.</p>
+
+<h2>Genotyep filters</h2>
+
+<p>Genotype with low depth or low quality can be filtered out by these options:</p>
+
+<pre><code>          --indvDepthMin : Specify minimum depth(inclusive) of a sample to be incluced in analysis
+          --indvDepthMax : Specify maximum depth(inclusive) of a sample to be incluced in analysis
+           --indvQualMin : Specify minimum depth(inclusive) of a sample to be incluced in analysis
+</code></pre>
+
+<p>When genotypes are filtered, they are marked as missing genotypes. 
+Consequently, samples with missing genotype may or may not be included in the analysis.
+That means samples with genotypes may be dropped (<code>--impute drop</code>) 
+or may still be included (<code>--impute mean</code> or <code>--impute hwe</code>). 
+By default, genotypes are imputed to its means.
+See next section about how you like to handle missing genotypes.</p>
+
+<h2>Handle missing genotypes and phenotypes</h2>
+
+<p>When genotypes are missing (e.g. genotype = "./.") or gentoypes are filtered out, 
+there are three options to handle them: (1) impute to its mean(default option); (2) impute by HWE equilibrium; (3) remove from the model.
+Use <code>--impute [mean|hwe|drop]</code> to specify which option to use.</p>
+
+<p>When quantitative phenotypes are missing, for example, some samples have gneotype files, but not phenotypes, 
+rvtests can impute missing phenotype to its mean. </p>
+
+<p><em>NOTE:</em> Do not use <code>--imputePheno</code> for binary trait.</p>
+
+<p>In summary, the following two options can be used:</p>
+
+<pre><code>           --impute : Specify either of mean, hwe, and drop
+      --imputePheno : Impute phenotype to mean by those have genotypes but no
+                      phenotpyes
+</code></pre>
+
+<h2>Specify groups (e.g burden unit)</h2>
+
+<p>Rare variants association tests are usually performed in gruops of variants. 
+The natural grouping unit is gene. Rvtests can read gene definition file in <code>refFlat</code> format,
+and perform association for each gene. Use <code>--geneFile</code> option to specify the gene file name.
+For example, <code>--geneFile refFlat_hg19.txt.gz</code> will use <code>refFlat_hg19.txt.gz</code> as gene definition file,
+and then perform association tests for every gene. Use <code>--gene</code> to specify a subset of genes to test.
+For example, <code>--gene CFH</code> will only test CFH gene.</p>
+
+<p>Alternative grouping unit can be specified as <em>set</em>. 
+These <em>sets</em> are treated similar to gene.
+You can thus use <code>--setFile</code> to define sets (similar to <code>--geneFile</code> option), 
+and use <code>--set</code> to define a specific set (similar to <code>--gene</code> option). 
+Additionally, use <code>--setList</code> can speicify a set to test from command line.</p>
+
+<p>The format of a set file is: (1) set names; (2) ranges (e.g. chrom:begin-end);
+For example, you have a set file, <code>example.set</code>, like this:</p>
+
+<pre><code>set1 1:100-200,1:250-300
+set2 2:500-600
+</code></pre>
+
+<p>You can specify <code>--setFile example.set --set set2</code> to group variants 
+within chromosome 2, position 500 to 600bp. 
+If you want to test a particular region, for example, chromosome 2, position 500 to 550bp,
+but do not want to make another file, you can use <code>--setList 2:500-600</code>.</p>
+
+<p>In summary, options related to <em>Grouping Unit</em> are listed below: </p>
+
+<pre><code>         --geneFile : specify a gene file (for burden tests)
+             --gene : specify which genes to test
+          --setList : specify a list to test (for burden tests)
+          --setFile : specify a list file (for burden tests, first two columns:
+                      setName chr:beg-end)
+              --set : specify which set to test (1st column)
+</code></pre>
+
+<h1>Contact</h1>
+
+<p>Questions and requests can be sent to Xiaowei Zhan
+(<a href="mailto:zhanxw@umich.edu" title="mailto:zhanxw@umich.edu">zhanxw@umich.edu</a>)
+or Goncalo Abecasis
+(<a href="mailto:goncalo@umich.edu" title="mailto:goncalo@umich.edu">goncalo@umich.edu</a>)</p>
+
+<p>Rvtests is a collaborative effort by Youna Hu, Bingshan Li, Dajiang Liu.</p>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/zhanxw/rvtests/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/zhanxw/rvtests/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/zhanxw/rvtests"></a> is maintained by <a href="https://github.com/zhanxw">zhanxw</a>.</p>
+
+          <p>This page was generated by <a href="pages.github.com">GitHub Pages</a> using the Architect theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+            <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-21871925-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>

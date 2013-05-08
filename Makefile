@@ -164,7 +164,9 @@ $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util_dbg, $(s))))
 
 
 clean: 
-	rm -rf *.o *.d $(EXEC) \
+	rm -rf *.o *.d \
+        $(addprefix $(DIR_EXEC)/, $(EXEC)) \
+        $(addprefix $(DIR_EXEC_DBG)/, $(EXEC)) \
         $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC)) \
         $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
 

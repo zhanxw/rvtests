@@ -211,10 +211,37 @@ private:
   };
   // now the range in v should be ordered
   // we will merge overlapped ranges
-  void consolidateRange(std::vector<PositionPair>* v) {
+  void consolidateRange(std::vector<PositionPair>* r) {
+    if (!r || r->empty()) return;
+    
+    std::vector<PositionPair>& v = *r;
+    const int l = v.size();
+    int last = 0; // this is the element to change
+    for (int i = 1; i < l ; ++i) {
+      // compare v[last] and v[i]
+      // case 1: v[i] and v[last] disjoint
+      if (v[i].begin > v[last].end) {
+        ++ last;
+        v[last] = v[i];
+        continue;
+      }
+      // case 2: v[i] is included in v[last], skip
+      if ( v[i].end <= v[last].end) {
+        continue;
+      }
+      // case 3: v[i] overlaps v[last], extend v[last]
+      if (v[i].begin <= v[last].end &&
+          v[i].end > v[last].end) {
+        v[last].end = v[i].end;
+      }
+    }
+    v.resize(last+1);
+    return;
+#if 0    
+    //old buggy code
     std::vector<PositionPair> t;
-    int l = v->size();
-    if (l == 0)
+    const int l = v->size();
+    if (v->empty())
       return;
 
     // int beg =  (*v)[0].begin;
@@ -225,8 +252,8 @@ private:
         continue;
 
       // if this range overlaps with last range, extend last range
-      if ( (*v)[i].begin <= (*v)[i-1].end &&
-           (*v)[i].end > (*v)[i-1].end) {
+      if ( (*v)[i].begin <= (*v)[i - 1].end &&
+           (*v)[i].end > (*v)[i - 1].end) {
         t[i-1].end = (*v)[i].end;
         continue;
       }
@@ -236,9 +263,10 @@ private:
     }
 
     // copy t -> v
-
-    v->clear();
-    std::swap( t, *v);
+    v->assign(t.begin(), t.end());
+    /* v->clear(); */
+    /* std::swap( t, *v); */
+#endif
   };
 private:
   std::vector<std::string> chrVector;
@@ -405,7 +433,7 @@ RangeList(): isSorted(false) {};
 private:
   RangeCollection rangeCollection;
   bool isSorted;
-};
+}; // end class RangeList
 
 extern int parseRangeFormat(const std::string& s, std::string* chr, unsigned int* begin, unsigned int* end);
 

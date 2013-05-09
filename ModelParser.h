@@ -15,7 +15,7 @@ class ModelParser{
    * @return 0: if parse succeed.
    * NOTE: will convert all letters to lower case
    */
-  int parse(const char* s){
+  int parse(const std::string& s){
     std::string arg = s;
     tolower(&arg);
 
@@ -31,7 +31,7 @@ class ModelParser{
     }
     std::vector<std::string> params;
     std::string allParam = arg.substr(l + 1, arg.size() - 1 - 1 -l);
-    int ret = stringTokenize(allParam, ',', &params);
+    int ret = stringTokenize(allParam, ModelParser::PARAM_DELIM, &params);
     UNUSED(ret);
     for (size_t i = 0; i < params.size(); ++i) {
       l = params[i].find('=');
@@ -45,9 +45,6 @@ class ModelParser{
     };
     logger->info("load %zu parameters.", this->size());
     return 0;
-  }
-  int parse(std::string& s){
-    return this->parse(s.c_str());
   }
   const std::string& getName() const {
     return this->name;
@@ -126,8 +123,9 @@ class ModelParser{
   const size_t size() const {
     return this->param.size();
   };
-  static const char LEFT_DELIM = '(';
-  static const char RIGHT_DELIM = ')';
+  static const char LEFT_DELIM = '[';
+  static const char RIGHT_DELIM = ']';
+  static const char PARAM_DELIM = ':';
  private:
   std::string name;
   std::map<std::string, std::string> param;

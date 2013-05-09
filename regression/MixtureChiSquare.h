@@ -56,6 +56,7 @@ MixtureChiSquare():
     lambda_cap = newCap;
   };
   double getPvalue(double Q);
+  void dumpLambda() const;
 private:
   const double sigma;
   const int lim;

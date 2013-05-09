@@ -16,7 +16,7 @@ void G_to_Eigen(Vector& GV, Eigen::VectorXf* _EigenV)
     EigenV(i) = GV[i];
 }
 
-void Eigen_to_G(Eigen::MatrixXf& EigenM, Matrix* _GM)
+void Eigen_to_G(const Eigen::MatrixXf& EigenM, Matrix* _GM)
 {
   Matrix& GM = *_GM;
   GM.Dimension(EigenM.rows(), EigenM.cols());
@@ -26,12 +26,12 @@ void Eigen_to_G(Eigen::MatrixXf& EigenM, Matrix* _GM)
 }
 
 
-void Eigen_to_G(Eigen::VectorXf& EigenV, Vector* _GV)
+void Eigen_to_G(const Eigen::VectorXf& EigenV, Vector* _GV)
 {
   Vector& GV = *_GV;
-  EigenV.resize(GV.Length());
-  for(int i=0; i<GV.Length(); i++)
-    EigenV(i) = GV[i];
+  GV.Dimension(EigenV.size());
+  for(int i=0; i<EigenV.size(); i++)
+    GV[i] = EigenV(i);
 }
 
 void cbind_G_to_Eigen(Matrix& GM1, Matrix& GM2, Eigen::MatrixXf* EigenM) {

@@ -1193,7 +1193,7 @@ int main(int argc, char** argv){
         continue;
       };
       if (genotype.rows == 0) {
-        logger->warn("Gene %s has 0 variants, skipping", geneName.c_str());
+        logger->info("Gene %s has 0 variants, skipping", geneName.c_str());
         continue;
       };
 

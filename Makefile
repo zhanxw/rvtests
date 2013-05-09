@@ -141,6 +141,7 @@ DataConsolidator.o: DataConsolidator.cpp DataConsolidator.h
 
 ##################################################
 # build utils
+##################################################
 util: $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC))
 define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
@@ -164,20 +165,27 @@ endef
 $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util_dbg, $(s))))
 
 
+##################################################
+## clean
+##################################################
 clean: 
 	rm -rf *.o *.d \
         $(addprefix $(DIR_EXEC)/, $(EXEC)) \
         $(addprefix $(DIR_EXEC_DBG)/, $(EXEC)) \
         $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC)) \
         $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
-
-deepclean: clean
-	rm -rf *~
+libclean:
 	(cd base; make clean)
 	(cd regression; make clean)
 	(cd libVcf; make clean)
+deepclean: clean libclean
+	rm -rf *~
 	(cd third; make deepclean)
 	(cd libsrc; make clean)
+
+##################################################
+## tests
+##################################################
 test: test1
 test1: rvtest
 	./rvtest --inVcf test.vcf.gz --outVcf test1.out.vcf 

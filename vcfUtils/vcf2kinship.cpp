@@ -407,6 +407,9 @@ int main(int argc, char** argv){
   bool missing;
   while (vin.readRecord()){
     lineNo ++;
+    if (lineNo % 1000000 == 0) {
+      fprintf(stdout, "\rTotal %d VCF records have processed", lineNo);
+    }
     VCFRecord& r = vin.getVCFRecord();
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;

@@ -2177,9 +2177,9 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
         /* fitOK = logistic.TestCovariate(cov, pheno, genotype); */
         return -1;
       }
-    } else {
-      if (!isBinaryOutcome()) {
-        if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+    } else { // unrelated
+      if (!isBinaryOutcome()) { // continuous trait
+        if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
           copyCovariateAndIntercept(genotype.rows, covariate, &cov);
           copyPhenotype(phenotype, &this->pheno);
           fitOK = linear.FitNullModel(cov, pheno);
@@ -2187,8 +2187,9 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
           needToFitNullModel = false;
         }
         fitOK = linear.TestCovariate(cov, pheno, genotype);
-      } else {
-        if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+      } else { // binary trait
+        // fit null model
+        if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
           copyCovariateAndIntercept(genotype.rows, covariate, &cov);
           copyPhenotype(phenotype, &this->pheno);
           fitOK = logistic.FitNullModel(cov, pheno, 100);
@@ -2196,6 +2197,15 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
           needToFitNullModel = false;
         }
         fitOK = logistic.TestCovariate(cov, pheno, genotype);
+        if (!fitOK) return -1;
+        // fit alternative model
+        if (covariate.cols) {
+          copyGenotypeWithCovariateAndIntercept(genotype, covariate, &this->X);
+        } else {
+          copyGenotypeWithIntercept(genotype, &this->X);
+        }
+        fitOK = logisticAlt.FitLogisticModel(this->X, this->pheno, 100);
+        if (!fitOK) return -1;
       }
     }
     return (fitOK ? 0 : -1);
@@ -2258,10 +2268,9 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
         } else {
           result.updateValue("U_STAT", logistic.GetU()[0][0]);
           result.updateValue("SQRT_V_STAT", sqrt(logistic.GetV()[0][0]));
-          result.updateValue("ALT_EFFSIZE", logistic.GetU()[0][0] / (logistic.GetV()[0][0]));
+          result.updateValue("ALT_EFFSIZE", logisticAlt.GetCovEst()[1]); // first column is intercept, so 1 means second column which is beta
           result.updateValue("PVALUE", logistic.GetPvalue());
         }
-
       }
     }
     result.writeValueLine(fp);
@@ -2272,9 +2281,11 @@ private:
   Vector pheno;
   LinearRegressionScoreTest linear;
   LogisticRegressionScoreTest logistic;
+  LogisticRegression logisticAlt;
   FastLMM linearFamScore;
   bool fitOK;
   Matrix cov;
+  Matrix X; // intercept, cov(optional) and genotype
   int homRef;
   int het;
   int homAlt;
@@ -2305,16 +2316,23 @@ public:
     // this->mleVarY = -1.;
     this->fout = NULL;
     this->windowSize = windowSize;
+    this->needToFitNullModel = true;
     result.addHeader("CHROM");
     result.addHeader("START_POS");
     result.addHeader("END_POS");
     result.addHeader("NUM_MARKER");
     result.addHeader("MARKER_POS");
     result.addHeader("COV");
+    /* result.addHeader("COV_XZ"); */
+    /* result.addHeader("COV_ZZ"); */
   };
   ~MetaCovTest(){
     while(queue.size() > 0 ) {
-      printCovariance(fout, queue);
+      if (isBinaryOutcome()) {
+        printCovarianceForBinaryTrait(fout, queue);
+      } else {
+        printCovariance(fout, queue);
+      }
       queue.pop_front();
     }
   }
@@ -2323,6 +2341,7 @@ public:
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
     Result& siteInfo = dc->getResult();
 
     if (genotype.cols != 1) {
@@ -2334,10 +2353,20 @@ public:
       return -1;
     }
     this->useFamilyModel = dc->hasKinship();
-    if (nSample < 0) {
+    if (nSample < 0) { // unitialized
       // calculate variance of y
       nSample = genotype.rows;
       weight.Dimension(nSample);
+    } else {
+      if (nSample != genotype.rows){
+        fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+        fitOK = false;
+        return -1;
+      }
+    }
+
+    // set weight
+    if (!isBinaryOutcome()) {
       if (useFamilyModel) {
         // copyPhenotype(phenotype, pheno);
         // fit null model
@@ -2348,7 +2377,7 @@ public:
         // get weight
         metaCov.GetWeight(&this->weight);
         fprintf(stderr, "weight [0] = %g\n", weight[0]);
-      } else {
+      } else { // not family model
         double s = 0;
         double s2 = 0;
         for (int i = 0; i < nSample; ++i) {
@@ -2369,11 +2398,36 @@ public:
         }
       }
       // fprintf(stderr, "MLE estimation of residual^2 = %g", mleVarY);
-    } else {
-      if (nSample != genotype.rows){
-        fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
-        fitOK = false;
-        return -1;
+    } else { // binary case
+      if (useFamilyModel) {
+        return -1; // not supported yet
+      } else {
+        // fit null model
+        if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+          copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+          copyPhenotype(phenotype, &this->pheno);
+          fitOK = logistic.FitLogisticModel(cov, pheno, 100);
+          if (!fitOK) return -1;
+          needToFitNullModel = false;
+
+          // skip store Z, as Z = this->cov
+          // store V in weight
+          for (int i = 0; i < nSample; ++i) {
+            const double y = logistic.GetPredicted()[i];
+            weight[i] = y * (1.0 - y);
+          }
+          // store Z^T * V * Z
+          this->ZVZ.Dimension(cov.cols, cov.cols);
+          for(int i = 0; i < cov.cols; ++i) {
+            for (int j = 0; j < cov.cols; ++j) {
+              double s = 0.0;
+              for (int k = 0; k < cov.rows; ++k) {
+                s += cov[k][i] * weight[k] * cov[k][j];
+              }
+              this->ZVZ[i][j] = s;
+            }
+          }
+        }
       }
     }
     loci.pos.chrom = siteInfo["CHROM"];
@@ -2388,20 +2442,24 @@ public:
     for (int i = 0; i < nSample; ++i) {
       loci.geno[i] = genotype[i][0];
     }
-    if (useFamilyModel) {
-      metaCov.TransformCentered(&loci.geno,
-                                *dc->getKinshipU(),
-                                *dc->getKinshipS());
+    if (!isBinaryOutcome()) {
+      if (useFamilyModel) {
+        metaCov.TransformCentered(&loci.geno,
+                                  *dc->getKinshipU(),
+                                  *dc->getKinshipS());
+      } else {
+        // center genotype
+        double s = 0.0;
+        for (int i = 0; i < nSample; ++i) {
+          s += loci.geno[i];
+        }
+        s /= nSample;
+        for (int i = 0; i < nSample; ++i) {
+          loci.geno[i] -= s;
+        }
+      }
     } else {
-      // center genotype
-      double s = 0.0;
-      for (int i = 0; i < nSample; ++i) {
-        s += loci.geno[i];
-      }
-      s /= nSample;
-      for (int i = 0; i < nSample; ++i) {
-        loci.geno[i] -= s;
-      }
+      /// for binary, no need to center. and not support family.
     }
     fitOK = true;
     return (fitOK ? 0 : -1);
@@ -2421,7 +2479,11 @@ public:
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     this->fout = fp;
     while (queue.size() && getWindowSize(queue, loci) > windowSize) {
-      printCovariance(fout, queue);
+      if (isBinaryOutcome()) {
+        printCovarianceForBinaryTrait(fout, queue);
+      } else {
+        printCovariance(fout, queue);
+      }
       queue.pop_front();
     };
     if (fitOK) {
@@ -2430,9 +2492,8 @@ public:
     }
     // result.writeValueLine(fp);
   };
-  
-private:
 
+private:
   /**
    * @return \sum g1 * g2 - \sum(g1) * \sum(g2)/n
    * NOTE: we already centered g1, g2, so the above reduced to
@@ -2461,6 +2522,31 @@ private:
   };
 
   /**
+   * @return g1^T * weight * g2
+   */
+  double getCovarianceForBinaryTrait(const Genotype& g1, const Genotype& g2) {
+    double sum = 0.0;
+    const int n = g1.size();
+    if (n == 0) return 0.0;
+    for (int i = 0; i < n; ++i){
+      sum += g1[i] * this->weight[(int)i] * g2[i];
+    }
+    return sum;
+  };
+  /**
+   * @return g^T * weight * m[,col]
+   */
+  double getCovarianceForBinaryTrait(const Genotype& g, Matrix& m, int col) {
+    double sum = 0.0;
+    const int n = g.size();
+    if (n == 0) return 0.0;
+    for (int i = 0; i < n; ++i){
+      sum += g[i] * this->weight[(int)i] * m[i][col];
+    }
+    return sum;
+  };
+
+  /**
    * @return max integer if different chromosome; or return difference between head and tail locus.
    */
   int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
@@ -2483,7 +2569,7 @@ private:
    */
   int printCovariance(FileWriter* fp, const std::deque<Loci>& lociQueue){
     auto iter = lociQueue.begin();
-    std::vector<int> position( lociQueue.size());
+    std::vector<int> position(lociQueue.size());
     std::vector<double> cov (lociQueue.size());
     int idx = 0;
     for (; iter != lociQueue.end(); ++iter){
@@ -2514,6 +2600,56 @@ private:
     result.writeValueLine(fp);
     return 0;
   };
+  /**
+   * @return 0
+   * print the covariance for the front of loci to the rest of loci
+   */
+  int printCovarianceForBinaryTrait(FileWriter* fp, const std::deque<Loci>& lociQueue){
+    auto iter = lociQueue.begin();
+    std::vector<int> position(lociQueue.size());
+    std::vector<double> covXX (lociQueue.size());
+    std::vector<double> covXZ (this->cov.cols);
+    const size_t numMarker = lociQueue.size();
+
+    for (int idx = 0; iter != lociQueue.end(); ++iter, ++idx){
+      position[idx] = iter->pos.pos;
+      covXX[idx] = getCovarianceForBinaryTrait(lociQueue.front().geno, iter->geno);
+    }
+    for (int i = 0; i < this->cov.cols; ++i) {
+      covXZ[i] = getCovarianceForBinaryTrait(lociQueue.front().geno, this->cov, i);
+    }
+    /* fprintf(stderr, "%s\t%d\t%d\t", lociQueue.front().pos.chrom.c_str(), lociQueue.front().pos.pos, lociQueue.back().pos.pos);  */
+    result.updateValue("CHROM", lociQueue.front().pos.chrom);
+    result.updateValue("START_POS", lociQueue.front().pos.pos);
+    result.updateValue("END_POS", lociQueue.back().pos.pos);
+    /* fprintf(fp, "%d\t", idx); */
+    result.updateValue("NUM_MARKER", (int)numMarker);
+    std::string s;
+    for(size_t i = 0; i < numMarker; ++i) {
+      if (i) s += ',';
+      s+= toString(position[i]);
+    }
+    result.updateValue("MARKER_POS", s);
+
+    s.clear();
+    for(size_t i = 0; i < numMarker; ++i) {
+      if (i) s+=',';
+      s += floatToString(covXX[i]);
+    }
+    s += ':';
+    for(int i = 0; i < this->cov.cols; ++i) {
+      s += floatToString(covXZ[i]);
+    }
+    s += ':';
+    for (int i = 0; i < this->ZVZ.rows; ++i) {
+      for (int j = 0; j <= i ; ++j) {
+        s += floatToString(this->ZVZ[i][j]);
+      }
+    }
+    result.updateValue("COV", s);
+    result.writeValueLine(fp);
+    return 0;
+  };
 
 private:
   std::deque< Loci> queue;
@@ -2528,6 +2664,11 @@ private:
   MetaCov metaCov;
   bool useFamilyModel;
   Vector weight; // per individual weight
+  LogisticRegression logistic;
+  bool needToFitNullModel;
+  Matrix cov;
+  Matrix ZVZ;
+  Vector pheno;
 }; // MetaCovTest
 
 

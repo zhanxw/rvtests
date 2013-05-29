@@ -2154,6 +2154,16 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
       return -1;
     }
 
+    // skip monomorphic sites
+    const int nonMissing = nSample - missing;
+    if (nonMissing == homRef ||
+        nonMissing == het ||
+        nonMissing == homAlt) {
+      fitOK = false;
+      return -1;
+    }
+
+    // perform assocation tests
     this->useFamilyModel = dc->hasKinship();
     if (this->useFamilyModel) {
       if (!isBinaryOutcome()) {
@@ -2166,6 +2176,7 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
         }
         fitOK = (0 == linearFamScore.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
         this->af = linearFamScore.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+        
       } else {
         /* if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) { */
         /*   copyCovariateAndIntercept(genotype.rows, covariate, &cov); */
@@ -2175,7 +2186,9 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
         /*   needToFitNullModel = false; */
         /* } */
         /* fitOK = logistic.TestCovariate(cov, pheno, genotype); */
-        return -1;
+        // return -1;
+        fprintf(stderr, "Cannot support binary related individuals\n");
+        exit(1);
       }
     } else { // unrelated
       if (!isBinaryOutcome()) { // continuous trait
@@ -2187,6 +2200,7 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
           needToFitNullModel = false;
         }
         fitOK = linear.TestCovariate(cov, pheno, genotype);
+        if (!fitOK) return -1;
       } else { // binary trait
         // fit null model
         if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
@@ -2385,7 +2399,7 @@ public:
           s2 += phenotype[i][0] * phenotype[i][0];
         }
         double sigma2 = (s2 - s * s / nSample) / nSample;
-        fprintf(stderr, "sigma2 = %g\n", sigma2);
+        // fprintf(stderr, "sigma2 = %g\n", sigma2);
         if (sigma2 != 0) {
           for (int i = 0; i < nSample ; ++i) {
             weight[i]  = 1.0 / sigma2;  // mleVarY

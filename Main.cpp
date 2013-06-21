@@ -6,8 +6,8 @@
    23. Add dominant model
    25. Take optional weight, e.g. GERP
    30. When taking covariates, check if the covariates are unique, if so, generate a warning and kick it out.
-   32. Optional output tag from VCF
-
+   33. Support sex chromosome coding.
+   
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -47,7 +47,8 @@
    22. Add U-statistics
 
    Not sure if worthy to do:
-   None yet.
+   32. Optional output tag from VCF
+
 */
 
 #include "base/Argument.h"

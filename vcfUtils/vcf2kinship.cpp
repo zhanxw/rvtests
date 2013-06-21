@@ -402,6 +402,7 @@ int main(int argc, char** argv){
   int lowSiteFreq = 0; // counter of low site qualities
   int filterSite = 0; // counter of site with too many bad genotypes
   int lineNo = 0;
+  int skipSexChrom = 0;
   int nonVariantSite = 0;
   int GTidx, GDidx, GQidx;
   bool missing;
@@ -414,6 +415,13 @@ int main(int argc, char** argv){
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;
 
+    // only take autosomal
+    int chrom = atoi(r.getChrom());
+    if (chrom < 1 && chrom > 22) {
+      ++ skipSexChrom;
+      continue;
+    }
+    
     // site filter
     if (FLAG_minSiteQual > 0 && r.getQualDouble() < FLAG_minSiteQual) {
       ++lowSiteFreq;
@@ -496,6 +504,9 @@ int main(int argc, char** argv){
   
   // end
   fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+  if (skipSexChrom) {
+    fprintf(stdout, "Skipped %d variants non autosomal variants\n", skipSexChrom);    
+  }
   if (nonVariantSite) {
     fprintf(stdout, "Skipped %d non-variant VCF records\n", nonVariantSite);
   }

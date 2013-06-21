@@ -1,15 +1,13 @@
 /**
    immediately TODO:
-   24. Conditional analysis + burden test
    31. Family burden
    12. Add support multi-thread
    13. Add optional weight
    23. Add dominant model
    25. Take optional weight, e.g. GERP
-   29. Cache score test to speed things up.
    30. When taking covariates, check if the covariates are unique, if so, generate a warning and kick it out.
-   32. Optional output tag from VCF
-
+   33. Support sex chromosome coding.
+   
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -42,12 +40,15 @@
    27. Output .MetaCov.assoc into gzipped format
    26. Take family structure into consideration.
    28. Display monomorhpic in MetaScore model
+   24. Conditional analysis + burden test (via --condition)
+   29. Cache score test to speed things up.
 
    Future TODO:
    22. Add U-statistics
 
    Not sure if worthy to do:
-   None yet.
+   32. Optional output tag from VCF
+
 */
 
 #include "base/Argument.h"
@@ -77,6 +78,10 @@
 #include "GitVersion.h"
 #include "Result.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#pragma message "Enable multithread using OpenMP"
+#endif
 
 Logger* logger = NULL;
 
@@ -440,7 +445,7 @@ int appendGenotype(Matrix* covariate,
 
 SummaryHeader* g_SummaryHeader = NULL;
 
-#define VERSION "20130503"
+#define VERSION "20130620"
 void welcome() {
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
   fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");
@@ -514,7 +519,7 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Specify either of mean, hwe, and drop")
-      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean by those have genotypes but no phenotpyes")
+      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean of those have genotypes but no phenotpyes")
 
       ADD_PARAMETER_GROUP(pl, "Conditional Analysis")
       ADD_STRING_PARAMETER(pl, condition, "--condition", "Specify markers to be conditions (specify range)")
@@ -707,6 +712,7 @@ int main(int argc, char** argv){
          ++iter) {
       vin.excludePeople(iter->c_str());
     }
+
   }
   // load conditional markers
   if (!FLAG_condition.empty()) {
@@ -721,9 +727,28 @@ int main(int argc, char** argv){
       abort();
     }
   }
+
+  // check if some covariates are unique
+  // e.g. user may include covariate "1" in addition to intercept
+  // in such case, we will give a fatal error
+  for (int i = 0 ; i < covariate.cols; ++i ) {
+    std::set< double > s;
+    s.clear();
+    for (int j = 0; j < covariate.rows; ++j) {
+      s.insert(covariate[j][i]);
+    }
+    if (s.size() == 1 ) {
+      logger->error("Covariate [ %s ] equals [ %g ] for all samples, cannot fit model...\n",
+                    covariate.GetColumnLabel(i),
+                    *s.begin());
+      abort();
+    }
+  }
+  
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
 
+  
 
   // adjust phenotype
   bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
@@ -904,7 +929,8 @@ int main(int argc, char** argv){
         double beta1, beta2;
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
         model.push_back( new SkatTest(nPerm, alpha, beta1, beta2) );
-        logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g (beta1 = %.2f, beta2 = %.2f)", nPerm, alpha, beta1, beta2);
+        logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g (beta1 = %.2f, beta2 = %.2f)",
+                     nPerm, alpha, beta1, beta2);
       } else if (modelName == "kbac") {
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new KbacTest(nPerm, alpha) );
@@ -1118,7 +1144,9 @@ int main(int argc, char** argv){
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
       // fit each model
-      for (size_t m = 0; m < model.size(); m++) {
+      const size_t numModel = model.size();
+      for (size_t m = 0; m != numModel; m++) 
+      {
         model[m]->reset();
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
@@ -1161,7 +1189,10 @@ int main(int argc, char** argv){
         buf.updateValue(rangeMode, geneName);
         buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
-        for (size_t m = 0; m < model.size(); m++) {
+        const size_t numModel = model.size();
+
+        // #pragma omp parallel for
+        for (size_t m = 0; m != numModel; m++) {
           model[m]->reset();
           model[m]->fit(&dc);
           model[m]->writeOutput(fOuts[m], buf);
@@ -1204,7 +1235,11 @@ int main(int argc, char** argv){
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows) );
       buf.updateValue("NumVar", toString(genotype.cols));
 
-      for (size_t m = 0; m < model.size(); m++) {
+      const size_t numModel = model.size();
+      // #ifdef _OPENMP
+      // #pragma omp parallel for
+      // #endif
+      for (size_t m = 0; m != numModel; m++) {
         model[m]->reset();
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);

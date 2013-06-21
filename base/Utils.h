@@ -4,6 +4,7 @@
 #include <string.h> // for strlen
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <vector>
 #include <string>
@@ -151,6 +152,10 @@ inline std::string toupper(const std::string& s) {
   return ret;
 };
 
+inline bool isInteger(const double m) {
+  double d;
+  return (modf(m, &d) == 0.0);
+}
 
 /**
  * print out the content for debug only

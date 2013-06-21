@@ -449,40 +449,6 @@ void welcome() {
 }
 
 int main(int argc, char** argv){
-#if 0
-  int t  = -1;
-  // fprintf(stderr, "t = %d\n", t);
-  t = atoi("100000");
-  fprintf(stderr, "t = %d\n", t);
-
-  fprintf(stderr, "reset\n");
-  t = -1;
-  if (str2int("1E5", &t)) {
-    fprintf(stderr, "OK\n");
-  } else {
-    fprintf(stderr, "not OK\n");
-  }
-  fprintf(stderr, "t = %d\n", t);
-
-  fprintf(stderr, "reset\n");
-  t = -1;
-  t = strtol("1E5", NULL, 10);
-  fprintf(stderr, "t = %d\n", t);
-
-  fprintf(stderr, "reset\n");
-  t = -1;
-  sscanf("1E5", "%d", &t);
-  fprintf(stderr, "t = %d\n", t);
-
-  fprintf(stderr, "reset\n");
-  t = -1;
-  double d = -1;
-  sscanf("1E5", "%lf", &d);
-  t = (int)d;
-  fprintf(stderr, "t = %d\n", t);
-
-  return 0;
-#endif
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
       ADD_PARAMETER_GROUP(pl, "Basic Input/Output")

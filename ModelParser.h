@@ -49,38 +49,52 @@ class ModelParser{
   const std::string& getName() const {
     return this->name;
   };
+  bool hasTag(const std::string& tag) const {
+    return (this->param.find(tolower(tag)) != this->param.end());
+  }
+  const char* value(const std::string& tag) const {
+    if (hasTag(tag)) {
+      return this->param.find(tolower(tag))->second.c_str();
+    }
+    return NULL;
+  }
   /**
    * assign @param tag to @param value
    */
-  ModelParser& assign(const char* tag, bool* value){
-    if (this->param.find(tag) != this->param.end()){
+  ModelParser& assign(const std::string& tag, bool* value){
+    if (this->hasTag(tag)) {
       (*value) = true;
     } else {
       (*value) = false;
     }
     return (*this);
   };
-  ModelParser& assign(const char* tag, double* value){
-    if (this->param.find(tag) != this->param.end()){
-      (*value) = atof(this->param[tag]);
+  ModelParser& assign(const std::string& tag, double* value){
+    if (this->hasTag(tag)) {
+      (*value) = atof(this->value(tag));
     } else {
-      logger->error("Cannot find parameter [ %s ]", tag);
+      logger->error("Cannot find parameter [ %s ]", tag.c_str());
     }
     return (*this);
   };
-  ModelParser& assign(const char* tag, int* value){
-    if (this->param.find(tag) != this->param.end()){
-      (*value) = atoi(this->param[tag]);
+  ModelParser& assign(const std::string& tag, int* value){
+    if (this->hasTag(tag)) {
+      double d = atof(this->value(tag));
+      *value = (int) d;
+      if (!isInteger(d)) {
+        logger->warn("Convert parameter [ %s ] from specified value [ %s ] to integer [ %d ]",
+                     tag.c_str(), this->value(tag), *value);
+      }
     } else {
-      logger->error("Cannot find parameter [ %s ]", tag);
+      logger->error("Cannot find parameter [ %s ]", tag.c_str());
     }
     return (*this);
   };
-  ModelParser& assign(const char* tag, std::string* value){
-    if (this->param.find(tag) != this->param.end()){
-      (*value) = (this->param[tag]);
+  ModelParser& assign(const std::string& tag, std::string* value){
+    if (this->hasTag(tag)) {
+      (*value) = (this->value(tag));
     } else {
-      logger->error("Cannot find parameter [ %s ]", tag);
+      logger->error("Cannot find parameter [ %s ]", tag.c_str());
     }
     return (*this);
   };
@@ -88,33 +102,40 @@ class ModelParser{
    * if @param tag is provided, assign @param tag to @param value
    * otherwise, set @param value to @param def
    */
-  ModelParser& assign(const char* tag, bool* value, const bool def){
-    if (this->param.find(tag) != this->param.end()){
+  ModelParser& assign(const std::string& tag, bool* value, const bool def){
+    if (this->hasTag(tag)) {
       (*value) = true;
     } else {
       (*value) = def;
     }
     return (*this);
   };
-  ModelParser& assign(const char* tag, double* value, const double def){
-    if (this->param.find(tag) != this->param.end()){
-      (*value) = atof(this->param[tag]);
+  ModelParser& assign(const std::string& tag, double* value, const double def){
+    if (this->hasTag(tag)) {
+      (*value) = atof(this->value(tag));
     } else {
       (*value) = def;
     }
     return (*this);
   };
-  ModelParser& assign(const char* tag, int* value, const int def){
-    if (this->param.find(tag) != this->param.end()){
-      (*value) = atoi(this->param[tag]);
+  ModelParser& assign(const std::string& tag, int* value, const int def){
+    if (this->hasTag(tag)) {
+      // convert double then to integer
+      // so that scientific notation of float numbers are supported
+      double d = atof(this->value(tag));
+      *value = (int) d;
+      if (!isInteger(d)) {
+        logger->warn("Convert parameter [ %s ] from specified value [ %s ] to integer [ %d ]",
+                     tag.c_str(), this->value(tag), *value);
+      }
     } else {
       (*value) = def;
     }
     return (*this);
   };
-  ModelParser& assign(const char* tag, std::string* value, const std::string& def){
-    if (this->param.find(tag) != this->param.end()){
-      (*value) = (this->param[tag]);
+  ModelParser& assign(const std::string& tag, std::string* value, const std::string& def){
+    if (this->hasTag(tag)) {
+      (*value) = (this->value(tag));
     } else {
       (*value) = def;
     }
@@ -128,7 +149,9 @@ class ModelParser{
   static const char PARAM_DELIM = ':';
  private:
   std::string name;
-  std::map<std::string, std::string> param;
+  // Store parsed parameters
+  // use this->value() and this->hasTag() to access this.
+  std::map<std::string, std::string> param; 
 };
 
 

@@ -1849,7 +1849,7 @@ class SkatTest: public ModelFitter{
 public:
   /* SkatTest(const std::vector<std::string>& param) { */
 SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha) {
-    if (nPerm >0)
+    if (nPerm > 0)
       this->usePermutation = true;
     this->beta1 = beta1;
     this->beta2 = beta2;

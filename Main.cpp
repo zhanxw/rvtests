@@ -1,12 +1,10 @@
 /**
    immediately TODO:
-   24. Conditional analysis + burden test
    31. Family burden
    12. Add support multi-thread
    13. Add optional weight
    23. Add dominant model
    25. Take optional weight, e.g. GERP
-   29. Cache score test to speed things up.
    30. When taking covariates, check if the covariates are unique, if so, generate a warning and kick it out.
    32. Optional output tag from VCF
 
@@ -42,6 +40,8 @@
    27. Output .MetaCov.assoc into gzipped format
    26. Take family structure into consideration.
    28. Display monomorhpic in MetaScore model
+   24. Conditional analysis + burden test (via --condition)
+   29. Cache score test to speed things up.
 
    Future TODO:
    22. Add U-statistics
@@ -449,6 +449,40 @@ void welcome() {
 }
 
 int main(int argc, char** argv){
+#if 0
+  int t  = -1;
+  // fprintf(stderr, "t = %d\n", t);
+  t = atoi("100000");
+  fprintf(stderr, "t = %d\n", t);
+
+  fprintf(stderr, "reset\n");
+  t = -1;
+  if (str2int("1E5", &t)) {
+    fprintf(stderr, "OK\n");
+  } else {
+    fprintf(stderr, "not OK\n");
+  }
+  fprintf(stderr, "t = %d\n", t);
+
+  fprintf(stderr, "reset\n");
+  t = -1;
+  t = strtol("1E5", NULL, 10);
+  fprintf(stderr, "t = %d\n", t);
+
+  fprintf(stderr, "reset\n");
+  t = -1;
+  sscanf("1E5", "%d", &t);
+  fprintf(stderr, "t = %d\n", t);
+
+  fprintf(stderr, "reset\n");
+  t = -1;
+  double d = -1;
+  sscanf("1E5", "%lf", &d);
+  t = (int)d;
+  fprintf(stderr, "t = %d\n", t);
+
+  return 0;
+#endif
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
       ADD_PARAMETER_GROUP(pl, "Basic Input/Output")
@@ -904,7 +938,8 @@ int main(int argc, char** argv){
         double beta1, beta2;
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
         model.push_back( new SkatTest(nPerm, alpha, beta1, beta2) );
-        logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g (beta1 = %.2f, beta2 = %.2f)", nPerm, alpha, beta1, beta2);
+        logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g (beta1 = %.2f, beta2 = %.2f)",
+                     nPerm, alpha, beta1, beta2);
       } else if (modelName == "kbac") {
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new KbacTest(nPerm, alpha) );

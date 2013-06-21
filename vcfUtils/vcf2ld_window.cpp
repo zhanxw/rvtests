@@ -32,6 +32,30 @@ struct Loci{
 };
 
 /**
+ * Get a 3 by 3 countingency table ( 0/0, 0/1, 1/1 ) by ( 0/0, 0/1, 1/1 )
+ */
+std::string getCount(const Genotype& g1, const Genotype& g2) {
+  size_t n = g1.size();
+  std::string r;
+  char buffer[1024];
+  size_t count[9] = {0};
+  for (size_t c = 0; c < n; ++c) { //iterator each people
+    if (g1[c] < 0 || g1[c] > 2 || g2[c] < 0 || g2[c] > 2)
+      continue;
+    ++ count[g1[c] + g2[c] * 3];
+  }
+  int offset = 0;
+  int nWritten = 0;
+  for (int i = 0; i < 9; ++i ){
+    // printf("%zu\n", count[i]);
+    nWritten = sprintf(buffer + offset, "%zu,", count[i]);
+    offset += nWritten;
+  }
+  r = buffer;
+  return r.substr(0, offset - 1);
+}
+
+/**
  * @return \sum g1 * g2 - \sum(g1) * \sum(g2)/n
  */
 double getCovariance(const Genotype& g1, const Genotype& g2) {
@@ -83,7 +107,7 @@ double getCorrelation(const Genotype& g1, const Genotype& g2) {
     return 0.0;
   }
   double cor = cov_ij / c;
-  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, cov_ii, cov_jj, n);
   return cor;
 };
 
@@ -122,10 +146,12 @@ int printCovariance(FILE* fp, const std::deque<Loci>& loci){
   auto iter = loci.begin();
   std::vector<int> position( loci.size());
   std::vector<double> cov (loci.size());
+  std::vector<std::string> count (loci.size());
   int idx = 0;
   for (; iter != loci.end(); ++iter){
     position[idx] = iter->pos.pos;
     cov[idx] = getCovariance(loci.front().geno, iter->geno);
+    count[idx] = getCount(loci.front().geno, iter->geno);
     idx ++;
   };
   fprintf(fp, "%s\t%d\t%d\t", loci.front().pos.chrom.c_str(), loci.front().pos.pos, loci.back().pos.pos);
@@ -139,6 +165,12 @@ int printCovariance(FILE* fp, const std::deque<Loci>& loci){
     if (i) fputc(',', fp);
     fprintf(fp, "%g", cov[i]);
   }
+  fputc('\t', fp);
+  for(int i = 0; i < idx; ++i) {
+    if (i) fputc(',', fp);
+    fprintf(fp, "%s", count[i].c_str());
+  }
+  
   fputc('\n', fp);
   return 0;
 };
@@ -150,13 +182,16 @@ int printCovariance(FILE* fp, const std::deque<Loci>& loci){
 int printCovariance(FILE* fp, const std::deque<Loci>& anchor, const Loci& loci){
   double cov;
   double r2;
+  std::string count;
   for (auto iter=anchor.begin(); iter!=anchor.end(); ++iter) {
     cov = getCovariance(iter->geno, loci.geno);
     r2 =  getCorrelation(iter->geno, loci.geno);
+    count = getCount(iter->geno, loci.geno);
     fprintf(fp, "%s\t%d\t", iter->pos.chrom.c_str(), iter->pos.pos);
     fprintf(fp, "%s\t%d\t", loci.pos.chrom.c_str(), loci.pos.pos);
     fprintf(fp, "%g\t", cov);
-    fprintf(fp, "%g\n", r2);
+    fprintf(fp, "%g\t", r2);
+    fprintf(fp, "%s\n", count.c_str());
   }
   return 0;
 };
@@ -186,136 +221,7 @@ void banner(FILE* fp) {
   fputs(string, fp);
 };
 
-/**
- * @return number of phenotypes read. -1 if errors
- *
- */
-int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
-  std::map<std::string, double>& pheno = *p;
-
-  std::vector<std::string> fd;
-  LineReader lr(fn);
-  int lineNo = 0;
-  double v;
-  while (lr.readLineBySep(&fd, "\t ")){
-    ++ lineNo;
-    if (fd.size() < 6) {
-      fprintf(stderr, "skip line %d (short of columns)\n", lineNo);
-      continue;
-    }
-    std::string& pid = fd[1];
-    v = atof(fd[5]);
-    if (pheno.count(pid) == 0) {
-      pheno[pid] = v;
-    } else {
-      fprintf(stderr, "line %s have duplicated id, skipping\n", pid.c_str());
-      continue;
-    }
-  }
-  return pheno.size();
-};
-
-/**
- * Test whether x contain unique elements
- */
-bool isUnique(const std::vector<std::string>& x) {
-  std::set<std::string> s;
-  for (size_t i = 0; i < x.size(); i++) {
-    s.insert(x[i]);
-    if (s.size() != i + 1) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * according to the order of @param vcfSampleNames, put phenotypes to @param phenotypeInOrder
- */
-void rearrange(const std::map< std::string, double>& phenotype, const std::vector<std::string>& vcfSampleNames,
-               std::vector<std::string>* vcfSampleToDrop, std::vector<double>* phenotypeInOrder) {
-  vcfSampleToDrop->clear();
-  phenotypeInOrder->clear();
-  if (!isUnique(vcfSampleNames)) {
-    fprintf(stderr, "VCF file have duplicated sample id. Quitting!\n");
-    abort();
-  }
-  for (size_t i = 0; i < vcfSampleNames.size(); i++) {
-    if (phenotype.count(vcfSampleNames[i]) == 0) {
-      vcfSampleToDrop->push_back(vcfSampleNames[i]);
-    } else {
-      phenotypeInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
-    }
-  }
-};
-
-/**
- * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
- * genotype is marker by people matrix
- */
-void imputeGenotype(Matrix* genotype, Random* r) {
-  Matrix& m = *genotype;
-  for (int i = 0; i < m.rows; i++ ) {
-    int ac = 0;
-    int an = 0;
-    for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] >= 0) {
-        ac += m[i][j];
-        an += 2;
-      }
-    }
-    double p = 1.0 * ac / an;
-    double pRef = p * p;
-    double pHet = pRef + 2.0*p * (1.0 - p);
-    for (int j = 0; j < m.cols; j++){
-      if (m[i][j] < 0) {
-        double v = r->Next();
-        if (v < pRef) {
-          m[i][j] = 0;
-        } else if (v < pHet) {
-          m[i][j] = 1;
-        } else {
-          m[i][j] = 2;
-        }
-      }
-    }
-  }
-};
-
-/**
- * Impute missing genotype (<0) according to its mean genotype
- * genotype ismarker by people
- */
-void imputeGenotypeToMean(Matrix* genotype) {
-  Matrix& m = *genotype;
-  for (int i = 0; i < m.rows; i++ ) {
-    int ac = 0;
-    int an = 0;
-    for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] >= 0) {
-        ac += m[i][j];
-        an += 2;
-      }
-    }
-    double p = 1.0 * ac / an;
-    for (int j = 0; j < m.cols; j++){
-      if (m[i][j] < 0) {
-        m[i][j] = p;
-      }
-    }
-  }
-};
-
-/**
- * convert the vector @param v to Matrix format @param m
- */
-void toMatrix(const std::vector<double>& v, Matrix* m) {
-  m->Dimension(v.size(), 1);
-  for (size_t i = 0; i < v.size(); i++) {
-    (*m)[i][0] = v[i];
-  }
-};
-
+#if 0
 /**
  * Calculate R2 for genotype[,i] and genotype[,j]
  */
@@ -342,8 +248,10 @@ double calculateR2(Matrix& genotype, const int i, const int j){
   double d = var_i * var_j;
   // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
   if (d < 1e-10) return 0.0;
+  printf("%g, %g, %g, %g, %g\n", sum_i, sum_i2, sum_ij, sum_j, sum_j2);
   return cov_ij / sqrt(d);
 };
+#endif
 
 /**
  * Calculate covariance for genotype[,i] and genotype[,j]
@@ -525,11 +433,11 @@ int main(int argc, char** argv){
       }
       anchor.push_back(loci);
     }
-    logger->info("Load %d anchor SNPs", (int)anchor.size());
+    logger->info("Load %d anchor SNPs", (int) anchor.size());
     delete pVin;
-    fprintf(fout, "CHROM\tPOS\tCHROM\tPOS\tCOV\tr2\n");
-  } else {
-    fprintf(fout, "CHROM\tCURRENT_POS\tEND_POS\tNUM_MARKER\tMARKER_POS\tCOV\n");
+    fprintf(fout, "CHROM\tPOS\tCHROM\tPOS\tCOV\tr2\tCount\n");
+  } else { // do not use anchor
+    fprintf(fout, "CHROM\tCURRENT_POS\tEND_POS\tNUM_MARKER\tMARKER_POS\tCOV\tCount\n");
   }
 
   // std::string chrom;

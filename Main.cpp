@@ -78,6 +78,10 @@
 #include "GitVersion.h"
 #include "Result.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#pragma message "Enable multithread using OpenMP"
+#endif
 
 Logger* logger = NULL;
 
@@ -441,7 +445,7 @@ int appendGenotype(Matrix* covariate,
 
 SummaryHeader* g_SummaryHeader = NULL;
 
-#define VERSION "20130503"
+#define VERSION "20130620"
 void welcome() {
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
   fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");
@@ -515,7 +519,7 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Specify either of mean, hwe, and drop")
-      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean by those have genotypes but no phenotpyes")
+      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean of those have genotypes but no phenotpyes")
 
       ADD_PARAMETER_GROUP(pl, "Conditional Analysis")
       ADD_STRING_PARAMETER(pl, condition, "--condition", "Specify markers to be conditions (specify range)")
@@ -1140,7 +1144,9 @@ int main(int argc, char** argv){
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
       // fit each model
-      for (size_t m = 0; m < model.size(); m++) {
+      const size_t numModel = model.size();
+      for (size_t m = 0; m != numModel; m++) 
+      {
         model[m]->reset();
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
@@ -1183,7 +1189,10 @@ int main(int argc, char** argv){
         buf.updateValue(rangeMode, geneName);
         buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
-        for (size_t m = 0; m < model.size(); m++) {
+        const size_t numModel = model.size();
+
+        // #pragma omp parallel for
+        for (size_t m = 0; m != numModel; m++) {
           model[m]->reset();
           model[m]->fit(&dc);
           model[m]->writeOutput(fOuts[m], buf);
@@ -1226,7 +1235,11 @@ int main(int argc, char** argv){
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows) );
       buf.updateValue("NumVar", toString(genotype.cols));
 
-      for (size_t m = 0; m < model.size(); m++) {
+      const size_t numModel = model.size();
+      // #ifdef _OPENMP
+      // #pragma omp parallel for
+      // #endif
+      for (size_t m = 0; m != numModel; m++) {
         model[m]->reset();
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);

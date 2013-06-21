@@ -708,6 +708,7 @@ int main(int argc, char** argv){
          ++iter) {
       vin.excludePeople(iter->c_str());
     }
+
   }
   // load conditional markers
   if (!FLAG_condition.empty()) {
@@ -722,9 +723,28 @@ int main(int argc, char** argv){
       abort();
     }
   }
+
+  // check if some covariates are unique
+  // e.g. user may include covariate "1" in addition to intercept
+  // in such case, we will give a fatal error
+  for (int i = 0 ; i < covariate.cols; ++i ) {
+    std::set< double > s;
+    s.clear();
+    for (int j = 0; j < covariate.rows; ++j) {
+      s.insert(covariate[j][i]);
+    }
+    if (s.size() == 1 ) {
+      logger->error("Covariate [ %s ] equals [ %g ] for all samples, cannot fit model...\n",
+                    covariate.GetColumnLabel(i),
+                    *s.begin());
+      abort();
+    }
+  }
+  
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
 
+  
 
   // adjust phenotype
   bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);

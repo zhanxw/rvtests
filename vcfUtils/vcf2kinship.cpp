@@ -416,7 +416,7 @@ int main(int argc, char** argv){
     VCFIndividual* indv;
 
     // only take autosomal
-    int chrom = atoi(r.getChrom());
+    int chrom = atoi(chopChr(r.getChrom()));
     if (chrom < 1 && chrom > 22) {
       ++ skipSexChrom;
       continue;

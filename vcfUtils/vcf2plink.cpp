@@ -18,6 +18,8 @@
 #include "IO.h"
 #include "Regex.h"
 
+extern double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2);
+
 int main(int argc, char** argv){
     time_t currentTime = time(0);
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));

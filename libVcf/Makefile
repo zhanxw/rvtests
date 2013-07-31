@@ -12,7 +12,7 @@ TABIX_LIB = ../third/tabix/libtabix.a
 $(TABIX_INC) $(TABIX_LIB):
 	(cd ../third; make tabix)
 
-DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I../base -I${TABIX_INC}
+DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I../base -I$(TABIX_INC) -I../third/pcre/include
 
 # 'make release' will: clean current build; build with -O4 flags;
 # NOTE: don't use -j flag!

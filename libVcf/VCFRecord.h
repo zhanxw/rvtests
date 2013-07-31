@@ -75,12 +75,18 @@ public:
     this->parsed[this->filt.end] = '\0';
 
     if ( (ret = (this->info.parseTill(this->parsed, this->filt.end + 1, '\t') ))) {
-      fprintf(stderr, "Error when parsing INFO [ %s ]\n", vcfLine.c_str());
-      return -1;
+      // either parsing error, or we are dealing with site only VCFs
+      if (ret < 0) { // error happens
+        fprintf(stderr, "Error when parsing INFO [ %s ]\n", vcfLine.c_str());
+        return -1;
+      }
     }      
     this->parsed[this->info.end] = '\0';
     this->vcfInfo.parse(this->info); // lazy parse inside VCFInfo
-
+    if (ret > 0) { // for site-only VCFs, just return
+      return 0;
+    }
+    
     if ( (ret = (this->format.parseTill(this->parsed, this->info.end + 1, '\t') ))){
       fprintf(stderr, "Error when parsing FORMAT [ %s ]\n", vcfLine.c_str());
       return -1;
@@ -133,7 +139,9 @@ public:
     std::vector<std::string> sa;
     stringTokenize(line, '\t', &sa);
     if (sa.size() <= 9){
-      FATAL("not enough people in the VCF (VCF does not contain genotype and individuals?)");
+      // FATAL("not enough people in the VCF (VCF does not contain genotype and individuals?)");
+      // let's support site only VCFs
+      return;
     }
     for (unsigned int i = 9; i < sa.size(); i++ ) {
       int idx = i - 9;

@@ -15,7 +15,7 @@ void VCFInputFile::rewriteVCFHeader() {
 
 void VCFInputFile::setRangeMode() {
   if (!this->hasIndex){
-    fprintf(stderr, "Please provide VCF index when accessing VCF by region\n");
+    fprintf(stderr, "[ERROR] Please provide VCF index when accessing VCF file by region.\n");
     abort();
   };
   this->mode = VCFInputFile::RANGE_MODE;

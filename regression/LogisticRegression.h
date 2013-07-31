@@ -22,39 +22,40 @@
 //use Wald statistics
 class LogisticRegression
 {
-  public:
-    LogisticRegression();
-    ~LogisticRegression();
+public:
+  LogisticRegression();
+  ~LogisticRegression();
 
-    bool FitLogisticModel(Matrix & X, Matrix & y, int rnrounds); // return false if not converging
-    bool FitLogisticModel(Matrix & X, Vector & y, int rnrounds); // return false if not converging
-    bool FitLogisticModel(Matrix & X, Vector & succ, Vector& total, int nrrounds);
-    double GetDeviance(Matrix & X, Vector & y);
-    double GetDeviance(Matrix & X, Vector & succ, Vector& total);
-	Vector & GetAsyPvalue();
-	Vector & GetCovEst()    {return this->B;}; // coef estimation of the model
-    Vector & GetPredicted() {return this->p;}; // predicted probability \hat{p}
-    Vector & GetVariance()  {return this->V;}; // predicted variance ( \hat{p} * (1- \hat{p}) 
-	Matrix & GetCovB()      {return this->covB;} ;
+  bool FitLogisticModel(Matrix & X, Matrix & y, int rnrounds); // return false if not converging
+  bool FitLogisticModel(Matrix & X, Vector & y, int rnrounds); // return false if not converging
+  bool FitLogisticModel(Matrix & X, Vector & succ, Vector& total, int nrrounds);
+  double GetDeviance(Matrix & X, Vector & y);
+  double GetDeviance(Matrix & X, Vector & succ, Vector& total);
+  Vector & GetAsyPvalue();
+  Vector & GetCovEst()    {return this->B;}; // coef estimation of the model
+  Vector & GetPredicted() {return this->p;}; // predicted probability \hat{p}
+  Vector & GetVariance()  {return this->V;}; // predicted variance ( \hat{p} * (1- \hat{p})
+  Matrix & GetCovB()      {return this->covB;} ;
 
-    void reset(Matrix& X); // get everything cleared
-    Vector B;       // coefficient vector
-    Matrix covB;    // coefficient covariance matrix
+  void SetInitialCovEst(Vector& initB) { this->B = initB;} ; // set initial value of B, that may speed estimation up if this initial value is close to estimated results.
+  
+  void reset(Matrix& X); // get everything cleared
 
-  private:
-	Vector pValue;
-	Vector p, V, W; // p: estimted prob; V: p(1-p) ; W n*p*(1-p)
-    Vector residuals;
-    Vector deltaB;
-    Matrix D;
-	Matrix testSummary;
-    Matrix Dinv;
-    Cholesky chol;
-    Matrix Dtwo;
-	Matrix XtV;
+private:
+  Vector B;       // coefficient vector
+  Matrix covB;    // coefficient covariance matrix
+
+private:
+  Vector pValue;
+  Vector p, V, W; // p: estimted prob; V: p(1-p) ; W n*p*(1-p)
+  Vector residuals;
+  Vector deltaB;
+  Matrix D;
+  Matrix testSummary;
+  Matrix Dinv;
+  Cholesky chol;
+  Matrix Dtwo;
+  Matrix XtV;
 
 };
 #endif
-
-
-

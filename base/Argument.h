@@ -96,6 +96,10 @@ public:
     fi.doc = doc;
     flagInfoMap[idx] = fi;
 
+    // InitializeValue(pt, data, flag);
+    return;
+  }
+  void InitializeValue(ParameterType pt, void* data, const char* flag) {
     // initialize data
     switch(pt) {
       case BOOL_TYPE:
@@ -589,23 +593,33 @@ private:
 #define ADD_PARAMETER_GROUP(pp, x)              \
   (pp).AddParameterGroup(x);
 #define ADD_BOOL_PARAMETER(pp, x, flag, doc)            \
-  bool FLAG_##x;                                        \
+  bool FLAG_##x = false;                                \
   (pp).AddParameter(BOOL_TYPE, &FLAG_##x, flag, doc);
 #define ADD_INT_PARAMETER(pp, x, flag, doc)             \
-  int FLAG_##x;                                         \
+  int FLAG_##x = 0;                                         \
   (pp).AddParameter(INT_TYPE, &FLAG_##x, flag, doc);
 #define ADD_DOUBLE_PARAMETER(pp, x, flag, doc)          \
-  double FLAG_##x;                                      \
+  double FLAG_##x  = 0.0;                                      \
   (pp).AddParameter(DOUBLE_TYPE, &FLAG_##x, flag, doc);
 #define ADD_STRING_PARAMETER(pp, x, flag, doc)          \
   std::string FLAG_##x;                                 \
+  (pp).AddParameter(STRING_TYPE, &FLAG_##x, flag, doc);
+// default arguments
+#define ADD_DEFAULT_INT_PARAMETER(pp, x, def, flag, doc)         \
+  int FLAG_##x = def;                                    \
+  (pp).AddParameter(INT_TYPE, &FLAG_##x, flag, doc);
+#define ADD_DEFAULT_DOUBLE_PARAMETER(pp, x, def, flag, doc)     \
+  double FLAG_##x = def;                                \
+  (pp).AddParameter(DOUBLE_TYPE, &FLAG_##x, flag, doc);
+#define ADD_DEFAULT_STRING_PARAMETER(pp, x, def, flag, doc)     \
+  std::string FLAG_##x = def ;                          \
   (pp).AddParameter(STRING_TYPE, &FLAG_##x, flag, doc);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // Helper functions
 static void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
-  if (flag.size() == 0){
+  if (flag.empty()){
     fprintf(stderr, "%s\n", msg);
     abort();
   }

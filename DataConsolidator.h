@@ -284,6 +284,70 @@ public:
   Result& getResult() {
     return this->result;
   }
+  
+  const int countRawGenotypeFromCase(int columnIndex,
+                                     int* homRef,
+                                     int* het,
+                                     int* homAlt,
+                                     int* missing) const {
+    if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
+      return -1;
+    }
+    (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
+    for (int i = 0; i < originalGenotype.rows; ++i){
+      if ((int)(this->phenotype[0][i]) != 1)  continue;
+      int g = (int)originalGenotype[i][columnIndex];
+      switch (g) {
+        case 0:
+          ++(*homRef);
+          break;
+        case 1:
+          ++(*het);
+          break;
+        case 2:
+          ++(*homAlt);
+          break;
+        default:
+          if (originalGenotype[i][columnIndex] < 0) {
+            ++(*missing);
+          }
+          break;
+      }
+    }
+    return 0; //success
+  }
+  const int countRawGenotypeFromControl(int columnIndex,
+                                        int* homRef,
+                                        int* het,
+                                        int* homAlt,
+                                        int* missing) const {
+    if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
+      return -1;
+    }
+    (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
+    for (int i = 0; i < originalGenotype.rows; ++i){
+      if ((int)(this->phenotype[0][i]) != 0)  continue;
+      int g = (int)originalGenotype[i][columnIndex];
+      switch (g) {
+        case 0:
+          ++(*homRef);
+          break;
+        case 1:
+          ++(*het);
+          break;
+        case 2:
+          ++(*homAlt);
+          break;
+        default:
+          if (originalGenotype[i][columnIndex] < 0) {
+            ++(*missing);
+          }
+          break;
+      }
+    }
+    return 0; //success
+  }
+  
   const int countRawGenotype(int columnIndex,
                           int* homRef,
                           int* het,
@@ -314,6 +378,7 @@ public:
     }
     return 0; //success
   }
+
   bool isPhenotypeUpdated() const {
     return this->phenotypeUpdated;
   }

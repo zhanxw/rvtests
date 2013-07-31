@@ -2136,6 +2136,7 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
     Matrix& covariate= dc->getCovariate();
 
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
+    
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
     int nSample = (homRef + het + homAlt + missing);
@@ -2147,6 +2148,22 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
     } else {
       hweP = SNPHWE( het, homRef, homAlt);
       af = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
+      if (isBinaryOutcome()) { 
+        dc->countRawGenotypeFromCase(0, &homRef, &het, &homAlt, &missing);
+        if (homRef + het + homAlt == 0 ||
+            (het < 0 || homRef < 0 || homAlt < 0)) {
+          hwePvalueFromCase = 0.0;
+        } else {
+          hwePvalueFromCase = SNPHWE(het, homRef, homAlt);
+        }
+        dc->countRawGenotypeFromControl(0, &homRef, &het, &homAlt, &missing);
+        if (homRef + het + homAlt == 0 ||
+            (het < 0 || homRef < 0 || homAlt < 0)) {
+          hwePvalueFromControl = 0.0;
+        } else {
+          hwePvalueFromControl = SNPHWE(het, homRef, homAlt);
+        }
+      }
     }
 
     if (genotype.cols != 1) {
@@ -2218,6 +2235,13 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
         } else {
           copyGenotypeWithIntercept(genotype, &this->X);
         }
+        Vector& b_null = logistic.GetNullCovEst();
+        Vector b(b_null.Length() + 1);
+        b[0] = 0.0;
+        for (int i = 1; i < b.Length(); ++i) {
+          b[i] = b_null[i-1];
+        }
+        logisticAlt.SetInitialCovEst(b);
         fitOK = logisticAlt.FitLogisticModel(this->X, this->pheno, 100);
         if (!fitOK) return -1;
       }
@@ -2256,7 +2280,13 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
     result.updateValue("AF", af);
     result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
     result.updateValue("CALL_RATE", callRate);
-    result.updateValue("HWE_PVALUE", hweP);
+    if (!isBinaryOutcome()) {
+      result.updateValue("HWE_PVALUE", hweP);
+    } else {
+      static char hwePString[128];
+      snprintf(hwePString, 128, "%g:%g:%g", hweP, hwePvalueFromCase, hwePvalueFromControl);
+      result.updateValue("HWE_PVALUE", hwePString);
+    }
     result.updateValue("N_REF", homRef);
     result.updateValue("N_HET", het);
     result.updateValue("N_ALT", homAlt);
@@ -2305,6 +2335,8 @@ private:
   int homAlt;
   int missing;
   double hweP;
+  double hwePvalueFromCase;
+  double hwePvalueFromControl;
   double callRate;
   bool needToFitNullModel;
   bool useFamilyModel;
@@ -2652,11 +2684,13 @@ private:
     }
     s += ':';
     for(int i = 0; i < this->cov.cols; ++i) {
+      if (i) s+=',';
       s += floatToString(covXZ[i]);
     }
     s += ':';
     for (int i = 0; i < this->ZVZ.rows; ++i) {
       for (int j = 0; j <= i ; ++j) {
+        if (i || j) s+=',';
         s += floatToString(this->ZVZ[i][j]);
       }
     }

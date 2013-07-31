@@ -5,7 +5,6 @@
    13. Add optional weight
    23. Add dominant model
    25. Take optional weight, e.g. GERP
-   30. When taking covariates, check if the covariates are unique, if so, generate a warning and kick it out.
    33. Support sex chromosome coding.
    
    DONE:
@@ -42,6 +41,7 @@
    28. Display monomorhpic in MetaScore model
    24. Conditional analysis + burden test (via --condition)
    29. Cache score test to speed things up.
+   30. When taking covariates, check if the covariates are unique, if so, generate a warning and abort.
 
    Future TODO:
    22. Add U-statistics
@@ -445,7 +445,7 @@ int appendGenotype(Matrix* covariate,
 
 SummaryHeader* g_SummaryHeader = NULL;
 
-#define VERSION "20130620"
+#define VERSION "20130730"
 void welcome() {
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
   fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");

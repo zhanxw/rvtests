@@ -39,6 +39,7 @@ public:
 
   double GetPvalue() const {return this->pvalue;};
   double GetStat() const {return this->stat;};
+  Vector& GetNullCovEst()  {return lr.GetCovEst();}
   const Matrix& GetU() const {return this->Umatrix;};
   const Matrix& GetV() const {return this->Vmatrix;};
 private:

@@ -26,9 +26,10 @@ int extractCovariate(const std::string& fn,
     logger->warn("Some samples have appeared more than once, and we record covariate for its first appearance.");
   }
   std::vector<std::string> noPhenotypeSample;
-
+  
   std::map< std::string, int > processed; // record how many times a sample is processed
   std::set< std::pair<int, int> > missing; // record which number is covaraite is missing.
+  int missingCovariateWarning = 0; // record how many times a missing warning is geneated.
   std::vector<int> columnToExtract;
   std::vector<std::string> extractColumnName;
   std::vector< std::string > fd;
@@ -85,19 +86,24 @@ int extractCovariate(const std::string& fn,
         if (str2double(fd[columnToExtract[i]], &d)) {
           (*mat)[idx][i] = d;
         } else {
-          logger->warn("Covariate file line [ %d ] has non-numerical value [ %s ], we will impute to its mean.", lineNo, fd[columnToExtract[i]].c_str());
+          ++ missingCovariateWarning;
+          if (missingCovariateWarning <= 10) {
+            logger->warn("Covariate file line [ %d ] has non-numerical value [ %s ], we will impute to its mean.", lineNo, fd[columnToExtract[i]].c_str());
+          }
           (*mat)[idx][i] = 0.0; // will later be updated
           missing.insert( std::make_pair(idx, i) );
         };
       }
     }
   }
-  
+  if (missingCovariateWarning > 10) {
+    logger->warn("Total [ %d ] lines in covariate file contain non-numerical values, we will impute these to their mean.", missingCovariateWarning - 10);    
+  }
   // output samples in covaraite but without phenotype
   for (size_t i = 0; i < noPhenotypeSample.size(); ++i) {
     if (i == 0)
       logger->warn("Total [ %zu ] samples are skipped from covariate file due to missing phenotype", noPhenotypeSample.size());
-    if (i >= 10) {
+    if (i > 10) {
       logger->warn("Skip outputting additional [ %d ] samples from covariate file with missing phenotypes.", ((int)noPhenotypeSample.size() - 10) );
       break;
     }

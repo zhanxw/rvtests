@@ -423,8 +423,6 @@ int main(int argc, char** argv){
       printSubHeader("Site Monomorphism Frequency");
       printFrequency(monoCount, "Poly/Monomorphic");
     }
-      
-      
     
 #if 0
     if (FLAG_variantOnly) {

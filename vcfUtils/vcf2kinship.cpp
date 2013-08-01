@@ -408,7 +408,7 @@ int main(int argc, char** argv){
   bool missing;
   while (vin.readRecord()){
     lineNo ++;
-    if (lineNo % 1000000 == 0) {
+    if (lineNo % 10000 == 0) {
       fprintf(stdout, "\rTotal %d VCF records have processed", lineNo);
     }
     VCFRecord& r = vin.getVCFRecord();
@@ -416,7 +416,7 @@ int main(int argc, char** argv){
     VCFIndividual* indv;
 
     // only take autosomal
-    int chrom = atoi(r.getChrom());
+    int chrom = atoi(chopChr(r.getChrom()));
     if (chrom < 1 && chrom > 22) {
       ++ skipSexChrom;
       continue;

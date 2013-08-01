@@ -5,8 +5,10 @@
 // accordig to http://lh3lh3.users.sourceforge.net/reb.shtml
 // PCRE-posix is fast
 #include <stdio.h>
-#include <pcreposix.h>
 #include <string>
+// use third/ pcre library instead of
+// system provided header file
+#include "pcreposix.h" 
 #define ERROR_BUF_LEN 64
 class Regex {
 public:

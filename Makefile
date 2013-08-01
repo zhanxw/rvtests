@@ -9,6 +9,7 @@ UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcfSummaryLite vcfAnnoSummaryLite vcfVariantSummaryLite vcfIndvSummary \
             vcfPair \
             vcf2kinship \
+            vcfPeek \
             vcf2ld_neighbor 
 #            gerp \
             # vcf2merlin 

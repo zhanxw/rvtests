@@ -460,15 +460,18 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
       ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
       ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
+
       ADD_PARAMETER_GROUP(pl, "Specify Covariate")
       ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
       ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")
       ADD_PARAMETER_GROUP(pl, "Specify Phenotype")
+
       ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
       ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
       ADD_BOOL_PARAMETER(pl, useResidualAsPhenotype, "--useResidualAsPhenotype", "fit covariate ~ phenotype, use residual to replace phenotype")
       ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "specify which phenotype column to read (default: 1)")
       ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name", "specify which phenotype column to read by header")
+      ADD_BOOL_PARAMETER(pl, qtl, "--qtl", "treat phenotype as quantitative trait")
       // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
       // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
       // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output [prefix].{fam,bed,bim} in Plink BED format")
@@ -751,12 +754,18 @@ int main(int argc, char** argv){
   
 
   // adjust phenotype
-  bool binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
-  if (binaryPhenotype) {
-    logger->warn("-- Enabling binary phenotype mode -- ");
-    convertBinaryPhenotype(&phenotypeInOrder);
+  bool binaryPhenotype;
+  if (FLAG_qtl) {
+    binaryPhenotype = false;
+    logger->info("-- Force quantitative trait mode -- ");
+  } else {
+    binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
+    if (binaryPhenotype) {
+      logger->warn("-- Enabling binary phenotype mode -- ");
+      convertBinaryPhenotype(&phenotypeInOrder);
+    }
   }
-
+  
   // use residual as phenotype
   if (FLAG_useResidualAsPhenotype) {
     if (binaryPhenotype) {

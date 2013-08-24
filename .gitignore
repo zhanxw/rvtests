@@ -3,3 +3,6 @@
 *.d
 GitVersion.h
 executable
+GPATH
+GRTAGS
+GTAGS

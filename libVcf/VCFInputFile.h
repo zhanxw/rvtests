@@ -309,3 +309,5 @@ private:
 };
 
 #endif /* _VCFINPUTFILE_H_ */
+
+

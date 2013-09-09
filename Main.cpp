@@ -6,6 +6,11 @@
    23. Add dominant model
    25. Take optional weight, e.g. GERP
    33. Support sex chromosome coding.
+
+   34. Output null model for meta analysis
+   35. Output case/control frequencies
+   36. Support BCF file
+   37. Support dosage
    
    DONE:
    2. support access INFO tag

@@ -129,7 +129,7 @@ RangeCollection():_size(0){};
     // first we first a region i such that ai <= pos
     // then we find region j such that pos < aj
     PositionPair p(pos, pos + 1);
-    std::vector<PositionPair>::const_iterator i = lower_bound(r.begin(), r.end(), p, PositionPairCompare);
+    std::vector<PositionPair>::const_iterator i = std::lower_bound(r.begin(), r.end(), p, PositionPairCompare);
     // Doc: Returns an iterator pointing to the first element in the sorted range [first,last) which does not compare less than value.
     // so the iterator points to the first element >= p.
     if (i == r.end()) {

@@ -3,14 +3,15 @@
 
 #include "base/IO.h"
 #include "CommonFunction.h"
+#include "ModelUtil.h"
 
 class Summary{
-public:
-Summary(): min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0){};
+ public:
+  Summary(): min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0){};
   void add(const std::vector<double>& v) {
     n = v.size();
     if (n == 0 ) return;
-    
+
     std::vector<double> t = v;
     std::sort(t.begin(), t.end());
 
@@ -23,7 +24,7 @@ Summary(): min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0){};
     mean = calculateMean(v);
     sd = calculateSampleSD(v);
   };
-public:
+ public:
   double min;
   double q1;
   double median;
@@ -38,8 +39,8 @@ public:
  * A class to summarize phenotype and genotypes
  */
 class SummaryHeader{
-public:
-SummaryHeader(): inverseNormalized(false) {};
+ public:
+  SummaryHeader(): inverseNormalized(false) {};
   void recordPhenotype(const char* label, const std::vector<double>& pheno){
     this->phenoLabel.push_back(label);
     Summary s;
@@ -79,6 +80,18 @@ SummaryHeader(): inverseNormalized(false) {};
       this->recordCovariateColumn(m, i );
     }
   };
+  void fitModel(const std::vector<double>& pheno, bool binaryPhenotype, Matrix& cov) {
+    this->isBinaryPhenotype = binaryPhenotype;
+    Vector p;
+    convert(pheno, &p);
+    Matrix c;
+    copyCovariateAndIntercept(p.Length(), cov, &c);
+    if (binaryPhenotype) {
+      fitOK = this->logistic.Fit(c, p);
+    } else {
+      fitOK = this->linear.Fit(c, p);
+    }
+  }
   void outputHeader(FileWriter* fp) {
     // write summaries
     int nSample = pheno.size()? pheno[0].n: 0;
@@ -104,32 +117,72 @@ SummaryHeader(): inverseNormalized(false) {};
                  pheno[i].sd * pheno[i].sd );
     }
 
-    if (cov.empty())
-      return;
+    if (!cov.empty()) {
 
-    // write covariate
-    fp->write("##Covariates=");
-    for (size_t i = 0; i < cov.size(); ++i ) {
-      if (i)
-        fp->write(',');
-      fp->write(covLabel[i].c_str());
+      // write covariate
+      fp->write("##Covariates=");
+      for (size_t i = 0; i < cov.size(); ++i ) {
+        if (i)
+          fp->write(',');
+        fp->write(covLabel[i].c_str());
+      }
+      fp->write('\n');
+
+      fp->write("##CovariateSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
+      for (size_t i = 0; i < cov.size(); ++i ) {
+        fp->printf("##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
+                   covLabel[i].c_str(),
+                   cov[i].min,
+                   cov[i].q1,
+                   cov[i].median,
+                   cov[i].q3,
+                   cov[i].max,
+                   cov[i].mean,
+                   cov[i].sd * cov[i].sd);
+      }
     }
-    fp->write('\n');
 
-    fp->write("##CovariateSummary\tmin\t25th\tmedian\t75th\tmax\tmean\tvariance\n");
-    for (size_t i = 0; i < cov.size(); ++i ) {
-      fp->printf("##%s\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
-                covLabel[i].c_str(),
-                cov[i].min,
-                cov[i].q1,
-                cov[i].median,
-                cov[i].q3,
-                cov[i].max,
-                cov[i].mean,
-                cov[i].sd * cov[i].sd);
+    //write null model
+    fp->write("##NullModelEstimates\n");
+    if (!fitOK) {
+      fp->write("## - WARNING: Null model fit failed\n");
+    } else {
+      if (!this->isBinaryPhenotype) {
+        printNullModelEstimate(fp,
+                               linear.GetCovEst(),
+                               linear.GetCovB(),
+                               linear.GetSigma2());
+      } else {
+        printNullModelEstimate(fp,
+                               logistic.GetCovEst(),
+                               logistic.GetCovB(),
+                               1.0);
+      }
     }
   }
-private:
+  void printNullModelEstimate(FileWriter* fp,
+                              const Vector& beta,
+                              const Matrix& betaSd,
+                              const double sigma) {
+    if (beta.Length() != betaSd.rows ||
+        beta.Length() != (int)covLabel.size() + 1) {
+      fprintf(stderr, "Dimension does not match in class Summary.\n");
+      return;
+    }
+    
+    fp->printf("## - Name\tBeta\tSD\n");
+    
+    // intercept
+    fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+    // other cov
+    const int n = covLabel.size();
+    for (int i = 0; i < n; ++i) {
+      fp->printf("## - %s\t%g\t%g\n", covLabel[i-1].c_str(), beta[i], betaSd[i][i]);
+    }
+    // sigma
+    fp->printf("## - Sigma\t%g\tNA\n", sigma);
+  }
+ private:
   std::vector<std::string> phenoLabel;
   std::vector<Summary> pheno;
   Summary transformedPheno;
@@ -138,6 +191,11 @@ private:
 
   std::vector<std::string> covLabel;
   std::vector<Summary> cov;
+
+  bool isBinaryPhenotype;
+  LinearRegression linear;
+  LogisticRegression logistic;
+  bool fitOK;
 };
 
 #endif /* _SUMMARY_H_ */

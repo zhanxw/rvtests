@@ -26,9 +26,23 @@ public:
   LogisticRegression();
   ~LogisticRegression();
 
+  // main function
   bool FitLogisticModel(Matrix & X, Matrix & y, int rnrounds); // return false if not converging
   bool FitLogisticModel(Matrix & X, Vector & y, int rnrounds); // return false if not converging
   bool FitLogisticModel(Matrix & X, Vector & succ, Vector& total, int nrrounds);
+
+  // alias simplified functions
+  bool Fit(Matrix & X, Matrix & y) {
+    return this->FitLogisticModel(X, y, 100);
+  }
+  bool Fit(Matrix & X, Vector & y) {
+    return this->FitLogisticModel(X, y, 100);
+  } 
+  bool Fit(Matrix & X, Vector & succ, Vector& total) {
+    return this->FitLogisticModel(X, succ, total, 100);
+  }
+
+  // obtain results
   double GetDeviance(Matrix & X, Vector & y);
   double GetDeviance(Matrix & X, Vector & succ, Vector& total);
   Vector & GetAsyPvalue();
@@ -41,6 +55,11 @@ public:
   
   void reset(Matrix& X); // get everything cleared
 
+private:
+  // dont' copy.
+  LogisticRegression(const LogisticRegression& l);
+  LogisticRegression& operator=(const LogisticRegression& l);
+  
 private:
   Vector B;       // coefficient vector
   Matrix covB;    // coefficient covariance matrix

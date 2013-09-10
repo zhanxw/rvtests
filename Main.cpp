@@ -10,7 +10,7 @@
    34. Output null model for meta analysis
    35. Output case/control frequencies
    36. Support BCF file
-   37. Support dosage
+   37. Support dosage (imputed genotypes)
    
    DONE:
    2. support access INFO tag
@@ -450,7 +450,7 @@ int appendGenotype(Matrix* covariate,
 
 SummaryHeader* g_SummaryHeader = NULL;
 
-#define VERSION "20130730"
+#define VERSION "20130910"
 void welcome() {
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
   fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");
@@ -736,9 +736,9 @@ int main(int argc, char** argv){
     }
   }
 
-  // check if some covariates are unique
+  // check if some covariates are unique for all samples
   // e.g. user may include covariate "1" in addition to intercept
-  // in such case, we will give a fatal error
+  //      in such case, we will give a fatal error
   for (int i = 0 ; i < covariate.cols; ++i ) {
     std::set< double > s;
     s.clear();
@@ -755,8 +755,6 @@ int main(int argc, char** argv){
   
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
-
-  
 
   // adjust phenotype
   bool binaryPhenotype;
@@ -825,6 +823,9 @@ int main(int argc, char** argv){
     logger->fatal("There are 0 samples with valid phenotypes, quitting...");
     abort();
   }
+
+  g_SummaryHeader->fitModel(phenotypeInOrder, binaryPhenotype, covariate);
+  
   logger->info("Analysis begin with [ %zu ] samples...", phenotypeInOrder.size());
 
   ////////////////////////////////////////////////////////////////////////////////

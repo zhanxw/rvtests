@@ -29,6 +29,11 @@ bzip2: bzip2-1.0.6.tar.gz
 	ln -s -f bzip2-1.0.6 bzip2
 	(cd bzip2-1.0.6; make)
 
+samtools: samtools-0.1.19.tar.bz2
+	tar jvxf $<
+	ln -s -f samtools-0.1.19 samtools
+	(cd samtools; make)
+
 ######################################################################
 # download sources
 eigen-3.1.2.tar.bz2:

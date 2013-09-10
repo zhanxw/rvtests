@@ -1,12 +1,20 @@
-EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange testReadMissing testPlinkInputFile testVCFExtract
+EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange \
+      testReadMissing testPlinkInputFile testVCFExtract \
+      testTabixReader testBCFReader
+
 all: $(EXE)
 debug: all
 
 CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
+ -I../../third/samtools/bcftools \
  ../../libVcf/lib-dbg-vcf.a \
- ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a -lz -lbz2 \
+ ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a \
 ../../third/tabix/libtabix.a \
-../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a
+../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
+-L ../../third/samtools/bcftools -lbcf\
+ ../../third/samtools/libbam.a \
+ -lz -lbz2 -lpthread
+
 
 define BUILD_each
   TAR := $(1)
@@ -38,6 +46,12 @@ check6:
 check7:
 	./testReadMissing > testReadMissing.output
 	diff -q testReadMissing.output testReadMissing.output.correct
+check8:
+	./testTabixReader > testTabixReader.output
+	diff -q testTabixReader.output testTabixReader.correct
+check9:
+	./testBCFReader > testBCFReader.output
+	diff -q testBCFReader.output testBCFReader.correct
 
 clean:
 	-rm -f $(EXE) *.d *.output

@@ -166,6 +166,9 @@ RangeCollection():_size(0){};
     this->rangeMap.clear();
     this->_size = 0;
   };
+  bool empty() const {
+    return this->_size == 0;
+  }
   /**
    * @return number of regions
    */
@@ -281,6 +284,9 @@ private:
 class RangeList{
 public:
 RangeList(): isSorted(false) {};
+  /**
+   * Sort and consolidate regions
+   */
   void sort() {
     if (!this->isSorted) {
       this->rangeCollection.sort();
@@ -300,6 +306,7 @@ RangeList(): isSorted(false) {};
    * @return total number of regions (after merging).
    */
   size_t size() const {return this->rangeCollection.size(); };
+  bool empty() const {return this->rangeCollection.empty(); };
   // read gene list file and add these ranges
   void filterGeneName(const char* geneName, const char* fileName);
   /// @param argRangeList is a string indicating the range

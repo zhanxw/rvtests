@@ -295,7 +295,7 @@ public:
     }
     (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
     for (int i = 0; i < originalGenotype.rows; ++i){
-      if ((int)(this->phenotype[0][i]) != 1)  continue;
+      if ((int)(this->phenotype[i][0]) != 1)  continue;
       int g = (int)originalGenotype[i][columnIndex];
       switch (g) {
         case 0:
@@ -326,7 +326,7 @@ public:
     }
     (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
     for (int i = 0; i < originalGenotype.rows; ++i){
-      if ((int)(this->phenotype[0][i]) != 0)  continue;
+      if ((int)(this->phenotype[i][0]) != 0)  continue;
       int g = (int)originalGenotype[i][columnIndex];
       switch (g) {
         case 0:

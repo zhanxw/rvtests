@@ -7,8 +7,6 @@
    25. Take optional weight, e.g. GERP
    33. Support sex chromosome coding.
 
-   34. Output null model for meta analysis
-   35. Output case/control frequencies
    36. Support BCF file
    37. Support dosage (imputed genotypes)
    
@@ -47,6 +45,8 @@
    24. Conditional analysis + burden test (via --condition)
    29. Cache score test to speed things up.
    30. When taking covariates, check if the covariates are unique, if so, generate a warning and abort.
+   34. Output null model for meta analysis
+   35. Output case/control frequencies
 
    Future TODO:
    22. Add U-statistics

@@ -70,7 +70,7 @@ private:
   Vector residuals;
   Vector deltaB;
   Matrix D;
-  Matrix testSummary;
+  // Matrix testSummary;
   Matrix Dinv;
   Cholesky chol;
   Matrix Dtwo;

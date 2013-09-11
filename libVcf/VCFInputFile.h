@@ -9,13 +9,13 @@
  * parse is equivalent to copy, meaning we will copy the content so speed up later reference by const char*
  */
 class VCFInputFile{
-public:
+ public:
   typedef enum {
     LINE_MODE,           // read line by line
     RANGE_MODE          // read range by range
   } Mode;
 
-public:
+ public:
   VCFInputFile (const std::string& fn) {
     init(fn.c_str());
   }
@@ -174,11 +174,11 @@ public:
 #ifndef NDEBUG
           fprintf(stderr, "Process range: %s\n", rangeBuffer);
           // this->range.dump();
-#endif        
+#endif
           // parse range
           int tid, beg, end, len;
           if (ti_parse_region(tabixHandle->idx, rangeBuffer, &tid, &beg, &end) != 0){
-#ifndef NDEBUG            
+#ifndef NDEBUG
             fprintf(stderr, "Maybe non-existing range: %s, pass....\n", rangeBuffer);
 #endif
             // continue to next rangeIdx
@@ -279,12 +279,12 @@ public:
   VCFRecord& getVCFRecord() {return this->record;};
   const char* getLine() const {return this->line.c_str();};
   const char* getFileName() const {return this->fileName.c_str();};
-private:
+ private:
   // disable copy-constructor
   VCFInputFile(const VCFInputFile& v);
   VCFInputFile& operator=(const VCFInputFile& v);
 
-private:
+ private:
   VCFHeader header;
   VCFRecord record;
 
@@ -305,9 +305,7 @@ private:
 
   Mode mode;
   std::string line;
-  
+
 };
 
 #endif /* _VCFINPUTFILE_H_ */
-
-

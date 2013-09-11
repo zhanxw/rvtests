@@ -2082,15 +2082,19 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
         if (homRef + het + homAlt == 0 ||
             (het < 0 || homRef < 0 || homAlt < 0)) {
           hwePvalueFromCase = 0.0;
+          afFromCase = 0.0;
         } else {
           hwePvalueFromCase = SNPHWE(het, homRef, homAlt);
+          afFromCase = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
         }
         dc->countRawGenotypeFromControl(0, &homRef, &het, &homAlt, &missing);
         if (homRef + het + homAlt == 0 ||
             (het < 0 || homRef < 0 || homAlt < 0)) {
           hwePvalueFromControl = 0.0;
+          afFromControl = 0.0;
         } else {
           hwePvalueFromControl = SNPHWE(het, homRef, homAlt);
+          afFromControl = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
         }
       }
     }
@@ -2207,7 +2211,14 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
     int informativeAC = het + 2* homAlt;
 
     result.clearValue();
-    result.updateValue("AF", af);
+    if (!isBinaryOutcome()) {
+      result.updateValue("AF", af);  
+    } else {
+      static char afString[128];
+      snprintf(afString, 128, "%g:%g:%g", af, afFromCase, afFromControl);
+      result.updateValue("AF", afString);
+    }
+    
     result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
     result.updateValue("CALL_RATE", callRate);
     if (!isBinaryOutcome()) {
@@ -2251,6 +2262,8 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
   };
 private:
   double af;
+  double afFromCase;
+  double afFromControl;
   // int nSample;
   Vector pheno;
   LinearRegressionScoreTest linear;

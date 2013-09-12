@@ -103,7 +103,7 @@ DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x -Wall -Wno-unused-function
 ARCH := $(firstword $(shell uname -m))
 SYS := $(firstword $(shell uname -s))
 ifeq ($(SYS), Linux)
-  STATIC_FLAG = " -static "
+  STATIC_FLAG = -static
 endif
 
 .PHONY: release debug

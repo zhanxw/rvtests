@@ -1,6 +1,6 @@
 # download all third party library and compile them
 
-LIB = tabix pcre eigen gsl bzip2
+LIB = tabix pcre eigen gsl bzip2 samtools
 all: $(LIB)
 
 tabix: tabix-0.2.6.tar.bz2
@@ -55,6 +55,6 @@ deepclean:
 	-rm -rf tabix-0.2.6
 	-rm -rf pcre-8.21
 	-rm -rf gsl-1.15
-	-rm -rf eigen-3.1.2
+	-rm -rf eigen-3.1.4
 	-rm -rf bzip2-1.0.6
-
+	-rm -rf samtools-0.1.19

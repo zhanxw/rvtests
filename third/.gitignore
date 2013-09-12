@@ -4,4 +4,5 @@ tabix*
 bzip2*
 zlib*
 gsl*
+samtools*
 

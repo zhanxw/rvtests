@@ -46,7 +46,7 @@ class GrammarGamma::Impl{
       getBetaSigma2(d);
       loglik[i] = getLogLikelihood(d);
       // fprintf(stderr, "%d\tdelta=%g\tll=%lf\n", i, delta, loglik[i]);
-      if (isnan(loglik[i])) {
+      if (std::isnan(loglik[i])) {
         continue;
       }
       if (maxIndex < 0 || loglik[i] > maxLogLik) {

@@ -37,7 +37,7 @@ class MetaCov::Impl{
 #ifdef DEBUG
       fprintf(stderr, "%d\tdelta=%g\tll=%lf\n", i, delta, loglik[i]);
 #endif
-      if (isnan(loglik[i])) {
+      if (std::isnan(loglik[i])) {
         continue;
       }
       if (maxIndex < 0 || loglik[i] > maxLogLik) {

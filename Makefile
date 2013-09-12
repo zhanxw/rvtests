@@ -100,6 +100,12 @@ CXX_LIB_DBG = $(LIB_DBG) -lz -lm #-lgsl #-lblas
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x -Wall -Wno-unused-function
 
+ARCH := $(firstword $(shell uname -m))
+SYS := $(firstword $(shell uname -s))
+ifeq ($(SYS), Linux)
+  STATIC_FLAG = " -static "
+endif
+
 .PHONY: release debug
 
 # to build lib, we will use reverse order
@@ -108,7 +114,7 @@ reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstwor
 lib: $(call reverse,$(LIB))
 lib-dbg: $(call reverse,$(LIB_DBG))
 
-release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) -static
+release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) $(STATIC_FLAG)
 release: $(DIR_EXEC)/$(EXEC) util
 $(DIR_EXEC)/$(EXEC): lib \
                      Main.o \
@@ -148,7 +154,7 @@ define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
   SRC := $(addprefix vcfUtils/, $(1).cpp)
   -include  $(1).d
-  $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS) -static
+  $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS)  $(STATIC_FLAG)
   $$(TAR): $$(SRC) $(LIB) | $(DIR_EXEC)
 	$(CXX) -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
 endef

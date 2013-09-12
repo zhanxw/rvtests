@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h> // gethostname
 #include <string.h> // strlen
-#include <ctime>
+#include <time.h>
 
 #include <string>
 #include <map>

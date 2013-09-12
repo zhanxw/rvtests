@@ -117,33 +117,34 @@ lib-dbg: $(call reverse,$(LIB_DBG))
 release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) $(STATIC_FLAG)
 release: $(DIR_EXEC)/$(EXEC) util
 $(DIR_EXEC)/$(EXEC): lib \
-                     Main.o \
-                     DataConsolidator.o \
-                     ModelFitter.h \
+                     src/Main.o \
+                     src/DataConsolidator.o \
+                     src/ModelFitter.h \
                      |$(DIR_EXEC)
 	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB)
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
 $(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
-                         Main.o \
-                         DataConsolidator.o \
-                         Collapsor.h ModelFitter.h \
+                         src/Main.o \
+                         src/DataConsolidator.o \
+                         src/Collapsor.h \
+                         src/ModelFitter.h \
                          | $(DIR_EXEC_DBG)
-	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
+	$(CXX) -o $@ src/Main.o src/DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
 
 
 ##################################################
-GitVersion.h: .git/HEAD .git/index
+src/GitVersion.h: .git/HEAD .git/index
 	-echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
 .git/HEAD .git/index:
 	-echo "const char *gitVersion = \"not-a-git-repo\"" > GitVersion.h 
--include Main.d
-Main.o: Main.cpp GitVersion.h
+-include src/Main.d
+src/Main.o: src/Main.cpp src/GitVersion.h
 	$(CXX) -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
--include DataConsolidator.d
-DataConsolidator.o: DataConsolidator.cpp DataConsolidator.h
+-include src/DataConsolidator.d
+src/DataConsolidator.o: src/DataConsolidator.cpp src/DataConsolidator.h
 	$(CXX) -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 ##################################################
@@ -194,14 +195,14 @@ deepclean: clean libclean
 ## tests
 ##################################################
 test: test1
-test1: rvtest
-	./rvtest --inVcf test.vcf.gz --outVcf test1.out.vcf 
-test2: rvtest
-	./rvtest --inVcf test.vcf.gz --outVcf test2.out.vcf --peopleIncludeID P4,P2
-test3: rvtest
-	./rvtest --inVcf test.vcf.gz --outVcf test3.vcf --peopleIncludeID P2,NotValid,P3 --peopleExcludeID P3
-test4: rvtest
-	./rvtest --inVcf test.vcf.gz --make-bed test.plink
+test1: $(DIR_EXEC_DBG)/$(EXEC)
+	$(DIR_EXEC_DBG)/$(EXEC) --inVcf test.vcf.gz --outVcf test1.out.vcf 
+test2: $(DIR_EXEC_DBG)/$(EXEC)
+	$(DIR_EXEC_DBG)/$(EXEC) --inVcf test.vcf.gz --outVcf test2.out.vcf --peopleIncludeID P4,P2
+test3: $(DIR_EXEC_DBG)/$(EXEC)
+	$(DIR_EXEC_DBG)/$(EXEC) --inVcf test.vcf.gz --outVcf test3.vcf --peopleIncludeID P2,NotValid,P3 --peopleExcludeID P3
+test4: $(DIR_EXEC_DBG)/$(EXEC)
+	$(DIR_EXEC_DBG)/$(EXEC) --inVcf test.vcf.gz --make-bed test.plink
 
 DajiangDataSet/qt1.vcf.gz: DajiangDataSet/qt1.ped
 	(cd DajiangDataSet; bash cmd.sh);
@@ -209,13 +210,13 @@ DajiangDataSet/qt1.vcf.gz: DajiangDataSet/qt1.ped
 DajiangDataSet := DajiangDataSet/qt1.vcf.gz DajiangDataSet/qt1.pheno
 
 testSingle: rvtest $(DajiangDataSet)
-	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --single score,wald
+	$(DIR_EXEC_DBG)/$(EXEC) --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --single score,wald
 testBurden: rvtest $(DajiangDataSet)
-	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --burden cmc,zeggini,mb,exactCMC
+	$(DIR_EXEC_DBG)/$(EXEC) --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --burden cmc,zeggini,mb,exactCMC
 testVt: rvtest $(DajiangDataSet)
-	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --vt cmc,zeggini,mb,skat
+	$(DIR_EXEC_DBG)/$(EXEC) --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --vt cmc,zeggini,mb,skat
 testKernel: rvtest $(DajiangDataSet)
-	./rvtest --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --kernel skat
+	$(DIR_EXEC_DBG)/$(EXEC) --inVcf DajiangDataSet/qt1.vcf.gz --pheno DajiangDataSet/qt1.pheno --set DajiangDataSet/set.txt --kernel skat
 
 # mem test:
 testMemLeak: testMemLeak.cpp $(LIB)

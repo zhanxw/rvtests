@@ -9,6 +9,7 @@
 #include "OrderedMap.h"
 #include "Utils.h"
 #include "IO.h"
+#include "CommonFunction.h"
 #include "RangeList.h"
 #include "Exception.h"
 
@@ -213,8 +214,8 @@ public:
     this->hasAccess = false;
   };
   void excludePeople(const std::string& name){
-    if (name.size() == 0) return;
-    for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {
+    if (name.empty()) return;
+    for (size_t i = 0 ; i != this->allIndv.size() ; i++) {
       VCFIndividual* p = this->allIndv[i];
       if (p->getName() == name) {
         p->exclude();
@@ -222,21 +223,31 @@ public:
     }
     this->hasAccess = false;
   };
-  void excludePeople(const std::vector<std::string>& v){
-    for (unsigned int i = 0; i != v.size(); i++ ){
-      this->excludePeople(v[i]);
+  void excludePeople(const std::set<std::string>& name){
+    if (name.empty()) return;
+    for (size_t i = 0 ; i != this->allIndv.size() ; i++) {
+      VCFIndividual* p = this->allIndv[i];
+      if (name.count(p->getName())) {
+        p->exclude();
+      }
     }
     this->hasAccess = false;
+  }    
+  void excludePeople(const std::vector<std::string>& v){
+    std::set<std::string> s;
+    makeSet(v, &s);
+    this->excludePeople(s);
   };
   void excludePeopleFromFile(const char* fn){
     if (!fn || strlen(fn) == 0) return;
     LineReader lr(fn);
     std::vector<std::string> fd;
+    std::set<std::string> toExclude;
     while(lr.readLineBySep(&fd, "\t ")) {
       for (unsigned int i = 0; i != fd.size(); i++)
-        this->excludePeople(fd[i]);
+        toExclude.insert(fd[i]);
     }
-    this->hasAccess = false;
+    this->excludePeople(toExclude);
   };
   void excludeAllPeople() {
     for (unsigned int i = 0 ; i != this->allIndv.size() ; i++) {

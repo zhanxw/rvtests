@@ -214,13 +214,4 @@ inline bool isUnique(const std::vector<std::string>& x) {
   return true;
 }
 
-inline void convert(const std::vector<double>& in, Vector* out) {
-  if (!out) return;
-  int n = in.size();
-  out->Dimension(n);
-  for (int i = 0; i < n; ++i) {
-    (*out)[i] = in[i];
-  }
-}
-
 #endif /* _COMMONFUNCTION_H_ */

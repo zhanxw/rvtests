@@ -121,7 +121,7 @@ $(DIR_EXEC)/$(EXEC): lib \
                      src/DataConsolidator.o \
                      src/ModelFitter.h \
                      |$(DIR_EXEC)
-	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB)
+	$(CXX) -o $@ src/Main.o src/DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB)
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) util-dbg
@@ -141,11 +141,11 @@ GitVersion.h: .git/HEAD .git/index
 	-echo "const char *gitVersion = \"not-a-git-repo\"" > GitVersion.h 
 -include src/Main.d
 src/Main.o: src/Main.cpp GitVersion.h
-	$(CXX) -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 -include src/DataConsolidator.d
 src/DataConsolidator.o: src/DataConsolidator.cpp src/DataConsolidator.h
-	$(CXX) -MMD -c $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 ##################################################
 # build utils
@@ -177,7 +177,7 @@ $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util_dbg, $(s))))
 ## clean
 ##################################################
 clean: 
-	rm -rf *.o *.d \
+	rm -rf src/*.o src/*.d \
         $(addprefix $(DIR_EXEC)/, $(EXEC)) \
         $(addprefix $(DIR_EXEC_DBG)/, $(EXEC)) \
         $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC)) \

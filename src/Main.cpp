@@ -715,7 +715,7 @@ int main(int argc, char** argv){
       logger->warn("[ %zu ] sample phenotypes are dropped due to lacking covariates.", sampleToDropInCovariate.size());
     };
     // drop vcf samples;
-    for (auto iter = sampleToDropInCovariate.begin();
+    for (std::set< std::string >::const_iterator iter = sampleToDropInCovariate.begin();
          iter != sampleToDropInCovariate.end();
          ++iter) {
       vin.excludePeople(iter->c_str());

@@ -273,7 +273,7 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, i
     logger->warn("Skip: Additional [ %d ] lines have missing or invalid phenotype type", numMissingPhenotype - 10);
   }
   
-  for (auto iter = dup.begin(); iter != dup.end(); ++iter){
+  for (std::map<std::string, int>::iterator iter = dup.begin(); iter != dup.end(); ++iter){
     logger->warn("Sample [ %s ] removed from phenotype file [ %s ] for its duplicity [ %d ].", iter->first.c_str(), fn, iter->second + 1);
     pheno.erase(iter->first);
   };

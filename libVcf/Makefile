@@ -15,6 +15,10 @@ PCRE_INC = ../third/pcre/include
 $(PCRE_INC):
 	(cd ../third; make pcre)
 
+GSL_INC = third/gsl/include
+$(GSL_INC):
+	(cd ../third; make gsl)
+
 BCF_INC = ../third/samtools/bcftools
 $(BCF_INC):
 	(cd ../third; make samtools)

@@ -184,8 +184,8 @@ class SummaryHeader{
     fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
     // other cov
     const int n = covLabel.size();
-    for (int i = 1; i < n; ++i) {
-      fp->printf("## - %s\t%g\t%g\n", covLabel[i-1].c_str(), beta[i], betaSd[i][i]);
+    for (int i = 0; i < n; ++i) {
+      fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
     }
     // sigma
     fp->printf("## - Sigma\t%g\tNA\n", sigma);

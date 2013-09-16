@@ -19,21 +19,16 @@ $(DIR_EXEC_DBG):
 
 orelease: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) $(STATIC_FLAG)
 release: $(DIR_EXEC)/$(EXEC) 
-$(DIR_EXEC)/$(EXEC):  Main.o \
+$(DIR_EXEC)/$(EXEC):  $(LIBS) \
+                      Main.o \
                       DataConsolidator.o \
                       ModelFitter.h \
                       |$(DIR_EXEC)
 	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB)
-# $(DIR_EXEC)/$(EXEC): lib \
-#                      Main.o \
-#                      DataConsolidator.o \
-#                      ModelFitter.h \
-#                      |$(DIR_EXEC)
-# 	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB)
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) 
-$(DIR_EXEC_DBG)/$(EXEC): lib-dbg \
+$(DIR_EXEC_DBG)/$(EXEC): $(LIBS_DBG) \
                          Main.o \
                          DataConsolidator.o \
                          Collapsor.h \

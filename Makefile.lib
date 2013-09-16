@@ -35,7 +35,10 @@ $(GONCALO_LIB_DBG):
 # to build lib, we will use reverse order
 # so third party lib is build first.
 reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
+LIBS:=$(call reverse,$(LIB))
+LIBS_DBG:=$(call reverse,$(LIB_DBG))
+
 .PHONY: lib lib-dbg
-lib: $(call reverse,$(LIB))
-lib-dbg: $(call reverse,$(LIB_DBG))
+lib:$(LIBS)
+lib-dbg:$(LIB_DBG)
 

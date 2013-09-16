@@ -3,7 +3,8 @@ EXE = testLinearRegression \
       testLogisticRegression \
       testLogisticRegressionCov \
       testLinearRegressionScoreTest \
-      testLogisticRegressionScoreTest
+      testLogisticRegressionScoreTest \
+      testFirthRegression
 
 all: $(EXE)
 debug: $(EXE)
@@ -69,6 +70,14 @@ output.score.R.glm:
 	Rscript testLogisticRegressionScoreTest.R $@
 output.score.cpp.glm: $(EXE)
 	./testLogisticRegressionScoreTest > $@
+
+######################################################################
+check7: correct.firth.out test.firth.out
+	Rscript compare.R $^
+correct.firth.out: 
+	Rscript testFirthRegression.R $@
+test.firth.out: $(EXE)
+	./testFirthRegression > $@
 
 deepclean: clean
 	-rm output.* input.*

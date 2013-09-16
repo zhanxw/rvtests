@@ -38,6 +38,8 @@ $(DIR_EXEC_DBG)/$(EXEC): $(LIBS_DBG) \
 
 
 ##################################################
+../GitVersion.h:
+	(cd $(ROOT); make GitVersion.h)
 -include Main.d
 Main.o: Main.cpp ../GitVersion.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__

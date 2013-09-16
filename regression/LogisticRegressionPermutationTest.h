@@ -13,7 +13,7 @@
 #include "LogisticRegression.h"
 
 class LogisticRegressionPermutationTest{
-public:
+ public:
   // permutation up to @param nPerm times
   // however, if threshold > 0, then use adaptive permuatation: early quiting when we cannot reach threshold
   // internally: use wald method to check the distribution of beta
@@ -152,7 +152,7 @@ public:
   double getOneSidePvalueLess() const { return (1.0 * this->numLess / this->actualPerm);};
   bool isEarlyStop() const { return this->earlyStop;};
   int getActualPerm() const {return this->actualPerm;};
-private:
+ private:
   // Fish-Yates shuffle
   void permutateVector(Vector& v) {
     int l = v.Length();

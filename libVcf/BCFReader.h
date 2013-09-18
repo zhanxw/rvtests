@@ -120,6 +120,10 @@ class BCFReader {
     resetRangeIterator();
   };
 
+  const std::string& getHeader() const{
+    return this->header;
+  }
+  
  private:
   // don't copy
   BCFReader(const BCFReader& );
@@ -171,7 +175,10 @@ class BCFReader {
     bcf_destroy(b); // bcf_destroy(blast);
     vcf_close(bp); // close bcf handle for input
     vcf_close(bout); // close bcf handle for output
-
+    // resume stdout
+    stdout = fdopen(this->origStdout, "w");
+    assert(stdout);
+    
     if (str2id) {
       bcf_str2id_destroy(str2id);
     }
@@ -184,6 +191,7 @@ class BCFReader {
   }
 
   int vcf_write(bcf_t *bp, bcf_hdr_t *h, bcf1_t *b, std::string* line);
+  int vcf_hdr_write(bcf_t *bp, const bcf_hdr_t *h, std::string* hdr);
 
  private:
   // don't copy
@@ -215,6 +223,8 @@ class BCFReader {
   /* ti_iter_t iter; */
   const char* line;
   int line_len;
+  int origStdout;
+  std::string header;
 };
 
 

@@ -2,6 +2,20 @@
 
 int main(int argc, char *argv[])
 {
+  if (false) {
+    // this code demonstrate how to temporarily close stdout
+    int fd = STDOUT_FILENO;
+    int dupFd = dup(fileno(stdout));
+    stdout = fdopen(dupFd, "w");
+    assert(stdout);
+
+    assert(dupFd > 0);
+    printf("before stdout, fd = %d, dupFd = %d\n", fd, dupFd);
+    fclose(stdout);
+    printf("after stdout\n");
+    return 0;
+  }
+  
   const char* fn = "test.bcf.gz";
   {
     BCFReader tr(fn);
@@ -54,5 +68,9 @@ int main(int argc, char *argv[])
     // assert ( n == 0) ;
   }
 
+  {
+    BCFReader tr(fn);
+    fprintf(stdout, "header = [%s]\n", tr.getHeader().c_str());
+  }
   return 0;
 }

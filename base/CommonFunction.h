@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <set>
 #include "gsl/gsl_cdf.h"
-#include "base/Utils.h"
+#include "Utils.h"
 
 //////////////////////////////////////////////////
 // Statistics functions

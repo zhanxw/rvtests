@@ -11,8 +11,8 @@ int main(int argc, char *argv[])
       // printf("line %d = [ %s ]\n", n, line.c_str());
       ++n;
     }
-    // fprintf(stdout, "Read %d lines\n", n);
-    assert ( n == 50) ;
+    fprintf(stdout, "Read %d lines\n", n);
+    assert ( n == 14) ;
   }
 
   {
@@ -56,5 +56,8 @@ int main(int argc, char *argv[])
     assert ( n == 0) ;
   }
 
+  {
+    TabixReader tr(fn);
+  }
   return 0;
 }

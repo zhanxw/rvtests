@@ -50,11 +50,29 @@ int BCFReader::open(const std::string& fn) {
   }
   // write header
   hin = hout = vcf_hdr_read(bp);
-  // don't use "-", or vcf_close will close stdout, and affect all subsequent outputs
-  bout = vcf_open("todelete.tmp.random.ZXW.bcf", "wu"); 
+
+  // dup stdout, because vcf_close will close it
+  // int fd = STDOUT_FILENO;
+  this->origStdout = fileno(stdout);
+  int dupFd = dup(this->origStdout);
+  // fprintf(stderr, "dupFd = %d\n", dupFd);
+  if (dupFd < 0) {
+    fprintf(stderr, "dupFd cannot work.\n");
+    return -1;
+  }
+  stdout = fdopen(dupFd, "w");
+  if (!stdout) {
+    // perror("fdopen() failed");
+    fprintf(stderr, "something wrong.\n");
+  }
+  assert(stdout);
+  
+  bout = vcf_open("-", "wu");
   write_header(hout); // always print the header, put certain fields in header.
+  
   // write results out
   // vcf_hdr_write(bout, hout);
+  vcf_hdr_write(bout, hout, &header);
 
   //open index
   this->hasIndex = this->openIndex(fn);
@@ -64,18 +82,52 @@ int BCFReader::open(const std::string& fn) {
 
   cannotOpen = false;
   return 0;
-};
+}
 
 extern "C" {
   extern void bcf_fmt_core(const bcf_hdr_t *h, bcf1_t *b, kstring_t *s);
 }
 
+int BCFReader::vcf_hdr_write(bcf_t *bp, const bcf_hdr_t *h, std::string* hdr) {
+  // vcf_t *v = (vcf_t*)bp->v;
+  int i, has_ver = 0;
+  if (!bp->is_vcf) {
+    fprintf(stderr, "Something is wrong when reading BCF header at %s:%d\n", __FILE__, __LINE__);
+    return bcf_hdr_write(bp, h);
+  }
+  std::string& s = *hdr;
+  if (h->l_txt > 0) {
+    if (strstr(h->txt, "##fileformat=")) has_ver = 1;
+    if (has_ver == 0) {
+      //fprintf(v->fpout, "##fileformat=VCFv4.1\n");
+      s = "##fileformat=VCFv4.1\n";
+    }
+    // fwrite(h->txt, 1, h->l_txt - 1, v->fpout);
+    s += h->txt;
+  }
+  if (h->l_txt == 0) {
+    //fprintf(v->fpout, "##fileformat=VCFv4.1\n");
+    s = "##fileformat=VCFv4.1\n";
+  }
+  // fprintf(v->fpout, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+  s += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+  for (i = 0; i < h->n_smpl; ++i) {
+    //fprintf(v->fpout, "\t%s", h->sns[i]);
+    s += "\t";
+    s += h->sns[i];
+  }
+  //fputc('\n', v->fpout);
+  s += "\n";
+  return 0;
+}
+
+// adopted from vcf_write() in vcf.c
 int BCFReader::vcf_write(bcf_t *bp, bcf_hdr_t *h, bcf1_t *b, std::string* line) {
   // vcf_t *v = (vcf_t*)bp->v;
-  
+
   if (!bp->is_vcf) {
-    fprintf(stderr, "something is wrong when reading BCF at %s:%d\n", __FILE__, __LINE__);
-    return bcf_write(bp, h, b); 
+    fprintf(stderr, "Something is wrong when reading BCF at %s:%d\n", __FILE__, __LINE__);
+    return bcf_write(bp, h, b);
   }
 
   kstring_t str;

@@ -450,9 +450,15 @@ int appendGenotype(Matrix* covariate,
 
 SummaryHeader* g_SummaryHeader = NULL;
 
+
 #define VERSION "20130910"
+
 void welcome() {
+#ifdef NDEBUG
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
+#else
+  fprintf(stdout, "Thank you for using rvtests (version %s-Debug)\n", VERSION);
+#endif
   fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");
   fprintf(stdout, "  For questions and comments, send to Xiaowei Zhan <zhanxw@umich.edu>\n");
   fprintf(stdout, "\n");

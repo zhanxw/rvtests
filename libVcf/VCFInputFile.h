@@ -15,6 +15,11 @@ class VCFInputFile{
     RANGE_MODE          // read range by range
   } Mode;
 
+ private:
+  // disable copy-constructor
+  VCFInputFile(const VCFInputFile&);
+  VCFInputFile& operator=(const VCFInputFile&);
+
  public:
   VCFInputFile (const std::string& fn) {
     init(fn.c_str());
@@ -23,6 +28,8 @@ class VCFInputFile{
     init(fn);
   }
   void init(const char* fn) {
+    
+    
     this->fp = NULL;
     this->tabixHandle = NULL;
     this->mode = LINE_MODE;
@@ -279,11 +286,7 @@ class VCFInputFile{
   VCFRecord& getVCFRecord() {return this->record;};
   const char* getLine() const {return this->line.c_str();};
   const char* getFileName() const {return this->fileName.c_str();};
- private:
-  // disable copy-constructor
-  VCFInputFile(const VCFInputFile& v);
-  VCFInputFile& operator=(const VCFInputFile& v);
-
+ 
  private:
   VCFHeader header;
   VCFRecord record;

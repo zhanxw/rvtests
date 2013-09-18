@@ -49,7 +49,6 @@ class TabixReader {
     assert(!range.empty());
     if (!hasIndex) return false;
 
-    
     if (iter) {
       this->ti_line = ti_read(this->tabixHandle, iter, &ti_line_len);
       if (this->ti_line) {
@@ -202,6 +201,8 @@ class TabixReader {
   ti_iter_t iter;
   const char* ti_line;
   int ti_line_len;
+
+  std::string header;
 };
 
 #endif /* _TABIXREADER_H_ */

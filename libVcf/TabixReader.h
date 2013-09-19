@@ -15,7 +15,7 @@ class TabixReader {
         ti_line(0) {
     open(fn);
   };
-  
+
   virtual ~TabixReader() {
     close();
   };
@@ -35,15 +35,23 @@ class TabixReader {
       // read line by line
       if (!iter) {
         iter = ti_query(this->tabixHandle, 0, 0, 0);
-        if (!iter) return false;
+        if (!iter)
+          return false;
+      }
+      if (!this->firstLine.empty()) {
+        (*line) = this->firstLine;
+        this->firstLine.clear();
+        return true;
       }
       while( (ti_line = ti_read(this->tabixHandle, iter, &ti_line_len)) != 0 ) {
+        // need to skip header here
+        if ((int)(*ti_line) == idxconf->meta_char) continue;
         (*line) = (ti_line);
         return true;
       }
       return false;
     }
-    
+
     // read by region
     // check index
     assert(!range.empty());
@@ -79,10 +87,10 @@ class TabixReader {
     }
     ti_iter_destroy(iter);
     iter = 0;
-    
+
     return false;
   };
-  
+
   /**
    * @return 0 if adding region is valid
    */
@@ -93,6 +101,10 @@ class TabixReader {
     }
     range.addRangeList(r.c_str());
     resetRangeIterator();
+    if (this->iter) {
+      ti_iter_destroy(iter);
+      iter = 0;
+    }
     return 0;
   };
 
@@ -103,7 +115,9 @@ class TabixReader {
     range.sort();
     resetRangeIterator();
   };
-  
+  const std::string& getHeader() const {
+    return this->header;
+  }
  private:
   // don't copy
   TabixReader(const TabixReader& );
@@ -121,7 +135,7 @@ class TabixReader {
     this->hasIndex = true;
     return true;
   };
-  
+
   void closeIndex(){
     // fpritnf(stderr, "close index...");
     if (!this->hasIndex) return;
@@ -148,7 +162,7 @@ class TabixReader {
       this->cannotOpen = true;
       return -1;
     }
-    
+
     //open index
     this->hasIndex = this->openIndex(fn);
 
@@ -158,8 +172,22 @@ class TabixReader {
     // reset iterator
     this->iter = 0;
 
+    // read header
+    idxconf = ti_get_conf(this->tabixHandle->idx);
+
+    this->iter = ti_query(this->tabixHandle, 0, 0, 0);
+    while ((ti_line = ti_read(this->tabixHandle, this->iter, &this->ti_line_len)) != 0) {
+      if ((int)(*ti_line) != idxconf->meta_char) {
+        this->firstLine = ti_line;
+        break; 
+      }
+      // fputs(ti_line, stdout); fputc('\n', stdout);
+      this->header += ti_line;
+      this->header += "\n";
+    }
+    
     cannotOpen = false;
-    return 0; 
+    return 0;
   };
 
   void close() {
@@ -173,7 +201,7 @@ class TabixReader {
       this->tabixHandle = 0;
       // fpritnf(stderr, "close handle...");
     }
-    
+
   };
   void resetRangeIterator() {
     this->rangeBegin = this->range.begin();
@@ -190,7 +218,7 @@ class TabixReader {
   bool inReading; // indicate reading has already started
   bool hasIndex;
   bool cannotOpen;
-  
+
   // variable used for accessing by range
   RangeList::iterator rangeBegin;
   RangeList::iterator rangeEnd;
@@ -201,8 +229,10 @@ class TabixReader {
   ti_iter_t iter;
   const char* ti_line;
   int ti_line_len;
+  const ti_conf_t *idxconf;
 
   std::string header;
+  std::string firstLine;
 };
 
 #endif /* _TABIXREADER_H_ */

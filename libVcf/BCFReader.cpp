@@ -5,90 +5,62 @@
 #include <stdio.h>
 #include <string.h>
 
+
+#include <zlib.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include "bcf.h"
 #include "kstring.h"
+#include "kseq.h"
 
-// extern "C" {
+  KSTREAM_INIT(gzFile, gzread, 4096)
 
-// #include "bcf.h"
-// #include "kstring.h"
-// #include "kseq.h"
+  typedef struct {
+    gzFile fp;
+    FILE *fpout;
+    kstream_t *ks;
+    void *refhash;
+    kstring_t line;
+    int max_ref;
+  } vcf_t;
 
-// KSTREAM_INIT(gzFile, gzread, 4096)
-
-
-// // __KS_TYPE(gzFile)
-
-
-// // #include <zlib.h>
-// // #include "kstring.h"
-// // #include "kseq.h"
-// // KSTREAM_INIT(gzFile, gzread, 4096)
-
-// // copy from vcf.c
-// typedef struct {
-// 	gzFile fp;
-// 	FILE *fpout;
-// 	kstream_t *ks;
-// 	void *refhash;
-// 	kstring_t line;
-// 	int max_ref;
-// } vcf_t;
-// }
-
-int BCFReader::open(const std::string& fn) {
-  inReading = false;
-
-  // check file existance
-  bp = vcf_open(fn.c_str(), "rb"); // vcf file handle
-  if (!bp) {
-    this->cannotOpen = true;
-    return -1;
-  }
-  b = (bcf1_t*) calloc(1, sizeof(bcf1_t)); // each bcf read block
-  if (b == 0) {
-    return -1;
-  }
-  // write header
-  hin = hout = vcf_hdr_read(bp);
-
-  // dup stdout, because vcf_close will close it
-  // int fd = STDOUT_FILENO;
-  this->origStdout = fileno(stdout);
-  int dupFd = dup(this->origStdout);
-  // fprintf(stderr, "dupFd = %d\n", dupFd);
-  if (dupFd < 0) {
-    fprintf(stderr, "dupFd cannot work.\n");
-    return -1;
-  }
-  stdout = fdopen(dupFd, "w");
-  if (!stdout) {
-    // perror("fdopen() failed");
-    fprintf(stderr, "something wrong.\n");
-  }
-  assert(stdout);
-  
-  bout = vcf_open("-", "wu");
-  write_header(hout); // always print the header, put certain fields in header.
-  
-  // write results out
-  // vcf_hdr_write(bout, hout);
-  vcf_hdr_write(bout, hout, &header);
-
-  //open index
-  this->hasIndex = this->openIndex(fn);
-
-  // set up range iterator
-  resetRangeIterator();
-
-  cannotOpen = false;
-  return 0;
-}
-
+/**
+ * Adopt some functions from vcf.c
+ */
 extern "C" {
+  void *bcf_str2id_init();
   extern void bcf_fmt_core(const bcf_hdr_t *h, bcf1_t *b, kstring_t *s);
 }
+static void my_write_header(bcf_hdr_t *h);
 
-int BCFReader::vcf_hdr_write(bcf_t *bp, const bcf_hdr_t *h, std::string* hdr) {
+bcf_t * my_vcf_open(const char *fn, const char *mode)
+{
+  bcf_t *bp;
+  vcf_t *v;
+  if (strchr(mode, 'b')) return bcf_open(fn, mode);
+  bp = (bcf_t*)calloc(1, sizeof(bcf_t));
+  v = (vcf_t*)calloc(1, sizeof(vcf_t));
+  bp->is_vcf = 1;
+  bp->v = v;
+  v->refhash = bcf_str2id_init();
+  if (strchr(mode, 'r')) {
+    v->fp = strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
+    v->ks = ks_init(v->fp);
+  } else if (strchr(mode, 'w')) {
+    // disable open stdout/external file
+    // v->fpout = strcmp(fn, "-")? fopen(fn, "w") : stdout;
+    v->fpout = NULL;
+  }
+  return bp;
+}
+
+#define my_vcf_read vcf_read
+
+// vcf_hdr_read
+// vcf_hdr_write(bout, hout, &header);
+
+int my_vcf_hdr_write(bcf_t *bp, const bcf_hdr_t *h, std::string* hdr) {
   // vcf_t *v = (vcf_t*)bp->v;
   int i, has_ver = 0;
   if (!bp->is_vcf) {
@@ -122,7 +94,7 @@ int BCFReader::vcf_hdr_write(bcf_t *bp, const bcf_hdr_t *h, std::string* hdr) {
 }
 
 // adopted from vcf_write() in vcf.c
-int BCFReader::vcf_write(bcf_t *bp, bcf_hdr_t *h, bcf1_t *b, std::string* line) {
+int my_vcf_write(bcf_t *bp, bcf_hdr_t *h, bcf1_t *b, std::string* line) {
   // vcf_t *v = (vcf_t*)bp->v;
 
   if (!bp->is_vcf) {
@@ -140,11 +112,123 @@ int BCFReader::vcf_write(bcf_t *bp, bcf_hdr_t *h, bcf1_t *b, std::string* line) 
   // return v->line.l + 1;
 }
 
-static void write_header(bcf_hdr_t *h)
+int BCFReader::open(const std::string& fn) {
+  inReading = false;
+
+  // check file existance
+  bp = my_vcf_open(fn.c_str(), "rb"); // vcf file handle
+  if (!bp) {
+    this->cannotOpen = true;
+    return -1;
+  }
+  b = (bcf1_t*) calloc(1, sizeof(bcf1_t)); // each bcf read block
+  if (b == 0) {
+    return -1;
+  }
+  // write header
+  hin = hout = vcf_hdr_read(bp);
+
+  bout = my_vcf_open("-", "wu");
+
+  my_write_header(hout); // always print the header, put certain fields in header.
+
+  // write results out
+  // vcf_hdr_write(bout, hout);
+  my_vcf_hdr_write(bout, hout, &header);
+
+  //open index
+  this->hasIndex = this->openIndex(fn);
+
+  // set up range iterator
+  resetRangeIterator();
+
+  cannotOpen = false;
+  return 0;
+}
+
+
+bool BCFReader::readLine(std::string* line) {
+  // openOK?
+  if (cannotOpen) return false;
+
+  // read
+  if (!inReading) {
+    resetRangeIterator();
+    inReading = true;
+  };
+
+  // check read mode
+  if (range.empty()) {
+    // read line by line
+    if (my_vcf_read(bp, hin, b) > 0) {
+      my_vcf_write(bout, hout, b, line);
+      return true;
+    }
+    return false;
+  }
+
+  // read by region
+  // check index
+  assert(!range.empty());
+  if (!hasIndex) return false;
+
+  if (off != 0) {
+    // read a record
+    while (my_vcf_read(bp, hin, b) > 0) {
+      if (tid >= 0) {
+        int l = strlen(b->ref);
+        l = b->pos + (l > 0? l : 1);
+        if (b->tid != tid || b->pos >= end) break; // current record has passed prespecified region
+        if (!(l > begin && end > b->pos)) continue; // not sure when this will happen
+
+        my_vcf_write(bout, hout, b, line);
+        return true;
+      }
+    }
+  }
+
+  // seek to region
+  for (; this->rangeIterator != this->rangeEnd; ++ rangeIterator) {
+    char rangeBuffer[128];
+    snprintf(rangeBuffer, 128, "%s:%u-%u", this->rangeIterator.getChrom().c_str(),
+             this->rangeIterator.getBegin(), this->rangeIterator.getEnd());
+    rangeBuffer[127] = '\0';
+    // int tid, beg, end, len;
+    if (!str2id) {
+      str2id = bcf_build_refhash(hout);
+    }
+    if (bcf_parse_region(str2id, rangeBuffer, &tid, &begin, &end) >= 0) {
+      off = bcf_idx_query(idx, tid, begin);
+      if (off == 0) {
+        // fprintf(stderr, "[%s] no records in the query region.\n", __func__);
+        // return 1; // FIXME: a lot of memory leaks...
+        continue;
+      }
+      bgzf_seek(bp->fp, off, SEEK_SET);
+
+      while (my_vcf_read(bp, hin, b) > 0) {
+        if (tid >= 0) {
+          int l = strlen(b->ref);
+          l = b->pos + (l > 0? l : 1);
+          if (b->tid != tid || b->pos >= end) break; // current record has passed prespecified region
+          if (!(l > begin && end > b->pos)) continue; // not sure when this will happen
+
+          ++rangeIterator;
+          my_vcf_write(bout, hout, b, line);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
+static void my_write_header(bcf_hdr_t *h)
 {
   kstring_t str;
   str.l = h->l_txt? h->l_txt - 1 : 0;
-  str.m = str.l + 1; str.s = h->txt;
+  str.m = str.l + 1;
+  str.s = h->txt;
   if (!strstr(str.s, "##INFO=<ID=DP,"))
     kputs("##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Raw read depth\">\n", &str);
   if (!strstr(str.s, "##INFO=<ID=DP4,"))
@@ -211,5 +295,6 @@ static void write_header(bcf_hdr_t *h)
     kputs("##FORMAT=<ID=SP,Number=1,Type=Integer,Description=\"Phred-scaled strand bias P-value\">\n", &str);
   if (!strstr(str.s, "##FORMAT=<ID=PL,"))
     kputs("##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"List of Phred-scaled genotype likelihoods\">\n", &str);
-  h->l_txt = str.l + 1; h->txt = str.s;
+  h->l_txt = str.l + 1;
+  h->txt = str.s;
 }

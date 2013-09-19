@@ -19,13 +19,15 @@ GSL_INC = ../third/gsl/include
 $(GSL_INC):
 	(cd ../third; make gsl)
 
-BCF_INC = ../third/samtools/bcftools
-$(BCF_INC):
+SAMTOOLS_INC = ../third/samtools
+BCF_INC = ../third/samtools/bcftools 
+$(SAMTOOLS_INC) $(BCF_INC):
 	(cd ../third; make samtools)
 
 THIRD_INC = $(TABIX_INC) $(PCRE_INC) $(BCF_INC)
 
-DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I.. -I../base -I$(TABIX_INC) -I$(PCRE_INC) -I$(BCF_INC) -I$(GSL_INC) -D_FILE_OFFSET_BITS=64 -D_USE_KNETFILE
+### put BCF_INC ahead of TABIX, so correct kseq.h can be included
+DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I.. -I../base -I$(SAMTOOLS_INC) -I$(BCF_INC) -I$(PCRE_INC) -I$(GSL_INC) -I$(TABIX_INC) -D_FILE_OFFSET_BITS=64 -D_USE_KNETFILE
 
 # 'make release' will: clean current build; build with -O4 flags;
 # NOTE: don't use -j flag!

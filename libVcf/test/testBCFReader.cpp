@@ -70,7 +70,14 @@ int main(int argc, char *argv[])
 
   {
     BCFReader tr(fn);
-    fprintf(stdout, "header = [%s]\n", tr.getHeader().c_str());
+    std::string h= tr.getHeader().c_str();
+    int count = 0;
+    for (size_t i = 0; i < h.size(); ++i) {
+      if (h[i] == '\n')
+        count++;
+    }
+    fprintf(stdout, "header has %d lines.\n", count);
+    assert( count == 60);
   }
   return 0;
 }

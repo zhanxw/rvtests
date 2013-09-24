@@ -9,6 +9,7 @@
 //
 
 #include "LogisticRegression.h"
+#include <math.h>
 #include "Eigen/Core"
 #include <Eigen/Cholesky>
 #include "EigenMatrixInterface.h"
@@ -220,8 +221,9 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
     this->w->r = this->w->X.transpose() * (this->w->succ.array() - this->w->total.array() * this->w->p.array()).matrix(); // X' (y-mu)
 
     this->w->delta_beta = this->w->D.eval().llt().solve(this->w->r);
-    const double rel = (this->w->D * this->w->delta_beta - this->w->r).norm() / this->w->r.norm();
-    if ( this->w->r.norm() >0 && rel > 1e-6) {
+    // const double rel = (this->w->D * this->w->delta_beta - this->w->r).norm() / this->w->r.norm();
+    // if ( this->w->r.norm() >0 && rel > 1e-6) {
+    if ((this->w->D * this->w->delta_beta - this->w->r).norm()  > 1e-3) {
       // cannot inverse
       return false;
     }
@@ -231,6 +233,10 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
     { // converged!
       rounds = 0;
       break;
+    }
+    if (std::fpclassify(currentDeviance) != FP_NORMAL) {
+      // probably separation happens
+      return false;
     }
     lastDeviance = currentDeviance;
     rounds ++;
@@ -267,11 +273,24 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
     this->w->r = this->w->X.transpose() * (this->w->y - this->w->p); // X' (y-mu)
 
     this->w->delta_beta = this->w->D.eval().llt().solve(this->w->r);
-    const double rel = (this->w->D * this->w->delta_beta - this->w->r).norm() / this->w->r.norm();
-    if ( this->w->r.norm() >0 && rel > 1e-6) {
+
+    // // output different norms, see which works
+    // fprintf(stderr, "norm[1] = %g\n", (this->w->D * this->w->delta_beta - this->w->r).norm());
+    // fprintf(stderr, "norm[2] = %s\n", (this->w->D * this->w->delta_beta).isApprox(this->w->r, 1e-3) ? "true": "false");
+    // fprintf(stderr, "norm[2] = %s\n", (this->w->D * this->w->delta_beta).isApprox(this->w->r, 1e-6) ? "true": "false");
+    
+    // const double rel = (this->w->D * this->w->delta_beta - this->w->r).norm() / this->w->r.norm();
+    // fprintf(stderr, "rel = %g, norm1 = %g, norm2 = %g\n", rel, (this->w->D * this->w->delta_beta - this->w->r).norm(), this->w->r.norm());
+
+    // if ( this->w->r.norm() >0 && rel > 1e-6) {
+    //   // cannot inverse
+    //   // return false;
+    // }
+    if ((this->w->D * this->w->delta_beta - this->w->r).norm() > 1e-3) { // very practical choice...
       // cannot inverse
       return false;
     }
+    
     this->w->beta += this->w->delta_beta;
     currentDeviance = this->GetDeviance();
     if (rounds >1 && fabs(currentDeviance - lastDeviance) < 1e-6)
@@ -279,12 +298,16 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
       rounds = 0;
       break;
     }
+    if (std::fpclassify(currentDeviance) != FP_NORMAL) {
+      // probably separation happens
+      return false;
+    }
     lastDeviance = currentDeviance;
     rounds ++;
   }
   if (rounds == nrrounds)
   {
-    printf("Not enough iterations!");
+    printf("Not enough iterations!\n");
     return false;
   }
   this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));

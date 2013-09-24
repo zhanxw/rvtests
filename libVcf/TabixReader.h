@@ -20,6 +20,14 @@ class TabixReader {
     close();
   };
 
+ private:
+  // don't copy
+  TabixReader(const TabixReader& );
+  TabixReader& operator=(const TabixReader& );
+
+ public:
+  bool good() const {return !this->cannotOpen;}
+  
   bool readLine(std::string* line) {
     // openOK?
     if (cannotOpen) return false;
@@ -119,11 +127,6 @@ class TabixReader {
     return this->header;
   }
  private:
-  // don't copy
-  TabixReader(const TabixReader& );
-  TabixReader& operator=(const TabixReader& );
-
- private:
   bool openIndex(const std::string& fn) {
     if (ti_lazy_index_load(this->tabixHandle) != 0) {
       // failed to open tabix index
@@ -175,6 +178,10 @@ class TabixReader {
     // read header
     idxconf = ti_get_conf(this->tabixHandle->idx);
 
+    // this command will let iter point to first record
+    // (don't call this twice), or the internal fp pointer
+    // will not re-shifted to its beginning position,
+    // but will continue read.
     this->iter = ti_query(this->tabixHandle, 0, 0, 0);
     while ((ti_line = ti_read(this->tabixHandle, this->iter, &this->ti_line_len)) != 0) {
       if ((int)(*ti_line) != idxconf->meta_char) {

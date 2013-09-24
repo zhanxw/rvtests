@@ -203,8 +203,9 @@ bool FirthRegression::FitFirthModel(Matrix & X, Vector & succ, Vector& total, in
     xw = (this->w->V.array().sqrt().matrix().asDiagonal() * this->w->X).eval();
     this->w->D = xw.transpose() * xw; // this->w->X.transpose() * this->w->V.asDiagonal() * this->w->X; // X' V X
     this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
-    double rel = ((this->w->D * this->w->covB).array() - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() / this->w->D.rows();
-    if (rel > 1e-6) { // use relative accuracy to evalute convergence    
+    // double rel = ((this->w->D * this->w->covB).array() - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() / this->w->D.rows();
+    // if (rel > 1e-6) { // use relative accuracy to evalute convergence
+    if ((this->w->D * this->w->covB - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows())).norm() > 1e-3) {
       // cannot inverse
       return false;
     }
@@ -254,9 +255,10 @@ bool FirthRegression::FitFirthModel(Matrix & X, Vector & y, int nrrounds)
     this->w->D = xw.transpose() * xw; // X' V X
     this->w->covB = this->w->D.eval().ldlt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
 
-    double rel = ((this->w->D * this->w->covB).array() - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() / this->w->D.rows();
-    // printf("norm = %g\n", rel);
-    if (rel > 1e-6) { // use relative accuracy to evalute convergence
+    // double rel = ((this->w->D * this->w->covB).array() - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() / this->w->D.rows();
+    // // printf("norm = %g\n", rel);
+    // if (rel > 1e-6) { // use relative accuracy to evalute convergence
+    if ((this->w->D * this->w->covB - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows())).norm() > 1e-3) {      
       // cannot inverse
       // printToFile(this->w->D, "matD", "D");
       // printToFile(this->w->covB, "matCovB", "B");

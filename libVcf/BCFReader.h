@@ -23,7 +23,16 @@ class BCFReader {
     close();
   };
 
+ private:
+  // don't copy
+  BCFReader(const BCFReader& );
+  BCFReader& operator=(const BCFReader& );
+
+ public:
+  bool good() const {return !cannotOpen;}
+  
   bool readLine(std::string* line);
+  
   /**
    * @return 0 if adding region is valid
    */
@@ -50,32 +59,6 @@ class BCFReader {
   }
   
  private:
-  // don't copy
-  BCFReader(const BCFReader& );
-  BCFReader& operator=(const BCFReader& );
-
- private:
-  /* bool seekByRegion(region) { */
-
-  /*   void *str2id = bcf_build_refhash(hout); */
-  /*   if (bcf_parse_region(str2id, argv[optind+1], &tid, &begin, &end) >= 0) { */
-  /*     bcf_idx_t *idx; */
-  /*     idx = bcf_idx_load(argv[optind]); */
-  /*     if (idx) { */
-  /*       uint64_t off; */
-  /*       off = bcf_idx_query(idx, tid, begin); */
-  /*       if (off == 0) { */
-  /*         fprintf(stderr, "[%s] no records in the query region.\n", __func__); */
-  /*         return 1; // FIXME: a lot of memory leaks... */
-  /*       } */
-  /*       bgzf_seek(bp->fp, off, SEEK_SET); */
-  /*       bcf_idx_destroy(idx); */
-  /*     } */
-  /*   } */
-
-  /* } */
-
-
   bool openIndex(const std::string& fn) {
     idx = bcf_idx_load(fn.c_str());
     if (idx) {
@@ -115,11 +98,6 @@ class BCFReader {
     this->rangeIterator = this->range.begin();
   }
 
-
- private:
-  // don't copy
-  BCFReader(BCFReader& t);
-  BCFReader& operator=(BCFReader& t);
  private:
   RangeList range;
   bool cannotOpen;

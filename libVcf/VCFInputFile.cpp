@@ -49,6 +49,7 @@ int VCFInputFile::updateId(const char* fn){
     if (tbl.find(fd[0]) != tbl.end()) {
       fprintf(stderr, "Duplicated original ids: [ %s ], replace it to new id anyway.\n", fd[0].c_str());
     };
+    if (fd.empty() || fd[0].empty() || fd.size() < 2) continue;
     tbl[fd[0]] = fd[1];
   }
 

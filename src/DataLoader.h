@@ -64,6 +64,9 @@ int extractCovariate(const std::string& fn,
         extractColumnName.push_back(covNameToUse[i]);
       }
     } else { // body lines
+      if (fd.empty() || (fd[0].empty() && fd.size() == 1)) { // skip empty lines
+        continue;
+      }
       if ((int)fd.size() != fieldLen) {
         logger->error("Inconsistent column number in covariate file line [ %d ] - skip this file!", lineNo);
         return -1;

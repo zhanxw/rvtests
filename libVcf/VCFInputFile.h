@@ -6,13 +6,18 @@
 #include "VCFFilter.h"
 
 /**
- * parse is equivalent to copy, meaning we will copy the content so speed up later reference by const char*
+ * parse is equivalent to copy, meaning we will copy the content to speed up later reference using const char*
+ * three modes to read a VCF files
+ *  (1) BCF file mode, read by region or by line
+ *  (2) VCF file, read by line
+ *  (3) VCF file, read by region
  */
 class VCFInputFile{
  public:
   typedef enum {
-    LINE_MODE,           // read line by line
-    RANGE_MODE          // read range by range
+    BCF_MODE,
+    VCF_LINE_MODE,          // read by line
+    VCF_RANGE_MODE          // read by range
   } Mode;
 
  private:
@@ -27,9 +32,8 @@ class VCFInputFile{
   VCFInputFile (const char* fn) {
     init(fn);
   }
+
   void init(const char* fn) {
-    
-    
     this->fp = NULL;
     this->tabixHandle = NULL;
     this->mode = LINE_MODE;
@@ -153,9 +157,9 @@ class VCFInputFile{
   ///
   void reportReadError(const std::string& line) {
     if (line.size() > 50) {
-      fprintf(stderr, "Error line [ %s ... ]", line.substr(0, 50).c_str());
+      fprintf(stderr, "Error line [ %s ... ]\n", line.substr(0, 50).c_str());
     } else {
-      fprintf(stderr, "Error line [ %s ]", line.c_str());
+      fprintf(stderr, "Error line [ %s ]\n", line.c_str());
     }
   }
   /**
@@ -180,7 +184,6 @@ class VCFInputFile{
           rangeBuffer[127] = '\0';
 #ifndef NDEBUG
           fprintf(stderr, "Process range: %s\n", rangeBuffer);
-          // this->range.dump();
 #endif
           // parse range
           int tid, beg, end, len;
@@ -247,31 +250,31 @@ class VCFInputFile{
         }
       }
     }
-  };
+  }
   void includePeople(const char* s) {
     this->record.includePeople(s);
-  };
+  }
   void includePeople(const std::vector<std::string>& v){
     this->record.includePeople(v);
-  };
+  }
   void includePeopleFromFile(const char* fn) {
     this->record.includePeopleFromFile(fn);
-  };
+  }
   void includeAllPeople(){
     this->record.includeAllPeople();
-  };
+  }
   void excludePeople(const char* s) {
     this->record.excludePeople(s);
-  };
+  }
   void excludePeople(const std::vector<std::string>& v){
     this->record.excludePeople(v);
-  };
+  }
   void excludePeopleFromFile(const char* fn) {
     this->record.excludePeopleFromFile(fn);
-  };
+  }
   void excludeAllPeople(){
     this->record.excludeAllPeople();
-  };
+  }
   void enableAutoMerge() {
     this->autoMergeRange = true;
   }
@@ -279,6 +282,7 @@ class VCFInputFile{
     this->autoMergeRange = false;
   }
   /**
+   * @param fn load file and use first column as old id, second column as new id
    * @return number of ids have been changed.
    */
   int updateId(const char* fn);

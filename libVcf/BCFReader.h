@@ -68,7 +68,10 @@ class BCFReader {
   const std::string& getHeader() const{
     return this->header;
   }
-  
+
+  bool indexed() const {
+    return this->hasIndex;
+  }
  private:
   bool openIndex(const std::string& fn) {
     idx = bcf_idx_load(fn.c_str());

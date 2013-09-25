@@ -1,6 +1,7 @@
 EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange \
       testReadMissing testPlinkInputFile testVCFExtract \
-      testTabixReader testBCFReader
+      testTabixReader testBCFReader \
+      testVCFMissingIndex testBCFMissingIndex
 
 all: $(EXE)
 debug: all
@@ -54,6 +55,10 @@ check8:
 check9:
 	./testBCFReader > testBCFReader.output
 	diff -q testBCFReader.output testBCFReader.output.correct
-
+check10: 
+	-./testVCFMissingIndex 2>&1 | tee >testVCFMissingIndex.output
+	diff -q testVCFMissingIndex.output testVCFMissingIndex.output.correct
+	-./testBCFMissingIndex 2>&1 | tee >testBCFMissingIndex.output
+	diff -q testBCFMissingIndex.output testBCFMissingIndex.output.correct
 clean:
 	-rm -f $(EXE) *.d *.output

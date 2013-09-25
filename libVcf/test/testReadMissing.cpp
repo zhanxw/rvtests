@@ -55,4 +55,4 @@ int main() {
     puts(". - Individual's genotype column is not missing");
     puts("M - Individual's genotype column is missing\n");
   }
-};
+}

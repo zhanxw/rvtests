@@ -21,7 +21,7 @@ void VCFInputFile::setRangeMode() {
   if (mode == VCF_LINE_MODE) {
     this->tabixReader = new TabixReader(this->fileName);
     if (!this->tabixReader->good()) {
-      fprintf(stderr, "[ERROR] Cannot read VCF by range, please check your have index (or create one use tabix).\n");
+      fprintf(stderr, "[ERROR] Cannot read VCF by range, please check your have index (or create one use tabix).\nQuitting...");
       abort();
     } else {
       this->mode = VCFInputFile::VCF_RANGE_MODE;
@@ -31,6 +31,10 @@ void VCFInputFile::setRangeMode() {
       this->tabixReader->mergeRange();
     }
   } else if (mode == BCF_MODE) {
+    if (!this->bcfReader->good() || !this->bcfReader->indexed()) {
+      fprintf(stderr, "[ERROR] Cannot read BCF by range, please check your have index (or create one use bcftools).\nQuitting...");
+      abort();
+    }
     if (this->autoMergeRange) {
       this->bcfReader->mergeRange();
     }
@@ -95,6 +99,7 @@ int VCFInputFile::updateId(const char* fn){
 
 void VCFInputFile::init(const char* fn) {
   this->fileName = fn;
+  this->fp = NULL;
   this->tabixReader = NULL;
   this->bcfReader = NULL;
 
@@ -107,10 +112,13 @@ void VCFInputFile::init(const char* fn) {
   fclose(fp);
 
   // use file name to check file type
-  if (endsWith(fn, ".bcf")) {
+  if (endsWith(fn, ".bcf") || endsWith(fn, ".bcf.gz")) {
     this->mode = BCF_MODE;
-
+    this->bcfReader = new BCFReader(fn);
   } else {
+    if (!endsWith(fn, ".vcf") && !endsWith(fn, "vcf.gz")) {
+      fprintf(stderr, "[WARN] File name does not look like a VCF/BCF file.\n");
+    }
     this->mode = VCF_LINE_MODE;
     this->fp = new LineReader(fn);
 
@@ -198,10 +206,3 @@ void VCFInputFile::setRangeList(const RangeList& rl){
     abort();
   }
 }
-
-
-// TODO
-
-// enable setRangeList() multiple times
-// test when .tbi file does not exist
-// maybe test extracting dosage

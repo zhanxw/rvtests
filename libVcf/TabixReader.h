@@ -194,6 +194,10 @@ class TabixReader {
     // (don't call this twice), or the internal fp pointer
     // will not re-shifted to its beginning position,
     // but will continue read.
+    if (!this->hasIndex) {
+      return -1;
+    }
+    
     this->iter = ti_query(this->tabixHandle, 0, 0, 0);
     while ((ti_line = ti_read(this->tabixHandle, this->iter, &this->ti_line_len)) != 0) {
       if ((int)(*ti_line) != idxconf->meta_char) {

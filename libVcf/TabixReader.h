@@ -9,8 +9,8 @@ class TabixReader {
  public:
   TabixReader(const std::string& fn)
       : cannotOpen(false),
-        inReading(false),
         hasIndex(false),
+        readyToRead(false),
         tabixHandle(0),
         ti_line(0) {
     open(fn);
@@ -26,18 +26,13 @@ class TabixReader {
   TabixReader& operator=(const TabixReader& );
 
  public:
-  bool good() const {return !this->cannotOpen;}
+  bool good() const {return this->readyToRead;}
   
   bool readLine(std::string* line) {
     // openOK?
     if (cannotOpen) return false;
 
     // read
-    if (!inReading) {
-      resetRangeIterator();
-      inReading = true;
-    };
-
     // check read mode
     if (range.empty()) {
       // read line by line
@@ -63,7 +58,10 @@ class TabixReader {
     // read by region
     // check index
     assert(!range.empty());
-    if (!hasIndex) return false;
+    if (!hasIndex) {
+      readyToRead = false;
+      return false; 
+    }
 
     if (iter) {
       this->ti_line = ti_read(this->tabixHandle, iter, &ti_line_len);
@@ -79,7 +77,7 @@ class TabixReader {
       snprintf(rangeBuffer, 128, "%s:%u-%u", this->rangeIterator.getChrom().c_str(),
                this->rangeIterator.getBegin(), this->rangeIterator.getEnd());
       rangeBuffer[127] = '\0';
-      int tid, beg, end, len;
+      int tid, beg, end; // , len;
       if (ti_parse_region(tabixHandle->idx, rangeBuffer, &tid, &beg, &end) != 0){
         continue;
       }
@@ -102,19 +100,34 @@ class TabixReader {
   /**
    * @return 0 if adding region is valid
    */
-  int addRange(const std::string& r) {
-    if (inReading) {
-      // don't allow updating region when reading starts
-      return -1;
-    }
-    range.addRangeList(r.c_str());
+  int setRange(const std::string& r) {
+    RangeList a;
+    a.addRangeList(r);
+    return this->setRange(a);
+  }
+  int setRange(const RangeList& r) {
+    this->range.setRange(r);
     resetRangeIterator();
     if (this->iter) {
       ti_iter_destroy(iter);
       iter = 0;
     }
     return 0;
-  };
+  }
+  int addRange(const std::string& r) {
+    RangeList a;
+    a.addRangeList(r);
+    return this->addRange(a);
+  }
+  int addRange(const RangeList& r) {
+    this->range.addRange(r);
+    resetRangeIterator();
+    if (this->iter) {
+      ti_iter_destroy(iter);
+      iter = 0;
+    }
+    return 0;
+  }
 
   /**
    * Some ranges may be overlapping, thus we merge those
@@ -156,7 +169,6 @@ class TabixReader {
 
 
   int open(const std::string& fn) {
-    inReading = false;
     ti_line = 0;
 
     // check file existance
@@ -194,6 +206,7 @@ class TabixReader {
     }
     
     cannotOpen = false;
+    readyToRead = true;
     return 0;
   };
 
@@ -217,14 +230,10 @@ class TabixReader {
   }
 
  private:
-  // don't copy
-  TabixReader(TabixReader& t);
-  TabixReader& operator=(TabixReader& t);
- private:
   RangeList range;
-  bool inReading; // indicate reading has already started
-  bool hasIndex;
   bool cannotOpen;
+  bool hasIndex;
+  bool readyToRead;
 
   // variable used for accessing by range
   RangeList::iterator rangeBegin;

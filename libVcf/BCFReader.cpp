@@ -14,16 +14,16 @@
 #include "kstring.h"
 #include "kseq.h"
 
-  KSTREAM_INIT(gzFile, gzread, 4096)
+KSTREAM_INIT(gzFile, gzread, 4096)
 
-  typedef struct {
-    gzFile fp;
-    FILE *fpout;
-    kstream_t *ks;
-    void *refhash;
-    kstring_t line;
-    int max_ref;
-  } vcf_t;
+typedef struct {
+  gzFile fp;
+  FILE *fpout;
+  kstream_t *ks;
+  void *refhash;
+  kstring_t line;
+  int max_ref;
+} vcf_t;
 
 /**
  * Adopt some functions from vcf.c
@@ -113,8 +113,6 @@ int my_vcf_write(bcf_t *bp, bcf_hdr_t *h, bcf1_t *b, std::string* line) {
 }
 
 int BCFReader::open(const std::string& fn) {
-  inReading = false;
-
   // check file existance
   bp = my_vcf_open(fn.c_str(), "rb"); // vcf file handle
   if (!bp) {
@@ -143,6 +141,7 @@ int BCFReader::open(const std::string& fn) {
   resetRangeIterator();
 
   cannotOpen = false;
+  readyToRead = true;
   return 0;
 }
 
@@ -152,11 +151,6 @@ bool BCFReader::readLine(std::string* line) {
   if (cannotOpen) return false;
 
   // read
-  if (!inReading) {
-    resetRangeIterator();
-    inReading = true;
-  };
-
   // check read mode
   if (range.empty()) {
     // read line by line
@@ -170,7 +164,10 @@ bool BCFReader::readLine(std::string* line) {
   // read by region
   // check index
   assert(!range.empty());
-  if (!hasIndex) return false;
+  if (!hasIndex) {
+    this->readyToRead = false;
+    return false;
+  }
 
   if (off != 0) {
     // read a record

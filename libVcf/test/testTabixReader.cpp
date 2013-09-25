@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 
   {
     TabixReader tr(fn);
-    tr.addRange("1:196341181-196341254");
+    tr.setRange("1:196341181-196341254");
     int n = 0;
     std::string line;
     while (tr.readLine(&line)) {
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 
   {
     TabixReader tr(fn);
-    tr.addRange("1:196341857-196341857");
+    tr.setRange("1:196341857-196341857");
     tr.addRange("1:196341181-196341254");
     int n = 0;
     std::string line;
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
   {
     TabixReader tr(fn);
-    tr.addRange("2:196341857-196341857");
+    tr.setRange("2:196341857-196341857");
     tr.addRange("2:196341181-196341254");
     int n = 0;
     std::string line;

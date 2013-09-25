@@ -15,6 +15,7 @@ CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I..
  ../../third/samtools/libbam.a \
  -lz -lbz2 -lpthread
 
+LIBS=../lib-dbg-vcf.a
 
 define BUILD_each
   TAR := $(1)
@@ -25,12 +26,13 @@ define BUILD_each
 endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
-check: check1 check2 check3
+check: check1 check2 check3 check4 check5 check6 check7 check8 check9
 check1:
 	./testPlinkInputFile > testPlinkInputFile.output
 	diff -q testPlinkInputFile.output testPlinkInputFile.output.correct
 check2:
-	./testVCFExtract
+	./testVCFExtract > testVCFExtract.output
+	diff -q testVCFExtract.output testVCFExtract.output.correct
 check3:
 	./testReadVCF > testReadVCF.output
 	diff -q testReadVCF.output testReadVCF.output.correct
@@ -48,10 +50,10 @@ check7:
 	diff -q testReadMissing.output testReadMissing.output.correct
 check8:
 	./testTabixReader > testTabixReader.output
-	diff -q testTabixReader.output testTabixReader.correct
+	diff -q testTabixReader.output testTabixReader.output.correct
 check9:
 	./testBCFReader > testBCFReader.output
-	diff -q testBCFReader.output testBCFReader.correct
+	diff -q testBCFReader.output testBCFReader.output.correct
 
 clean:
 	-rm -f $(EXE) *.d *.output

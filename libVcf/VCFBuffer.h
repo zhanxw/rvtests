@@ -1,6 +1,9 @@
 #ifndef _VCFBUFFER_H_
 #define _VCFBUFFER_H_
 
+#include <stdio.h>
+#include <stdlib.h> // for size_t, fprintf
+#include <string.h> // for strlen, memcpy
 #include <cassert>
 
 class VCFBuffer {

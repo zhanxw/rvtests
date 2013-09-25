@@ -166,4 +166,20 @@ inline void dumpStringVector(const std::vector<std::string> s) {
   }
 };
 
+/**
+ * @return true if @param s ends with @param tail
+ */
+inline bool endsWith(const std::string& s, const std::string& tail) {
+  if (s.size() < tail.size()) return false;
+  size_t l = tail.size();
+  size_t idx = s.size() - l;
+  for (size_t i = 0; i != l; ++i) {
+    if (s[idx + i] != tail[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 #endif /* _UTILS_H_ */

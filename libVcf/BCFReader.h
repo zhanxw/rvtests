@@ -10,8 +10,8 @@ class BCFReader {
  public:
   BCFReader(const std::string& fn)
       : cannotOpen(false),
-        inReading(false),
         hasIndex(false),
+        readyToRead(false),
         b(0),
         bout(0),
         off(0),
@@ -29,22 +29,33 @@ class BCFReader {
   BCFReader& operator=(const BCFReader& );
 
  public:
-  bool good() const {return !cannotOpen;}
+  bool good() const {return this->readyToRead;}
   
   bool readLine(std::string* line);
   
   /**
    * @return 0 if adding region is valid
    */
-  int addRange(const std::string& r) {
-    if (inReading) {
-      // don't allow updating region when reading starts
-      return -1;
-    }
-    range.addRangeList(r.c_str());
+  int setRange(const std::string& r) {
+    RangeList a;
+    a.addRangeList(r);
+    return this->setRange(a);
+  }
+  int setRange(const RangeList& r) {
+    range.setRange(r);
     resetRangeIterator();
     return 0;
-  };
+  }
+  int addRange(const std::string& r) {
+    RangeList a;
+    a.addRangeList(r);
+    return this->addRange(a);
+  }
+  int addRange(const RangeList& r) {
+    range.addRange(r);
+    resetRangeIterator();
+    return 0;
+  }
 
   /**
    * Some ranges may be overlapping, thus we merge those
@@ -101,9 +112,9 @@ class BCFReader {
  private:
   RangeList range;
   bool cannotOpen;
-  bool inReading; // indicate reading has already started
   bool hasIndex;
-
+  bool readyToRead;
+  
   // variable used for accessing by range
   RangeList::iterator rangeBegin;
   RangeList::iterator rangeEnd;

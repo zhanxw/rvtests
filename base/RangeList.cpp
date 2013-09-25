@@ -1,5 +1,25 @@
 #include "RangeList.h"
+#include <stdlib.h>
 #include <climits>
+
+void RangeCollection::obtainRange(const int index, std::string* chrom, unsigned int* beg, unsigned int* end) const {
+  unsigned int t = index;
+  unsigned int s;
+  for(unsigned int i = 0; i < this->chrVector.size(); i++ ) {
+    const std::vector<PositionPair>& v = this->rangeMap.find(chrVector[i])->second;
+    s = v.size();
+    if ( t < s) {
+      (*chrom) = chrVector[i];
+      (*beg) = v[t].begin;
+      (*end) = v[t].end;
+      return;
+    } else {
+      t -= s;
+    }
+  }
+  fprintf(stderr, "[ERROR] Cannot obtain range [ %d ] from RangeList!\n", index);
+  assert(false);
+}
 
 //
 void RangeList::filterGeneName(const char* inclusionGeneFileName, const char* geneTableFileName){
@@ -98,10 +118,7 @@ int parseRangeFormat(const std::string& s, std::string* chr, unsigned int* begin
  * X:150
  * MT
  */
-void RangeList::addRangeList(const char* argRangeList) {
-  if (!strlen(argRangeList)) return;
-
-  std::string rangeList = argRangeList;
+void RangeList::addRangeList(const std::string& rangeList) {
   std::vector<std::string> col;
   //col.AddTokens(arg, ',');
   stringTokenize(rangeList, ',', &col);
@@ -123,11 +140,10 @@ void RangeList::addRangeList(const char* argRangeList) {
  * chr beg
  * we will assume beg == end in the second case
  */
-void RangeList::addRangeFile(const char* argRangeFile){
-  if (!strlen(argRangeFile)) return;
-  // fprintf(stdout, "Load range file %s.\n", argRangeFile);
+void RangeList::addRangeFile(const std::string& rangeFile){
+  if (rangeFile.empty()) return;
 
-  LineReader lr(argRangeFile);
+  LineReader lr(rangeFile);
   std::vector<std::string> sa;
   while ( lr.readLineBySep(&sa, "\t ")) {
     if (sa.size() == 0) continue;
@@ -146,3 +162,17 @@ void RangeList::addRangeFile(const char* argRangeFile){
   }
 };
 
+void RangeList::addRange(const RangeList& rl) {
+  std::string chr;
+  unsigned int beg;
+  unsigned int end;
+  for (size_t i = 0; i < rl.size(); ++i) {
+    rl.obtainRange(i, &chr, &beg, &end);
+    this->addRange(chr, beg, end);
+  }
+}
+
+void RangeList::setRange(const RangeList& rl) {
+  this->clear();
+  this->addRange(rl);
+}

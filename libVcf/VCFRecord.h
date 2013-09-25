@@ -23,6 +23,7 @@ public:
 
   /**
    * Parse will first make a copy then tokenized the copied one
+   * @return 0: if success
    */
   int parse(const std::string vcfLine){
     this->vcfInfo.reset();

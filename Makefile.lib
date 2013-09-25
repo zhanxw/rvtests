@@ -13,6 +13,9 @@ $(GSL_INC) $(GSL_LIB):
 $(BZIP2_INC) $(BZIP2_LIB):
 	(cd $(ROOT)/third; make bzip2)
 
+$(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
+	(cd $(ROOT)/third; make samtools)   
+
 ## our libs
 $(BASE_LIB):
 	(cd $(ROOT)/base; make)

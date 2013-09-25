@@ -7,9 +7,6 @@
    25. Take optional weight, e.g. GERP
    33. Support sex chromosome coding.
 
-   36. Support BCF file
-   37. Support dosage (imputed genotypes)
-   
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -47,12 +44,16 @@
    30. When taking covariates, check if the covariates are unique, if so, generate a warning and abort.
    34. Output null model for meta analysis
    35. Output case/control frequencies
-
+   36. Support BCF file
+   37. Support dosage (imputed genotypes)
+   
+   
    Future TODO:
    22. Add U-statistics
 
    Not sure if worthy to do:
    32. Optional output tag from VCF
+
 
 */
 
@@ -98,8 +99,8 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      Feburary 2013                     ...   \n"
-      "       ...      github.com/zhanxw/rvtests         ...  \n"
+      "      ...      September 2013                    ...   \n"
+      "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
       ;
@@ -128,22 +129,32 @@ class GenotypeExtractor{
 
       m.Dimension(row + 1, people.size());
 
-      int GTidx = r.getFormatIndex("GT");
+      int genoIdx;
+      const bool useDose = (!this->doseTag.empty());
+      if (useDose) {
+        genoIdx = r.getFormatIndex(doseTag.c_str());
+      } else {
+        genoIdx = r.getFormatIndex("GT");
+      }
       int GDidx = r.getFormatIndex("GD");
       int GQidx = r.getFormatIndex("GQ");
       // e.g.: Loop each (selected) people in the same order as in the VCF
       for (int i = 0; i < (int)people.size(); i++) {
         indv = people[i];
         // get GT index. if you are sure the index will not change, call this function only once!
-        if (GTidx >= 0) {
+        if (genoIdx >= 0) {
           //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
-          m[row][i] = indv->justGet(GTidx).getGenotype();
+          if (useDose) {
+            m[row][i] = indv->justGet(genoIdx).toDouble();
+          } else {
+            m[row][i] = indv->justGet(genoIdx).getGenotype();
+          }
           if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
             m[row][i] = MISSING_GENOTYPE;
             continue;
           }
         } else {
-          logger->error("Cannot find GT field!");
+          logger->error("Cannot find %s field!", this->doseTag.empty() ? "GT" : doseTag.c_str());
           return -1;
         }
       }
@@ -186,23 +197,36 @@ class GenotypeExtractor{
     genotype.Dimension(people.size(), 1);
 
     // get GT index. if you are sure the index will not change, call this function only once!
-    int GTidx = r.getFormatIndex("GT");
+    const bool useDose = (!this->doseTag.empty());
+    int genoIdx;
+    if (useDose) {
+      genoIdx = r.getFormatIndex(doseTag.c_str());
+    } else {
+      genoIdx = r.getFormatIndex("GT");
+    }
+    // int GTidx = r.getFormatIndex("GT");
     int GDidx = r.getFormatIndex("GD");
     int GQidx = r.getFormatIndex("GQ");
     // e.g.: Loop each (selected) people in the same order as in the VCF
     for (size_t i = 0; i < people.size(); i++) {
       indv = people[i];
 
-      if (GTidx >= 0) {
+      if (genoIdx >= 0) {
         //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
-        genotype[i][0] = indv->justGet(GTidx).getGenotype();
+        if (useDose) {
+          genotype[i][0] = indv->justGet(genoIdx).toDouble();
+        } else {
+          genotype[i][0] = indv->justGet(genoIdx).getGenotype();
+        }
         if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
           genotype[i][0] = MISSING_GENOTYPE;
           continue;
         }
         // // logger->info("%d ", int(genotype[i][0]));
       } else {
-        logger->error("Cannot find GT field when read genotype: %s!", indv->getSelf().toStr());
+        logger->error("Cannot find [ %s ] field when read individual information [ %s ]!",
+                      this->doseTag.empty() ? "GT" : this->doseTag.c_str(),
+                      indv->getSelf().toStr());
         return -1;
       }
     }
@@ -212,7 +236,7 @@ class GenotypeExtractor{
     label += r.getPosStr();
     genotype.SetColumnLabel(0, label.c_str());
     return 0;
-  };
+  }
 
   // @return true if GD is valid
   // if GD is missing, we will take GD = 0
@@ -252,6 +276,13 @@ class GenotypeExtractor{
   Vector& getWeight(){
     return this->weight;
   };
+  void setDosageTag(const std::string& tag) {
+    if (tag.empty()) return;
+    this->doseTag = tag;
+  }
+  void unsetDosageTag() {
+    this->doseTag.clear();
+  }
  private:
   VCFExtractor& vin;
   int GDmin;
@@ -261,6 +292,7 @@ class GenotypeExtractor{
   int GQmax;
   bool needGQ;
   Vector weight;
+  std::string doseTag; // set if loading dose instead of genotype
 }; // clas GenotypeExtractor
 
 /**
@@ -459,7 +491,7 @@ void welcome() {
 #else
   fprintf(stdout, "Thank you for using rvtests (version %s-Debug)\n", VERSION);
 #endif
-  fprintf(stdout, "  For documentation, refer to https://github.com/zhanxw/rvtests\n");
+  fprintf(stdout, "  For documentation, refer to http://zhanxw.github.io/rvtests/\n");
   fprintf(stdout, "  For questions and comments, send to Xiaowei Zhan <zhanxw@umich.edu>\n");
   fprintf(stdout, "\n");
 }
@@ -483,10 +515,10 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "specify which phenotype column to read (default: 1)")
       ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name", "specify which phenotype column to read by header")
       ADD_BOOL_PARAMETER(pl, qtl, "--qtl", "treat phenotype as quantitative trait")
-      // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
-      // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
-      // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output [prefix].{fam,bed,bim} in Plink BED format")
 
+      ADD_PARAMETER_GROUP(pl, "Specify Genotype")
+      ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC)")
+      
       ADD_PARAMETER_GROUP(pl, "People Filter")
       ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -508,7 +540,7 @@ int main(int argc, char** argv){
       ADD_INT_PARAMETER(pl, indvDepthMax, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis")
       ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
 
-      ADD_PARAMETER_GROUP(pl, "Statistical Model")
+      ADD_PARAMETER_GROUP(pl, "Association Model")
       ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt, famGrammarGamma")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
@@ -1109,6 +1141,9 @@ int main(int argc, char** argv){
   Matrix workingCov;
   Matrix workingPheno;
   GenotypeExtractor ge(&vin);
+  if (!FLAG_dosageTag.empty()) {
+    ge.setDosageTag(FLAG_dosageTag);
+  }
   if (FLAG_indvDepthMin > 0) {
     ge.setGDmin(FLAG_indvDepthMin);
     logger->info("Minimum GD set to %d (or marked as missing genotype).", FLAG_indvDepthMin);

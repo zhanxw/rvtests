@@ -111,10 +111,15 @@ void VCFInputFile::init(const char* fn) {
   }
   fclose(fp);
 
+  bool headerLoaded;
   // use file name to check file type
   if (endsWith(fn, ".bcf") || endsWith(fn, ".bcf.gz")) {
     this->mode = BCF_MODE;
     this->bcfReader = new BCFReader(fn);
+    const std::string& h = this->bcfReader->getHeader();
+    this->header.setHeader(h);
+    this->record.createIndividual(this->header[this->header.size()-1]);
+    headerLoaded = true;
   } else {
     if (!endsWith(fn, ".vcf") && !endsWith(fn, "vcf.gz")) {
       fprintf(stderr, "[WARN] File name does not look like a VCF/BCF file.\n");
@@ -124,7 +129,6 @@ void VCFInputFile::init(const char* fn) {
 
     // open file
     // read header
-    bool headerLoaded;
     while (this->fp->readLine(&line)){
       if (line[0] == '#') {
         this->header.push_back(line);
@@ -139,12 +143,11 @@ void VCFInputFile::init(const char* fn) {
         FATAL("Wrong VCF header");
       }
     }
-    if (headerLoaded == false) {
-      FATAL("VCF File does not have header!");
-    }
     //this->hasIndex = this->openIndex();
   }
-
+  if (headerLoaded == false) {
+    FATAL("VCF/BCF File does not have header!");
+  }
   // this->clearRange();
 }
 

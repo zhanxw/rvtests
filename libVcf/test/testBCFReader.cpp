@@ -1,7 +1,24 @@
 #include "BCFReader.h"
+#include "VCFExtractor.h"
 
 int main(int argc, char *argv[])
 {
+  {
+    std::string fn = "/net/fantasia/home/zhanxw/mycode/seqminer/seqminer/inst/vcf/all.anno.filtered.extract.bcf.gz";
+    std::string r = "1:196621007-196716634";
+    VCFExtractor vin(fn);
+    vin.setRangeList(r);
+    printf("Extract two sites\n");
+    vin.setAnnoType("Nonsynonymous");
+    while (vin.readRecord()){
+      VCFRecord& r = vin.getVCFRecord();
+      VCFPeople& people = r.getPeople();
+      VCFIndividual* indv;
+
+      printf("%s:%d\n", r.getChrom(), r.getPos());
+    }
+  }
+
   if (false) {
     // this code demonstrate how to temporarily close stdout
     int fd = STDOUT_FILENO;

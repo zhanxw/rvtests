@@ -103,6 +103,7 @@ int my_vcf_write(bcf_t *bp, bcf_hdr_t *h, bcf1_t *b, std::string* line) {
   }
 
   kstring_t str;
+  memset(&str, 0, sizeof(kstring_t));
   bcf_fmt_core(h, b, &str);
   // bcf_fmt_core(h, b, &v->line);
   // fwrite(v->line.s, 1, v->line.l, v->fpout);
@@ -223,6 +224,8 @@ bool BCFReader::readLine(std::string* line) {
 static void my_write_header(bcf_hdr_t *h)
 {
   kstring_t str;
+  memset(&str, 0, sizeof(kstring_t));
+  
   str.l = h->l_txt? h->l_txt - 1 : 0;
   str.m = str.l + 1;
   str.s = h->txt;

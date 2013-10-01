@@ -215,7 +215,7 @@ KBAC     |  kbac     |B  |     N      |         U           | Kernel-based adapt
 
 
 (*) Model columns list the regconized names in rvtests. For example, use `--kernel skat` will apply SKAT test.
-To further customize SKAT test, you can use *--skat[nPerm=100:alpha=0.001:beta1=1:beta2=20]* to specify permutation counts, type-1 error, 
+To further customize SKAT test, you can use *--kernel skat[nPerm=100:alpha=0.001:beta1=1:beta2=20]* to specify permutation counts, type-1 error, 
 beta distribution parameters for upweighting rare variants. Rvtests will output a message showing: 
 
 [INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)

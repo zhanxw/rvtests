@@ -5,7 +5,7 @@
 
 class VCFExtractor: public VCFInputFile, public VCFSiteFilter {
 public:
-VCFExtractor(const char* fn): VCFInputFile(fn){
+VCFExtractor(const std::string& fn): VCFInputFile(fn){
   };
   virtual ~VCFExtractor() {};
   bool passFilter() {

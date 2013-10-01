@@ -11,17 +11,17 @@ int main(int argc, char *argv[])
       // printf("line %d = [ %s ]\n", n, line.c_str());
       ++n;
     }
-    // fprintf(stdout, "Read %d lines\n", n);
-    assert ( n == 50) ;
+    fprintf(stdout, "Read %d lines\n", n);
+    assert ( n == 14) ;
   }
 
   {
     TabixReader tr(fn);
-    tr.addRange("1:196341181-196341254");
+    tr.setRange("1:196341181-196341254");
     int n = 0;
     std::string line;
     while (tr.readLine(&line)) {
-      printf("line %d = [ %s ]\n", n, line.c_str());
+      // printf("line %d = [ %s ]\n", n, line.c_str());
       ++n;
     }
     fprintf(stdout, "Read %d lines\n", n);
@@ -30,12 +30,12 @@ int main(int argc, char *argv[])
 
   {
     TabixReader tr(fn);
-    tr.addRange("1:196341857-196341857");
+    tr.setRange("1:196341857-196341857");
     tr.addRange("1:196341181-196341254");
     int n = 0;
     std::string line;
     while (tr.readLine(&line)) {
-      printf("line %d = [ %s ]\n", n, line.c_str());
+      // printf("line %d = [ %s ]\n", n, line.c_str());
       ++n;
     }
     fprintf(stdout, "Read %d lines\n", n);
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
   {
     TabixReader tr(fn);
-    tr.addRange("2:196341857-196341857");
+    tr.setRange("2:196341857-196341857");
     tr.addRange("2:196341181-196341254");
     int n = 0;
     std::string line;
@@ -56,5 +56,16 @@ int main(int argc, char *argv[])
     assert ( n == 0) ;
   }
 
+  {
+    TabixReader tr(fn);
+      std::string h= tr.getHeader().c_str();
+    int count = 0;
+    for (size_t i = 0; i < h.size(); ++i) {
+      if (h[i] == '\n')
+        count++;
+    }
+    fprintf(stdout, "header has %d lines.\n", count);
+    assert(count == 36);
+  }
   return 0;
 }

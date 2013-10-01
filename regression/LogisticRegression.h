@@ -12,12 +12,17 @@
 #define __LOGISTIC_REGRESSION_H__
 
 #include "MathMatrix.h"
-#include "MathCholesky.h"
-#include "StringHash.h"
-#include "StringArray.h"
-#include <cmath>
-#include "MathStats.h"
-#include "MathSVD.h"
+/* #if 1 */
+/* #include "MathCholesky.h" */
+/* #endif */
+/* #include "StringHash.h" */
+/* #include "StringArray.h" */
+/* #include <cmath> */
+/* #include "MathStats.h" */
+/* #include "MathSVD.h" */
+
+
+class WorkingData; // store temporary data structure
 
 //use Wald statistics
 class LogisticRegression
@@ -52,21 +57,23 @@ public:
   Matrix & GetCovB()      {return this->covB;} ;
 
   void SetInitialCovEst(Vector& initB) { this->B = initB;} ; // set initial value of B, that may speed estimation up if this initial value is close to estimated results.
-  
-  void reset(Matrix& X); // get everything cleared
+  void Reset(Matrix& X); // get everything cleared
 
+private:
+  double GetDeviance();
 private:
   // dont' copy.
   LogisticRegression(const LogisticRegression& l);
   LogisticRegression& operator=(const LogisticRegression& l);
   
 private:
-  Vector B;       // coefficient vector
-  Matrix covB;    // coefficient covariance matrix
-
-private:
-  Vector pValue;
-  Vector p, V, W; // p: estimted prob; V: p(1-p) ; W n*p*(1-p)
+  Vector B;             // coefficient vector
+  Matrix covB;          // coefficient covariance matrix
+  Vector pValue;        // pvalues
+  Vector p;             // p: estimted prob; 
+  Vector V;             // V: p(1-p) ; 
+#if 0
+  Vector W;             // W n*p*(1-p)
   Vector residuals;
   Vector deltaB;
   Matrix D;
@@ -75,6 +82,7 @@ private:
   Cholesky chol;
   Matrix Dtwo;
   Matrix XtV;
-
+#endif
+  WorkingData* w;       // holding temporary caluclation results
 };
 #endif

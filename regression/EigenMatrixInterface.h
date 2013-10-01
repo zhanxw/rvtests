@@ -4,8 +4,8 @@
 #include <Eigen/Core>
 #include "MathMatrix.h"
 
-void Eigen_to_G(Eigen::MatrixXf &EigenM, Matrix* GM);
-void Eigen_to_G(Eigen::VectorXf &EigenV, Vector* GV);
+void Eigen_to_G(const Eigen::MatrixXf &EigenM, Matrix* GM);
+void Eigen_to_G(const Eigen::VectorXf &EigenV, Vector* GV);
 void G_to_Eigen(Vector &GV, Eigen::VectorXf* EigenV); // convert to n by 1 matrix
 void G_to_Eigen(Matrix &GM, Eigen::MatrixXf* EigenM);
 

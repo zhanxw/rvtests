@@ -14,7 +14,8 @@ SRC = LogisticRegression \
       FastLMM \
       GSLMinimizer \
       GrammarGamma \
-      MetaCov
+      MetaCov \
+      FirthRegression
 
 .PHONY: all release debug
 all: release

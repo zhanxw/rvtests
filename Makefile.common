@@ -1,0 +1,64 @@
+## This Makefile store variable declarations shared for all libs/executables
+##ROOT?=.
+##################################################
+## Third-party libs.
+TABIX_INC = $(ROOT)/third/tabix
+TABIX_LIB = $(ROOT)/third/tabix/libtabix.a
+
+EIGEN_INC = $(ROOT)/third/eigen
+EIGEN_LIB =  # Eigen are header files only
+
+PCRE_INC = $(ROOT)/third/pcre/include
+PCRE_LIB = $(ROOT)/third/pcre/lib/libpcreposix.a $(ROOT)/third/pcre/lib/libpcre.a
+
+GSL_INC = $(ROOT)/third/gsl/include
+GSL_LIB = $(ROOT)/third/gsl/lib/libgsl.a
+
+BZIP2_INC = $(ROOT)/third/bzip2
+BZIP2_LIB = $(ROOT)/third/bzip2/libbz2.a
+
+BCF_INC = $(ROOT)/third/samtools/bcftools
+BCF_LIB = $(ROOT)/third/samtools/bcftools/libbcf.a
+
+SAMTOOLS_INC = $(ROOT)/third/samtools
+SAMTOOLS_LIB = $(ROOT)/third/samtools/libbam.a
+
+THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(BZIP2_INC)
+THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(BZIP2_LIB)
+##################################################
+## Our libs.
+BASE_INC = $(ROOT)/base
+BASE_LIB = $(ROOT)/base/lib-base.a
+BASE_LIB_DBG = $(ROOT)/base/lib-dbg-base.a
+
+VCF_INC = $(ROOT)/libVcf
+VCF_LIB = $(ROOT)/libVcf/lib-vcf.a
+VCF_LIB_DBG = $(ROOT)/libVcf/lib-dbg-vcf.a
+
+REGRESSION_INC = $(ROOT)/regression
+REGRESSION_LIB = $(ROOT)/regression/lib-regression.a
+REGRESSION_LIB_DBG = $(ROOT)/regression/lib-dbg-regression.a
+
+GONCALO_INC = $(ROOT)/libsrc
+GONCALO_LIB = $(ROOT)/libsrc/lib-goncalo.a
+GONCALO_LIB_DBG = $(ROOT)/libsrc/lib-dbg-goncalo.a
+
+##################################################
+## Common compiler options
+CXX=g++
+DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x -Wall -Wno-unused-function
+
+INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
+LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
+LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
+CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I. -I$(ROOT)
+CXX_LIB = $(LIB) -lz -lm -lpthread
+CXX_LIB_DBG = $(LIB_DBG) -lz -lm -lpthread
+
+##################################################
+## Platform dependent variables
+ARCH := $(firstword $(shell uname -m))
+SYS := $(firstword $(shell uname -s))
+ifeq ($(SYS), Linux)
+  STATIC_FLAG = -static
+endif

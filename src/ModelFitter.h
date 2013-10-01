@@ -2557,7 +2557,7 @@ private:
    * print the covariance for the front of loci to the rest of loci
    */
   int printCovariance(FileWriter* fp, const std::deque<Loci>& lociQueue){
-    auto iter = lociQueue.begin();
+    std::deque<Loci>::const_iterator iter = lociQueue.begin();
     std::vector<int> position(lociQueue.size());
     std::vector<double> cov (lociQueue.size());
     int idx = 0;
@@ -2594,7 +2594,7 @@ private:
    * print the covariance for the front of loci to the rest of loci
    */
   int printCovarianceForBinaryTrait(FileWriter* fp, const std::deque<Loci>& lociQueue){
-    auto iter = lociQueue.begin();
+    std::deque<Loci>::const_iterator iter = lociQueue.begin();
     std::vector<int> position(lociQueue.size());
     std::vector<double> covXX (lociQueue.size());
     std::vector<double> covXZ (this->cov.cols);

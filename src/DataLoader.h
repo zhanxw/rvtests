@@ -64,6 +64,9 @@ int extractCovariate(const std::string& fn,
         extractColumnName.push_back(covNameToUse[i]);
       }
     } else { // body lines
+      if (fd.empty() || (fd[0].empty() && fd.size() == 1)) { // skip empty lines
+        continue;
+      }
       if ((int)fd.size() != fieldLen) {
         logger->error("Inconsistent column number in covariate file line [ %d ] - skip this file!", lineNo);
         return -1;
@@ -273,7 +276,7 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p, i
     logger->warn("Skip: Additional [ %d ] lines have missing or invalid phenotype type", numMissingPhenotype - 10);
   }
   
-  for (auto iter = dup.begin(); iter != dup.end(); ++iter){
+  for (std::map<std::string, int>::iterator iter = dup.begin(); iter != dup.end(); ++iter){
     logger->warn("Sample [ %s ] removed from phenotype file [ %s ] for its duplicity [ %d ].", iter->first.c_str(), fn, iter->second + 1);
     pheno.erase(iter->first);
   };

@@ -2,8 +2,16 @@
 #define _SUMMARY_H_
 
 #include "base/IO.h"
-#include "CommonFunction.h"
 #include "ModelUtil.h"
+
+inline void convert(const std::vector<double>& in, Vector* out) {
+  if (!out) return;
+  int n = in.size();
+  out->Dimension(n);
+  for (int i = 0; i < n; ++i) {
+    (*out)[i] = in[i];
+  }
+}
 
 class Summary{
  public:
@@ -177,7 +185,7 @@ class SummaryHeader{
     // other cov
     const int n = covLabel.size();
     for (int i = 0; i < n; ++i) {
-      fp->printf("## - %s\t%g\t%g\n", covLabel[i-1].c_str(), beta[i], betaSd[i][i]);
+      fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
     }
     // sigma
     fp->printf("## - Sigma\t%g\tNA\n", sigma);

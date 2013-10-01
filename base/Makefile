@@ -1,10 +1,10 @@
-UNAME := $(shell uname)
-ifeq ($(UNAME), Linux)
-   HOME = /home/zhanxw
-endif
-ifeq ($(UNAME), Darwin)
-   HOME = /Users/zhanxw
-endif
+# UNAME := $(shell uname)
+# ifeq ($(UNAME), Linux)
+#    HOME = /home/zhanxw
+# endif
+# ifeq ($(UNAME), Darwin)
+#    HOME = /Users/zhanxw
+# endif
 
 LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a

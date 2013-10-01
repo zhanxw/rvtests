@@ -1,26 +1,12 @@
-/////////////////////////////////////////////////////////////////////
-// Rewritten by Xiaowei Zhan
-//
-// Original code is from:
-// mach2dat/LogisticRegression.h
-// (c) 2008 Yun Li
-//
-// March 15, 2008
-//
-
-#include "LogisticRegression.h"
-#include <math.h>
+#include "FirthRegression.h"
 #include "Eigen/Core"
 #include <Eigen/Cholesky>
 #include "EigenMatrixInterface.h"
-// #include "MathSVD.h"
-// #include "MathCholesky.h"
-// #include "StringHash.h"
-// #include "MathStats.h"
-
 #include "gsl/gsl_cdf.h"
 
-#ifdef DEBUG
+#ifndef NDEBUG
+#include <iostream>
+#include <fstream>
 // for debug usage
 void printToFile(Vector& v, String fn, int index) {
   String n;
@@ -43,6 +29,12 @@ void printToFile(Matrix& m, String fn, int index) {
   }
   fclose(fp);
 }
+void printToFile(Eigen::MatrixXf& m, const char* fn, const char* label) {
+  std::ofstream ofs (fn, std::ofstream::out);
+  ofs << "#[ " << label << " ]\n";
+  ofs << m << "\n";
+  ofs.close();
+}
 #endif
 
 class WorkingData {
@@ -50,9 +42,10 @@ class WorkingData {
   Eigen::MatrixXf X;
   Eigen::VectorXf r;    // residual
   Eigen::VectorXf eta;  // X * beta
-  Eigen::VectorXf p;
+  Eigen::VectorXf p;    // p = 1/(1+exp(-eta))
   Eigen::VectorXf V;    // p * (1-p)
-  Eigen::MatrixXf D;  //  X' V X
+  Eigen::VectorXf h;    // diagonal of sqrt(W)*X*(X' V X)^(-1) *X'*sqrt(W)
+  Eigen::MatrixXf D;    //  X' V X
   Eigen::MatrixXf covB; // (X' V X)^(-1)
   Eigen::VectorXf beta;
   Eigen::VectorXf delta_beta;
@@ -62,12 +55,12 @@ class WorkingData {
   Eigen::VectorXf total;
 };
 
-LogisticRegression::LogisticRegression()
+FirthRegression::FirthRegression()
 {
   this->w = new WorkingData;
 }
 
-LogisticRegression::~LogisticRegression()
+FirthRegression::~FirthRegression()
 {
   if (this->w) {
     delete this->w;
@@ -75,7 +68,8 @@ LogisticRegression::~LogisticRegression()
   }
 }
 
-double LogisticRegression::GetDeviance() {
+#if 0
+double FirthRegression::GetDeviance() {
   double ll = 0.0;
   if (this->w->y.size()) {
     ll = (
@@ -93,7 +87,7 @@ double LogisticRegression::GetDeviance() {
   return deviance;
 }
 
-double LogisticRegression::GetDeviance(Matrix & X, Vector & y)
+double FirthRegression::GetDeviance(Matrix & X, Vector & y)
 {
   double ll = 0.0;
 
@@ -111,7 +105,7 @@ double LogisticRegression::GetDeviance(Matrix & X, Vector & y)
   return deviance;
 }
 
-double LogisticRegression::GetDeviance(Matrix & X, Vector & succ, Vector& total)
+double FirthRegression::GetDeviance(Matrix & X, Vector & succ, Vector& total)
 {
   double ll = 0.0;
   for (int i = 0; i < X.rows; i++)
@@ -127,8 +121,9 @@ double LogisticRegression::GetDeviance(Matrix & X, Vector & succ, Vector& total)
   double deviance = -2.0 * ll;
   return deviance;
 }
+#endif
 
-Vector & LogisticRegression::GetAsyPvalue(){
+Vector & FirthRegression::GetAsyPvalue(){
   int numCov = B.Length();
   pValue.Dimension(B.Length());
   for (int i = 0; i < numCov; i ++){
@@ -143,7 +138,7 @@ Vector & LogisticRegression::GetAsyPvalue(){
 }
 
 
-void LogisticRegression::Reset(Matrix& X){
+void FirthRegression::Reset(Matrix& X){
   int nr = X.rows;
   int nc = X.cols;
 
@@ -165,6 +160,7 @@ void LogisticRegression::Reset(Matrix& X){
   this->w->beta.setZero(nc);
   this->w->eta.setZero(nr);
   this->w->p.setZero(nr);
+  this->w->h.setZero(nr);
   this->w->V.setZero(nr);
   this->w->D.setZero(nc, nc);
   this->w->covB.setZero(nc, nc);
@@ -174,23 +170,9 @@ void LogisticRegression::Reset(Matrix& X){
   this->w->y.setZero(0);
   this->w->succ.setZero(0);
   this->w->total.setZero(0);
-
-  // W.Dimension(nr);
-  // W.Zero();
-
-  // residuals.Dimension(nr);
-
-  // deltaB.Dimension(nc);
-
-  // D.Dimension(nc, nc);
-
-  // Dinv.Dimension(nc, nc);
-  // Dtwo.Dimension(nc, nr);
-  // XtV.Dimension(nc, nr);
-
 }
 
-bool LogisticRegression::FitLogisticModel(Matrix & X, Matrix & y, int rnrounds) {
+bool FirthRegression::FitFirthModel(Matrix & X, Matrix & y, int rnrounds) {
   if (y.cols != 1) {
     fprintf(stderr, "%s:%d Use first column of y\n", __FILE__, __LINE__);
   }
@@ -198,10 +180,10 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Matrix & y, int rnrounds) 
   for (int i = 0; i < X.rows; ++i){
     v[i] = y[i][0];
   }
-  return this->FitLogisticModel(X, v, rnrounds);
+  return this->FitFirthModel(X, v, rnrounds);
 };
 
-bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& total, int nrrounds) {
+bool FirthRegression::FitFirthModel(Matrix & X, Vector & succ, Vector& total, int nrrounds) {
   this-> Reset(X);
 
   G_to_Eigen(X, &this->w->X);
@@ -209,7 +191,8 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
   G_to_Eigen(total, &this->w->total);
 
   int rounds = 0;
-  double lastDeviance, currentDeviance;
+  // double lastDeviance, currentDeviance;
+  Eigen::MatrixXf xw; // W^(1/2) * X
   // Newton-Raphson
   while (rounds < nrrounds) {
     // beta = beta + solve( t(X)%*%diag(p*(1-p)) %*%X) %*% t(X) %*% (Y-p);
@@ -217,28 +200,24 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
     this->w->p = (-this->w->eta.array().exp() + 1.0).inverse();
     this->w->V = this->w->p.array() * (1.0 - this->w->p.array()) * this->w->total.array();
 
-    this->w->D = this->w->X.transpose() * this->w->V.asDiagonal() * this->w->X; // X' V X
-    this->w->r = this->w->X.transpose() * (this->w->succ.array() - this->w->total.array() * this->w->p.array()).matrix(); // X' (y-mu)
-
-    this->w->delta_beta = this->w->D.eval().llt().solve(this->w->r);
-    // const double rel = (this->w->D * this->w->delta_beta - this->w->r).norm() / this->w->r.norm();
-    // if ( this->w->r.norm() >0 && rel > 1e-6) {
-    if ((this->w->D * this->w->delta_beta - this->w->r).norm()  > 1e-3) {
+    xw = (this->w->V.array().sqrt().matrix().asDiagonal() * this->w->X).eval();
+    this->w->D = xw.transpose() * xw; // this->w->X.transpose() * this->w->V.asDiagonal() * this->w->X; // X' V X
+    this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
+    // double rel = ((this->w->D * this->w->covB).array() - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() / this->w->D.rows();
+    // if (rel > 1e-6) { // use relative accuracy to evalute convergence
+    if ((this->w->D * this->w->covB - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows())).norm() > 1e-3) {
       // cannot inverse
       return false;
     }
+    this->w->h = (xw.transpose() * this->w->covB * xw).diagonal();
+    this->w->r = this->w->X.transpose() * (this->w->succ.array() - this->w->total.array() * this->w->p.array()
+                                           + this->w->total.array() * this->w->h.array() * (0.5 - this->w->p.array())).matrix();
+    this->w->delta_beta = this->w->covB * this->w->r;
     this->w->beta += this->w->delta_beta;
-    currentDeviance = this->GetDeviance();
-    if (rounds >1 && fabs(currentDeviance - lastDeviance) < 1e-6)
-    { // converged!
+    if (rounds > 1 && (this->w->beta.norm() > 0 && this->w->delta_beta.norm() / this->w->beta.norm() < 1e-6)) {
       rounds = 0;
       break;
     }
-    if (std::fpclassify(currentDeviance) != FP_NORMAL) {
-      // probably separation happens
-      return false;
-    }
-    lastDeviance = currentDeviance;
     rounds ++;
   }
   if (rounds == nrrounds)
@@ -246,7 +225,6 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
     printf("Not enough iterations!");
     return false;
   }
-  this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
 
   Eigen_to_G(this->w->beta, &B);
   Eigen_to_G(this->w->covB, &covB);
@@ -256,7 +234,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
   return true;
 }
 
-bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
+bool FirthRegression::FitFirthModel(Matrix & X, Vector & y, int nrrounds)
 {
   this-> Reset(X);
 
@@ -264,53 +242,46 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
   G_to_Eigen(y, &this->w->y);
 
   int rounds = 0;
-  double lastDeviance, currentDeviance;
+  // double lastDeviance, currentDeviance;
+  Eigen::MatrixXf xw; // W^(1/2) * X
+  // Newton-Raphson  
   while (rounds < nrrounds) {
+    // std::cout << "beta = " << this->w->beta << "\n";
     this->w->eta = this->w->X * this->w->beta;
     this->w->p = (1.0 + (-this->w->eta.array()).exp()).inverse();
     this->w->V = this->w->p.array() * (1.0 - this->w->p.array());
-    this->w->D = this->w->X.transpose() * this->w->V.asDiagonal() * this->w->X; // X' V X
-    this->w->r = this->w->X.transpose() * (this->w->y - this->w->p); // X' (y-mu)
 
-    this->w->delta_beta = this->w->D.eval().llt().solve(this->w->r);
+    xw = (this->w->V.array().sqrt().matrix().asDiagonal() * this->w->X).eval(); // W^(1/2) * X 
+    this->w->D = xw.transpose() * xw; // X' V X
+    this->w->covB = this->w->D.eval().ldlt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
 
-    // // output different norms, see which works
-    // fprintf(stderr, "norm[1] = %g\n", (this->w->D * this->w->delta_beta - this->w->r).norm());
-    // fprintf(stderr, "norm[2] = %s\n", (this->w->D * this->w->delta_beta).isApprox(this->w->r, 1e-3) ? "true": "false");
-    // fprintf(stderr, "norm[2] = %s\n", (this->w->D * this->w->delta_beta).isApprox(this->w->r, 1e-6) ? "true": "false");
-    
-    // const double rel = (this->w->D * this->w->delta_beta - this->w->r).norm() / this->w->r.norm();
-    // fprintf(stderr, "rel = %g, norm1 = %g, norm2 = %g\n", rel, (this->w->D * this->w->delta_beta - this->w->r).norm(), this->w->r.norm());
-
-    // if ( this->w->r.norm() >0 && rel > 1e-6) {
-    //   // cannot inverse
-    //   // return false;
-    // }
-    if ((this->w->D * this->w->delta_beta - this->w->r).norm() > 1e-3) { // very practical choice...
+    // double rel = ((this->w->D * this->w->covB).array() - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() / this->w->D.rows();
+    // // printf("norm = %g\n", rel);
+    // if (rel > 1e-6) { // use relative accuracy to evalute convergence
+    if ((this->w->D * this->w->covB - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows())).norm() > 1e-3) {      
       // cannot inverse
+      // printToFile(this->w->D, "matD", "D");
+      // printToFile(this->w->covB, "matCovB", "B");
       return false;
     }
-    
+    this->w->h = (xw * this->w->covB * xw.transpose()).diagonal();
+    this->w->r = this->w->X.transpose() * (this->w->y - this->w->p + (this->w->h.array() * (0.5 - this->w->p.array())).matrix()); // X' (y-mu)
+    this->w->delta_beta = this->w->covB * this->w->r;
     this->w->beta += this->w->delta_beta;
-    currentDeviance = this->GetDeviance();
-    if (rounds >1 && fabs(currentDeviance - lastDeviance) < 1e-6)
-    { // converged!
+    // printf("norm = %g\n", this->w->delta_beta.norm());
+    // use relative accuracy to evalute convergence
+    if (rounds > 1 && (this->w->beta.norm() > 0 && this->w->delta_beta.norm() / this->w->beta.norm() < 1e-6)) {
       rounds = 0;
       break;
     }
-    if (std::fpclassify(currentDeviance) != FP_NORMAL) {
-      // probably separation happens
-      return false;
-    }
-    lastDeviance = currentDeviance;
     rounds ++;
   }
   if (rounds == nrrounds)
   {
-    printf("Not enough iterations!\n");
+    printf("Not enough iterations!");
     return false;
   }
-  this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
+  // this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
 
   Eigen_to_G(this->w->beta, &B);
   Eigen_to_G(this->w->covB, &covB);

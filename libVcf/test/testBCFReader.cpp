@@ -1,7 +1,38 @@
 #include "BCFReader.h"
+#include "VCFExtractor.h"
 
 int main(int argc, char *argv[])
 {
+  {
+    std::string fn = "/net/fantasia/home/zhanxw/mycode/seqminer/seqminer/inst/vcf/all.anno.filtered.extract.bcf.gz";
+    std::string r = "1:196621007-196716634";
+    VCFExtractor vin(fn);
+    vin.setRangeList(r);
+    printf("Extract two sites\n");
+    vin.setAnnoType("Nonsynonymous");
+    while (vin.readRecord()){
+      VCFRecord& r = vin.getVCFRecord();
+      VCFPeople& people = r.getPeople();
+      VCFIndividual* indv;
+
+      printf("%s:%d\n", r.getChrom(), r.getPos());
+    }
+  }
+
+  if (false) {
+    // this code demonstrate how to temporarily close stdout
+    int fd = STDOUT_FILENO;
+    int dupFd = dup(fileno(stdout));
+    stdout = fdopen(dupFd, "w");
+    assert(stdout);
+
+    assert(dupFd > 0);
+    printf("before stdout, fd = %d, dupFd = %d\n", fd, dupFd);
+    fclose(stdout);
+    printf("after stdout\n");
+    return 0;
+  }
+  
   const char* fn = "test.bcf.gz";
   {
     BCFReader tr(fn);
@@ -54,5 +85,16 @@ int main(int argc, char *argv[])
     // assert ( n == 0) ;
   }
 
+  {
+    BCFReader tr(fn);
+    std::string h= tr.getHeader().c_str();
+    int count = 0;
+    for (size_t i = 0; i < h.size(); ++i) {
+      if (h[i] == '\n')
+        count++;
+    }
+    fprintf(stdout, "header has %d lines.\n", count);
+    assert( count == 60);
+  }
   return 0;
 }

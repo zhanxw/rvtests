@@ -1,0 +1,47 @@
+## this file describe how we build libs
+ROOT?=.
+## third-party lib
+$(TABIX_INC) $(TABIX_LIB):
+	(cd $(ROOT)/third; make tabix)
+$(EIGEN_INC) $(EIGEN_LIB):
+	(cd $(ROOT)/third; make eigen)
+$(PCRE_INC) $(PCRE_LIB):
+	(cd $(ROOT)/third; make pcre)
+$(GSL_INC) $(GSL_LIB):
+	(cd $(ROOT)/third; make gsl)
+
+$(BZIP2_INC) $(BZIP2_LIB):
+	(cd $(ROOT)/third; make bzip2)
+
+$(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
+	(cd $(ROOT)/third; make samtools)   
+
+## our libs
+$(BASE_LIB):
+	(cd $(ROOT)/base; make)
+$(BASE_LIB_DBG):
+	(cd $(ROOT)/base; make debug)
+$(VCF_LIB):
+	(cd $(ROOT)/libVcf; make)
+$(VCF_LIB_DBG):
+	(cd $(ROOT)/libVcf; make debug)
+$(REGRESSION_LIB): $(EIGEN_INC)
+	(cd $(ROOT)/regression; make)
+$(REGRESSION_LIB_DBG):
+	(cd $(ROOT)/regression; make debug)
+$(GONCALO_LIB):
+	(cd $(ROOT)/libsrc; make)
+$(GONCALO_LIB_DBG):
+	(cd $(ROOT)/libsrc; make debug)
+
+## rule to make lib
+# to build lib, we will use reverse order
+# so third party lib is build first.
+reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
+LIBS:=$(call reverse,$(LIB))
+LIBS_DBG:=$(call reverse,$(LIB_DBG))
+
+.PHONY: lib lib-dbg
+lib:$(LIBS)
+lib-dbg:$(LIB_DBG)
+

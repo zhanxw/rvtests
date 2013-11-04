@@ -20,6 +20,24 @@
 
 extern double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2);
 
+/**
+ * PLINK allow these chromosomes (1-22, X, Y, XY, MT, 0)
+ * according to http://pngu.mgh.harvard.edu/~purcell/plink/dataman.shtml
+ */
+bool isPlinkCompatibleChrom(const std::string& chrom) {
+  std::string c = toupper(chopChr(chrom));
+  if (c == "X" || c == "Y" || c == "XY" || c == "MT") {
+    return true;
+  }
+  int i;
+if (!str2int(c, &i) || !isdigit(c)) { // not numeric
+    return false;
+  }
+  if (0 <= i && i <= 25) {
+    return true;
+  }
+  return false;
+}
 bool isACGT(char c) {
   if (c == 'A' || c == 'C' || c == 'G' || c == 'T') return true;
   if (c == 'a' || c == 'c' || c == 'g' || c == 't') return true;
@@ -64,7 +82,8 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Filter Option")
         ADD_BOOL_PARAMETER(pl, passFilter, "--pass", "Only output variants that pass filters")
         ADD_PARAMETER_GROUP(pl, "Quality Controls")
-        ADD_BOOL_PARAMETER(pl, biallelic, "--biallelic", "Specify only include bi-allelic SNP sites")        
+        ADD_BOOL_PARAMETER(pl, biallelic, "--biallelic", "Specify only include bi-allelic SNP sites")
+        ADD_BOOL_PARAMETER(pl, plinkChrom, "--plinkChrom", "Specify only include chromosome 1-22, X, Y, MT as PLINK required")
         ADD_DEFAULT_DOUBLE_PARAMETER(pl, minMAF, -1, "--minMAF", "Specify minimum accepted minor allele frequency")
         ADD_DEFAULT_DOUBLE_PARAMETER(pl, minHWE, -1, "--minHWE", "Specify minimum accepted HWE p-value")
         ADD_DEFAULT_DOUBLE_PARAMETER(pl, minCallRate, -1, "--minCallRate", "Specify minimum call rate threshold")
@@ -166,6 +185,7 @@ int main(int argc, char** argv){
     int lowCallRate = 0;
     int lowHWE = 0;
     int nonSnp = 0; // counter of non-SNP site
+    int incompatibleChrom = 0; // counter of chrom names that are incompatible to PLINK
     // int lowGDFreq = 0;
     // int lowGQFreq = 0;
     const std::string PassFilter = "PASS";
@@ -181,6 +201,10 @@ int main(int argc, char** argv){
         VCFIndividual* indv;
         if (FLAG_passFilter && PassFilter != r.getFilt()) continue;
 
+        // check if only keep PLINK compatible chromosome names
+        if (FLAG_plinkChrom && !isPlinkCompatibleChrom(r.getChrom())) {
+          ++ incompatibleChrom;
+        }
         // check if the site is snp
         if (FLAG_biallelic && !isBiallelicSite(r.getRef(), r.getAlt())) {
           ++ nonSnp;
@@ -281,6 +305,11 @@ int main(int argc, char** argv){
 
     };
     fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+
+    if (incompatibleChrom) {
+      fprintf(stdout, "Skipped %d variants that are not located on PLINK compatible chromosomes (1-22, X, Y, XY, MT, 0)\n", incompatibleChrom);
+    }
+
     if (nonSnp) {
       fprintf(stdout, "Skipped %d non-SNP VCF records\n", nonSnp);
     }

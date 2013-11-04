@@ -1006,8 +1006,13 @@ int main(int argc, char** argv){
       } else if (modelName == "cov") {
         int windowSize;
         parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis window size is %d", windowSize);
+        logger->info("Meta analysis uses windows size %d to produce covariance statistics", windowSize);
         model.push_back( new MetaCovTest(windowSize) );
+      } else if (modelName == "skew") {
+        int windowSize;
+        parser.assign("windowSize", &windowSize, 1000000);
+        logger->info("Meta analysis uses window size %d to produce skew statistics", windowSize);
+        model.push_back( new MetaSkewTest(windowSize) );
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
@@ -1035,6 +1040,9 @@ int main(int argc, char** argv){
     s += model[i]->getModelName();
     s += ".assoc";
     if (model[i]->getModelName() == "MetaCov") {
+      s += ".gz";
+      fOuts[i] = new FileWriter(s.c_str(), BGZIP);
+    } else if (model[i]->getModelName() == "MetaSkew") {
       s += ".gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
     } else {

@@ -1,4 +1,5 @@
 all: release
+release: util
 
 ROOT=..
 include $(ROOT)/Makefile.common
@@ -38,7 +39,7 @@ lib-dbg: $(call reverse,$(LIB_DBG))
 util: $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC))
 define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
-  SRC := $(addprefix vcfUtils/, $(1).cpp)
+  SRC := $(addprefix ./, $(1).cpp)
   -include  $(1).d
   $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS)  $(STATIC_FLAG)
   $$(TAR): $$(SRC) $(LIB) | $(DIR_EXEC)

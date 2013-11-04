@@ -120,9 +120,9 @@ inline int stringNaturalTokenize(const std::string& str, const char delim, std::
 
 inline void stringJoin(const std::vector<std::string>& array, const char delim, std::string* res){
   res->clear();
-  for (unsigned int i = 0; i < array.size(); i++) {
-    (*res) += array[i];
+  for (size_t i = 0; i < array.size(); i++) {
     if (i) (*res) += delim;
+    (*res) += array[i];
   }
 };
 

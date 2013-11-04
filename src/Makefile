@@ -17,7 +17,7 @@ $(DIR_EXEC_DBG):
 
 .PHONY: all release debug lib lib-dbg
 
-orelease: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) $(STATIC_FLAG)
+release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) $(STATIC_FLAG)
 release: $(DIR_EXEC)/$(EXEC) 
 $(DIR_EXEC)/$(EXEC):  $(LIBS) \
                       Main.o \

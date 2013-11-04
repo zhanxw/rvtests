@@ -61,6 +61,7 @@ public:
 
 private:
   double GetDeviance();
+  
 private:
   // dont' copy.
   LogisticRegression(const LogisticRegression& l);

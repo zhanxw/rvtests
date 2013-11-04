@@ -210,6 +210,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
 
   int rounds = 0;
   double lastDeviance, currentDeviance;
+  const int nSample = this->w->X.rows();
   // Newton-Raphson
   while (rounds < nrrounds) {
     // beta = beta + solve( t(X)%*%diag(p*(1-p)) %*%X) %*% t(X) %*% (Y-p);
@@ -223,7 +224,8 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
     this->w->delta_beta = this->w->D.eval().llt().solve(this->w->r);
     // const double rel = (this->w->D * this->w->delta_beta - this->w->r).norm() / this->w->r.norm();
     // if ( this->w->r.norm() >0 && rel > 1e-6) {
-    if ((this->w->D * this->w->delta_beta - this->w->r).norm()  > 1e-3) {
+    double norm = (this->w->D * this->w->delta_beta - this->w->r).norm();
+    if (norm  > 1e-3 * nSample) {
       // cannot inverse
       return false;
     }
@@ -265,6 +267,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
 
   int rounds = 0;
   double lastDeviance, currentDeviance;
+  const int nSample = this->w->X.rows();
   while (rounds < nrrounds) {
     this->w->eta = this->w->X * this->w->beta;
     this->w->p = (1.0 + (-this->w->eta.array()).exp()).inverse();
@@ -286,7 +289,8 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
     //   // cannot inverse
     //   // return false;
     // }
-    if ((this->w->D * this->w->delta_beta - this->w->r).norm() > 1e-3) { // very practical choice...
+    double norm = (this->w->D * this->w->delta_beta - this->w->r).norm();
+    if (norm > 1e-3 * nSample) { // very practical choice...
       // cannot inverse
       return false;
     }

@@ -45,7 +45,7 @@ void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* 
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
 class ModelFitter{
-public:
+ public:
   virtual int fit(DataConsolidator* dc) = 0;
 
   // write result header
@@ -76,14 +76,14 @@ public:
   const Result& getResult() const {
     return this->result;
   };
-protected:
+ protected:
   std::string modelName;
   bool binaryOutcome;
   Result result;
 }; // end ModelFitter
 
 class SingleVariantWaldTest: public ModelFitter{
-public:
+ public:
   SingleVariantWaldTest(){
     this->modelName = "SingleWald";
     result.addHeader("Test");
@@ -152,7 +152,7 @@ public:
       result.writeValueLine(fp);
     }
   };
-private:
+ private:
   Matrix X; // 1 + cov + geno
   Vector Y; // phenotype
   LinearRegression linear;
@@ -193,7 +193,7 @@ private:
 /* } */
 
 class SingleVariantScoreTest: public ModelFitter{
-public:
+ public:
   SingleVariantScoreTest(){
     this->modelName = "SingleScore";
   };
@@ -258,7 +258,7 @@ public:
     }
     result.writeValueLine(fp);
   };
-private:
+ private:
   double af;
   int nSample;
   Vector pheno;
@@ -269,7 +269,7 @@ private:
 }; // SingleVariantScoreTest
 
 class SingleVariantFisherExactTest: public ModelFitter{
-public:
+ public:
   SingleVariantFisherExactTest() {
     this->modelName = "FisherExact";
   };
@@ -376,7 +376,7 @@ public:
   void reset() {
     model.reset();
   };
-private:
+ private:
   Table2by2 model;
   int caseAC;
   int caseAN;
@@ -387,8 +387,8 @@ private:
 }; // SingleVariantFisherExactTest
 
 class SingleVariantFamilyScore: public ModelFitter{
-public:
-SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE) {
+ public:
+  SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE) {
     this->modelName = "FamScore";
     result.addHeader("AF");
     result.addHeader("U.Stat");
@@ -447,7 +447,7 @@ SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE) {
     result.writeValueLine(fp);
   };
 
-private:
+ private:
   Matrix cov;
   FastLMM model;
   bool needToFitNullModel;
@@ -459,8 +459,8 @@ private:
 }; // end SingleVariantFamilyScore
 
 class SingleVariantFamilyLRT: public ModelFitter{
-public:
-SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE) {
+ public:
+  SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE) {
     this->modelName = "FamLRT";
     result.addHeader("AF");
     result.addHeader("NullLogLik");
@@ -519,7 +519,7 @@ SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE) {
     result.writeValueLine(fp);
   };
 
-private:
+ private:
   Matrix cov;
   FastLMM model;
   bool needToFitNullModel;
@@ -531,8 +531,8 @@ private:
 }; // end SingleVariantFamilyLRT
 
 class SingleVariantFamilyGrammarGamma: public ModelFitter{
-public:
-SingleVariantFamilyGrammarGamma():model() {
+ public:
+  SingleVariantFamilyGrammarGamma():model() {
     this->modelName = "FamGrammarGamma";
     result.addHeader("AF");
     result.addHeader("Beta");
@@ -591,7 +591,7 @@ SingleVariantFamilyGrammarGamma():model() {
     result.writeValueLine(fp);
   };
 
-private:
+ private:
   Matrix cov;
   GrammarGamma model;
   bool needToFitNullModel;
@@ -603,7 +603,7 @@ private:
 }; // SingleVariantFamilyGrammarGamma
 
 class CMCTest: public ModelFitter{
-public:
+ public:
   CMCTest() {
     this->modelName = "CMC";
     result.addHeader("NonRefSite");
@@ -662,7 +662,7 @@ public:
     }
     result.writeValueLine(fp);
   };
-private:
+ private:
   /**
    * If the genotype is not exactly 0.0, we will count is as non-reference site
    */
@@ -682,7 +682,7 @@ private:
 }; // CMCTest
 
 class CMCWaldTest: public ModelFitter{
-public:
+ public:
   CMCWaldTest() {
     this->modelName = "CMCWald";
     result.addHeader("NonRefSite");
@@ -751,7 +751,7 @@ public:
       result.writeValueLine(fp);
     }
   };
-private:
+ private:
   /**
    * If the genotype is not exactly 0.0, we will count is as non-reference site
    */
@@ -772,7 +772,7 @@ private:
 }; // CMCWaldTest
 
 class CMCFisherExactTest: public ModelFitter{
-public:
+ public:
   CMCFisherExactTest() {
     this->modelName = "CMCFisherExact";
     result.addHeader("exactCMC.N00");
@@ -866,7 +866,7 @@ public:
   void reset() {
     model.reset();
   };
-private:
+ private:
   Matrix collapsedGenotype;
   Table2by2 model;
   bool fitOK;
@@ -874,7 +874,7 @@ private:
 
 
 class ZegginiTest: public ModelFitter{
-public:
+ public:
   ZegginiTest(){
     this->modelName = "Zeggini";
     result.addHeader("Zeggini.Pvalue");
@@ -942,7 +942,7 @@ public:
     /*   } */
     /* }; */
   };
-private:
+ private:
   Matrix collapsedGenotype;
   LogisticRegressionScoreTest logistic;
   LinearRegressionScoreTest linear;
@@ -951,8 +951,8 @@ private:
 }; // ZegginiTest
 
 class MadsonBrowningTest: public ModelFitter{
-public:
-MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
+ public:
+  MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "MadsonBrowning";
     result.addHeader("MB.Pvalue");
   }
@@ -1042,7 +1042,7 @@ MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     /*   fprintf(fp, "NA\n"); */
     /* } */
   };
-private:
+ private:
   Matrix collapsedGenotype;
   Vector pheno;
   LogisticRegressionScoreTest logistic;
@@ -1054,7 +1054,7 @@ private:
 // Danyu Lin's method, using 1/sqrt(p(1-p)) as weight
 // where p is estimated from all samples
 class FpTest: public ModelFitter{
-public:
+ public:
   FpTest() {
     this->modelName = "Fp";
   }
@@ -1119,7 +1119,7 @@ public:
     /*   } */
     /* }; */
   };
-private:
+ private:
   Matrix collapsedGenotype;
   LogisticRegressionScoreTest logistic;
   LinearRegressionScoreTest linear;
@@ -1128,8 +1128,8 @@ private:
 }; // FpTest
 
 class RareCoverTest: public ModelFitter{
-public:
-RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
+ public:
+  RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "RareCover";
     this->result.addHeader("NumIncludeMarker");
   }
@@ -1300,7 +1300,7 @@ RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
       }
     };
   };
-private:
+ private:
   Matrix genotype;
   std::set<int> selected;
   bool fitOK;
@@ -1310,8 +1310,8 @@ private:
 }; //RareCoverTest
 
 class CMATTest:public ModelFitter{
-public:
-CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
+ public:
+  CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "CMAT";
   }
   // fitting model
@@ -1418,7 +1418,7 @@ CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     int numMarker = genotype.cols;
     return (N_A + N_U)/(2*N_A*N_U* numMarker) * (m_A*M_U - m_U*M_A)*(m_A*M_U - m_U*M_A)/(m_A+m_U)/(M_A+M_U);
   }
-private:
+ private:
   double N_A;
   double N_U;
   double m_A;
@@ -1441,8 +1441,8 @@ class UStatTest{
  * Implementation of Alkes Price's VT
  */
 class VariableThresholdPrice: public ModelFitter{
-public:
-VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
+ public:
+  VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "VariableThresholdPrice";
   };
   // fitting model
@@ -1543,7 +1543,7 @@ VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
     fitOK = true;
     this->perm.reset();
   };
-private:
+ private:
   /**
    * Convert genotype back to reference allele count
    * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
@@ -1602,7 +1602,7 @@ private:
     }
     return ret;
   };
-private:
+ private:
   Matrix sortedGenotype;
   std::vector<double> freq;
   bool fitOK;
@@ -1619,8 +1619,8 @@ private:
  *       Be cautious about the type-1 error
  */
 class VariableThresholdCMC: public ModelFitter{
-public:
-VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
+ public:
+  VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     this->modelName = "VariableThresholdCMC";
     this->resize(32);
     result.addHeader("FreqThreshold");
@@ -1683,7 +1683,7 @@ VariableThresholdCMC():model(NULL),modelLen(0),modelCapacity(0){
     for (int i = 0; i < this->modelLen; i++)
       model[i].reset();
   };
-private:
+ private:
   Matrix sortedGenotype;
   std::vector<double> freq;
   bool fitOK;
@@ -1695,7 +1695,7 @@ private:
 
 #if 0
 class VariableThresholdFreqTest: public ModelFitter{
-public:
+ public:
   // write result header
   void writeHeader(FileWriter* fp) {
     fprintf(fp, "VT.FreqCutoff\tVT.PermPvalue");
@@ -1763,7 +1763,7 @@ public:
     this->pvalue.clear();
     this->order.clear();
   };
-private:
+ private:
   Matrix g;
   LogisticRegressionScoreTest lrst;
   std::vector<double> outFreq;
@@ -1775,9 +1775,9 @@ private:
 #endif
 
 class SkatTest: public ModelFitter{
-public:
+ public:
   /* SkatTest(const std::vector<std::string>& param) { */
-SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha) {
+  SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha) {
     if (nPerm > 0)
       this->usePermutation = true;
     this->beta1 = beta1;
@@ -1892,7 +1892,7 @@ SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha)
       fp->write("\n");
     }
   };
-private:
+ private:
   double beta1;
   double beta2;
   // Matrix X; // n by (p+1) matrix, people by covariate (note intercept is needed);
@@ -1913,9 +1913,9 @@ private:
 }; // SkatTest
 
 class KbacTest: public ModelFitter{
-public:
-KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
-      xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
+ public:
+  KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
+                                    xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
     this->modelName = "KBAC";
   };
   ~KbacTest() {
@@ -2029,7 +2029,7 @@ KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
       this->xdatIn = new double[ numPeople * numMarker ];
     }
   };
-private:
+ private:
   int nPerm;
   double alpha;
 
@@ -2054,8 +2054,8 @@ private:
 
 // output files for meta-analysis
 class MetaScoreTest: public ModelFitter{
-public:
-MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullModel(true){
+ public:
+  MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullModel(true){
     this->modelName = "MetaScore";
   };
   // fitting model
@@ -2065,7 +2065,7 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
     Matrix& covariate= dc->getCovariate();
 
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
-    
+
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
     int nSample = (homRef + het + homAlt + missing);
@@ -2077,7 +2077,7 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
     } else {
       hweP = SNPHWE( het, homRef, homAlt);
       af = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
-      if (isBinaryOutcome()) { 
+      if (isBinaryOutcome()) {
         dc->countRawGenotypeFromCase(0, &homRef, &het, &homAlt, &missing);
         if (homRef + het + homAlt == 0 ||
             (het < 0 || homRef < 0 || homAlt < 0)) {
@@ -2126,7 +2126,7 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
         }
         fitOK = (0 == linearFamScore.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
         this->af = linearFamScore.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
-        
+
       } else {
         /* if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) { */
         /*   copyCovariateAndIntercept(genotype.rows, covariate, &cov); */
@@ -2212,13 +2212,13 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
 
     result.clearValue();
     if (!isBinaryOutcome()) {
-      result.updateValue("AF", af);  
+      result.updateValue("AF", af);
     } else {
       static char afString[128];
       snprintf(afString, 128, "%g:%g:%g", af, afFromCase, afFromControl);
       result.updateValue("AF", afString);
     }
-    
+
     result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
     result.updateValue("CALL_RATE", callRate);
     if (!isBinaryOutcome()) {
@@ -2260,7 +2260,7 @@ MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullMode
     }
     result.writeValueLine(fp);
   };
-private:
+ private:
   double af;
   double afFromCase;
   double afFromControl;
@@ -2286,7 +2286,7 @@ private:
 }; // MetaScoreTest
 
 class MetaCovTest: public ModelFitter{
-private:
+ private:
   typedef std::vector<double> Genotype;
   struct Pos{
     std::string chrom;
@@ -2297,7 +2297,7 @@ private:
     Genotype geno;
   };
 
-public:
+ public:
   MetaCovTest(int windowSize){
     this->modelName = "MetaCov";
     this->numVariant = 0;
@@ -2482,7 +2482,7 @@ public:
     // result.writeValueLine(fp);
   };
 
-private:
+ private:
   /**
    * @return \sum g1 * g2 - \sum(g1) * \sum(g2)/n
    * NOTE: we already centered g1, g2, so the above reduced to
@@ -2642,7 +2642,7 @@ private:
     return 0;
   };
 
-private:
+ private:
   std::deque< Loci> queue;
   int numVariant;
   int nSample;
@@ -2663,8 +2663,323 @@ private:
 }; // MetaCovTest
 
 
+class MetaSkewTest: public ModelFitter{
+ private:
+  typedef std::vector<double> Genotype;
+  struct Pos{
+    std::string chrom;
+    int pos;
+  };
+  struct Loci{
+    Pos pos;
+    Genotype geno;
+  };
+
+ public:
+  MetaSkewTest(int windowSize){
+    this->modelName = "MetaSkew";
+    this->numVariant = 0;
+    this->nSample = -1;
+    // this->mleVarY = -1.;
+    this->fout = NULL;
+    this->windowSize = windowSize;
+    this->needToFitNullModel = true;
+    result.addHeader("CHROM");
+    result.addHeader("START_POS");
+    result.addHeader("END_POS");
+    result.addHeader("NUM_MARKER");
+    result.addHeader("MARKER_POS");
+    result.addHeader("SKEW");
+  };
+  ~MetaSkewTest(){
+    while(queue.size() > 0 ) {
+      if (isBinaryOutcome()) {
+        printSkewForBinaryTrait(fout, queue);
+      }
+      queue.pop_front();
+    }
+  }
+
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+    Result& siteInfo = dc->getResult();
+
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    if (genotype.rows == 0){
+      fitOK = false;
+      return -1;
+    }
+    this->useFamilyModel = dc->hasKinship();
+    if (nSample < 0) { // unitialized
+      // calculate variance of y
+      nSample = genotype.rows;
+      weight.Dimension(nSample);
+    } else {
+      if (nSample != genotype.rows){
+        fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+        fitOK = false;
+        return -1;
+      }
+    }
+
+    // set weight
+    if (useFamilyModel) {
+      fitOK = false;
+      return -1;
+    }
+
+    if (!isBinaryOutcome()) {
+      static bool warningGiven = false;
+      if (!warningGiven) {
+        fprintf(stderr, "For quantative trait, it is not necessary to use MetaSkew model.\n");
+        warningGiven = true;
+      }
+      return -1;
+    } else { // binary case
+      // fit null model
+      if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+        copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+        copyPhenotype(phenotype, &this->pheno);
+        fitOK = logistic.FitNullModel(cov, pheno, 100);
+        if (!fitOK) return -1;
+        needToFitNullModel = false;
+
+        // skip store Z, as Z = this->cov
+        // store V in weight
+        for (int i = 0; i < nSample; ++i) {
+          const double y = logistic.GetNullPredicted()[i];
+          weight[i] = y * (1.0 - y) * (1.0 - 2.0 * y);
+        }
+        // // store Z^T * V * Z
+        // this->ZVZ.Dimension(cov.cols, cov.cols);
+        // for(int i = 0; i < cov.cols; ++i) {
+        //   for (int j = 0; j < cov.cols; ++j) {
+        //     double s = 0.0;
+        //     for (int k = 0; k < cov.rows; ++k) {
+        //       s += cov[k][i] * weight[k] * cov[k][j];
+        //     }
+        //     this->ZVZ[i][j] = s;
+        //   }
+        // }
+      }
+    }
+    loci.pos.chrom = siteInfo["CHROM"];
+    loci.pos.pos = atoi(siteInfo["POS"]);
+
+    if ((siteInfo["REF"]).size() != 1 ||
+        (siteInfo["ALT"]).size() != 1) { // not snp
+      fitOK = false;
+      return -1;
+    };
+    loci.geno.resize(nSample);
+    for (int i = 0; i < nSample; ++i) {
+      loci.geno[i] = genotype[i][0];
+    }
+    fitOK = true;
+    return (fitOK ? 0 : -1);
+  };
+
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    if (g_SummaryHeader) {
+      g_SummaryHeader->outputHeader(fp);
+    }
+
+    /* siteInfo.writeHeaderTab(fp); */
+    // fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
+    result.writeHeaderLine(fp);
+  };
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    this->fout = fp;
+    while (queue.size() && getWindowSize(queue, loci) > windowSize) {
+      if (isBinaryOutcome()) {
+        printSkewForBinaryTrait(fout, queue);
+      }
+      // if (isBinaryOutcome()) {
+      //   // printCovarianceForBinaryTrait(fout, queue);
+      // } else {
+      //   printCovariance(fout, queue);
+      // }
+      queue.pop_front();
+    };
+    if (fitOK) {
+      queue.push_back(loci);
+      ++numVariant;
+    }
+    // result.writeValueLine(fp);
+  };
+
+ private:
+  // check if @param g is polymorphic
+  bool isVariant(const Genotype& g) {
+    int n1 = g.size();
+    if (n1 <= 1) return true;
+
+    for(int i = 1; i < n1; ++i) {
+      if (g[i] != g[0]) return true;
+    }
+    return false;
+  }
+
+  double getMoment(const Genotype& g1, const Genotype& g2, const Genotype& g3) {
+    double sum_ijk = 0.0;
+
+    int n1 = g1.size();
+    int n2 = g2.size();
+    int n3 = g3.size();
+    if (!(n1 == n2 && n2 == n3)){
+      assert(false);
+    }
+
+    for(int i = 0; i < n1; ++i) {
+      if (g1[i] == 0.0 || g2[i] == 0.0 || g3[i] == 0.0) continue;
+      sum_ijk += g1[i] * g2[i] * g3[i];
+    }
+    return sum_ijk;
+  }
+
+  /**
+   * @return max integer if different chromosome; or return difference between head and tail locus.
+   */
+  int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
+    if (loci.size() == 0) {
+      return 0;
+    }
+
+    const Loci& head = loci.front();
+    const Loci& tail = newOne;
+
+    if (head.pos.chrom != tail.pos.chrom) {
+      return INT_MAX;
+    } else {
+      return abs(tail.pos.pos - head.pos.pos);
+    }
+  };
+  /**
+   * @return 0
+   * print the skewness for the front of loci to the rest of loci
+   */
+  int printSkewForBinaryTrait(FileWriter* fp, const std::deque<Loci>& lociQueue){
+    // skip monomorphic site
+    if (!isVariant(lociQueue.front().geno)) {
+      return 0;
+    }
+
+    // record polymorphic locations
+    std::vector<std::deque<Loci>::const_iterator> polymorphicLoci;
+    for (std::deque<Loci>::const_iterator iter = lociQueue.begin();
+         iter != lociQueue.end();
+         ++ iter) {
+      if (isVariant(iter->geno)) {
+        polymorphicLoci.push_back(iter);
+      }
+    }
+    if (polymorphicLoci.empty()) return 0;
+
+    // output results
+    std::string s;
+    std::vector<std::string> skew;
+
+    bool hasSmallPvalue = true;
+    Vector genoVec(lociQueue.front().geno.size());
+    for(int i = 0; i < (int)lociQueue.front().geno.size(); ++i) {
+      genoVec[i] = lociQueue.front().geno[i];
+    }
+
+    if (!logistic.TestCovariate(cov, pheno, genoVec)) {
+      // fitting failed
+      hasSmallPvalue = false;
+    } else {
+      hasSmallPvalue = (logistic.GetPvalue() < 0.1);
+    }
+
+    if (hasSmallPvalue) {
+      // keep every combinations (currentPos, i, j)
+      for (size_t i = 0; i != polymorphicLoci.size(); ++i) {
+        for (size_t j = i; j != polymorphicLoci.size(); ++j) {
+          const double val = getMoment(lociQueue.front().geno,
+                                       (polymorphicLoci[i]->geno),
+                                       (polymorphicLoci[j]->geno));
+          if (val == 0.0) continue;
+
+          s.clear();
+          s += toString(i);
+          s += ',';
+          s += toString(j);
+          s += ',';
+          s += toString(val);
+
+          skew.push_back(s);
+        }
+      }
+    } else {
+      // keep (currentPos, i, i) positions only
+      for (size_t i = 0; i != polymorphicLoci.size(); ++i) {
+        const double val = getMoment(lociQueue.front().geno,
+                                     (polymorphicLoci[i]->geno),
+                                     (polymorphicLoci[i]->geno));
+        if (val == 0.0) continue;
+
+        s.clear();
+        s += toString(i);
+        s += ',';
+        s += toString(i);
+        s += ',';
+        s += toString(val);
+
+        skew.push_back(s);
+      }
+    }
+
+    result.updateValue("CHROM", lociQueue.front().pos.chrom);
+    result.updateValue("START_POS", lociQueue.front().pos.pos);
+    result.updateValue("END_POS", lociQueue.back().pos.pos);
+    /* fprintf(fp, "%d\t", idx); */
+    result.updateValue("NUM_MARKER", (int) polymorphicLoci.size());
+
+    s.clear();
+    for(size_t i = 0; i != polymorphicLoci.size(); ++i) {
+      if (i) s += ',';
+      s+= toString(polymorphicLoci[i]->pos.pos);
+    }
+    result.updateValue("MARKER_POS", s);
+
+    s.clear();
+    stringJoin(skew, ':', &s);
+    result.updateValue("SKEW", s);
+    result.writeValueLine(fp);
+    return 0;
+  };
+
+ private:
+  std::deque< Loci> queue;
+  int numVariant;
+  int nSample;
+  // Vector mleVarY;  // variance term of Y_i for i = 1,..., N th sample
+  FileWriter* fout;
+  int windowSize;
+  Loci loci;
+  bool fitOK;
+  // Result result;
+  bool useFamilyModel;
+  Vector weight; // per individual weight
+  LogisticRegressionScoreTest logistic;
+  bool needToFitNullModel;
+  Matrix cov; // covariate
+  Vector pheno;
+  std::map< std::pair<std::string, int>, bool> hasSmallPvalue;
+}; // MetaSkewTest
+
+
 class DumpModel: public ModelFitter{
-public:
+ public:
   DumpModel(const char* prefix) {
     this->prefix = prefix;
     this->modelName = "DumpData";
@@ -2760,7 +3075,7 @@ public:
 
   void reset() {
   }; // for particular class to call when fitting repeatedly
-private:
+ private:
   Matrix phenotype;
   Matrix genotype;
   Matrix covariate;

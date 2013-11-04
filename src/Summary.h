@@ -87,7 +87,7 @@ class SummaryHeader{
       this->covLabel.push_back( m.GetColumnLabel(i));
       this->recordCovariateColumn(m, i );
     }
-  };
+  }
   void fitModel(const std::vector<double>& pheno, bool binaryPhenotype, Matrix& cov) {
     this->isBinaryPhenotype = binaryPhenotype;
     Vector p;
@@ -172,12 +172,14 @@ class SummaryHeader{
                               const Vector& beta,
                               const Matrix& betaSd,
                               const double sigma) {
-    if (beta.Length() != betaSd.rows ||
-        beta.Length() != (int)covLabel.size() + 1) {
+    if (beta.Length() != betaSd.rows) {
       fprintf(stderr, "Dimension does not match in class Summary.\n");
+      /* fprintf(stderr, "Dim %d %d %d\n", beta.Length(), betaSd.rows, (int)covLabel.size()); */
       return;
     }
-    
+    // NOTE: beta dimension and number of covariate labels may not equals,
+    //       we may regression out covaraite of the response variables.
+    /*     beta.Length() != (int)covLabel.size() + 1)  */
     fp->printf("## - Name\tBeta\tSD\n");
     
     // intercept

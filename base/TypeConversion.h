@@ -99,6 +99,16 @@ inline double atof(const std::string& s) {
     return result;
 };
 
+// convert std::string to double
+// @return true if conversion succeed
+inline bool isdigit(const std::string& s) {
+  for (size_t i = 0; i < s.size(); ++i) {
+    if (!isdigit(s[i]))
+      return false;
+  }
+  return true;
+}
+  
 /**
  * convert @param chrom to integer for easier comparisons
  * leading "chr" will not be considered

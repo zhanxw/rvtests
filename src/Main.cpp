@@ -1006,7 +1006,7 @@ int main(int argc, char** argv){
       } else if (modelName == "cov") {
         int windowSize;
         parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses windows size %d to produce covariance statistics", windowSize);
+        logger->info("Meta analysis uses window size %d to produce covariance statistics", windowSize);
         model.push_back( new MetaCovTest(windowSize) );
       } else if (modelName == "skew") {
         int windowSize;

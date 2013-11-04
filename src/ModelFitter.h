@@ -2756,17 +2756,6 @@ class MetaSkewTest: public ModelFitter{
           const double y = logistic.GetNullPredicted()[i];
           weight[i] = y * (1.0 - y) * (1.0 - 2.0 * y);
         }
-        // // store Z^T * V * Z
-        // this->ZVZ.Dimension(cov.cols, cov.cols);
-        // for(int i = 0; i < cov.cols; ++i) {
-        //   for (int j = 0; j < cov.cols; ++j) {
-        //     double s = 0.0;
-        //     for (int k = 0; k < cov.rows; ++k) {
-        //       s += cov[k][i] * weight[k] * cov[k][j];
-        //     }
-        //     this->ZVZ[i][j] = s;
-        //   }
-        // }
       }
     }
     loci.pos.chrom = siteInfo["CHROM"];
@@ -2828,6 +2817,7 @@ class MetaSkewTest: public ModelFitter{
     return false;
   }
 
+  // get weighted 3rd moment
   double getMoment(const Genotype& g1, const Genotype& g2, const Genotype& g3) {
     double sum_ijk = 0.0;
 
@@ -2840,7 +2830,7 @@ class MetaSkewTest: public ModelFitter{
 
     for(int i = 0; i < n1; ++i) {
       if (g1[i] == 0.0 || g2[i] == 0.0 || g3[i] == 0.0) continue;
-      sum_ijk += g1[i] * g2[i] * g3[i];
+      sum_ijk += g1[i] * g2[i] * g3[i] * weight[i];
     }
     return sum_ijk;
   }
@@ -2892,7 +2882,6 @@ class MetaSkewTest: public ModelFitter{
     for(int i = 0; i < (int)lociQueue.front().geno.size(); ++i) {
       genoVec[i] = lociQueue.front().geno[i];
     }
-
     if (!logistic.TestCovariate(cov, pheno, genoVec)) {
       // fitting failed
       hasSmallPvalue = false;

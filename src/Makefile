@@ -23,8 +23,9 @@ $(DIR_EXEC)/$(EXEC):  $(LIBS) \
                       Main.o \
                       DataConsolidator.o \
                       ModelFitter.h \
+                      TabixUtil.o \
                       |$(DIR_EXEC)
-	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB)
+	$(CXX) -o $@ Main.o DataConsolidator.o TabixUtil.o $(CXX_FLAGS) $(CXX_LIB)
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) 
@@ -33,8 +34,9 @@ $(DIR_EXEC_DBG)/$(EXEC): $(LIBS_DBG) \
                          DataConsolidator.o \
                          Collapsor.h \
                          ModelFitter.h \
+                         TabixUtil.o \
                          | $(DIR_EXEC_DBG)
-	$(CXX) -o $@ Main.o DataConsolidator.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
+	$(CXX) -o $@ Main.o DataConsolidator.o TabixUtil.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
 
 
 ##################################################
@@ -46,6 +48,10 @@ Main.o: Main.cpp ../GitVersion.h
 
 -include DataConsolidator.d
 DataConsolidator.o: DataConsolidator.cpp DataConsolidator.h
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+
+-include TabixUtil.d
+TabixUtil.o: TabixUtil.cpp TabixUtil.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 ##################################################

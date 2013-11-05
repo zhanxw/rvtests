@@ -83,6 +83,7 @@
 #include "ModelFitter.h"
 #include "GitVersion.h"
 #include "Result.h"
+#include "TabixUtil.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -1033,6 +1034,7 @@ int main(int argc, char** argv){
   Matrix phenotypeMatrix;
   toMatrix(phenotypeInOrder, &phenotypeMatrix);
 
+  std::vector<std::string> metaFileToIndex;
   FileWriter** fOuts = new FileWriter*[model.size()];
   for (size_t i = 0; i < model.size(); ++i) {
     std::string s = FLAG_outPrefix;
@@ -1042,9 +1044,11 @@ int main(int argc, char** argv){
     if (model[i]->getModelName() == "MetaCov") {
       s += ".gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
+      metaFileToIndex.push_back(s);
     } else if (model[i]->getModelName() == "MetaSkew") {
       s += ".gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
+      metaFileToIndex.push_back(s);
     } else {
       fOuts[i] = new FileWriter(s.c_str());
     }
@@ -1325,7 +1329,14 @@ int main(int argc, char** argv){
     delete[] fOuts;
   if (pVin)
     delete pVin;
-
+  // index bgzipped meta-analysis outputs
+  for (size_t i = 0; i < metaFileToIndex.size(); ++i) {
+    if (tabixIndexFile(metaFileToIndex[i])) {
+      logger->error("Tabix index failed on file [ %s ]",
+                    metaFileToIndex[i].c_str());
+    }
+  }
+  
   time_t endTime = time(0);
   logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);
@@ -1333,4 +1344,4 @@ int main(int argc, char** argv){
 
   delete g_SummaryHeader;
   return 0;
-};
+}

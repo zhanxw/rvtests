@@ -8,6 +8,7 @@
 
 int main(int argc, char *argv[])
 {
+  {
     std::string s = "a b\"MID\" c d";
     std::vector<std::string> result;
     unsigned int ret = stringTokenize(s, ' ', &result);
@@ -30,6 +31,44 @@ int main(int argc, char *argv[])
     ret = stringTokenize(s, " ", &result);
     assert(result.size() == 1);
     assert(result[0] == "");
+  }
+  {
+    std::string s = "a b\"MID\" c d";
+    std::string piece;
+    std::vector <std::string> result;
+    StringTokenizer st1(s, ' ');
+    while (st1.next(&piece)) {
+      //printf("piece = %s\n", piece.c_str());
+      result.push_back(piece);
+    }
+    assert(result.size() == 4);
+    assert(result[0] == "a");
+    assert(result[1] == "b\"MID\"");
+    assert(result[2] == "c");
+    assert(result[3] == "d");
 
-    return 0;
+    result.clear();
+    StringTokenizer st2(s, "\" ");
+    while (st2.next(&piece)) {
+      printf("piece = %s\n", piece.c_str());
+      result.push_back(piece);
+    }
+    assert(result.size() == 6);
+    assert(result[0] == "a");
+    assert(result[1] == "b");
+    assert(result[2] == "MID");
+    assert(result[3] == "");
+    assert(result[4] == "c");
+    assert(result[5] == "d");
+
+    result.clear();
+    s = "";
+    StringTokenizer st3(s, " ");
+    while (st3.next(&piece)) {
+      result.push_back(piece);
+    }
+    assert(result.size() == 1);
+    assert(result[0] == "");
+  }  
+  return 0;
 }

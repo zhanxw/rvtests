@@ -49,6 +49,60 @@ inline std::string stringStrip(const std::string& s){
   unsigned int end = s.find_last_not_of(' ');
   return s.substr(beg, end-beg);
 }
+/**
+ * split " ",
+ *   for "a b", split to "a", "b"
+ *   for "a", split to "a"
+ *   for "a ", split to "a", ""
+ *   for "", split to ""
+ */
+class StringTokenizer{
+ public:
+  StringTokenizer(const std::string& i, char token):
+      data(i) {
+    this->token = token;
+    reset();
+  }
+  StringTokenizer(const std::string& i, const std::string& token):
+      data(i) {
+    this->token = token;
+    reset();
+  }
+  void reset() {
+    this->begin = 0;
+    this->end = data.size();
+  }
+  /**
+   * @param piece parsed a piece of string
+   * @return true if there are more parsed results
+   */
+  bool next(std::string* piece) {
+    std::string& s = *piece;
+    s.clear();
+    while (begin <= end) {
+      if (begin == end) {
+        ++ begin;
+        return true;
+      }
+      
+      const char& c = data[begin];
+      if (token.find(c) == std::string::npos) {
+        // not a token
+        s.push_back(c);
+        ++begin;
+      } else {
+        ++begin;
+        return begin < end;
+      }
+    }
+    return begin <= end;
+  }
+ private:
+  const std::string& data;
+  std::string token;
+  size_t begin;
+  size_t end;
+}; // StringTokenizer
 
 /** tokenize the string
  * @return number of tokens we obtained

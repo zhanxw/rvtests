@@ -1012,8 +1012,13 @@ int main(int argc, char** argv){
       } else if (modelName == "skew") {
         int windowSize;
         parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %d to produce skew statistics", windowSize);
+        logger->info("Meta analysis uses window size %d to produce skewnewss statistics", windowSize);
         model.push_back( new MetaSkewTest(windowSize) );
+      } else if (modelName == "kurt") {
+        int windowSize;
+        parser.assign("windowSize", &windowSize, 1000000);
+        logger->info("Meta analysis uses window size %d to produce kurtosis statistics", windowSize);
+        model.push_back( new MetaKurtTest(windowSize) );
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
@@ -1046,6 +1051,10 @@ int main(int argc, char** argv){
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
       metaFileToIndex.push_back(s);
     } else if (model[i]->getModelName() == "MetaSkew") {
+      s += ".gz";
+      fOuts[i] = new FileWriter(s.c_str(), BGZIP);
+      metaFileToIndex.push_back(s);
+    } else if (model[i]->getModelName() == "MetaKurt") {
       s += ".gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
       metaFileToIndex.push_back(s);

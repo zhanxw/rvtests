@@ -2909,13 +2909,27 @@ class MetaSkewTest: public ModelFitter{
         }
       }
     } else {
+      // keep (currentPos, currentPos, i ) and
       // keep (currentPos, i, i) positions only
       for (size_t i = 0; i != polymorphicLoci.size(); ++i) {
+        const double val = getMoment(lociQueue.front().geno,
+                                     lociQueue.front().geno,
+                                     (polymorphicLoci[i]->geno));
+        if (val == 0.0) continue;
+        
+        s = "0,";
+        s += toString(i);
+        s += ',';
+        s += toString(val);
+        skew.push_back(s);
+      }        
+      
+      for (size_t i = 1; i != polymorphicLoci.size(); ++i) {
         const double val = getMoment(lociQueue.front().geno,
                                      (polymorphicLoci[i]->geno),
                                      (polymorphicLoci[i]->geno));
         if (val == 0.0) continue;
-
+        
         s.clear();
         s += toString(i);
         s += ',';
@@ -2966,6 +2980,295 @@ class MetaSkewTest: public ModelFitter{
   std::map< std::pair<std::string, int>, bool> hasSmallPvalue;
 }; // MetaSkewTest
 
+
+class MetaKurtTest: public ModelFitter{
+ private:
+  typedef std::vector<double> Genotype;
+  struct Pos{
+    std::string chrom;
+    int pos;
+  };
+  struct Loci{
+    Pos pos;
+    Genotype geno;
+  };
+
+ public:
+  MetaKurtTest(int windowSize){
+    this->modelName = "MetaKurt";
+    this->numVariant = 0;
+    this->nSample = -1;
+    // this->mleVarY = -1.;
+    this->fout = NULL;
+    this->windowSize = windowSize;
+    this->mafThreshold = 0.05;
+    result.addHeader("CHROM");
+    result.addHeader("START_POS");
+    result.addHeader("END_POS");
+    result.addHeader("NUM_MARKER");
+    result.addHeader("MARKER_POS");
+    result.addHeader("KURT");
+  };
+  ~MetaKurtTest(){
+    while(queue.size() > 0 ) {
+      if (isBinaryOutcome()) {
+        printKurtForBinaryTrait(fout, queue);
+      }
+      queue.pop_front();
+    }
+  }
+
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    // Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    // Matrix& covariate = dc->getCovariate();
+    Result& siteInfo = dc->getResult();
+
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    if (genotype.rows == 0){
+      fitOK = false;
+      return -1;
+    }
+    this->useFamilyModel = dc->hasKinship();
+    if (nSample < 0) { // unitialized
+      // calculate variance of y
+      nSample = genotype.rows;
+      weight.Dimension(nSample);
+    } else {
+      if (nSample != genotype.rows){
+        fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+        fitOK = false;
+        return -1;
+      }
+    }
+
+    // set weight
+    if (useFamilyModel) {
+      fitOK = false;
+      return -1;
+    }
+
+    if (!isBinaryOutcome()) {
+      static bool warningGiven = false;
+      if (!warningGiven) {
+        fprintf(stderr, "For quantative trait, it is not necessary to use MetaKurt model.\n");
+        warningGiven = true;
+      }
+      return -1;
+    } else { // binary case
+      /* // fit null model */
+      /* if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) { */
+      /*   copyCovariateAndIntercept(genotype.rows, covariate, &cov); */
+      /*   copyPhenotype(phenotype, &this->pheno); */
+      /*   fitOK = logistic.FitNullModel(cov, pheno, 100); */
+      /*   if (!fitOK) return -1; */
+      /*   needToFitNullModel = false; */
+
+      /*   // skip store Z, as Z = this->cov */
+      /*   // store V in weight */
+      /*   for (int i = 0; i < nSample; ++i) { */
+      /*     const double y = logistic.GetNullPredicted()[i]; */
+      /*     weight[i] = y * (1.0 - y) * (1.0 - 2.0 * y); */
+      /*   } */
+      /* } */
+    }
+    loci.pos.chrom = siteInfo["CHROM"];
+    loci.pos.pos = atoi(siteInfo["POS"]);
+
+    if ((siteInfo["REF"]).size() != 1 ||
+        (siteInfo["ALT"]).size() != 1) { // not snp
+      fitOK = false;
+      return -1;
+    };
+    loci.geno.resize(nSample);
+    for (int i = 0; i < nSample; ++i) {
+      loci.geno[i] = genotype[i][0];
+    }
+    fitOK = true;
+    return (fitOK ? 0 : -1);
+  };
+
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    if (g_SummaryHeader) {
+      g_SummaryHeader->outputHeader(fp);
+    }
+
+    /* siteInfo.writeHeaderTab(fp); */
+    // fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
+    result.writeHeaderLine(fp);
+  };
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    this->fout = fp;
+    while (queue.size() && getWindowSize(queue, loci) > windowSize) {
+      if (isBinaryOutcome()) {
+        printKurtForBinaryTrait(fout, queue);
+      }
+      // if (isBinaryOutcome()) {
+      //   // printCovarianceForBinaryTrait(fout, queue);
+      // } else {
+      //   printCovariance(fout, queue);
+      // }
+      queue.pop_front();
+    };
+    if (fitOK) {
+      queue.push_back(loci);
+      ++numVariant;
+    }
+    // result.writeValueLine(fp);
+  };
+
+ private:
+  // check if MAF of @param g is larger than this->mafThreshold
+  bool passMAFThreshold(const Genotype& g) {
+    int n1 = g.size();
+    if (n1 <= 0) return false;
+
+    double s = 0.0;
+    for(int i = 0; i < n1; ++i) {
+      if (g[i]<0) continue;
+      s += g[i];
+    }
+    double af = 0.5 * s / n1;
+    if (af > .5) {
+      af = 1.0 - af;
+    }
+    if (af < this->mafThreshold) return false;
+    return true;
+  }
+  
+  /** get weighted 4th moment
+   * Take @param g1 and @param g2,
+   * calculate \sum g1 * g1 * g2 * g2 to @param kurt1 
+   * calculate \sum g1 * g1 * g1 * g2 to @param kurt12
+   */
+  double getMoment(const Genotype& g1,
+                   const Genotype& g2,
+                   double* kurt1,
+                   double* kurt2) {
+    double sum_i2j2 = 0.0;
+    double sum_i3j1 = 0.0;
+
+    int n1 = g1.size();
+    int n2 = g2.size();
+    if (!(n1 == n2)){
+      assert(false);
+      return false;
+    }
+
+    for(int i = 0; i < n1; ++i) {
+      if (g1[i] == 0.0 || g2[i] == 0.0) continue;
+      double d = g1[i] * g1[i] * g2[i];
+      sum_i2j2 += d * g1[i];
+      sum_i3j1 += d * g2[i];
+    }
+    return true;
+  }
+
+  /**
+   * @return max integer if different chromosome; or return difference between head and tail locus.
+   */
+  int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
+    if (loci.size() == 0) {
+      return 0;
+    }
+
+    const Loci& head = loci.front();
+    const Loci& tail = newOne;
+
+    if (head.pos.chrom != tail.pos.chrom) {
+      return INT_MAX;
+    } else {
+      return abs(tail.pos.pos - head.pos.pos);
+    }
+  };
+  /**
+   * @return 0
+   * print the kurtosis for the front of loci to the rest of loci
+   */
+  int printKurtForBinaryTrait(FileWriter* fp, const std::deque<Loci>& lociQueue){
+    // skip monomorphic site
+    if (!passMAFThreshold(lociQueue.front().geno)) {
+      return 0;
+    }
+
+    // record polymorphic locations
+    std::vector<std::deque<Loci>::const_iterator> polymorphicLoci;
+    for (std::deque<Loci>::const_iterator iter = lociQueue.begin();
+         iter != lociQueue.end();
+         ++ iter) {
+      if (this->passMAFThreshold(iter->geno)) {
+        polymorphicLoci.push_back(iter);
+      }
+    }
+    if (polymorphicLoci.empty()) return 0;
+
+    // output results
+    std::string s;
+    std::vector<std::string> kurt;
+
+    // keep every combinations (currentPos, i, j)
+    double val_i2j2 = 0.0;
+    double val_i3j1 = 0.0;
+    for (size_t i = 0; i != polymorphicLoci.size(); ++i) {
+        getMoment(lociQueue.front().geno,
+                  (polymorphicLoci[i]->geno),
+                  &val_i2j2,
+                  &val_i3j1);
+        
+        if (val_i2j2 == 0.0 && val_i3j1 == 0.0) continue;
+
+        s.clear();
+        s += toString(i);
+        s += ',';
+        s += toString(val_i2j2);
+        s += ',';
+        s += toString(val_i3j1);
+        kurt.push_back(s);
+    }
+    
+    result.updateValue("CHROM", lociQueue.front().pos.chrom);
+    result.updateValue("START_POS", lociQueue.front().pos.pos);
+    result.updateValue("END_POS", lociQueue.back().pos.pos);
+    /* fprintf(fp, "%d\t", idx); */
+    result.updateValue("NUM_MARKER", (int) polymorphicLoci.size());
+
+    s.clear();
+    for(size_t i = 0; i != polymorphicLoci.size(); ++i) {
+      if (i) s += ',';
+      s+= toString(polymorphicLoci[i]->pos.pos);
+    }
+    result.updateValue("MARKER_POS", s);
+
+    s.clear();
+    stringJoin(kurt, ':', &s);
+    result.updateValue("KURT", s);
+    result.writeValueLine(fp);
+    return 0;
+  };
+
+ private:
+  std::deque< Loci> queue;
+  int numVariant;
+  int nSample;
+  // Vector mleVarY;  // variance term of Y_i for i = 1,..., N th sample
+  FileWriter* fout;
+  int windowSize;
+  Loci loci;
+  bool fitOK;
+  // Result result;
+  bool useFamilyModel;
+  Vector weight; // per individual weight
+  Matrix cov; // covariate
+  Vector pheno;
+  std::map< std::pair<std::string, int>, bool> hasSmallPvalue;
+  double mafThreshold;
+}; // MetaKurtTest
 
 class DumpModel: public ModelFitter{
  public:

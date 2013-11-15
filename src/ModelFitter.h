@@ -3247,6 +3247,7 @@ class MetaKurtTest: public ModelFitter{
 
     s.clear();
     stringJoin(kurt, ':', &s);
+    // fprintf(stderr, "s.size() = %zu\n", s.size());
     result.updateValue("KURT", s);
     result.writeValueLine(fp);
     return 0;

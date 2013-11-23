@@ -11,7 +11,7 @@ LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger RangeList SimpleMatrix Pedigree Kinship
 OBJ = $(BASE:=.o)
 
-DEFAULT_CXXFLAGS = -I. -I../third/tabix -I../third/pcre/include
+DEFAULT_CXXFLAGS = -I. -I../third/tabix -I../third/pcre/include -I../third/bzip2
 
 .PHONY: all release debug
 all: release

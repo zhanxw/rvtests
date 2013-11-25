@@ -165,11 +165,15 @@ inline void removeMonomorphicSite(Matrix* genotype) {
  *  (future) re-weight genotype (dominate model, recessive model)
  */
 class DataConsolidator{
-public:
+ public:
   const static int UNINITIALIZED = 0;
   const static int IMPUTE_MEAN = 1;
   const static int IMPUTE_HWE = 2;
   const static int DROP = 3;
+  typedef enum {ANY_SEX = -1, MALE = 1, FEMALE = 2} PLINK_SEX;
+  typedef enum {ANY_PHENO = -1, CTRL = 1, CASE = 2} PLINK_PHENOTYPE;
+
+ public:
   DataConsolidator();
   ~DataConsolidator();
   void setStrategy(const int s){
@@ -214,6 +218,8 @@ public:
       this->phenotype = pheno;
       this->covariate = cov;
     } else if (this->strategy == DROP) {
+      // XX: should also consider how kinship matrix changes.
+      
       // we process genotype matrix (people by marker)
       // if for the same people, any marker is empty, we will remove this people
       int idxToCopy = 0;
@@ -284,18 +290,37 @@ public:
   Result& getResult() {
     return this->result;
   }
-  
-  const int countRawGenotypeFromCase(int columnIndex,
-                                     int* homRef,
-                                     int* het,
-                                     int* homAlt,
-                                     int* missing) const {
+
+  /**
+   * Count @param homRef, @param het, @param homAlt and @param missing
+   * from the genotype column specified by @param columnIndex
+   * @param sex : only process specified sex (1, male; 2, female; <0, any)
+   * @param phenotype: only process specified phenotype (1, control; 2, case; <0 any)
+   * @return 0 if succeed
+   */
+  int countRawGenotype(int columnIndex,
+                       int* homRef,
+                       int* het,
+                       int* homAlt,
+                       int* missing,
+                       const PLINK_SEX sex,
+                       const PLINK_PHENOTYPE phenotype) const{
     if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
       return -1;
     }
+    if (sex >0 && sex != MALE && sex != FEMALE) return -2;
+    if (sex >0 && (int)this->sex->size() != originalGenotype.rows) return -3;
+    if (phenotype >0 && phenotype != CTRL && phenotype != CASE) return -2;
+    
     (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
     for (int i = 0; i < originalGenotype.rows; ++i){
-      if ((int)(this->phenotype[i][0]) != 1)  continue;
+      if (sex > 0 && (*this->sex)[i] != sex) {
+        continue;
+      }
+      if (phenotype > 0 && (int)(this->phenotype[i][0]) != phenotype) {
+        continue;
+      }
+      
       int g = (int)originalGenotype[i][columnIndex];
       switch (g) {
         case 0:
@@ -316,67 +341,73 @@ public:
     }
     return 0; //success
   }
-  const int countRawGenotypeFromControl(int columnIndex,
-                                        int* homRef,
-                                        int* het,
-                                        int* homAlt,
-                                        int* missing) const {
-    if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
-      return -1;
-    }
-    (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
-    for (int i = 0; i < originalGenotype.rows; ++i){
-      if ((int)(this->phenotype[i][0]) != 0)  continue;
-      int g = (int)originalGenotype[i][columnIndex];
-      switch (g) {
-        case 0:
-          ++(*homRef);
-          break;
-        case 1:
-          ++(*het);
-          break;
-        case 2:
-          ++(*homAlt);
-          break;
-        default:
-          if (originalGenotype[i][columnIndex] < 0) {
-            ++(*missing);
-          }
-          break;
-      }
-    }
-    return 0; //success
+  int countRawGenotypeFromCase(int columnIndex,
+                               int* homRef,
+                               int* het,
+                               int* homAlt,
+                               int* missing) const {
+    return countRawGenotype(columnIndex,
+                            homRef, het, homAlt, missing,
+                            ANY_SEX,  // PLINK male
+                            CASE
+                            );
+  }
+
+  int countRawGenotypeFromControl(int columnIndex,
+                                  int* homRef,
+                                  int* het,
+                                  int* homAlt,
+                                  int* missing) const {
+    return countRawGenotype(columnIndex,
+                            homRef, het, homAlt, missing,
+                            ANY_SEX,
+                            CTRL  // any phenotype
+                            );
   }
   
-  const int countRawGenotype(int columnIndex,
-                          int* homRef,
-                          int* het,
-                          int* homAlt,
-                          int* missing) const {
-    if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
-      return -1;
-    }
-    (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
-    for (int i = 0; i < originalGenotype.rows; ++i){
-      int g = (int)originalGenotype[i][columnIndex];
-      switch (g) {
-        case 0:
-          ++(*homRef);
-          break;
-        case 1:
-          ++(*het);
-          break;
-        case 2:
-          ++(*homAlt);
-          break;
-        default:
-          if (originalGenotype[i][columnIndex] < 0) {
-            ++(*missing);
-          }
-          break;
-      }
-    }
-    return 0; //success
+  int countRawGenotype(int columnIndex,
+                       int* homRef,
+                       int* het,
+                       int* homAlt,
+                       int* missing) const {
+    return countRawGenotype(columnIndex,
+                            homRef, het, homAlt, missing,
+                            ANY_SEX,
+                            ANY_PHENO  // any phenotype
+                            );
+  }
+  int countRawGenotypeFromFemale(int columnIndex,
+                                 int* homRef,
+                                 int* het,
+                                 int* homAlt,
+                                 int* missing) const {
+    return countRawGenotype(columnIndex,
+                            homRef, het, homAlt, missing,
+                            FEMALE,
+                            ANY_PHENO  // any phenotype
+                            );
+  }
+  int countRawGenotypeFromFemaleCase(int columnIndex,
+                                 int* homRef,
+                                 int* het,
+                                 int* homAlt,
+                                 int* missing) const {
+    return countRawGenotype(columnIndex,
+                            homRef, het, homAlt, missing,
+                            FEMALE,
+                            CASE
+                            );
+  }
+  int countRawGenotypeFromFemaleControl(int columnIndex,
+                                 int* homRef,
+                                 int* het,
+                                 int* homAlt,
+                                 int* missing) const {
+    return countRawGenotype(columnIndex,
+                            homRef, het, homAlt, missing,
+                            FEMALE,
+                            CTRL
+                            );
   }
 
   bool isPhenotypeUpdated() const {
@@ -400,6 +431,22 @@ public:
   bool hasKinship() const {
     return this->kinshipLoaded;
   };
+
+  //      Sex (1=male; 2=female; other=unknown)
+  void setSex(const std::vector<int>* sex) {
+    this->sex = sex;
+  };
+  /**
+   * Check if genotype matrix column @param columnIndex is a chromosome X.
+   */
+  bool isChromX(int columnIndex) {
+    const char* chromPos = this->genotype.GetColumnLabel(0);
+    bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
+                       strncmp(chromPos, "23:", 3) == 0) &&
+                      this->sex &&
+                      (int)this->sex->size() == genotype.rows);
+    return checkSex;
+  }
 private:
   //don't copy
   DataConsolidator(const DataConsolidator&);
@@ -424,6 +471,9 @@ private:
   EigenMatrix* kinshipU; 
   EigenMatrix* kinshipS; // n by 1 column matrix
   bool kinshipLoaded;
+
+  // sex chromosome adjustment
+  const std::vector<int>* sex;
 }; // end DataConsolidator
 
 #endif /* _DATACONSOLIDATOR_H_ */

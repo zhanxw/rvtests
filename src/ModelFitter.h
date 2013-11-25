@@ -2060,12 +2060,20 @@ class MetaScoreTest: public ModelFitter{
   };
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc-> getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate= dc->getCovariate();
+    Matrix& phenotype = dc->getPhenotype();
+    Matrix& genotype  = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
 
-    dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
-
+    // check if sex chromsome
+    // fprintf(stderr, "check chrom %s\n", genotype.GetColumnLabel(0));
+    bool checkSex = dc->isChromX(0);
+    
+    if (!checkSex) {
+      dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
+    } else {
+      dc->countRawGenotypeFromFemale(0, &homRef, &het, &homAlt, &missing);
+    }
+    
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
     int nSample = (homRef + het + homAlt + missing);
@@ -2074,31 +2082,48 @@ class MetaScoreTest: public ModelFitter{
         (het < 0 || homRef < 0 || homAlt < 0)) {
       hweP = 0.0;
       af = 0.0;
+      hwePvalueFromCase = 0.0;
+      afFromCase = 0.0;
+      hwePvalueFromControl = 0.0;
+      afFromControl = 0.0;
     } else {
       hweP = SNPHWE( het, homRef, homAlt);
       af = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
-      if (isBinaryOutcome()) {
-        dc->countRawGenotypeFromCase(0, &homRef, &het, &homAlt, &missing);
-        if (homRef + het + homAlt == 0 ||
-            (het < 0 || homRef < 0 || homAlt < 0)) {
-          hwePvalueFromCase = 0.0;
-          afFromCase = 0.0;
-        } else {
-          hwePvalueFromCase = SNPHWE(het, homRef, homAlt);
-          afFromCase = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
-        }
-        dc->countRawGenotypeFromControl(0, &homRef, &het, &homAlt, &missing);
-        if (homRef + het + homAlt == 0 ||
-            (het < 0 || homRef < 0 || homAlt < 0)) {
-          hwePvalueFromControl = 0.0;
-          afFromControl = 0.0;
-        } else {
-          hwePvalueFromControl = SNPHWE(het, homRef, homAlt);
-          afFromControl = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
-        }
+    }
+
+    // handle binary cases
+    if (isBinaryOutcome()) {
+      int homRefCase, hetCase, homAltCase, missingCase;
+      int homRefCtrl, hetCtrl, homAltCtrl, missingCtrl;
+    
+      if (!checkSex) {
+        dc->countRawGenotypeFromCase(0, &homRefCase, &hetCase, &homAltCase, &missingCase);
+        dc->countRawGenotypeFromControl(0, &homRefCtrl, &hetCtrl, &homAltCtrl, &missingCtrl);
+      } else {
+        dc->countRawGenotypeFromFemaleCase(0, &homRefCase, &hetCase, &homAltCase, &missingCase);
+        dc->countRawGenotypeFromFemaleControl(0, &homRefCtrl, &hetCtrl, &homAltCtrl, &missingCtrl);
+      }
+      
+      if (homRefCase + hetCase + homAltCase == 0 ||
+          (hetCase < 0 || homRefCase < 0 || homAltCase < 0)) {
+        hwePvalueFromCase = 0.0;
+        afFromCase = 0.0;
+      } else {
+        hwePvalueFromCase = SNPHWE(hetCase, homRefCase, homAltCase);
+        afFromCase = 0.5 * (hetCase + 2*homAltCase) / (homRefCase + hetCase + homAltCase);
+      }
+      
+      if (homRefCtrl + hetCtrl + homAltCtrl == 0 ||
+          (hetCtrl < 0 || homRefCtrl < 0 || homAltCtrl < 0)) {
+        hwePvalueFromControl = 0.0;
+        afFromControl = 0.0;
+      } else {
+        hwePvalueFromControl = SNPHWE(hetCtrl, homRefCtrl, homAltCtrl);
+        afFromControl = 0.5 * (hetCtrl + 2*homAltCtrl) / (homRefCtrl + hetCtrl + homAltCtrl);
       }
     }
 
+    // sanity check, this should not happen
     if (genotype.cols != 1) {
       fitOK = false;
       return -1;
@@ -2916,20 +2941,20 @@ class MetaSkewTest: public ModelFitter{
                                      lociQueue.front().geno,
                                      (polymorphicLoci[i]->geno));
         if (val == 0.0) continue;
-        
+
         s = "0,";
         s += toString(i);
         s += ',';
         s += toString(val);
         skew.push_back(s);
-      }        
-      
+      }
+
       for (size_t i = 1; i != polymorphicLoci.size(); ++i) {
         const double val = getMoment(lociQueue.front().geno,
                                      (polymorphicLoci[i]->geno),
                                      (polymorphicLoci[i]->geno));
         if (val == 0.0) continue;
-        
+
         s.clear();
         s += toString(i);
         s += ',';
@@ -3141,10 +3166,10 @@ class MetaKurtTest: public ModelFitter{
     if (af < this->mafThreshold) return false;
     return true;
   }
-  
+
   /** get weighted 4th moment
    * Take @param g1 and @param g2,
-   * calculate \sum g1 * g1 * g2 * g2 to @param kurt1 
+   * calculate \sum g1 * g1 * g2 * g2 to @param kurt1
    * calculate \sum g1 * g1 * g1 * g2 to @param kurt12
    */
   double getMoment(const Genotype& g1,
@@ -3216,22 +3241,22 @@ class MetaKurtTest: public ModelFitter{
     double val_i2j2 = 0.0;
     double val_i3j1 = 0.0;
     for (size_t i = 0; i != polymorphicLoci.size(); ++i) {
-        getMoment(lociQueue.front().geno,
-                  (polymorphicLoci[i]->geno),
-                  &val_i2j2,
-                  &val_i3j1);
-        
-        if (val_i2j2 == 0.0 && val_i3j1 == 0.0) continue;
+      getMoment(lociQueue.front().geno,
+                (polymorphicLoci[i]->geno),
+                &val_i2j2,
+                &val_i3j1);
 
-        s.clear();
-        s += toString(i);
-        s += ',';
-        s += toString(val_i2j2);
-        s += ',';
-        s += toString(val_i3j1);
-        kurt.push_back(s);
+      if (val_i2j2 == 0.0 && val_i3j1 == 0.0) continue;
+
+      s.clear();
+      s += toString(i);
+      s += ',';
+      s += toString(val_i2j2);
+      s += ',';
+      s += toString(val_i3j1);
+      kurt.push_back(s);
     }
-    
+
     result.updateValue("CHROM", lociQueue.front().pos.chrom);
     result.updateValue("START_POS", lociQueue.front().pos.pos);
     result.updateValue("END_POS", lociQueue.back().pos.pos);

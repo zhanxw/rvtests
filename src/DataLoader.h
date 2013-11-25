@@ -2,6 +2,7 @@
 #define _DATALOADER_H_
 
 #include "CommonFunction.h"
+#include "Indexer.h"
 
 extern Logger* logger;
 
@@ -11,8 +12,8 @@ extern Logger* logger;
  * If some samples appear more than once, only the first appearance will be readed
  * Only covaraites provided in @param covNameToUse will be included
  * Missing values will be imputed to the mean columnwise.
- * Result will be put to @param mat and @param sampleToDrop
- * @return number of covariates loaded (>=0); or a minus number meaning error
+ * Result will be put to @param mat (sample by covariate) and @param sampleToDrop
+ * @return number of sample loaded (>=0); or a minus number meaning error
  * @param sampleToDrop: store samples that are not found in covariate.
  */
 int extractCovariate(const std::string& fn,
@@ -455,6 +456,130 @@ void rearrange(const std::map< std::string, double>& phenotype, const std::vecto
       logger->warn("Impute [ %d ] missing phenotypes for samples with genotypes but lacks phenotypes", nMissingPheno);
   };
 };
+
+int loadSex(const std::string& fn,
+            const std::vector<std::string>& includedSample,
+            std::vector<int>* sex) {
+  Indexer index(includedSample);
+  if (index.hasDuplication()) {
+    return -1;
+  }
+  // logger->info("Begin load sex.");
+  sex->resize(includedSample.size());
+  sex->assign(sex->size(), -9);
+
+  LineReader lr(fn);
+  std::vector< std::string > fd;
+  int nMale = 0;
+  int nFemale = 0;
+  int nUnknonw = 0;
+  int idx;
+  int s;
+  while(lr.readLineBySep(&fd, "\t ")){
+    idx = index[fd[1]];
+    if (idx < 0 ) return -1;
+    s = atoi(fd[4]); // the 5th column is gender in PLINK PED file
+    
+    (*sex)[idx] = s;
+    if ( s == 1) {
+      nMale ++;
+    } else if ( s== 2) {
+      nFemale ++;
+    } else {
+      nUnknonw ++;
+      (*sex)[idx] = -9;
+    }
+  }
+  logger->info("Loaded %d male, %d female and %d sex-unknonw samples from %s",
+               nMale, nFemale, nUnknonw, fn.c_str());
+  return 0;
+}
+
+/**
+ * when @param sex does not equal to 1 (male) or 2 (female),
+ * put its index to @param index
+ * @return number of missing elements
+ */
+int findMissingSex(const std::vector<int>& sex,
+                   std::vector<int>* index) {
+  index->clear();
+  int nMissing = 0;
+  for (size_t i = 0; i < sex.size(); ++i) {
+    if (sex[i] != 1 && sex[i] != 2) {
+      index->push_back(i);
+      ++ nMissing;
+    }
+  }
+  return nMissing;
+}
+
+/**
+ * Remove i th element from @param val where i is stored in @param index
+ * @return number of elements removed
+ */
+template <typename T>
+int removeByIndex(const std::vector<int>& index,
+                  std::vector< T >* val) {
+  if (index.empty()) return 0;
+  
+  std::set<int> idx(index.begin(), index.end());
+
+  int nRemoved = 0;
+  int last = 0;
+  for (size_t i = 0; i < idx.size(); ++i) {
+    if (idx.count(i)) {
+      ++nRemoved;
+      continue;
+    }
+    (*val)[last] = (*val)[i];
+    ++last;
+  }
+  val->resize(last);
+  return nRemoved;
+}
+
+/**
+ * Remove i th element from @param val where i is stored in @param index
+ * @return number of elements removed
+ */
+int removeByRowIndex(const std::vector<int>& index,
+                     Matrix* val) {
+  if (index.empty()) return 0;
+
+  Matrix& m = *val;
+  std::vector<int> idx = index;
+  std::sort(idx.begin(), idx.end());
+
+  int nr = m.rows;
+  for (size_t i = index.size() - 1; i != 0; --i) {
+    m.DeleteRow(idx[i]);
+  }
+  return (nr - m.rows);
+}
+
+
+/**
+ * append a column @param val to the right of @param mat,
+ * and set its label as @param label
+ * @return 0 if success
+ */
+int appendToMatrix(const std::string& label,
+                   const std::vector<int> val,
+                   Matrix* mat) {
+  Matrix& m  = * mat;
+  if (m.rows != (int)val.size()) {
+    return -1;
+  }
+  int nr = m.rows;
+  int nc = m.cols;
+  m.Dimension(m.rows, m.cols+1);
+  for (int i = 0; i < nr; ++i) {
+    m[i][nc] = val[i];
+  }
+  m.SetColumnLabel(nc, label.c_str());
+  return 0;
+}
+
 
 
 #endif /* _DATALOADER_H_ */

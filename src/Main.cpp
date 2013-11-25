@@ -5,8 +5,7 @@
    13. Add optional weight
    23. Add dominant model
    25. Take optional weight, e.g. GERP
-   33. Support sex chromosome coding.
-
+   
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -46,14 +45,15 @@
    35. Output case/control frequencies
    36. Support BCF file
    37. Support dosage (imputed genotypes)
+   33. Support sex chromosome coding.
    
    
    Future TODO:
    22. Add U-statistics
-
+   38. Support SKAT-O
+   
    Not sure if worthy to do:
    32. Optional output tag from VCF
-
 
 */
 
@@ -84,6 +84,7 @@
 #include "GitVersion.h"
 #include "Result.h"
 #include "TabixUtil.h"
+#include "Indexer.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -91,6 +92,8 @@
 #endif
 
 Logger* logger = NULL;
+
+#define VERSION "20131124"
 
 void banner(FILE* fp) {
   const char* string =
@@ -100,7 +103,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      September 2013                    ...   \n"
+      "      ...      November 2013                     ...   \n"
       "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
@@ -170,6 +173,10 @@ class GenotypeExtractor{
     for (int i = 0; i < row; ++i) {
       g->SetColumnLabel(i, colNames[i].c_str());
     }
+    // adjust male chrX genotype
+    for (int i = 0; i < g->cols; ++i) {
+      adjustSexGenotype(g, i);
+    }
     return 0;
   };
   /**
@@ -223,7 +230,7 @@ class GenotypeExtractor{
           genotype[i][0] = MISSING_GENOTYPE;
           continue;
         }
-        // // logger->info("%d ", int(genotype[i][0]));
+        // logger->info("%d ", int(genotype[i][0]));
       } else {
         logger->error("Cannot find [ %s ] field when read individual information [ %s ]!",
                       this->doseTag.empty() ? "GT" : this->doseTag.c_str(),
@@ -236,7 +243,63 @@ class GenotypeExtractor{
     label += ':';
     label += r.getPosStr();
     genotype.SetColumnLabel(0, label.c_str());
+
+    // adjust male chrX genotype
+    adjustSexGenotype(g, 0);
     return 0;
+  }
+
+  /**
+   * Adjust genotype matrix @param geno (people by marker) at column @param col
+   * These adjustment only happen to male chromX genotypes
+   * @return 0 if succeed
+   */
+  int adjustSexGenotype(Matrix* geno, int col) {
+    Matrix& genotype = *geno;
+
+    // get column label
+    const char* chromPos = genotype.GetColumnLabel(col);
+    bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
+                       strncmp(chromPos, "23:", 3) == 0) &&
+                      this->sex &&
+                      (int)this->sex->size() == genotype.rows);
+    if (!checkSex) return 0;
+
+    for (int i = 0 ; i < genotype.rows; ++i) {
+      if ( (*sex)[col] != 1) continue;
+
+      // male
+      if (genotype[i][col] < 0) continue; //missing genotype
+      if (genotype[i][col] == 1.0 ) {
+        // male genotype cannot be het
+        genotype[i][col] = MISSING_GENOTYPE;
+        continue;
+      }
+      if (claytonCoding) {
+        genotype[i][col] *= 2.0;
+        if (genotype[i][col] > 2.0) {
+          genotype[i][col] = 2.0;
+        }
+      }
+    }
+    return 0;
+  }
+  
+  /**
+   * Check if necessary to check genotype by sample sex information
+   * e.g. mark male X chromosome het genotypes as missing
+   * @param chrom is chromosome name
+   * @param s is number of samples
+   * @return true if we have sex information and are current processing X chrom.
+   */
+  bool needToConsiderSex(const char* chromPos, int s) {
+     if ( (strcmp(chromPos, "X") == 0 ||
+           strcmp(chromPos, "23") == 0) &&
+          (int)this->sex->size() == s) {
+       return true;
+     } else {
+       return false;
+     }
   }
 
   // @return true if GD is valid
@@ -284,6 +347,15 @@ class GenotypeExtractor{
   void unsetDosageTag() {
     this->doseTag.clear();
   }
+  //      Sex (1=male; 2=female; other=unknown)
+  void setSex(const std::vector<int>* sex) {
+    this->sex = sex;
+  };
+  // coding male chromX as 0/2 instead of 0/1
+  // similarly, for dosage, just multiply 2.0 from original dosage
+  void setClaytonCoding(bool b) {
+    this->claytonCoding = b;
+  }
  private:
   VCFExtractor& vin;
   int GDmin;
@@ -294,6 +366,9 @@ class GenotypeExtractor{
   bool needGQ;
   Vector weight;
   std::string doseTag; // set if loading dose instead of genotype
+  // compensate sex chromosome
+  const std::vector<int>* sex;
+  bool claytonCoding;
 }; // clas GenotypeExtractor
 
 /**
@@ -426,29 +501,12 @@ int loadMarkerFromVCF(const std::string& fileName,
   return 0;
 }
 
-class Indexer{
- public:
-  Indexer(const std::vector<std::string>& a) {
-    for (size_t i = 0; i < a.size(); ++i) {
-      if (m.count(a[i]) == 0) {
-        m[a[i]] = i;
-      } else {
-        duplication.insert(a[i]);
-      }
-    }
-  }
-  bool hasDuplication() {
-    return this->duplication.size() > 0;
-  }
-  int operator[](const std::string& s) const {
-    if (m.count(s) == 0) return -1;
-    return m.find(s)->second;
-  }
- private:
-  std::map<std::string, int> m;
-  std::set<std::string> duplication;
-};
-
+/**
+ * Append @param genotype to @param covariate in the right order
+ * @param phenotypeNameInOrder is the row names for @param covariate
+ * @param rowLabel is the row names for @param geno
+ * return 0 if succeed
+ */
 int appendGenotype(Matrix* covariate,
                    const std::vector<std::string>& phenotypeNameInOrder,
                    Matrix& geno,
@@ -481,10 +539,33 @@ int appendGenotype(Matrix* covariate,
   return 0;
 }
 
+/**
+ * Exclude i th sample where i is index stored in @param index
+ * from @param vin, @param phenotypeNameInOrder, @param phenotypeInOrder
+ * and @param cov
+ * @return 0 if succeed
+ */
+int excludeSamplesByIndex(const std::vector<int>& index,
+                          VCFExtractor* vin,
+                          std::vector<std::string>* phenotypeNameInOrder,
+                          std::vector<double>* phenotypeInOrder,
+                          Matrix* cov) {
+  if (!vin || !phenotypeNameInOrder || !phenotypeInOrder || !cov) {
+    return -1;
+  }
+
+  for (size_t i = 0; i < index.size(); ++i) {
+    vin->excludePeople( (*phenotypeNameInOrder)[i].c_str());
+  }
+  removeByIndex(index, phenotypeNameInOrder);
+  removeByIndex(index, phenotypeInOrder);
+  removeByRowIndex(index, cov);
+  
+  return 0;
+}
+
 SummaryHeader* g_SummaryHeader = NULL;
 
-
-#define VERSION "20130910"
 
 void welcome() {
 #ifdef NDEBUG
@@ -508,8 +589,9 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Specify Covariate")
       ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
       ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")
+      ADD_BOOL_PARAMETER(pl, sex, "--sex", "Include sex (5th) as covaraite from PED file")
+      
       ADD_PARAMETER_GROUP(pl, "Specify Phenotype")
-
       ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
       ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
       ADD_BOOL_PARAMETER(pl, useResidualAsPhenotype, "--useResidualAsPhenotype", "fit covariate ~ phenotype, use residual to replace phenotype")
@@ -519,7 +601,8 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Specify Genotype")
       ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC)")
-      
+      ADD_BOOL_PARAMETER(pl, clayton, "--clayton", "Code genotypes of male as 0 or 2 ")
+
       ADD_PARAMETER_GROUP(pl, "People Filter")
       ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -565,7 +648,7 @@ int main(int argc, char** argv){
       ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Missing Data")
-      ADD_STRING_PARAMETER(pl, impute, "--impute", "Specify either of mean, hwe, and drop")
+      ADD_STRING_PARAMETER(pl, impute, "--impute", "Impute missing genotype (default:mean):  mean, hwe, and drop")
       ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean of those have genotypes but no phenotpyes")
 
       ADD_PARAMETER_GROUP(pl, "Conditional Analysis")
@@ -724,7 +807,7 @@ int main(int argc, char** argv){
   // load covariate
   Matrix covariate;
   if (FLAG_cov.empty() && !FLAG_covName.empty()) {
-    logger->info("Use phenotype file as covarite file [ %s ]", FLAG_pheno.c_str());
+    logger->info("Use phenotype file as covariate file [ %s ]", FLAG_pheno.c_str());
     FLAG_cov = FLAG_pheno;
   }
   if (!FLAG_cov.empty()) {
@@ -759,8 +842,29 @@ int main(int argc, char** argv){
          ++iter) {
       vin.excludePeople(iter->c_str());
     }
-
   }
+
+  // load sex
+  std::vector<int> sex;
+  if (loadSex(FLAG_pheno, phenotypeNameInOrder, &sex)) {
+    logger->error("Cannot load sex of samples from phenotype file");
+    abort();
+  } 
+
+  if (FLAG_sex) { // append sex in covariate
+    std::vector<int> index; // mark missing samples
+    int numMissing = findMissingSex(sex, &index);
+    logger->info("Futher exclude %d samples with missing sex", numMissing);
+    removeByIndex(index, &sex);
+    excludeSamplesByIndex(index,
+                          &vin,
+                          &phenotypeNameInOrder,
+                          &phenotypeInOrder,
+                          &covariate);
+    appendToMatrix("Sex", sex, &covariate);
+  }
+  
+  
   // load conditional markers
   if (!FLAG_condition.empty()) {
     Matrix geno;
@@ -791,7 +895,7 @@ int main(int argc, char** argv){
       abort();
     }
   }
-  
+
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
 
@@ -1114,6 +1218,8 @@ int main(int argc, char** argv){
   }
 
   DataConsolidator dc;
+  dc.setSex(&sex);
+  
   // load kinshp if needed
   if (hasFamilyModel || (!FLAG_modelMeta.empty() && !FLAG_kinship.empty())) {
     logger->info("Family-based model specified. Loading kinship file...");
@@ -1159,12 +1265,23 @@ int main(int argc, char** argv){
 
   // genotype will be extracted and stored
   Matrix genotype;
-  Matrix workingCov;
-  Matrix workingPheno;
   GenotypeExtractor ge(&vin);
+
+  // handle sex chromosome
+  ge.setSex(&sex);
+  // adjust for male chromosome X
+  // e.g. 0/1 will be coded as 0/2
+  if (FLAG_clayton) {
+    logger->info("Adjust male chromosome X genotype coding to 0/2.");
+    ge.setClaytonCoding(FLAG_clayton);
+  }
+  // use dosage instead G/T
   if (!FLAG_dosageTag.empty()) {
     ge.setDosageTag(FLAG_dosageTag);
+    logger->info("Use dosage genotype from VCF flag %s.", FLAG_dosageTag.c_str());
   }
+
+  // genotype QC options
   if (FLAG_indvDepthMin > 0) {
     ge.setGDmin(FLAG_indvDepthMin);
     logger->info("Minimum GD set to %d (or marked as missing genotype).", FLAG_indvDepthMin);

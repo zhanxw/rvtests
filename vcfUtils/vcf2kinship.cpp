@@ -203,8 +203,9 @@ class BaldingNicolsKinship: public EmpiricalKinship {
     for (size_t i = 0 ; i < geno.size(); ++i) {
       geno[i] -= mean;
     }
-
-    for (size_t i = 0; i < g.size(); ++i) {
+    const size_t numG = g.size();
+    #pragma omp for
+    for (size_t i = 0; i < numG; ++i) {
       for (size_t j = 0; j <= i; ++j) {
         // as missing genotypes are coded as -9,
         // non missing genotype minus its mean should be larger than -5.

@@ -1316,6 +1316,7 @@ int main(int argc, char** argv){
       model[m]->writeHeader(fOuts[m], buf);
     };
 
+    int variantProcessed = 0;
     while (true) {
       buf.clearValue();
       //int ret = extractSiteGenotype(&vin, &genotype, &buf);
@@ -1333,6 +1334,7 @@ int main(int argc, char** argv){
         continue;
       };
 
+      ++ variantProcessed;
       dc.consolidate(phenotypeMatrix, covariate, genotype);
 
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
@@ -1346,6 +1348,7 @@ int main(int argc, char** argv){
         model[m]->writeOutput(fOuts[m], buf);
       };
     }
+    logger->info("Analyzed [ %d ] variants", variantProcessed);
   } else if (rangeMode != "Single" && singleVariantMode) { // read by gene/range model, single variant test
     buf.addHeader(rangeMode);
     buf.addHeader("CHROM");
@@ -1360,6 +1363,7 @@ int main(int argc, char** argv){
     };
     std::string geneName;
     RangeList rangeList;
+    int variantProcessed = 0;
     for ( size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
       vin.setRange(rangeList);
@@ -1378,6 +1382,7 @@ int main(int argc, char** argv){
           continue;
         };
 
+        ++ variantProcessed;
         dc.consolidate(phenotypeMatrix, covariate, genotype);
 
         buf.updateValue(rangeMode, geneName);
@@ -1393,6 +1398,7 @@ int main(int argc, char** argv){
         };
       }
     }
+    logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions", variantProcessed, (int)geneRange.size());
   } else if (rangeMode != "Single" && groupVariantMode) { // read by gene/range mode, group variant test
     buf.addHeader(rangeMode);
     buf.addHeader("RANGE");
@@ -1405,6 +1411,7 @@ int main(int argc, char** argv){
     };
     std::string geneName;
     RangeList rangeList;
+    int variantProcessed = 0;
     vin.enableAutoMerge();
     for ( size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
@@ -1422,6 +1429,7 @@ int main(int argc, char** argv){
         continue;
       };
 
+      variantProcessed += genotype.rows;
       dc.consolidate(phenotypeMatrix, covariate, genotype);
 
       buf.updateValue(rangeMode, geneName);
@@ -1439,6 +1447,7 @@ int main(int argc, char** argv){
         model[m]->writeOutput(fOuts[m], buf);
       };
     }
+    logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions", variantProcessed, (int)geneRange.size());
   } else{
     logger->error("Unsupported reading mode and test modes!");
     abort();

@@ -1,4 +1,5 @@
-EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix testPedigree testKinship testTabixReader
+EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
+      testPedigree testKinship testTabixReader testParRegion
 all: $(EXE)
 debug: all
 
@@ -27,8 +28,9 @@ check:
 	./testRegex && \
 	./testSimpleMatrix  && \
 	./testPedigree test.ped >& testPedigree.out && diff testPedigree.correct testPedigree.out && \
-	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct
-
+	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct && \
+        ./testParRegion && \
+        echo "All tests passed!"
 #diff -q t1.output t1.correct
 
 clean:

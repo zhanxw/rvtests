@@ -3,14 +3,6 @@ chr1 :50-150
 chr10:20-30
 chr3 :100-300
 chrX :30-100
-0: chr1 
-1: chr10
-2: chr3 
-3: chrX 
-0: chr1 
-1: chr3 
-2: chr10
-3: chrX 
 
 After sorting:
 
@@ -23,14 +15,6 @@ chr1:50-150
 chr10:20-30
 chr3:100-300
 chrX:30-100
-0: chr1
-1: chr10
-2: chr3
-3: chrX
-0: chr1
-1: chr3
-2: chr10
-3: chrX
 
 After sorting:
 

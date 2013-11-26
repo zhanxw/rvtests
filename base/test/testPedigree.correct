@@ -1,6 +1,15 @@
-Conflicting gender!Conflicting gender!Duplicated person [ p1 ] in the duplicated family [ fam2 ], but not consistent to previous entry
+Conflicting gender!
+Mother but not female according to pedigree!
+Encounter error when adding line 4.
+Conflicting gender!
+Mother but not female according to pedigree!
+Encounter error when adding line 5.
 Duplicated person [ p1 ] in the duplicated family [ fam2 ], but not consistent to previous entry
+Encounter error when adding line 6.
+Duplicated person [ p1 ] in the duplicated family [ fam2 ], but not consistent to previous entry
+Encounter error when adding line 9.
 Duplicated person [ q3 ] in a new family [  ], this is not a supported feature.
+Encounter error when adding line 10.
 Loaded OK
 Loaded 2 family and 9 people.
 Total 2 family loaded:  fam1,  fam2, 

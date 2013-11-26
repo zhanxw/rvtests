@@ -6,26 +6,51 @@
 
 namespace zhanxw{
 
-  class Kinship {
+class Kinship {
  public:
-    int constructFromPedigree(const zhanxw::Pedigree& ped);
-    void dumpKinshipFromPedigree(const zhanxw::Pedigree& ped) {
-      int n = ped.getPeopleNumber();
-      for (int i = 0; i < n; ++i) {
-        const zhanxw::Person& p = ped.getPeople()[i];
-        printf("%s\t%s", ped.getFamilyName(p.getFamily()), ped.getPersonName(i));
-        for (int j = 0; j < n; ++j) {
-          printf("\t%g", mat[i][j]);
-        }
-        printf("\n");
+  int constructFromPedigree(const zhanxw::Pedigree& ped);
+  void dumpKinshipFromPedigree(const zhanxw::Pedigree& ped) {
+    int n = ped.getPeopleNumber();
+    for (int i = 0; i < n; ++i) {
+      const zhanxw::Person& p = ped.getPeople()[i];
+      printf("%s\t%s", ped.getFamilyName(p.getFamily()), ped.getPersonName(i));
+      for (int j = 0; j < n; ++j) {
+        printf("\t%g", mat[i][j]);
       }
-    };
-    const SimpleMatrix& getKinship() const{
-      return this->mat;
+      printf("\n");
     }
- private:
-    SimpleMatrix mat;
   };
+  const SimpleMatrix& getKinship() const{
+    return this->mat;
+  }
+ private:
+  SimpleMatrix mat;
+};
+
+/**
+ * Kinship calculated for X chrommosome
+ */
+class KinshipForX {
+ public:
+  int constructFromPedigree(const zhanxw::Pedigree& ped);
+  void dumpKinshipFromPedigree(const zhanxw::Pedigree& ped) {
+    int n = ped.getPeopleNumber();
+    for (int i = 0; i < n; ++i) {
+      const zhanxw::Person& p = ped.getPeople()[i];
+      printf("%s\t%s", ped.getFamilyName(p.getFamily()), ped.getPersonName(i));
+      for (int j = 0; j < n; ++j) {
+        printf("\t%g", mat[i][j]);
+      }
+      printf("\n");
+    }
+  };
+  const SimpleMatrix& getKinship() const{
+    return this->mat;
+  }
+ private:
+  SimpleMatrix mat;
+};
+
 } // namespace
 
 #endif /* _KINSHIP_H_ */

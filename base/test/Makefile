@@ -1,5 +1,6 @@
 EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
-      testPedigree testKinship testTabixReader testParRegion
+      testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef
+
 all: $(EXE)
 debug: all
 
@@ -19,7 +20,7 @@ endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
 $(EXE): ../lib-dbg-base.a
-check:
+check: kinship
 	./testIO && \
 	./testLogger && \
 	./testRangeList > testRangeList_output && \
@@ -28,9 +29,14 @@ check:
 	./testRegex && \
 	./testSimpleMatrix  && \
 	./testPedigree test.ped >& testPedigree.out && diff testPedigree.correct testPedigree.out && \
-	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct && \
         ./testParRegion && \
         echo "All tests passed!"
+
+kinship:
+	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct && \
+        ./testKinshipToKinInbcoef a test.KinInbcoef.pedtest test.KinInbcoef.listtest > test.KinInbcoef.outtest && diff test.KinInbcoef.outtest test.KinInbcoef.outtest.correct && \
+        ./testKinshipToKinInbcoef x test.KinInbcoefX.pedtestX2 test.KinInbcoefX.listtestX2 > test.KinInbcoefX.outtestX2 && diff test.KinInbcoefX.outtestX2 test.KinInbcoefX.outtestX2.correct
+
 #diff -q t1.output t1.correct
 
 clean:

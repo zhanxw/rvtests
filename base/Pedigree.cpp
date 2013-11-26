@@ -1,5 +1,7 @@
 #include "Pedigree.h"
+#include <assert.h>
 #include "Utils.h"
+
 namespace zhanxw{
 
 
@@ -8,22 +10,19 @@ void Family::addPerson(int pid) {
   if (this->ped->isFounder(pid))
     founder.insert(pid);
 }
+
 void Person::addFather(int id) {
   if (id >= 0) {
     father = (id);
-    if (founder) {
-      this->ped->removeFounder(id);
-    }
-    founder = false;
+    this->ped->removeFounder(this->id);
+    this->founder = false;
   }
 };
 void Person::addMother(int id) {
   if (id >= 0) {
     mother = (id);
-    if (founder) {
-      this->ped->removeFounder(id);
-    }
-    founder = false;
+    this->ped->removeFounder(this->id);
+    this->founder = false;
   }
 }
 
@@ -98,6 +97,7 @@ int Pedigree::add(const std::string& family,
   // add relationship
   int fid, pid, fatherId, motherId;
   fid = getFamilyID(family);
+  assert(fid >= 0);
   pid = getPersonID(person);
   fatherId = getPersonID(father);
   motherId = getPersonID(mother);
@@ -106,18 +106,25 @@ int Pedigree::add(const std::string& family,
     this->people[pid].addFather(fatherId);
     this->people[pid].addMother(motherId);
   }
+  bool errorOccured = false;
   if (fatherId >= 0) {
     this->people[fatherId].addChild(pid);
-    this->people[fatherId].setGender(MALE);
+    if (this->people[fatherId].setGender(MALE) < 0) {
+      fprintf(stderr, "Father but not male according to pedigree!\n");
+      errorOccured = true;
+    };
   }
   if (motherId >= 0) {
     this->people[motherId].addChild(pid);
-    this->people[motherId].setGender(FEMALE);
+    if (this->people[motherId].setGender(FEMALE) < 0 ) {
+      fprintf(stderr, "Mother but not female according to pedigree!\n");
+      errorOccured = true;
+    }
   }
-
+  if (errorOccured)
+    return -1;
   return 0;
-}
-
+} // Pedigree::add
 
 } // end namespace zhanxw
 
@@ -125,7 +132,9 @@ int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
   zhanxw::Pedigree& p = *ped;
   std::vector<std::string> fd;
   LineReader lr(fn);
+  int lineNo = 0;
   while (lr.readLineBySep(&fd, " \t")) {
+    ++lineNo;
     removeEmptyField(&fd);
     if (fd.empty()) {
       continue;
@@ -134,10 +143,12 @@ int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
     if (toupper(fd[0]) == "FAM" || toupper(fd[0]) == "FID") {
       continue;
     }
-    p.add(fd[0], fd[1], fd[2], fd[3]);
+    if (p.add(fd[0], fd[1], fd[2], fd[3]) < 0) {
+      fprintf(stderr, "Encounter error when adding line %d.\n", lineNo);
+    }
     if (fd.size() >= 5 )
       p.addGender(fd[1], fd[4]);
-  };
+  }
   
   return 0;
 }

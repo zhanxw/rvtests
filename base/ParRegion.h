@@ -11,6 +11,10 @@
 #include "Utils.h"
 #include "TypeConversion.h"
 
+/**
+ * A tools class to check if some variant in ParRegion
+ * Refer: http://www.ncbi.nlm.nih.gov/projects/genome/assembly/grc/human/
+ */
 class ParRegion{
  public:
   ParRegion() {
@@ -42,7 +46,7 @@ class ParRegion{
     } else {
       std::vector<std::string> fd;
       std::vector<std::string> loc;
-      stringTokenize(xLabel, ",", &fd);
+      stringTokenize(parRegion, ",", &fd);
       for (size_t i = 0; i < fd.size(); ++i) {
         stringTokenize(fd[i], "-", &loc);
         if (loc.size() != 2) {

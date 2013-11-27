@@ -3,7 +3,8 @@ all: release
 
 LIB = lib-vcf.a
 LIB_DBG = lib-dbg-vcf.a
-BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile VCFIndividual SiteSet VCFHeader BCFReader # VCFExtractor
+BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile VCFIndividual SiteSet VCFHeader BCFReader VCFExtractor VCFFilter
+
 OBJ = $(BASE:=.o)
 
 TABIX_INC = ../third/tabix

@@ -18,7 +18,7 @@
 class ParRegion{
  public:
   ParRegion() {
-    init("X,23", "hg19");
+    init("chrX,X,23", "hg19");
   }
   ParRegion(const std::string& xLabel,
             const std::string& parRegion) {
@@ -84,27 +84,42 @@ class ParRegion{
       return true;
     return false;
   }
+  bool isHemiRegion(const std::string& chrom,
+                    int pos) const {
+  if (label.count(chrom) > 0 &&
+      !inParRegion(pos))
+      return true;
+    return false;
+  }
+  bool isParRegionChrom(const std::string& chrom) const {
+    return (label.count(chrom) > 0);
+  }
+  /**
+   * @return PAR chrommosome names concatenated by ","
+   */
   std::string getLabel() const{
     assert (!this->label.empty());
     std::set<std::string>::const_iterator it = label.begin();
     std::string s = *it;
     for (it = label.begin(); it != label.end(); ++it) {
-      s += ":";
+      s += ",";
       s += *it;
     }
     return s;
   }
+  /**
+   * @return PAR regions concatenated by ","
+   */
   std::string getRegion() const {
     std::string s;
     for (size_t i = 0; i < this->region.size(); ++i) {
-      if (i) s += ":";
+      if (i) s += ",";
       s += toString(region[i].first);
       s += "-";
       s += toString(region[i].second);
     }
     return s;
   }
- private:
   bool inParRegion(int pos) const{
     for(size_t i = 0; i < region.size(); ++i) {
       if (pos >= this->region[i].first &&
@@ -113,6 +128,7 @@ class ParRegion{
     }
     return false;
   }
+ private:
   std::set<std::string> label;
   std::vector< std::pair<int, int> > region;
 };

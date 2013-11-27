@@ -13,30 +13,9 @@ class VCFSiteFilter{
   // any region, PAR regions, and hemizygote regions
   enum ChromXExtraction {ANY = 0, PAR = 1, HEMI = 2};
  public:
-  VCFSiteFilter():
-      // Site filter
-      siteDepthFromInfo(false),      // read depth from INFO field
-      siteDepthMin(-1),
-      siteDepthMax(-1),
-      siteQualMin(-1),
-
-      siteFreqFromInfo(false),      // read AF from INFO field
-      siteFreqMin(-1.0),            // here freq means minor allele frequency
-      siteFreqMax(-1.0),
-      siteMACMin(-1),
-
-      onlyVariantSite(false),
-      parRegion(NULL),
-      chromXExtraction(ANY){
-    
-#if 0
-    // individual filter
-    indvDepthMin(-1),
-        indvDepthMax(-1),
-        indvQualMin(-1)
-#endif
-        };
-
+  VCFSiteFilter();
+  virtual ~VCFSiteFilter();
+  
   // setter function
   void setUseSiteDepthFromInfo(){
     this->siteDepthFromInfo = true;

@@ -1,6 +1,12 @@
 #include "VCFExtractor.h"
 #include "base/ParRegion.h"
 
+VCFExtractor::~VCFExtractor() {
+  if (!parRegion) {
+    delete parRegion;
+    parRegion = NULL;
+  }
+}
 bool VCFExtractor::passFilter() {
   VCFRecord& r = this->getVCFRecord();
   VCFPeople& people = r.getPeople();

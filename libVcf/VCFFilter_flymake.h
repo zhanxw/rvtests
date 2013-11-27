@@ -3,19 +3,15 @@
 
 #include "Regex.h"
 
-class ParRegion;
 /**
- * VCF library support the following filters (in additional to sampler filter and range filter).
+ * Our VCF library support the following filters (in additional to sampler filter and range filter).
  *
  */
 class VCFSiteFilter{
- public:
-  // any region, PAR regions, and hemizygote regions
-  enum ChromXExtraction {ANY = 0, PAR = 1, HEMI = 2};
- public:
-  VCFSiteFilter():
-      // Site filter
-      siteDepthFromInfo(false),      // read depth from INFO field
+public:
+VCFSiteFilter():
+  // Site filter
+  siteDepthFromInfo(false),      // read depth from INFO field
       siteDepthMin(-1),
       siteDepthMax(-1),
       siteQualMin(-1),
@@ -25,17 +21,15 @@ class VCFSiteFilter{
       siteFreqMax(-1.0),
       siteMACMin(-1),
 
-      onlyVariantSite(false),
-      parRegion(NULL),
-      chromXExtraction(ANY){
-    
+      onlyVariantSite(false) {
+
 #if 0
-    // individual filter
-    indvDepthMin(-1),
-        indvDepthMax(-1),
-        indvQualMin(-1)
+      // individual filter
+      indvDepthMin(-1),
+      indvDepthMax(-1),
+      indvQualMin(-1) {
 #endif
-        };
+  };
 
   // setter function
   void setUseSiteDepthFromInfo(){
@@ -132,20 +126,6 @@ class VCFSiteFilter{
     return this->onlyVariantSite;
   };
 
-  void setParRegion(ParRegion* p) {
-    this->parRegion = p;
-  }
-  void setExtractChromXParRegion() {
-    this->chromXExtraction = PAR;
-  }
-
-  void setExtractChromXHemiRegion() {
-    this->chromXExtraction = HEMI;
-  }
-
-  void resetExtractChromXRegion() {
-    this->chromXExtraction = ANY;
-  }
 #if 0
   bool individualDepthOK(int d) const {
     if (this->indvDepthMin > 0  && this->indvDepthMin > d) return false;
@@ -157,7 +137,7 @@ class VCFSiteFilter{
     return true;
   };
 #endif
- private:
+private:
   // thresholds
   bool siteDepthFromInfo;
   int  siteDepthMin;
@@ -177,11 +157,6 @@ class VCFSiteFilter{
   int    indvDepthMax;
   int    indvQualMin;
 #endif
-
- protected:
-  // allow X-chromosome analysis
-  ParRegion* parRegion;
-  enum ChromXExtraction chromXExtraction;
 };
 
 #endif /* _VCFFILTER_H_ */

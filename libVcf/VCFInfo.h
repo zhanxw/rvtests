@@ -66,11 +66,13 @@ public:
           key = this->parsed.substr(value.beg, end - value.beg);
           value.beg = end;
           value.end = end;
-          this->data[key] = value;
+          if (key != ".") // only store non-missing key
+            this->data[key] = value;
           value.beg = end + 1;
         } else if (state == 1) { // key with value: e.g. ;AC=2;
             value.end = end;
-            this->data[key] = value;
+            if (key != ".") // only store non-missing key
+              this->data[key] = value;
             value.beg = end + 1;
             state = 0;
         } else {

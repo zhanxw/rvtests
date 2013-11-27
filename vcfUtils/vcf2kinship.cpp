@@ -397,7 +397,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix for autosomal kinship calculation")
 
       ADD_PARAMETER_GROUP(pl, "Chromsome X Analysis Options")
-      ADD_BOOL_PARAMETER(pl, xKinship, "--xKinship", "Calculating kinship using non-PAR region X chromosome markers.")
+      ADD_BOOL_PARAMETER(pl, hemiX, "--hemiX", "Calculating kinship using non-PAR region X chromosome markers.")
       ADD_STRING_PARAMETER(pl, xLabel, "--xLabel", "Specify X chromosome label (default: 23,X")
       ADD_STRING_PARAMETER(pl, xParRegion, "--xRegion", "Specify PAR region (default: hg19), can be build number e.g. hg38, b37; or specify region, e.g. '60001-2699520,154931044-155260560'")
 
@@ -458,7 +458,7 @@ int main(int argc, char** argv){
 
   // check parameters
   bool useEmpKinship = !FLAG_inVcf.empty();
-  if (FLAG_xKinship) {
+  if (FLAG_hemiX) {
     if (FLAG_ped.empty()) {
       fprintf(stderr, "Failed to calculate kinship from X chromosome as PED file is missing!\n");
       abort();
@@ -499,7 +499,7 @@ int main(int argc, char** argv){
       // ped.getPeople()[i].dump();
     }
 
-    if (!FLAG_xKinship) {
+    if (!FLAG_hemiX) {
       zhanxw::Kinship kin;
       kin.constructFromPedigree(ped);
       const SimpleMatrix& m = kin.getKinship();
@@ -526,7 +526,7 @@ int main(int argc, char** argv){
 
   const char* fn = FLAG_inVcf.c_str();
   VCFExtractor vin(fn);
-  if (FLAG_xKinship) {
+  if (FLAG_hemiX) {
     vin.setExtractChromXHemiRegion();
   } else {
     vin.setExtractChromXParRegion();
@@ -577,9 +577,9 @@ int main(int argc, char** argv){
   EmpiricalKinship* kinship = NULL;
   if (FLAG_ibs) {
     kinship = new IBSKinship;
-    assert(!FLAG_xKinship);
+    assert(!FLAG_hemiX);
   } else if (FLAG_bn) {
-    if (!FLAG_xKinship) {
+    if (!FLAG_hemiX) {
        kinship = new BaldingNicolsKinship;
     } else {
       kinship = new BaldingNicolsKinshipForX;
@@ -595,7 +595,7 @@ int main(int argc, char** argv){
     fprintf(stderr, "No sample in the VCF will be used, quitting...");
     exit(1);
   }
-  if (FLAG_xKinship) {
+  if (FLAG_hemiX) {
     if (loadSex(FLAG_ped, names, &sex)) {
       fprintf(stderr, "Critical error happen when reading sample genders!\n");
       exit(1);
@@ -676,6 +676,11 @@ int main(int argc, char** argv){
           missing = true;
         }
       }
+      // don't allow male het site
+      if (FLAG_hemiX && sex[i] == 1 && geno == 1) {
+        missing = true;
+      }
+
       // set genotype
       if (missing || geno < 0) {
         genotype[i] = -9;
@@ -686,14 +691,12 @@ int main(int argc, char** argv){
         if (geno != 0)
           hasVariant = true;
 
-        if (FLAG_xKinship && sex[i] == 1) { // 1 is PLINK_MALE
+        if (FLAG_hemiX && sex[i] == 1) { // 1 is PLINK_MALE
           totalAC += 1;
         } else{
           totalAC += 2;
         }
       }
-      // check sex if possible
-      // todo fix male het genotype when it's not missing
       
     }
     if (nMiss >  maxMissing) {

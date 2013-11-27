@@ -1,3 +1,6 @@
+/*
+ * vcfPeek: a utility to quickly summarize a VCF file 
+ */
 #include "Argument.h"
 #include "IO.h"
 #include "tabix.h"

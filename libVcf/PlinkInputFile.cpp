@@ -130,7 +130,9 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* 
                 int offset = peopleIdx[p] % 4;
                 unsigned char c;
                 fseek(this->fpBed, pos, SEEK_SET);
-                fread(&c, sizeof(unsigned char), 1, fpBed);
+                int nRead = fread(&c, sizeof(unsigned char), 1, fpBed);
+                if (nRead != 1)
+                  return -1;
                 unsigned char geno = (c & mask[offset]) >> (offset << 1);
                 switch (geno){
                     case HOM_REF:
@@ -159,7 +161,9 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* 
                 int offset = markerIdx[m] % 4;
                 unsigned char c;
                 fseek(this->fpBed, pos, SEEK_SET);
-                fread(&c, sizeof(unsigned char), 1, fpBed);
+                int nRead = fread(&c, sizeof(unsigned char), 1, fpBed);
+                if (nRead != 1)
+                  return -1;
 
                 unsigned char geno = (c & mask[offset]) >> (offset << 1);
                 switch (geno){

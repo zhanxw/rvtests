@@ -86,14 +86,16 @@
 #include "TabixUtil.h"
 #include "base/Indexer.h"
 
+#if 0  // need more test for openMP
 #ifdef _OPENMP
 #include <omp.h>
 #pragma message "Enable multithread using OpenMP"
 #endif
+#endif
 
 Logger* logger = NULL;
 
-#define VERSION "20131124"
+#define VERSION "20131126"
 
 void banner(FILE* fp) {
   const char* string =

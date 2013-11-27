@@ -29,7 +29,8 @@ define BUILD_each
 endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
-check: check1 check2 check3 check4 check5 check6 check7 check8 check9
+check: check1 check2 check3 check4 check5 check6 check7 check8 check9 check10 \
+       check11 check12
 check1:
 	./testPlinkInputFile > testPlinkInputFile.output
 	diff -q testPlinkInputFile.output testPlinkInputFile.output.correct
@@ -66,7 +67,8 @@ check11:
 	./testReadBCFByRange > testReadBCFByRange.output
 	diff -q testReadBCFByRange.output testReadBCFByRange.output.correct
 check12:
-	./testVCFExtractChromX
+	./testVCFExtractChromX > testVCFExtractChromX.output
+	diff -q testVCFExtractChromX.output testVCFExtractChromX.output.correct
 
 clean:
 	-rm -f $(EXE) *.d *.output

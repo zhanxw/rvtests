@@ -84,7 +84,7 @@
 #include "GitVersion.h"
 #include "Result.h"
 #include "TabixUtil.h"
-#include "Indexer.h"
+#include "base/Indexer.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -260,7 +260,7 @@ class GenotypeExtractor{
     // get column label
     const char* chromPos = genotype.GetColumnLabel(col);
     bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
-                       strncmp(chromPos, "23:", 3) == 0) &&
+                       strncmp(chromPos, "23:", 3) == 0) && // 23 is PLINK coding for X
                       this->sex &&
                       (int)this->sex->size() == genotype.rows);
     if (!checkSex) return 0;
@@ -590,7 +590,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
       ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")
       ADD_BOOL_PARAMETER(pl, sex, "--sex", "Include sex (5th) as covaraite from PED file")
-      
+
       ADD_PARAMETER_GROUP(pl, "Specify Phenotype")
       ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
       ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
@@ -601,8 +601,12 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Specify Genotype")
       ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC)")
-      ADD_BOOL_PARAMETER(pl, clayton, "--clayton", "Code genotypes of male as 0 or 2 ")
 
+      ADD_PARAMETER_GROUP(pl, "Chromsome X Analysis Options")
+      ADD_BOOL_PARAMETER(pl, hemiX, "--hemiX", "Analyze only chromosome X non-PAR region.")
+      ADD_STRING_PARAMETER(pl, xLabel, "--xLabel", "Specify X chromosome label (default: 23|X")
+      ADD_STRING_PARAMETER(pl, xParRegion, "--xPar", "Specify PAR region (default: hg19), can be build number e.g. hg38, b37; or specify region, e.g. '60001-2699520,154931044-155260560'")
+      
       ADD_PARAMETER_GROUP(pl, "People Filter")
       ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -632,8 +636,9 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov")
 
       ADD_PARAMETER_GROUP(pl, "Family-based Models")
-      ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file, use vcf2kinship to generate")
-
+      ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file for autosomal analysis, use vcf2kinship to generate")
+      ADD_STRING_PARAMETER(pl, kinshipX, "--kinshipX", "Specify a kinship file for X chromosome analysis, use vcf2kinship to generate")
+      
       ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
@@ -1271,10 +1276,14 @@ int main(int argc, char** argv){
   ge.setSex(&sex);
   // adjust for male chromosome X
   // e.g. 0/1 will be coded as 0/2
-  if (FLAG_clayton) {
+  if (FLAG_hemiX) {
     logger->info("Adjust male chromosome X genotype coding to 0/2.");
-    ge.setClaytonCoding(FLAG_clayton);
+    ge.setClaytonCoding(true);
+    vin.setExtractChromXHemiRegion();
+  } else {
+    vin.setExtractChromXParRegion();
   }
+  
   // use dosage instead G/T
   if (!FLAG_dosageTag.empty()) {
     ge.setDosageTag(FLAG_dosageTag);

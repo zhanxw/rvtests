@@ -142,6 +142,12 @@ class Person{
   Gender getGender() const {
     return gender;
   }
+  bool isMale() const {
+    return gender == MALE;
+  }
+  bool isFemale() const {
+    return gender == FEMALE;
+  }
   void setFamily(int fam) {
     if (fam >= 0)
       this->family = fam;

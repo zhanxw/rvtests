@@ -442,7 +442,7 @@ class DataConsolidator{
   bool isChromX(int columnIndex) {
     const char* chromPos = this->genotype.GetColumnLabel(0);
     bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
-                       strncmp(chromPos, "23:", 3) == 0) &&
+                       strncmp(chromPos, "23:", 3) == 0) && // 23 is PLINK coding for X
                       this->sex &&
                       (int)this->sex->size() == genotype.rows);
     return checkSex;

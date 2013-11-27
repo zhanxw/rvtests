@@ -1,5 +1,6 @@
 all: release
 release: util
+debug: util-dbg
 
 ROOT=..
 include $(ROOT)/Makefile.common
@@ -50,7 +51,7 @@ $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util, $(s))))
 util-dbg: $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
 define BUILD_util_dbg
   TAR := $(DIR_EXEC_DBG)/$(notdir $(basename $(1)))
-  SRC := $(addprefix vcfUtils/, $(1).cpp)
+  SRC := $(addprefix ./, $(1).cpp)
   -include  $(1).d
   $$(TAR): CXX_FLAGS = -O0 -ggdb $(DEFAULT_CXXFLAGS)
   $$(TAR): $$(SRC) $(LIB_DBG) | $(DIR_EXEC_DBG)

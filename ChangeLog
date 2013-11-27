@@ -1,3 +1,7 @@
+2013-11-26  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Support X chromosome analysis
+
 2013-05-03  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Change frequency cutoff to minor allele frequency cutoffs when using --freqLower / --freqUpper

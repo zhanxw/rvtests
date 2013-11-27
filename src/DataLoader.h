@@ -555,7 +555,7 @@ int removeByRowIndex(const std::vector<int>& index,
     m.DeleteRow(idx[i]);
   }
   return (nr - m.rows);
-}
+} // removeByRowIndex
 
 
 /**
@@ -578,7 +578,7 @@ int appendToMatrix(const std::string& label,
   }
   m.SetColumnLabel(nc, label.c_str());
   return 0;
-}
+} //appendToMatrix
 
 
 

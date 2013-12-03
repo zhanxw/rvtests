@@ -65,7 +65,7 @@ int Pedigree::add(const std::string& family,
   } else { // both known
     bool OK = this->family[fid].containPerson(pid)  && this->people[pid].getFamily() == fid;
     if (!OK) {
-      fprintf(stderr, "Duplicated person [ %s ] in the duplicated family [ %s ], but not consistent to previous entry\n", person.c_str(), family.c_str());
+      fprintf(stderr, "Duplicated person [ %s ] in the duplicated family [ %s ], but not consistent to previous entries\n", person.c_str(), family.c_str());
       return -1;
     }
     return 0;
@@ -144,7 +144,7 @@ int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
       continue;
     }
     if (p.add(fd[0], fd[1], fd[2], fd[3]) < 0) {
-      fprintf(stderr, "Encounter error when adding line %d.\n", lineNo);
+      fprintf(stderr, "Encounter error when adding line %d.\n\n", lineNo);
     }
     if (fd.size() >= 5 )
       p.addGender(fd[1], fd[4]);

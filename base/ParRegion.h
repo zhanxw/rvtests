@@ -37,6 +37,9 @@ class ParRegion{
     }
 
     std::string region = tolower(parRegion);
+    if (region.empty()) {
+      region = "hg19";
+    }
     if (region == "hg19" || region == "b37" || region == "grch37") {
       this->region.push_back(std::make_pair(60001, 2699520));
       this->region.push_back(std::make_pair(154931044, 155270560));

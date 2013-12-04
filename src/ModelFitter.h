@@ -2289,7 +2289,8 @@ class MetaScoreTest: public ModelFitter{
         if (!isBinaryOutcome()) {
           result.updateValue("U_STAT", linearFamScore.GetUStat());
           result.updateValue("SQRT_V_STAT", sqrt(linearFamScore.GetVStat()));
-          result.updateValue("ALT_EFFSIZE", linearFamScore.GetUStat() / (linearFamScore.GetVStat()));
+          result.updateValue("ALT_EFFSIZE", linearFamScore.GetVStat() != 0.0 ?
+			     linearFamScore.GetUStat() / linearFamScore.GetVStat() : 0.0);
           result.updateValue("PVALUE", linearFamScore.GetPValue());
         } else {
           /* result.updateValue("U_STAT", logistic.GetU()[0][0]); */
@@ -2301,7 +2302,7 @@ class MetaScoreTest: public ModelFitter{
         if (!isBinaryOutcome()) {
           result.updateValue("U_STAT", linear.GetU()[0][0]);
           result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]));
-          result.updateValue("ALT_EFFSIZE", linear.GetU()[0][0] / (linear.GetV()[0][0]));
+	  result.updateValue("ALT_EFFSIZE", linear.GetV()[0][0] != 0.0 ? linear.GetU()[0][0] / linear.GetV()[0][0] : 0.0);
           result.updateValue("PVALUE", linear.GetPvalue());
         } else {
           result.updateValue("U_STAT", logistic.GetU()[0][0]);

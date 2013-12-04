@@ -2169,7 +2169,7 @@ class MetaScoreTest: public ModelFitter{
             copyCovariateAndIntercept(genotype.rows, covariate, &cov);
             fitOK = (0 == linearFamScoreForX.FitNullModel(cov, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()) ? true: false);            
             if (!fitOK) return -1;
-            needToFitNullModel = false;
+            needToFitNullModelForX = false;
           }
         }
 
@@ -2178,7 +2178,7 @@ class MetaScoreTest: public ModelFitter{
           this->af = linearFamScore.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
         } else {
           fitOK = (0 == linearFamScoreForX.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()) ? true: false);
-          this->af = linearFamScoreForX.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());          
+          this->af = linearFamScoreForX.GetAF(*dc->getKinshipUForX(), *dc->getKinshipSForX());          
         }
       } else {
         /* if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) { */

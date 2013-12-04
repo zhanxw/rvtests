@@ -178,6 +178,9 @@ class FastLMM::Impl{
     } else {
       this->sigma2 = sumResidual2 / (x.rows() - x.cols());
     }
+
+    
+    
   }
   /**
    * NOTE: it's necesary to calculate beta and sigma2 beforehand.

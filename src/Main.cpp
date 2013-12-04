@@ -5,7 +5,7 @@
    13. Add optional weight
    23. Add dominant model
    25. Take optional weight, e.g. GERP
-   
+
    DONE:
    2. support access INFO tag
    5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
@@ -46,12 +46,12 @@
    36. Support BCF file
    37. Support dosage (imputed genotypes)
    33. Support sex chromosome coding.
-   
-   
+
+
    Future TODO:
    22. Add U-statistics
    38. Support SKAT-O
-   
+
    Not sure if worthy to do:
    32. Optional output tag from VCF
 
@@ -95,7 +95,7 @@
 
 Logger* logger = NULL;
 
-#define VERSION "20131126"
+#define VERSION "20131202"
 
 void banner(FILE* fp) {
   const char* string =
@@ -105,7 +105,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      November 2013                     ...   \n"
+      "      ...      December 2013                     ...   \n"
       "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
@@ -117,7 +117,9 @@ class GenotypeExtractor{
  public:
   GenotypeExtractor(VCFExtractor* v): vin(*v),
                                       GDmin(-1), GDmax(-1), needGD(false),
-                                      GQmin(-1), GQmax(-1), needGQ(false){
+                                      GQmin(-1), GQmax(-1), needGQ(false),
+                                      parRegion(NULL), sex(NULL),
+                                      claytonCoding(true) {
   };
   /**
    * @param g, store people by marker matrix
@@ -128,6 +130,7 @@ class GenotypeExtractor{
     int row = 0;
     std::vector<std::string> colNames;
     std::string name;
+    this->hemiRegion.clear();
     while (vin.readRecord()){
       VCFRecord& r = vin.getVCFRecord();
       VCFPeople& people = r.getPeople();
@@ -169,6 +172,12 @@ class GenotypeExtractor{
       name += r.getPosStr();
       colNames.push_back(name);
       ++ row;
+
+      if (this->parRegion && this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
+        this->hemiRegion.push_back(true);
+      } else {
+        this->hemiRegion.push_back(false);
+      }
     }
     // now transpose (marker by people -> people by marker)
     g->Transpose(m);
@@ -177,7 +186,9 @@ class GenotypeExtractor{
     }
     // adjust male chrX genotype
     for (int i = 0; i < g->cols; ++i) {
-      adjustSexGenotype(g, i);
+      if (this->hemiRegion[i] == true) {
+        adjustSexGenotype(g, i);
+      }
     }
     return 0;
   };
@@ -246,8 +257,15 @@ class GenotypeExtractor{
     label += r.getPosStr();
     genotype.SetColumnLabel(0, label.c_str());
 
+    this->hemiRegion.resize(1);
+    if (this->parRegion && this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
+      this->hemiRegion[0] = true;
+    } else {
+      this->hemiRegion[0] = false;
+    }
     // adjust male chrX genotype
-    adjustSexGenotype(g, 0);
+    if (this->hemiRegion[0])
+      adjustSexGenotype(g, 0);
     return 0;
   }
 
@@ -259,13 +277,12 @@ class GenotypeExtractor{
   int adjustSexGenotype(Matrix* geno, int col) {
     Matrix& genotype = *geno;
 
-    // get column label
-    const char* chromPos = genotype.GetColumnLabel(col);
-    bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
-                       strncmp(chromPos, "23:", 3) == 0) && // 23 is PLINK coding for X
-                      this->sex &&
-                      (int)this->sex->size() == genotype.rows);
-    if (!checkSex) return 0;
+    // no sex information, just return
+    if (!this->sex) return 0;
+    if ((size_t) col >= this->hemiRegion.size()) return 0;
+
+    // non-hemi region, no need to adjust
+    if (!this->hemiRegion[col]) return 0;
 
     for (int i = 0 ; i < genotype.rows; ++i) {
       if ( (*sex)[col] != 1) continue;
@@ -285,23 +302,6 @@ class GenotypeExtractor{
       }
     }
     return 0;
-  }
-  
-  /**
-   * Check if necessary to check genotype by sample sex information
-   * e.g. mark male X chromosome het genotypes as missing
-   * @param chrom is chromosome name
-   * @param s is number of samples
-   * @return true if we have sex information and are current processing X chrom.
-   */
-  bool needToConsiderSex(const char* chromPos, int s) {
-     if ( (strcmp(chromPos, "X") == 0 ||
-           strcmp(chromPos, "23") == 0) &&
-          (int)this->sex->size() == s) {
-       return true;
-     } else {
-       return false;
-     }
   }
 
   // @return true if GD is valid
@@ -349,14 +349,20 @@ class GenotypeExtractor{
   void unsetDosageTag() {
     this->doseTag.clear();
   }
+  void setParRegion(ParRegion* p) {
+    this->parRegion = p;
+  }
   //      Sex (1=male; 2=female; other=unknown)
   void setSex(const std::vector<int>* sex) {
     this->sex = sex;
   };
   // coding male chromX as 0/2 instead of 0/1
   // similarly, for dosage, just multiply 2.0 from original dosage
-  void setClaytonCoding(bool b) {
-    this->claytonCoding = b;
+  void enableClaytonCoding() {
+    this->claytonCoding = true;
+  }
+  void disableClaytonCoding() {
+    this->claytonCoding = false;
   }
  private:
   VCFExtractor& vin;
@@ -368,10 +374,13 @@ class GenotypeExtractor{
   bool needGQ;
   Vector weight;
   std::string doseTag; // set if loading dose instead of genotype
+
   // compensate sex chromosome
-  const std::vector<int>* sex;
-  bool claytonCoding;
-}; // clas GenotypeExtractor
+  ParRegion* parRegion;
+  std::vector<bool> hemiRegion; // true: if the extracted variant in hemi region
+  const std::vector<int>* sex;  // external sex information
+  bool claytonCoding;           // code male hemi region genotype from 0/1 to 0/2
+}; // class GenotypeExtractor
 
 /**
  * convert the vector @param v to column Matrix format @param m
@@ -562,7 +571,7 @@ int excludeSamplesByIndex(const std::vector<int>& index,
   removeByIndex(index, phenotypeNameInOrder);
   removeByIndex(index, phenotypeInOrder);
   removeByRowIndex(index, cov);
-  
+
   return 0;
 }
 
@@ -604,11 +613,10 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Specify Genotype")
       ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC)")
 
-      ADD_PARAMETER_GROUP(pl, "Chromsome X Analysis Options")
-      ADD_BOOL_PARAMETER(pl, hemiX, "--hemiX", "Analyze only chromosome X non-PAR region.")
+      ADD_PARAMETER_GROUP(pl, "Chromsome X Options")
       ADD_STRING_PARAMETER(pl, xLabel, "--xLabel", "Specify X chromosome label (default: 23|X")
-      ADD_STRING_PARAMETER(pl, xParRegion, "--xPar", "Specify PAR region (default: hg19), can be build number e.g. hg38, b37; or specify region, e.g. '60001-2699520,154931044-155260560'")
-      
+      ADD_STRING_PARAMETER(pl, xParRegion, "--xParRegion", "Specify PAR region (default: hg19), can be build number e.g. hg38, b37; or specify region, e.g. '60001-2699520,154931044-155260560'")
+
       ADD_PARAMETER_GROUP(pl, "People Filter")
       ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
       ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -639,8 +647,8 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Family-based Models")
       ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file for autosomal analysis, use vcf2kinship to generate")
-      ADD_STRING_PARAMETER(pl, kinshipX, "--kinshipX", "Specify a kinship file for X chromosome analysis, use vcf2kinship to generate")
-      
+      ADD_STRING_PARAMETER(pl, xHemiKinship, "--xHemiKinship", "Provide kinship for the chromosome X hemizygote region")
+
       ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
       ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
       ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
@@ -856,7 +864,7 @@ int main(int argc, char** argv){
   if (loadSex(FLAG_pheno, phenotypeNameInOrder, &sex)) {
     logger->error("Cannot load sex of samples from phenotype file");
     abort();
-  } 
+  }
 
   if (FLAG_sex) { // append sex in covariate
     std::vector<int> index; // mark missing samples
@@ -870,8 +878,8 @@ int main(int argc, char** argv){
                           &covariate);
     appendToMatrix("Sex", sex, &covariate);
   }
-  
-  
+
+
   // load conditional markers
   if (!FLAG_condition.empty()) {
     Matrix geno;
@@ -918,7 +926,7 @@ int main(int argc, char** argv){
       convertBinaryPhenotype(&phenotypeInOrder);
     }
   }
-  
+
   // use residual as phenotype
   if (FLAG_useResidualAsPhenotype) {
     if (binaryPhenotype) {
@@ -975,7 +983,7 @@ int main(int argc, char** argv){
   }
 
   g_SummaryHeader->fitModel(phenotypeInOrder, binaryPhenotype, covariate);
-  
+
   logger->info("Analysis begin with [ %zu ] samples...", phenotypeInOrder.size());
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -1226,7 +1234,7 @@ int main(int argc, char** argv){
 
   DataConsolidator dc;
   dc.setSex(&sex);
-  
+
   // load kinshp if needed
   if (hasFamilyModel || (!FLAG_modelMeta.empty() && !FLAG_kinship.empty())) {
     logger->info("Family-based model specified. Loading kinship file...");
@@ -1234,22 +1242,57 @@ int main(int argc, char** argv){
       logger->error("To use family based method, you need to use --kinship to specify a kinship file (you use vcf2kinship to generate one).");
       abort();
     }
+
+    // load autosomal kinship
     clock_t start;
     double diff;
     start = clock();
-    if (dc.loadKinshipFile(FLAG_kinship, phenotypeNameInOrder)){
-      logger->error("Failed to load kinship file");
+    if (dc.loadKinshipFileForAuto(FLAG_kinship, phenotypeNameInOrder)){
+      logger->error("Failed to load kinship file [ %s ]", FLAG_kinship.c_str());
       abort();
     }
     diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
-    logger->info("DONE: Loaded kinship file successfully (in %.1f seconds).", diff);
+    logger->info("DONE: Loaded kinship file [ %s ] successfully in [ %.1f ] seconds).", FLAG_kinship.c_str(), diff);
+
     start = clock();
-    if (dc.decomposeKinship()) {
-      logger->error("Failed to decompose kinship file");
+    if (dc.decomposeKinshipForAuto()) {
+      logger->error("Failed to decompose kinship matrix");
       abort();
     }
     diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
-    logger->info("DONE: Spectral decomposition of kinship matrix succeeded (in %.1f seconds).", diff );
+    logger->info("DONE: Spectral decomposition of the kinship matrix succeeded in [ %.1f ] seconds.", diff );
+
+    // load hemi kinship
+    if (FLAG_xHemiKinship.empty()) {
+      std::string fn = FLAG_kinship;
+      fn = fn.substr(0, fn.size() - 8); // strip ".kinship"
+      fn += ".xHemi.kinship";
+      FILE* fp = fopen(fn.c_str(), "r");
+      if (fp != NULL) {
+        FLAG_xHemiKinship = fn;
+        fclose(fp);
+      }
+    }
+    if (FLAG_xHemiKinship.empty()) {
+      logger->warn("Autosomal kinship loaded, but no hemizygote region kinship provided, family-based tests will failed to fit.");
+    } else {
+      start = clock();
+      if (dc.loadKinshipFileForX(FLAG_kinship, phenotypeNameInOrder)){
+        logger->error("Failed to load kinship file [ %s ]", FLAG_xHemiKinship.c_str());
+        abort();
+      }
+      diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
+      logger->info("DONE: Loaded kinship file [ %s ] successfully in [ %.1f ] seconds.", FLAG_xHemiKinship.c_str(), diff);
+
+      start = clock();
+      if (dc.decomposeKinshipForX()) {
+        logger->error("Failed to decompose kinship matrix");
+        abort();
+      }
+      diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
+      logger->info("DONE: Spectral decomposition of the kinship matrix succeeded in [ %.1f ] seconds.", diff );
+    }
+
   } else if (!FLAG_kinship.empty() && FLAG_modelMeta.empty()){
     logger->info("Family-based model not specified. Skip --kinship option and not load kinship file.");
   }
@@ -1270,22 +1313,27 @@ int main(int argc, char** argv){
   }
   dc.setPhenotypeName(phenotypeNameInOrder);
 
+  // set up par region
+  ParRegion parRegion(FLAG_xLabel, FLAG_xParRegion);
+  dc.setParRegion(&parRegion);
+  
   // genotype will be extracted and stored
   Matrix genotype;
   GenotypeExtractor ge(&vin);
 
   // handle sex chromosome
+  ge.setParRegion(&parRegion);
   ge.setSex(&sex);
   // adjust for male chromosome X
   // e.g. 0/1 will be coded as 0/2
-  if (FLAG_hemiX) {
-    logger->info("Adjust male chromosome X genotype coding to 0/2.");
-    ge.setClaytonCoding(true);
-    vin.setExtractChromXHemiRegion();
-  } else {
-    vin.setExtractChromXParRegion();
-  }
-  
+  // if (FLAG_xHemi) {
+  //   logger->info("Adjust male chromosome X genotype coding to 0/2.");
+  //   ge.setClaytonCoding(true);
+  //   vin.setExtractChromXHemiRegion();
+  // } else {
+  //   vin.setExtractChromXParRegion();
+  // }
+
   // use dosage instead G/T
   if (!FLAG_dosageTag.empty()) {
     ge.setDosageTag(FLAG_dosageTag);
@@ -1352,7 +1400,7 @@ int main(int argc, char** argv){
 
       // fit each model
       const size_t numModel = model.size();
-      for (size_t m = 0; m != numModel; m++) 
+      for (size_t m = 0; m != numModel; m++)
       {
         model[m]->reset();
         model[m]->fit(&dc);
@@ -1482,7 +1530,7 @@ int main(int argc, char** argv){
                     metaFileToIndex[i].c_str());
     }
   }
-  
+
   time_t endTime = time(0);
   logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);

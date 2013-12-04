@@ -475,9 +475,11 @@ int loadSex(const std::string& fn,
   int nUnknonw = 0;
   int idx;
   int s;
-  while(lr.readLineBySep(&fd, "\t ")){
+  std::string line;
+  while(lr.readLine(&line)){
+    stringNaturalTokenize(line, "\t ", &fd);
     idx = index[fd[1]];
-    if (idx < 0 ) return -1;
+    if (idx < 0 ) continue; // sample not in @param includedSample
     s = atoi(fd[4]); // the 5th column is gender in PLINK PED file
     
     (*sex)[idx] = s;

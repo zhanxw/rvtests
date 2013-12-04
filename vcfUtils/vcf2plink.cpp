@@ -71,6 +71,7 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Site Filter")
         ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
         ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+        //TODO ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing site to extract, please use chr:pos format.")
         ADD_PARAMETER_GROUP(pl, "Gene Extractor")
         ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "Specify the gene file (refFlat format), so we know gene start and end.")
         ADD_STRING_PARAMETER(pl, geneName, "--gene", "Specify the gene names to extract")

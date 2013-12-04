@@ -6,6 +6,7 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
+#include "base/ParRegion.h"
 #include "regression/LogisticRegression.h"
 #include "regression/LogisticRegressionScoreTest.h"
 #include "regression/LinearRegression.h"
@@ -16,8 +17,8 @@
 #include "regression/FastLMM.h"
 #include "regression/GrammarGamma.h"
 #include "regression/MetaCov.h"
-
 #include "regression/MatrixOperation.h"
+
 #include "DataConsolidator.h"
 #include "LinearAlgebra.h"
 #include "ModelUtil.h"
@@ -413,13 +414,13 @@ class SingleVariantFamilyScore: public ModelFitter{
 
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
 
-    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
-    af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+    af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
     u = model.GetUStat();
     v = model.GetVStat();
     pvalue = model.GetPValue();
@@ -485,13 +486,13 @@ class SingleVariantFamilyLRT: public ModelFitter{
 
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
 
-    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
-    af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+    af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
     nullLogLik = model.GetNullLogLikelihood();
     altLogLik = model.GetAltLogLikelihood();
     pvalue = model.GetPValue();
@@ -557,13 +558,13 @@ class SingleVariantFamilyGrammarGamma: public ModelFitter{
 
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
+      fitOK = (0 == model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
 
-    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
-    af = model.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
+    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+    af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
     beta = model.GetBeta();
     betaVar = model.GetBetaVar();
     pvalue = model.GetPValue();
@@ -2055,7 +2056,11 @@ class KbacTest: public ModelFitter{
 // output files for meta-analysis
 class MetaScoreTest: public ModelFitter{
  public:
-  MetaScoreTest(): linearFamScore(FastLMM::SCORE, FastLMM::MLE), needToFitNullModel(true){
+  MetaScoreTest():
+      linearFamScore(FastLMM::SCORE, FastLMM::MLE),
+      linearFamScoreForX(FastLMM::SCORE, FastLMM::MLE),      
+      needToFitNullModel(true),
+      needToFitNullModelForX(true){
     this->modelName = "MetaScore";
   };
   // fitting model
@@ -2063,21 +2068,23 @@ class MetaScoreTest: public ModelFitter{
     Matrix& phenotype = dc->getPhenotype();
     Matrix& genotype  = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
+    this->isHemiRegion = dc->isHemiRegion(0);
 
-    // check if sex chromsome
-    // fprintf(stderr, "check chrom %s\n", genotype.GetColumnLabel(0));
-    bool checkSex = dc->isChromX(0);
-    
-    if (!checkSex) {
-      dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
-    } else {
-      dc->countRawGenotypeFromFemale(0, &homRef, &het, &homAlt, &missing);
-    }
+    dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
     
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
     int nSample = (homRef + het + homAlt + missing);
-    callRate = 1.0 - 1.0 * missing / nSample;
+    if (nSample){
+      callRate = 1.0 - 1.0 * missing / nSample;
+    } else {
+      callRate = 0.0;
+    }
+
+    // use female info to get hwe and af
+    if (isHemiRegion) {
+      dc->countRawGenotypeFromFemale(0, &homRef, &het, &homAlt, &missing);
+    }
     if (homRef + het + homAlt == 0 ||
         (het < 0 || homRef < 0 || homAlt < 0)) {
       hweP = 0.0;
@@ -2096,7 +2103,7 @@ class MetaScoreTest: public ModelFitter{
       int homRefCase, hetCase, homAltCase, missingCase;
       int homRefCtrl, hetCtrl, homAltCtrl, missingCtrl;
     
-      if (!checkSex) {
+      if (!isHemiRegion) {
         dc->countRawGenotypeFromCase(0, &homRefCase, &hetCase, &homAltCase, &missingCase);
         dc->countRawGenotypeFromControl(0, &homRefCtrl, &hetCtrl, &homAltCtrl, &missingCtrl);
       } else {
@@ -2141,17 +2148,38 @@ class MetaScoreTest: public ModelFitter{
     // perform assocation tests
     this->useFamilyModel = dc->hasKinship();
     if (this->useFamilyModel) {
-      if (!isBinaryOutcome()) {
-        if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
-          copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-          // copyPhenotype(phenotype, &this->pheno);
-          fitOK = (0 == linearFamScore.FitNullModel(cov, phenotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
-          if (!fitOK) return -1;
-          needToFitNullModel = false;
+      if (!isBinaryOutcome()) { // quant trait
+        if (!isHemiRegion) {
+          if (needToFitNullModel ||
+              dc->isPhenotypeUpdated() ||
+              dc->isCovariateUpdated()) {
+            copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+            fitOK = (0 == linearFamScore.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+            if (!fitOK) return -1;
+            needToFitNullModel = false;
+          }
+        } else { // hemi region
+          if (!dc->hasKinshipForX()) {
+            fitOK = false;
+            return -1;
+          }
+          if (needToFitNullModelForX ||
+              dc->isPhenotypeUpdated() ||
+              dc->isCovariateUpdated()) {
+            copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+            fitOK = (0 == linearFamScoreForX.FitNullModel(cov, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()) ? true: false);            
+            if (!fitOK) return -1;
+            needToFitNullModel = false;
+          }
         }
-        fitOK = (0 == linearFamScore.TestCovariate(cov, phenotype, genotype, *dc->getKinshipU(), *dc->getKinshipS()) ? true: false);
-        this->af = linearFamScore.GetAF(*dc->getKinshipU(), *dc->getKinshipS());
 
+        if (!isHemiRegion) {
+          fitOK = (0 == linearFamScore.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+          this->af = linearFamScore.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
+        } else {
+          fitOK = (0 == linearFamScoreForX.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()) ? true: false);
+          this->af = linearFamScoreForX.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());          
+        }
       } else {
         /* if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) { */
         /*   copyCovariateAndIntercept(genotype.rows, covariate, &cov); */
@@ -2166,7 +2194,7 @@ class MetaScoreTest: public ModelFitter{
         exit(1);
       }
     } else { // unrelated
-      if (!isBinaryOutcome()) { // continuous trait
+      if (!isBinaryOutcome()) { // continuous/quantative trait
         if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
           copyCovariateAndIntercept(genotype.rows, covariate, &cov);
           copyPhenotype(phenotype, &this->pheno);
@@ -2289,15 +2317,21 @@ class MetaScoreTest: public ModelFitter{
   double af;
   double afFromCase;
   double afFromControl;
-  // int nSample;
   Vector pheno;
+  
+  // QT linear model for unrelated
   LinearRegressionScoreTest linear;
+  // Binary logistic model for unrelated
   LogisticRegressionScoreTest logistic;
   LogisticRegression logisticAlt;
+  // QT linear model for related
   FastLMM linearFamScore;
+  FastLMM linearFamScoreForX;
+  
   bool fitOK;
   Matrix cov;
   Matrix X; // intercept, cov(optional) and genotype
+
   int homRef;
   int het;
   int homAlt;
@@ -2306,8 +2340,12 @@ class MetaScoreTest: public ModelFitter{
   double hwePvalueFromCase;
   double hwePvalueFromControl;
   double callRate;
+
   bool needToFitNullModel;
+  bool needToFitNullModelForX;  
   bool useFamilyModel;
+
+  bool isHemiRegion; // is the variant tested in hemi region?
 }; // MetaScoreTest
 
 class MetaCovTest: public ModelFitter{
@@ -2357,6 +2395,7 @@ class MetaCovTest: public ModelFitter{
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
     Result& siteInfo = dc->getResult();
+    this->isHemiRegion = dc->isHemiRegion(0);
 
     if (genotype.cols != 1) {
       fitOK = false;
@@ -2384,13 +2423,14 @@ class MetaCovTest: public ModelFitter{
       if (useFamilyModel) {
         // copyPhenotype(phenotype, pheno);
         // fit null model
-        fitOK = (0 == metaCov.FitNullModel(genotype, phenotype, *dc->getKinshipU(), *dc->getKinshipS()));
-        fprintf(stderr, "fitok!\n");
+        if (!isHemiRegion) {
+          fitOK = (0 == metaCov.FitNullModel(genotype, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()));
+        } else {
+          fitOK = (0 == metaCovForX.FitNullModel(genotype, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()));
+        }
+        // fprintf(stderr, "fit ok!\n");
         if (!fitOK)
           return -1;
-        // get weight
-        metaCov.GetWeight(&this->weight);
-        fprintf(stderr, "weight [0] = %g\n", weight[0]);
       } else { // not family model
         double s = 0;
         double s2 = 0;
@@ -2405,7 +2445,7 @@ class MetaCovTest: public ModelFitter{
             weight[i]  = 1.0 / sigma2;  // mleVarY
           }
         } else{
-          fprintf(stderr, "sigma2 = 0.0 for the phenotype!");
+          fprintf(stderr, "sigma2 = 0.0 for the phenotype!\n");
           for (int i = 0; i < nSample ; ++i) {
             weight[i]  = 1.0;
           }
@@ -2414,7 +2454,8 @@ class MetaCovTest: public ModelFitter{
       // fprintf(stderr, "MLE estimation of residual^2 = %g", mleVarY);
     } else { // binary case
       if (useFamilyModel) {
-        return -1; // not supported yet
+        fprintf(stderr, "Binary trait meta covariance are not supported!\n");
+        exit(1); // not supported yet
       } else {
         // fit null model
         if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
@@ -2458,10 +2499,16 @@ class MetaCovTest: public ModelFitter{
     }
     if (!isBinaryOutcome()) {
       if (useFamilyModel) {
-        metaCov.TransformCentered(&loci.geno,
-                                  *dc->getKinshipU(),
-                                  *dc->getKinshipS());
-      } else {
+        if (!isHemiRegion) {
+          metaCov.TransformCentered(&loci.geno,
+                                    *dc->getKinshipUForAuto(),
+                                    *dc->getKinshipSForAuto());
+        } else {
+          metaCovForX.TransformCentered(&loci.geno,
+                                        *dc->getKinshipUForAuto(),
+                                        *dc->getKinshipSForAuto());
+        }
+      } else { // unrelated individuals
         // center genotype
         double s = 0.0;
         for (int i = 0; i < nSample; ++i) {
@@ -2678,6 +2725,7 @@ class MetaCovTest: public ModelFitter{
   bool fitOK;
   // Result result;
   MetaCov metaCov;
+  MetaCov metaCovForX;
   bool useFamilyModel;
   Vector weight; // per individual weight
   LogisticRegression logistic;
@@ -2685,6 +2733,7 @@ class MetaCovTest: public ModelFitter{
   Matrix cov;
   Matrix ZVZ;
   Vector pheno;
+  bool isHemiRegion; // is the variant tested in hemi region
 }; // MetaCovTest
 
 

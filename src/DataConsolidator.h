@@ -3,6 +3,7 @@
 
 #include "Result.h"
 #include "base/Logger.h"
+#include "base/ParRegion.h"
 #include "MathMatrix.h"
 #include "Random.h"
 
@@ -157,12 +158,13 @@ inline void removeMonomorphicSite(Matrix* genotype) {
 };
 
 /**
- * This class is charge to cleanning data before fitting in model
+ * This class is in charge of cleanning data before fitting in model
  * The cleaning step includes:
  *  remove monomorphic sites
- *  handle missing data genotype (impute to mean, impute by HWE, filter out and its corresponding phenotypes, covariates)
- *  (future) include weights (GERP, Sift)
- *  (future) re-weight genotype (dominate model, recessive model)
+ *  handle missing data genotype (impute to mean, impute by HWE, or
+ *   filter out mssing genotypes and its corresponding phenotypes, covariates)
+ *  (future todo) include weights (GERP, Sift)
+ *  (future todo) re-weight genotype (dominate model, recessive model)
  */
 class DataConsolidator{
  public:
@@ -409,28 +411,68 @@ class DataConsolidator{
                             CTRL
                             );
   }
-
   bool isPhenotypeUpdated() const {
     return this->phenotypeUpdated;
   }
   bool isCovariateUpdated() const {
     return this->covariateUpdated;
   }
+  bool needToUpdateKinship() const;
+  
   /**
-   * Load kinship matrix in the order of @params names
+   * Load kinship file @param fn, load samples given by @param names
+   * Store results to @param pKinship, @param pKinshipU, @param pKinshipS
    */
-  int loadKinshipFile(const std::string& fn, const std::vector<std::string>& names);
+  int loadKinshipFile(const std::string& fn,
+                      const std::vector<std::string>& names,
+                      EigenMatrix** pKinship,
+                      EigenMatrix** pKinshipU,
+                      EigenMatrix** pKinshipS,
+                      bool* pKinshipLoaded);
+
+  int loadKinshipFileForAuto(const std::string& fn,
+                             const std::vector<std::string>& names) {
+    return loadKinshipFile(fn, names,
+                           &kinshipForAuto,
+                           &kinshipUForAuto,
+                           &kinshipSForAuto,
+                           &kinshipLoadedForAuto);
+  }
+  int loadKinshipFileForX(const std::string& fn,
+                             const std::vector<std::string>& names) {
+    return loadKinshipFile(fn, names,
+                           &kinshipForX,
+                           &kinshipUForX,
+                           &kinshipSForX,
+                           &kinshipLoadedForX);
+  }
   /**
    * will decompose original kinship matrix and release the memory of original kinship upon successful decomposition
    * Kinship = U * S * U'  where S is diagonal matrix from smallest to largest
    */
-  int decomposeKinship();
-  const EigenMatrix* getKinship() const;
-  const EigenMatrix* getKinshipU() const;
-  const EigenMatrix* getKinshipS() const;
-  bool hasKinship() const {
-    return this->kinshipLoaded;
+  int decomposeKinshipForAuto();
+  const EigenMatrix* getKinshipForAuto() const;
+  const EigenMatrix* getKinshipUForAuto() const;
+  const EigenMatrix* getKinshipSForAuto() const;
+  bool hasKinshipForAuto() const {
+    return this->kinshipLoadedForAuto;
   };
+  
+  int decomposeKinshipForX();
+  const EigenMatrix* getKinshipForX() const;
+  const EigenMatrix* getKinshipUForX() const;
+  const EigenMatrix* getKinshipSForX() const;
+  bool hasKinshipForX() const {
+    return this->kinshipLoadedForX;
+  };
+
+  bool hasKinship() const {
+    return this->hasKinshipForAuto() || this->hasKinshipForX();
+  }
+  
+  void setParRegion(ParRegion* p) {
+    this->parRegion = p;
+  }
 
   //      Sex (1=male; 2=female; other=unknown)
   void setSex(const std::vector<int>* sex) {
@@ -439,13 +481,21 @@ class DataConsolidator{
   /**
    * Check if genotype matrix column @param columnIndex is a chromosome X.
    */
-  bool isChromX(int columnIndex) {
-    const char* chromPos = this->genotype.GetColumnLabel(0);
+  bool isHemiRegion(int columnIndex) {
+    assert(this->parRegion);
+    std::string chromPos = this->genotype.GetColumnLabel(0);
+    size_t posColon = chromPos.find(":");
+    if (posColon == std::string::npos) return false;
+    std::string chrom = chromPos.substr(0, posColon);
+    int pos = atoi(chromPos.substr(posColon+1));
+    return this->parRegion->isHemiRegion(chrom, pos);
+#if 0    
     bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
                        strncmp(chromPos, "23:", 3) == 0) && // 23 is PLINK coding for X
                       this->sex &&
                       (int)this->sex->size() == genotype.rows);
     return checkSex;
+#endif
   }
 private:
   //don't copy
@@ -465,15 +515,23 @@ private:
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
 
-  //Kinship related
-  EigenMatrix* kinship;
+  //Kinship for related indvidual on autosomal
   // K = U %*% S %*%* t(U)
-  EigenMatrix* kinshipU; 
-  EigenMatrix* kinshipS; // n by 1 column matrix
-  bool kinshipLoaded;
-
+  EigenMatrix* kinshipForAuto;
+  EigenMatrix* kinshipUForAuto; 
+  EigenMatrix* kinshipSForAuto; // n by 1 column matrix
+  bool kinshipLoadedForAuto;
+    //Kinship for related indvidual for chrom X hemi region
+  EigenMatrix* kinshipForX;
+  EigenMatrix* kinshipUForX; 
+  EigenMatrix* kinshipSForX; // n by 1 column matrix
+  bool kinshipLoadedForX;
+  
   // sex chromosome adjustment
   const std::vector<int>* sex;
+  bool kinshipForAutoAsKinshipForX;
+
+  ParRegion* parRegion;
 }; // end DataConsolidator
 
 #endif /* _DATACONSOLIDATOR_H_ */

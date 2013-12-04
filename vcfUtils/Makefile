@@ -42,7 +42,7 @@ define BUILD_util
   TAR := $(DIR_EXEC)/$(notdir $(basename $(1)))
   SRC := $(addprefix ./, $(1).cpp)
   -include  $(1).d
-  $$(TAR): CXX_FLAGS = -O2 $(DEFAULT_CXXFLAGS)  $(STATIC_FLAG)
+  $$(TAR): CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS)  $(STATIC_FLAG)
   $$(TAR): $$(SRC) $(LIB) | $(DIR_EXEC)
 	$(CXX) -MMD -o $$@ $$< $$(CXX_FLAGS) $(CXX_INCLUDE) $(CXX_LIB)
 endef

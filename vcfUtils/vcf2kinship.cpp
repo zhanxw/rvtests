@@ -646,7 +646,7 @@ int main(int argc, char** argv){
   vin.getVCFHeader()->getPeopleName(&names);
   std::vector<double> genotype;
   genotype.resize(names.size());
-  fprintf(stderr, "Total %zu individuals from VCF are used.\n", names.size());
+  fprintf(stderr, "Total [ %zu ] individuals from VCF are used.\n", names.size());
   if (names.empty()) {
     fprintf(stderr, "No sample in the VCF will be used, quitting...\n");
     exit(1);
@@ -795,7 +795,7 @@ int main(int argc, char** argv){
   // output kinship on X if possible
   if (FLAG_xHemi) {
     kinshipForX->calculate();
-    const SimpleMatrix& ret = kinship->getKinship();
+    const SimpleMatrix& ret = kinshipForX->getKinship();
     std::string fn = FLAG_outPrefix + ".xHemi";
     output(names, names, ret, FLAG_pca, fn.c_str());
     delete kinshipForX;

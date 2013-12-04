@@ -10,21 +10,44 @@
 DataConsolidator::DataConsolidator()
   :
   strategy(DataConsolidator::UNINITIALIZED),
-  kinship(NULL), kinshipU(NULL), kinshipS(NULL), kinshipLoaded(false)
+  kinshipForAuto(NULL), kinshipUForAuto(NULL),
+  kinshipSForAuto(NULL), kinshipLoadedForAuto(false),
+  kinshipForX(NULL), kinshipUForX(NULL),
+  kinshipSForX(NULL), kinshipLoadedForX(false)
 {
 };
 DataConsolidator::~DataConsolidator(){
-  if (!kinship) delete kinship;
-  if (!kinshipU) delete kinshipU;
-  if (!kinshipS) delete kinshipS;
+  if (!kinshipForAuto) delete kinshipForAuto;
+  if (!kinshipUForAuto) delete kinshipUForAuto;
+  if (!kinshipSForAuto) delete kinshipSForAuto;
+  if (!kinshipForX) delete kinshipForX;
+  if (!kinshipUForX) delete kinshipUForX;
+  if (!kinshipSForX) delete kinshipSForX;
 }
-int DataConsolidator::loadKinshipFile(const std::string& fn, const std::vector<std::string>& names){
+
+/**
+ * Load kinship file @param fn, load samples given by @param names
+ * Store results to @param pKinship, @param pKinshipU, @param pKinshipS
+ */
+int DataConsolidator::loadKinshipFile(const std::string& fn,
+                                      const std::vector<std::string>& names,
+                                      EigenMatrix** pKinship,
+                                      EigenMatrix** pKinshipU,
+                                      EigenMatrix** pKinshipS,
+                                      bool* pKinshipLoaded){
+  
   if (fn.empty()) {
     return -1;
   }
   if (!isUnique(names)) {
     return -1;
   }
+
+  EigenMatrix*& kinship  = *pKinship;
+  EigenMatrix*& kinshipU = *pKinshipU;
+  EigenMatrix*& kinshipS = *pKinshipS;
+  bool& kinshipLoaded = *pKinshipLoaded;
+  
   if (!kinship) {
     kinship = new EigenMatrix;
     kinshipU = new EigenMatrix;
@@ -34,7 +57,7 @@ int DataConsolidator::loadKinshipFile(const std::string& fn, const std::vector<s
     kinship->mat.resize(names.size(), names.size());
     kinship->mat.setZero();
     kinship->mat.diagonal().setOnes();
-    kinship->mat *= 0.5;
+    kinship->mat.diagonal() *= 0.5;
     return 0;
   }
   
@@ -44,7 +67,7 @@ int DataConsolidator::loadKinshipFile(const std::string& fn, const std::vector<s
   std::vector<std::string> fd;
   std::vector<int> columnToExtract;
   std::vector<std::string> header; // kinship header line
-  Eigen::MatrixXf& mat = this->kinship->mat;
+  Eigen::MatrixXf& mat = kinship->mat;
   std::map<std::string, int> nameMap;
   makeMap(names, &nameMap);
   
@@ -103,34 +126,74 @@ int DataConsolidator::loadKinshipFile(const std::string& fn, const std::vector<s
     }
   }
   // fprintf(stderr, "Kinship matrix [ %d x %d ] loaded", (int)mat.rows(), (int)mat.cols());
-  this->kinshipLoaded = true;
+  kinshipLoaded = true;
   return 0;
 }
-int DataConsolidator::decomposeKinship(){
-  if (!this->kinship) return -1;
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->kinship->mat);
-  if (es.info() == Eigen::Success) {
-    (this->kinshipU->mat) = es.eigenvectors();
-    (this->kinshipS->mat) = es.eigenvalues();
 
-    if (this->kinship) {
-      delete this->kinship;
-      this->kinship = NULL;
+int DataConsolidator::decomposeKinshipForAuto(){
+  if (!this->kinshipForAuto) return -1;
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->kinshipForAuto->mat);
+  if (es.info() == Eigen::Success) {
+    (this->kinshipUForAuto->mat) = es.eigenvectors();
+    (this->kinshipSForAuto->mat) = es.eigenvalues();
+
+    if (this->kinshipForAuto) {
+      delete this->kinshipForAuto;
+      this->kinshipForAuto = NULL;
     }
     return 0;  
   }
   return -1;
 }
 
-const EigenMatrix* DataConsolidator::getKinship() const{
-  if (!this->kinship) return NULL;  
-  return this->kinship;
+int DataConsolidator::decomposeKinshipForX(){
+  if (!this->kinshipForX) return -1;
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->kinshipForX->mat);
+  if (es.info() == Eigen::Success) {
+    (this->kinshipUForX->mat) = es.eigenvectors();
+    (this->kinshipSForX->mat) = es.eigenvalues();
+
+    if (this->kinshipForX) {
+      delete this->kinshipForX;
+      this->kinshipForX = NULL;
+    }
+    return 0;  
+  }
+  return -1;
 }
-const EigenMatrix* DataConsolidator::getKinshipU() const{
-  if (!this->kinshipU) return NULL;  
-  return this->kinshipU;
+
+const EigenMatrix* DataConsolidator::getKinshipForAuto() const{
+  if (!this->kinshipForAuto) return NULL;  
+  return this->kinshipForAuto;
 }
-const EigenMatrix* DataConsolidator::getKinshipS() const{
-    if (!this->kinshipS) return NULL;
-  return this->kinshipS;
+const EigenMatrix* DataConsolidator::getKinshipUForAuto() const{
+  if (!this->kinshipUForAuto) return NULL;  
+  return this->kinshipUForAuto;
 }
+const EigenMatrix* DataConsolidator::getKinshipSForAuto() const{
+  if (!this->kinshipSForAuto) return NULL;
+  return this->kinshipSForAuto;
+}
+
+const EigenMatrix* DataConsolidator::getKinshipForX() const{
+  if (!this->kinshipForX) return NULL;  
+  return this->kinshipForX;
+}
+const EigenMatrix* DataConsolidator::getKinshipUForX() const{
+  if (!this->kinshipUForX) return NULL;  
+  return this->kinshipUForX;
+}
+const EigenMatrix* DataConsolidator::getKinshipSForX() const{
+  if (!this->kinshipSForX) return NULL;
+  return this->kinshipSForX;
+}
+
+#if 0
+  if (!this->kinshipLoadedForX) {
+    this->kinshipForAutoAsKinshipForX = true;
+    this->kinshipForAuto = this->kinshipForX;
+    this->kinshipUForAuto = this->kinshipUForX;
+    this->kinshipSForAuto = this->kinshipSForX;
+    this->kinshipLoadedForX = true;
+  }
+#endif

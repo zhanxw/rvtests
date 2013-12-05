@@ -1270,6 +1270,7 @@ int main(int argc, char** argv){
       FILE* fp = fopen(fn.c_str(), "r");
       if (fp != NULL) {
         FLAG_xHemiKinship = fn;
+        logger->info("Kinship file [ %s ] detected and will be used for for X chromosome analysis", fn.c_str());
         fclose(fp);
       }
     }

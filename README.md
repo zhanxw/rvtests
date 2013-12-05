@@ -1,4 +1,4 @@
-**Table of Contents**  <!--*generated with [DocToc](http://doctoc.herokuapp.com/)*-->
+**Table of Contents**  
 
 - [Introduction](#introduction)
 - [Download](#download)
@@ -49,6 +49,7 @@ Here is a quick example of how to use *rvtests* software in typical use cases.
 
 This specifies single variant Wald and score test for association
 tests for every variant in the `input.vcf` file. The 6th column of the phenotype file, `phenotype.ped`, which is in PLINK format, is used. Rvtests will automatically check whether the phenotype is binary trait or quantitative trait.
+For binary trait, the recommended way of coding is to code controls as 1, cases as 2, missing phenotypes as -9 or 0.
 
 For other types of association tests, you can refer to [Models](#Models)
 
@@ -111,11 +112,11 @@ You can use `--mpheno $phenoypeColumnNumber` or `--pheno-name` to specify a give
 An example phenotype file, (`example.pheno`), has the following format: 
 
     fid iid fatid matid sex y1 y2 y3 y4
-    P1 P1 0 0 0 1.7642934435605 -0.733862638327895 -0.980843608339726 1
-    P2 P2 0 0 0 0.457111744989746 0.623297281416372 -2.24266162284447 0
-    P3 P3 0 0 0 0.566689682543218 1.44136462889459 -1.6490100777089 0
-    P4 P4 0 0 0 0.350528353203767 -1.79533911725537 -1.11916876241804 0
-    P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 1
+    P1 P1 0 0 0 1.7642934435605 -0.733862638327895 -0.980843608339726 2
+    P2 P2 0 0 0 0.457111744989746 0.623297281416372 -2.24266162284447 1
+    P3 P3 0 0 0 0.566689682543218 1.44136462889459 -1.6490100777089 1
+    P4 P4 0 0 0 0.350528353203767 -1.79533911725537 -1.11916876241804 1
+    P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 2
 
 Phenotype file is specified by the option `--pheno example.pheno` . The default phenotype column header is “`y1`”. If you want to use alternative columns as phenotype for association analysis (e.g the column with header y2), you may specific the header names using either
 
@@ -132,12 +133,12 @@ You can use `--covar` and `--covar-name` to specify covariates that will be used
 
 The covariate file, (e.g. `example.covar`) has a similar format as the phenotype file:
 
-    fid iid age bmi pc1 pc2 pc3
-    P1 P1 23 24.2 1.7642934435605 -0.733862638327895 -0.980843608339726
-    P2 P2 32 29.0 0.457111744989746 0.623297281416372 -2.24266162284447
-    P3 P3 44 32.4 0.566689682543218 1.44136462889459 -1.6490100777089
-    P4 P4 25 28.2 0.350528353203767 -1.79533911725537 -1.11916876241804
-    P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
+    fid iid fatid matid sex y1 y2 y3 y4
+    P1 P1 0 0 0 1.911 -1.465 -0.817 1
+    P2 P2 0 0 0 2.146 -2.451 -0.178 2
+    P3 P3 0 0 0 1.086 -1.194 -0.899 1
+    P4 P4 0 0 0 0.704 -1.052 -0.237 1
+    P5 P5 0 0 1 2.512 -3.085 -2.579 1
 
 The covariate file is specified by the `--covar` option (e.g. `--covar example.covar`). To specify covariates that will be used in the association analysis, the option `--covar-name` can be used. For example, when age, bmi and 3 PCs are used for association analysis, the following option can be specified for the rvtest program, i.e. 
 `--covar example.covar --covar-name age,bmi,pc1,pc2,pc3`.

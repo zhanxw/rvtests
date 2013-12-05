@@ -62,13 +62,13 @@ clean:
         $(addprefix $(DIR_EXEC)/, $(EXEC)) \
         $(addprefix $(DIR_EXEC_DBG)/, $(EXEC))
 libclean:
-	(cd base; make clean)
-	(cd regression; make clean)
-	(cd libVcf; make clean)
+	(cd ../base; make clean)
+	(cd ../regression; make clean)
+	(cd ../libVcf; make clean)
 deepclean: clean libclean
 	rm -rf *~
-	(cd third; make deepclean)
-	(cd libsrc; make clean)
+	(cd ../third; make deepclean)
+	(cd ../libsrc; make clean)
 
 ##################################################
 ## tests

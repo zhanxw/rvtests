@@ -78,30 +78,36 @@
 <li><a href="#contact">Contact</a></li>
 </ul><p><a href="https://travis-ci.org/zhanxw/rvtests"><img src="https://travis-ci.org/zhanxw/rvtests.png?branch=master" alt="Build Status"></a></p>
 
-<h1>Introduction</h1>
+<h1>
+<a name="introduction" class="anchor" href="#introduction"><span class="octicon octicon-link"></span></a>Introduction</h1>
 
 <p>Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrealted individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes <a href="http://www.1000genomes.com/">VCF</a> format as genotype input file and takes PLINK format phenotype file and covariate file. From our practice, it is capable to analyze 8,000 related individuals using less than 400 Mb memory. </p>
 
-<h1>Download</h1>
+<h1>
+<a name="download" class="anchor" href="#download"><span class="octicon octicon-link"></span></a>Download</h1>
 
 <p>Source file can be downloaded from <a href="https://github.com/zhanxw/rvtests/archive/master.zip">github</a> or <a href="https://github.com/zhanxw/rvtests">github page</a>.
 Executable binary file can be downloaded from <a href="http://www.sph.umich.edu/csg/zhanxw/software/rvtests/rvtests-latest.tar.gz">here</a>.</p>
 
-<h1>Quick Tutorial</h1>
+<h1>
+<a name="quick-tutorial" class="anchor" href="#quick-tutorial"><span class="octicon octicon-link"></span></a>Quick Tutorial</h1>
 
 <p>Here is a quick example of how to use <em>rvtests</em> software in typical use cases.</p>
 
-<h2>Single variant tests</h2>
+<h2>
+<a name="single-variant-tests" class="anchor" href="#single-variant-tests"><span class="octicon octicon-link"></span></a>Single variant tests</h2>
 
 <pre><code>rvtests --inVcf input.vcf --pheno phenotype.ped --out output --single wald,score
 </code></pre>
 
 <p>This specifies single variant Wald and score test for association
-tests for every variant in the <code>input.vcf</code> file. The 6th column of the phenotype file, <code>phenotype.ped</code>, which is in PLINK format, is used. Rvtests will automatically check whether the phenotype is binary trait or quantitative trait.</p>
+tests for every variant in the <code>input.vcf</code> file. The 6th column of the phenotype file, <code>phenotype.ped</code>, which is in PLINK format, is used. Rvtests will automatically check whether the phenotype is binary trait or quantitative trait.
+For binary trait, the recommended way of coding is to code controls as 1, cases as 2, missing phenotypes as -9 or 0.</p>
 
 <p>For other types of association tests, you can refer to <a href="#Models">Models</a></p>
 
-<h2>Groupwise tests</h2>
+<h2>
+<a name="groupwise-tests" class="anchor" href="#groupwise-tests"><span class="octicon octicon-link"></span></a>Groupwise tests</h2>
 
 <p>Groupwise tests includes three major kinds of tests.</p>
 
@@ -119,7 +125,8 @@ Dajiang Liu) to test every gene listed in <em>refFlat_hg19_uniq_gene.txt.gz</em>
 <pre><code>rvtests --inVcf input.vcf --pheno phenotype.ped --out output --geneFile refFlat_hg19_uniq_gene.txt.gz --burden cmc --vt price --kernel skat,kbac
 </code></pre>
 
-<h2>Related individual tests</h2>
+<h2>
+<a name="related-individual-tests" class="anchor" href="#related-individual-tests"><span class="octicon octicon-link"></span></a>Related individual tests</h2>
 
 <p>To test related individuals, you will need to first create a kinship matrix:</p>
 
@@ -133,7 +140,8 @@ Dajiang Liu) to test every gene listed in <em>refFlat_hg19_uniq_gene.txt.gz</em>
 <pre><code>rvtests --inVcf input.vcf --pheno phenotype.ped --out output --kinship output.kinship --single famScore,famLRT,famGrammarGamma
 </code></pre>
 
-<h2>Meta-analysis tests</h2>
+<h2>
+<a name="meta-analysis-tests" class="anchor" href="#meta-analysis-tests"><span class="octicon octicon-link"></span></a>Meta-analysis tests</h2>
 
 <p>The meta-analysis models outputs association test results and genotype covariance matrix. These statistics can be used in rare variant association analysis.
 We provide single variant score test and generate genotype covariance matrix. 
@@ -144,9 +152,11 @@ You can use command:</p>
 
 <p>Here the <code>--covar</code> specify a covariate file, and <code>--covar-name</code> specify which covariates can used in the analysis. Covariate file format can be found <a href="#Covariate%20file">here</a>. <code>--inverseNormal --useResidualAsPhenotype</code> specifies trait transformation method. That means first fit a regression model of the phenotype on covariates (intercept automatically added), then the residuals are inverse normalized. Trait transformation details can be found <a href="#Trait%20transformation">here</a>.</p>
 
-<h1>Input files</h1>
+<h1>
+<a name="input-files" class="anchor" href="#input-files"><span class="octicon octicon-link"></span></a>Input files</h1>
 
-<h2>Genotype file (VCF)</h2>
+<h2>
+<a name="genotype-file-vcf" class="anchor" href="#genotype-file-vcf"><span class="octicon octicon-link"></span></a>Genotype file (VCF)</h2>
 
 <p>Rvtests supports VCF (Variant Call Format) files. Files in both plain txt format or gzipped format are supported. To use group-based rare variant tests, indexed the VCF files using <a href="http://samtools.sourceforge.net/tabix.shtml">tabix</a> are required. </p>
 
@@ -158,18 +168,19 @@ tabix -f -p vcf $your_vcf_file
 
 <p>The above commands will (1) remove the <code>chr</code> prefix from chromosome names; (2) sort VCF files by chromosome first, then by chromosomal positions; (3) compress using bgzip; (4) create tabix index.</p>
 
-<h2>Phenotype file</h2>
+<h2>
+<a name="phenotype-file" class="anchor" href="#phenotype-file"><span class="octicon octicon-link"></span></a>Phenotype file</h2>
 
 <p>You can use <code>--mpheno $phenoypeColumnNumber</code> or <code>--pheno-name</code> to specify a given phenotype.</p>
 
 <p>An example phenotype file, (<code>example.pheno</code>), has the following format: </p>
 
 <pre><code>fid iid fatid matid sex y1 y2 y3 y4
-P1 P1 0 0 0 1.7642934435605 -0.733862638327895 -0.980843608339726 1
-P2 P2 0 0 0 0.457111744989746 0.623297281416372 -2.24266162284447 0
-P3 P3 0 0 0 0.566689682543218 1.44136462889459 -1.6490100777089 0
-P4 P4 0 0 0 0.350528353203767 -1.79533911725537 -1.11916876241804 0
-P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 1
+P1 P1 0 0 0 1.7642934435605 -0.733862638327895 -0.980843608339726 2
+P2 P2 0 0 0 0.457111744989746 0.623297281416372 -2.24266162284447 1
+P3 P3 0 0 0 0.566689682543218 1.44136462889459 -1.6490100777089 1
+P4 P4 0 0 0 0.350528353203767 -1.79533911725537 -1.11916876241804 1
+P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 2
 </code></pre>
 
 <p>Phenotype file is specified by the option <code>--pheno example.pheno</code> . The default phenotype column header is “<code>y1</code>”. If you want to use alternative columns as phenotype for association analysis (e.g the column with header y2), you may specific the header names using either</p>
@@ -181,18 +192,19 @@ P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 1
 
 <p>In phenotype file, missing values can be denoted by NA or any non-numeric values. Individuals with missing phenotypes will be automatically dropped from subsequent association analysis. For each missing phenotype value, a warning will be generated and recorded in the log file.</p>
 
-<h2>Covariate file</h2>
+<h2>
+<a name="covariate-file" class="anchor" href="#covariate-file"><span class="octicon octicon-link"></span></a>Covariate file</h2>
 
 <p>You can use <code>--covar</code> and <code>--covar-name</code> to specify covariates that will be used for single variant association analysis. This is an optional parameter. If you do not have covariate in the data, this option can be ignored. </p>
 
 <p>The covariate file, (e.g. <code>example.covar</code>) has a similar format as the phenotype file:</p>
 
-<pre><code>fid iid age bmi pc1 pc2 pc3
-P1 P1 23 24.2 1.7642934435605 -0.733862638327895 -0.980843608339726
-P2 P2 32 29.0 0.457111744989746 0.623297281416372 -2.24266162284447
-P3 P3 44 32.4 0.566689682543218 1.44136462889459 -1.6490100777089
-P4 P4 25 28.2 0.350528353203767 -1.79533911725537 -1.11916876241804
-P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
+<pre><code>fid iid fatid matid sex y1 y2 y3 y4
+P1 P1 0 0 0 1.911 -1.465 -0.817 1
+P2 P2 0 0 0 2.146 -2.451 -0.178 2
+P3 P3 0 0 0 1.086 -1.194 -0.899 1
+P4 P4 0 0 0 0.704 -1.052 -0.237 1
+P5 P5 0 0 1 2.512 -3.085 -2.579 1
 </code></pre>
 
 <p>The covariate file is specified by the <code>--covar</code> option (e.g. <code>--covar example.covar</code>). To specify covariates that will be used in the association analysis, the option <code>--covar-name</code> can be used. For example, when age, bmi and 3 PCs are used for association analysis, the following option can be specified for the rvtest program, i.e. 
@@ -200,7 +212,8 @@ P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
 
 <p>Note: Missing data in the covariate file can be labeled by any non-numeric value (e.g. NA). They will be automatically imputed to the mean value in the data file. </p>
 
-<h2>Trait transformation</h2>
+<h2>
+<a name="trait-transformation" class="anchor" href="#trait-transformation"><span class="octicon octicon-link"></span></a>Trait transformation</h2>
 
 <p>In this meta-analysis, we use inversed normal transformed residuals in the association analysis, which is achieved by using a combination of <code>--inverseNormal</code>  and <code>--useResidualAsPhenotype</code>. Specifically, we first fit the null model by regressing phenotype on covariates. The residuals are then inverse normal transformed (see Appendix A more detailed formulae for transformation). Transformed residuals will be used to obtain score statistics. </p>
 
@@ -209,21 +222,24 @@ P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
 <pre><code>./rvtest --inVcf $vcf --pheno $example.pheno --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out $output_prefix  
 </code></pre>
 
-<h1>Models</h1>
+<h1>
+<a name="models" class="anchor" href="#models"><span class="octicon octicon-link"></span></a>Models</h1>
 
 <p>Rvtests support various association models.</p>
 
-<h2>Single variant tests</h2>
+<h2>
+<a name="single-variant-tests-1" class="anchor" href="#single-variant-tests-1"><span class="octicon octicon-link"></span></a>Single variant tests</h2>
 
 <table>
-<tr>
+<thead><tr>
 <th align="left">Single variant</th>
 <th align="center">Model(*)</th>
 <th align="center">Traits(#)</th>
 <th align="center">Covariates</th>
 <th align="center">Related / unrelated</th>
 <th align="left">Description</th>
-</tr>
+</tr></thead>
+<tbody>
 <tr>
 <td align="left">Score test</td>
 <td align="center">score</td>
@@ -272,21 +288,24 @@ P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
 <td align="center">R, U</td>
 <td align="left">Grammar-gamma method</td>
 </tr>
+</tbody>
 </table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--single score</code> will apply score test.</p>
 
 <p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
 
-<h2>Burden tests</h2>
+<h2>
+<a name="burden-tests" class="anchor" href="#burden-tests"><span class="octicon octicon-link"></span></a>Burden tests</h2>
 
 <table>
-<tr>
+<thead><tr>
 <th align="left">Burden tests</th>
 <th align="center">Model(*)</th>
 <th align="center">Traits(#)</th>
 <th align="center">Covariates</th>
 <th align="center">Related / unrelated</th>
 <th align="left">Description</th>
-</tr>
+</tr></thead>
+<tbody>
 <tr>
 <td align="left">CMC</td>
 <td align="center">cmc</td>
@@ -351,21 +370,24 @@ P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
 <td align="center">U</td>
 <td align="left">Collapsing and combine rare variants, then pefore Wald test.</td>
 </tr>
+</tbody>
 </table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--burden cmc</code> will apply CMC test.</p>
 
 <p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
 
-<h2>Variable threshold models</h2>
+<h2>
+<a name="variable-threshold-models" class="anchor" href="#variable-threshold-models"><span class="octicon octicon-link"></span></a>Variable threshold models</h2>
 
 <table>
-<tr>
+<thead><tr>
 <th align="left">Single variant</th>
 <th align="center">Model(*)</th>
 <th align="center">Traits(#)</th>
 <th align="center">Covariates</th>
 <th align="center">Related / unrelated</th>
 <th align="left">Description</th>
-</tr>
+</tr></thead>
+<tbody>
 <tr>
 <td align="left">Variable threshold model</td>
 <td align="center">vt</td>
@@ -382,21 +404,24 @@ P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
 <td align="center">U</td>
 <td align="left">This models is natiive so that it output CMC test statistics under all possible frequency cutoffs.</td>
 </tr>
+</tbody>
 </table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--vt price</code> will apply score test.</p>
 
 <p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
 
-<h2>Kernel models</h2>
+<h2>
+<a name="kernel-models" class="anchor" href="#kernel-models"><span class="octicon octicon-link"></span></a>Kernel models</h2>
 
 <table>
-<tr>
+<thead><tr>
 <th align="left">Kernel</th>
 <th align="center">Model(*)</th>
 <th align="center">Traits(#)</th>
 <th align="center">Covariates</th>
 <th align="center">Related / unrelated</th>
 <th align="left">Description</th>
-</tr>
+</tr></thead>
+<tbody>
 <tr>
 <td align="left">SKAT</td>
 <td align="center">skat</td>
@@ -413,17 +438,25 @@ P5 P5 30 19.8 2.72675074738545 -1.05487747371158 -0.33586430010589
 <td align="center">U</td>
 <td align="left">Kernel-based adaptive clustering model by Dajiang Liu.</td>
 </tr>
-</table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--kernel skat</code> will apply SKAT test.</p>
+</tbody>
+</table><p>(<em>) Model columns list the regconized names in rvtests. For example, use <code>--kernel skat</code> will apply SKAT test.
+To further customize SKAT test, you can use *--kernel skat[nPerm=100:alpha=0.001:beta1=1:beta2=20]</em> to specify permutation counts, type-1 error, 
+beta distribution parameters for upweighting rare variants. Rvtests will output a message showing: </p>
+
+<p>[INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)</p>
 
 <p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
 
-<h2>Utility models</h2>
+<h2>
+<a name="utility-models" class="anchor" href="#utility-models"><span class="octicon octicon-link"></span></a>Utility models</h2>
 
 <p>Rvtests has an usually option <code>--outputRaw</code>. When specify this, rvtests can output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files. These files can be imported into other software (e.g. R) for further analysis.</p>
 
-<h1>Association test options</h1>
+<h1>
+<a name="association-test-options" class="anchor" href="#association-test-options"><span class="octicon octicon-link"></span></a>Association test options</h1>
 
-<h2>Sample inclusion/exclusion</h2>
+<h2>
+<a name="sample-inclusionexclusion" class="anchor" href="#sample-inclusionexclusion"><span class="octicon octicon-link"></span></a>Sample inclusion/exclusion</h2>
 
 <p>Rvtests can flexibly specify which sample(s) to include or exclude:</p>
 
@@ -445,7 +478,8 @@ C
 
 <p>Then use <code>--peopleIncludeFile people.txt</code> to include them in the analysis.</p>
 
-<h2>Variant site filters</h2>
+<h2>
+<a name="variant-site-filters" class="anchor" href="#variant-site-filters"><span class="octicon octicon-link"></span></a>Variant site filters</h2>
 
 <p>It is common that different frequency cutoffs are applied in rare-variant analysis.
 Therefore, rvtests specify frequency cutoffs.</p>
@@ -477,7 +511,8 @@ Alternatively, use a separate file, <code>range.txt</code>, and <code>--rangeFil
 VCF with annotatino information are called annotated VCF here. And to annotate 
 a VCF file, you can use <a href="https://github.com/zhanxw/anno">ANNO</a>, a fast and accurate annotation software.</p>
 
-<h2>Genotyep filters</h2>
+<h2>
+<a name="genotyep-filters" class="anchor" href="#genotyep-filters"><span class="octicon octicon-link"></span></a>Genotyep filters</h2>
 
 <p>Genotype with low depth or low quality can be filtered out by these options:</p>
 
@@ -493,7 +528,8 @@ or may still be included (<code>--impute mean</code> or <code>--impute hwe</code
 By default, genotypes are imputed to its means.
 See next section about how you like to handle missing genotypes.</p>
 
-<h2>Handle missing genotypes and phenotypes</h2>
+<h2>
+<a name="handle-missing-genotypes-and-phenotypes" class="anchor" href="#handle-missing-genotypes-and-phenotypes"><span class="octicon octicon-link"></span></a>Handle missing genotypes and phenotypes</h2>
 
 <p>When genotypes are missing (e.g. genotype = "./.") or gentoypes are filtered out, 
 there are three options to handle them: (1) impute to its mean(default option); (2) impute by HWE equilibrium; (3) remove from the model.
@@ -511,7 +547,8 @@ rvtests can impute missing phenotype to its mean. </p>
                       phenotpyes
 </code></pre>
 
-<h2>Specify groups (e.g burden unit)</h2>
+<h2>
+<a name="specify-groups-eg-burden-unit" class="anchor" href="#specify-groups-eg-burden-unit"><span class="octicon octicon-link"></span></a>Specify groups (e.g burden unit)</h2>
 
 <p>Rare variants association tests are usually performed in gruops of variants. 
 The natural grouping unit is gene. Rvtests can read gene definition file in <code>refFlat</code> format,
@@ -548,7 +585,8 @@ but do not want to make another file, you can use <code>--setList 2:500-600</cod
               --set : specify which set to test (1st column)
 </code></pre>
 
-<h1>Contact</h1>
+<h1>
+<a name="contact" class="anchor" href="#contact"><span class="octicon octicon-link"></span></a>Contact</h1>
 
 <p>Questions and requests can be sent to Xiaowei Zhan
 (<a href="mailto:zhanxw@umich.edu" title="mailto:zhanxw@umich.edu">zhanxw@umich.edu</a>)
@@ -570,7 +608,7 @@ or Goncalo Abecasis
 
           <p class="repo-owner"><a href="https://github.com/zhanxw/rvtests"></a> is maintained by <a href="https://github.com/zhanxw">zhanxw</a>.</p>
 
-          <p>This page was generated by <a href="pages.github.com">GitHub Pages</a> using the Architect theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.</p>
+          <p>This page was generated by <a href="pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
         </aside>
       </div>
     </div>

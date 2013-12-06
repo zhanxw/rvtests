@@ -363,3 +363,7 @@ Rvtests is a collaborative effort by Youna Hu, Bingshan Li, Dajiang Liu.
 
 
 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/zhanxw/rvtests/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+

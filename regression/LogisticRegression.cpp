@@ -215,7 +215,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
   while (rounds < nrrounds) {
     // beta = beta + solve( t(X)%*%diag(p*(1-p)) %*%X) %*% t(X) %*% (Y-p);
     this->w->eta = this->w->X * this->w->beta;
-    this->w->p = (-this->w->eta.array().exp() + 1.0).inverse();
+    this->w->p = ((-this->w->eta.array()).exp() + 1.0).inverse();
     this->w->V = this->w->p.array() * (1.0 - this->w->p.array()) * this->w->total.array();
 
     this->w->D = this->w->X.transpose() * this->w->V.asDiagonal() * this->w->X; // X' V X
@@ -231,7 +231,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
     }
     this->w->beta += this->w->delta_beta;
     currentDeviance = this->GetDeviance();
-    if (rounds >1 && fabs(currentDeviance - lastDeviance) < 1e-6)
+    if (rounds >1 && fabs(currentDeviance - lastDeviance) < 1e-3)
     { // converged!
       rounds = 0;
       break;
@@ -245,7 +245,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
   }
   if (rounds == nrrounds)
   {
-    printf("Not enough iterations!");
+    printf("[ %s:%d ] Not enough iterations!", __FILE__, __LINE__);
     return false;
   }
   this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
@@ -267,7 +267,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
 
   int rounds = 0;
   double lastDeviance, currentDeviance;
-  const int nSample = this->w->X.rows();
+  // const int nSample = this->w->X.rows();
   while (rounds < nrrounds) {
     this->w->eta = this->w->X * this->w->beta;
     this->w->p = (1.0 + (-this->w->eta.array()).exp()).inverse();
@@ -289,15 +289,21 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
     //   // cannot inverse
     //   // return false;
     // }
+#if 0
+    // D = X' V X (positive definite), so cholesky decomposition should always work
     double norm = (this->w->D * this->w->delta_beta - this->w->r).norm();
     if (norm > 1e-3 * nSample) { // very practical choice...
       // cannot inverse
       return false;
     }
-    
+#endif 
     this->w->beta += this->w->delta_beta;
     currentDeviance = this->GetDeviance();
-    if (rounds >1 && fabs(currentDeviance - lastDeviance) < 1e-6)
+
+    // printf("%lf, %lf, %lf, %s\n", currentDeviance, lastDeviance, std::fabs(currentDeviance - lastDeviance),
+    //        (rounds >1 && std::fabs(currentDeviance - lastDeviance) < 1e-3)?"true":"false");
+    
+    if (rounds >1 && std::fabs(currentDeviance - lastDeviance) < 1e-3)
     { // converged!
       rounds = 0;
       break;
@@ -311,7 +317,9 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
   }
   if (rounds == nrrounds)
   {
-    printf("Not enough iterations!\n");
+    printf("[ %s:%d ] Not enough iterations!\n", __FILE__, __LINE__);
+    printf("%lf, %lf, %lf, %s\n", currentDeviance, lastDeviance, std::fabs(currentDeviance - lastDeviance),
+           (rounds >1 && std::fabs(currentDeviance - lastDeviance) < 1e-3)?"true":"false");
     return false;
   }
   this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));

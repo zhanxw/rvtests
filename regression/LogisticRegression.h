@@ -56,6 +56,8 @@ public:
   Vector & GetVariance()  {return this->V;}; // predicted variance ( \hat{p} * (1- \hat{p})
   Matrix & GetCovB()      {return this->covB;} ;
 
+  //todo: Fitxxx() will call Reset(), and thus make this not useful...
+  //      may change Reset() function
   void SetInitialCovEst(Vector& initB) { this->B = initB;} ; // set initial value of B, that may speed estimation up if this initial value is close to estimated results.
   void Reset(Matrix& X); // get everything cleared
 

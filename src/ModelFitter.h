@@ -2223,10 +2223,11 @@ class MetaScoreTest: public ModelFitter{
         }
         Vector& b_null = logistic.GetNullCovEst();
         Vector b(b_null.Length() + 1);
-        b[0] = 0.0;
-        for (int i = 1; i < b.Length(); ++i) {
-          b[i] = b_null[i-1];
+        for (int i = 0; i < b_null.Length(); ++i) {
+          b[i] = b_null[i];
         }
+        b[b_null.Length()] = 0.0;
+        
         logisticAlt.SetInitialCovEst(b);
         fitOK = logisticAlt.FitLogisticModel(this->X, this->pheno, 100);
         if (!fitOK) return -1;

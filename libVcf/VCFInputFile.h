@@ -70,6 +70,19 @@ class VCFInputFile{
     return true;
   };
   /**
+   * Check if the current read VCF site is allowed
+   */
+  bool isAllowedSite() const{
+    // no restriction on allowed sites
+    if (this->allowedSite.empty()) return true;
+
+    std::string chromPos = this->record.getChrom();
+    chromPos += ":";
+    chromPos += (this->record.getPosStr());
+    if (this->allowedSite.count(chromPos)) return true;
+    return false;
+  }
+  /**
    * @return true: a valid VCFRecord
    */
   bool readRecord();
@@ -134,7 +147,9 @@ class VCFInputFile{
     this->setRange(r);
   }
   void setRangeList(const RangeList& rl);
-
+  // which chromosomal sites are allowed to read
+  int setSiteFile(const std::string fn);
+  
   /**
    * @param fn load file and use first column as old id, second column as new id
    * @return number of ids have been changed.
@@ -174,6 +189,9 @@ class VCFInputFile{
   LineReader* fp;
   TabixReader* tabixReader;
   BCFReader* bcfReader;
+
+  // allow chromosomal sites
+  std::set<std::string> allowedSite;
 };
 
 #endif /* _VCFINPUTFILE_H_ */

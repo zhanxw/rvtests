@@ -271,18 +271,18 @@ public:
     fputc('\n', fp);
   };
 public:
-  const char* getChrom() { return this->chrom.toStr(); };
-  const int   getPos()  { return this->pos.toInt(); };
-  const char* getPosStr()  { return this->pos.toStr(); };
-  const char* getID() { return this->id.toStr(); };
-  const char* getRef() { return this->ref.toStr(); };
-  const char* getAlt() { return this->alt.toStr(); };
-  const char* getQual() { return this->qual.toStr(); };
-  const int getQualInt() { return this->qual.toInt(); };
-  const int getQualDouble() { return this->qual.toDouble(); };    
-  const char* getFilt() { return this->filt.toStr(); };
-  const char* getInfo() { return this->vcfInfo.toStr(); };
-  const char* getFormat() { return this->format.toStr(); };
+  const char* getChrom()    const { return this->chrom.toStr(); };
+  const int   getPos()      const { return this->pos.toInt(); };
+  const char* getPosStr()   const { return this->pos.toStr(); };
+  const char* getID()       const { return this->id.toStr(); };
+  const char* getRef()      const { return this->ref.toStr(); };
+  const char* getAlt()      const { return this->alt.toStr(); };
+  const char* getQual()     const { return this->qual.toStr(); };
+  const int getQualInt()    const { return this->qual.toInt(); };
+  const int getQualDouble() const { return this->qual.toDouble(); };    
+  const char* getFilt()     const { return this->filt.toStr(); };
+  const char* getInfo()     const { return this->vcfInfo.toStr(); };
+  const char* getFormat()   const { return this->format.toStr(); };
 
   VCFPeople& getPeople(){
     if (!this->hasAccess) {

@@ -170,7 +170,8 @@ bool VCFInputFile::readRecord(){
     }
     if (!this->passFilter())
       continue;
-
+    if (!this->isAllowedSite())
+      continue;
     // break;
     return true;
   }
@@ -208,4 +209,26 @@ void VCFInputFile::setRangeList(const RangeList& rl){
     fprintf(stderr, "[ERROR] invalid reading mode, quitting...\n");
     abort();
   }
+}
+
+int VCFInputFile::setSiteFile(const std::string fn) {
+  std::vector<std::string> fd;
+  LineReader lr(fn);
+  int pos;
+  std::string chromPos;
+  while(lr.readLineBySep(&fd, "\t ")) {
+    if (fd.empty()) continue;
+    if (fd.size() >= 1 && fd[0].find(':')!= std::string::npos) {
+      this->allowedSite.insert(fd[0]);
+      continue;
+    }
+    if (fd.size() >= 2 && str2int(fd[1], &pos) && pos > 0) {
+      chromPos = fd[0] ;
+      chromPos += ':';
+      chromPos += fd[1];
+      this->allowedSite.insert(fd[0]);
+      continue;
+    }
+  }
+  return 0;
 }

@@ -91,7 +91,7 @@ public:
     // finish up
     this->hasParsed = true;
   };
-  const char* toStr() {
+  const char* toStr() const {
     return this->self.toStr();
   }
   size_t size() {

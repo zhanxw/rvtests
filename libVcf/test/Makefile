@@ -3,7 +3,8 @@ EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange \
       testTabixReader testBCFReader \
       testVCFMissingIndex testBCFMissingIndex \
       testReadBCFByRange \
-      testVCFExtractChromX
+      testVCFExtractChromX \
+      testVCFSite
 
 all: $(EXE)
 debug: all
@@ -19,6 +20,9 @@ CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I..
  -lz -lbz2 -lpthread
 
 LIBS=../lib-dbg-vcf.a
+lib:
+	(cd ../../base; make debug)
+	(cd ../; make debug)
 
 define BUILD_each
   TAR := $(1)
@@ -69,6 +73,8 @@ check11:
 check12:
 	./testVCFExtractChromX > testVCFExtractChromX.output
 	diff -q testVCFExtractChromX.output testVCFExtractChromX.output.correct
-
+check13:
+	./testVCFSite > testVCFSite.output
+	diff -q testVCFSite.output testVCFSite.correct
 clean:
 	-rm -f $(EXE) *.d *.output

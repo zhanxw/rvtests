@@ -295,6 +295,7 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Site Filter")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+      ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing chromosomal sites, please use chr:pos")
       END_PARAMETER_LIST(pl)
       ;
 
@@ -332,6 +333,7 @@ int main(int argc, char** argv){
   // vin.setRangeList("1:69500-69600");
   vin.setRangeList(FLAG_rangeList.c_str());
   vin.setRangeFile(FLAG_rangeFile.c_str());
+  vin.setSiteFile(FLAG_siteFile.c_str());
   AllConcordanceType data;
   loadGenotype(vin, &data, Value::REFERENCE);
 
@@ -355,6 +357,7 @@ int main(int argc, char** argv){
     fprintf(stderr, "Process %s ... \n", FLAG_REMAIN_ARG[i].c_str());
     compareVcfs[i]->setRangeList(FLAG_rangeList.c_str());
     compareVcfs[i]->setRangeFile(FLAG_rangeList.c_str());
+    compareVcfs[i]->setSetFile(FLAG_setList.c_str());    
     loadGenotype(*compareVcfs[i], &data, Value::COMPARISON);
 
     StringArray names;

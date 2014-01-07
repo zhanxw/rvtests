@@ -53,6 +53,10 @@ bool isBiallelicSite(const char* ref, const char* alt) {
   return false;
 }
 
+int loadSiteFile(const std::string& fn) {
+  
+}
+
 int main(int argc, char** argv){
     time_t currentTime = time(0);
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));

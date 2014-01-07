@@ -99,9 +99,9 @@ Here the `--covar` specify a covariate file, and `--covar-name` specify which co
 
 We support both unrelated individuals and related indivudlas (e.g. family data). You need to append `--kinship input.kinship` to the command line:
 
-    rvtests --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output --kinshpi input.kinship
+    rvtests --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output --kinship input.kinship
 
-The file `input.kinship` are obtained from `vcf2kinship` program and its usage are described in [**Related individual tests**]
+The file `input.kinship` are obtained from `vcf2kinship` program and its usage are described in [Related individual tests](#related-individual-tests).
 
 # Input files
 

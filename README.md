@@ -101,7 +101,7 @@ We support both unrelated individuals and related indivudlas (e.g. family data).
 
     rvtests --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output --kinship input.kinship
 
-The file `input.kinship` are obtained from `vcf2kinship` program and its usage are described in [Related individual tests](#related-individual-tests).
+The file `input.kinship` is calculated by `vcf2kinship` program, and usage to this program is described in [Related individual tests](#related-individual-tests).
 
 # Input files
 

@@ -88,9 +88,20 @@ The meta-analysis models outputs association test results and genotype covarianc
 We provide single variant score test and generate genotype covariance matrix. 
 You can use command:
    
+    rvtests --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output
+
+In a more realistic scenario, you may want to adjust for covariates and want to inverse normalized residuals obtained in null model ([link](http://www.nature.com/ng/journal/vaop/ncurrent/full/ng.2852.html) to our methodology paper), then this command will work:
+   
     rvtests --inVcf input.vcf --pheno phenotype.ped --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out output
 
+
 Here the `--covar` specify a covariate file, and `--covar-name` specify which covariates can used in the analysis. Covariate file format can be found [here](#Covariate file). `--inverseNormal --useResidualAsPhenotype` specifies trait transformation method. That means first fit a regression model of the phenotype on covariates (intercept automatically added), then the residuals are inverse normalized. Trait transformation details can be found [here](#Trait transformation).
+
+We support both unrelated individuals and related indivudlas (e.g. family data). You need to append `--kinship input.kinship` to the command line:
+
+    rvtests --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output --kinship input.kinship
+
+The file `input.kinship` is calculated by `vcf2kinship` program, and usage to this program is described in [Related individual tests](#related-individual-tests).
 
 # Input files
 
@@ -362,4 +373,8 @@ or Goncalo Abecasis
 Rvtests is a collaborative effort by Youna Hu, Bingshan Li, Dajiang Liu.
 
 
+
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/zhanxw/rvtests/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 

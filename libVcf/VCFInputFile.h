@@ -148,7 +148,7 @@ class VCFInputFile{
   }
   void setRangeList(const RangeList& rl);
   // which chromosomal sites are allowed to read
-  int setSiteFile(const std::string fn);
+  int setSiteFile(const std::string& fn);
   
   /**
    * @param fn load file and use first column as old id, second column as new id

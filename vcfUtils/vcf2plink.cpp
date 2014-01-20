@@ -53,10 +53,6 @@ bool isBiallelicSite(const char* ref, const char* alt) {
   return false;
 }
 
-int loadSiteFile(const std::string& fn) {
-  
-}
-
 int main(int argc, char** argv){
     time_t currentTime = time(0);
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
@@ -75,7 +71,7 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Site Filter")
         ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
         ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-        //TODO ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing site to extract, please use chr:pos format.")
+        ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing site to extract, please use chr:pos format.")
         ADD_PARAMETER_GROUP(pl, "Gene Extractor")
         ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "Specify the gene file (refFlat format), so we know gene start and end.")
         ADD_STRING_PARAMETER(pl, geneName, "--gene", "Specify the gene names to extract")
@@ -120,7 +116,7 @@ int main(int argc, char** argv){
     // vin.setRangeList("1:69500-69600");
     vin.setRangeList(FLAG_rangeList.c_str());
     vin.setRangeFile(FLAG_rangeFile.c_str());
-
+    vin.setSiteFile(FLAG_siteFile.c_str());
     // set people filters here
     if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
         vin.excludeAllPeople();

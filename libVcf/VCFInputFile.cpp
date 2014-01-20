@@ -211,7 +211,9 @@ void VCFInputFile::setRangeList(const RangeList& rl){
   }
 }
 
-int VCFInputFile::setSiteFile(const std::string fn) {
+int VCFInputFile::setSiteFile(const std::string& fn) {
+  if (fn.empty()) return 0;
+  
   std::vector<std::string> fd;
   LineReader lr(fn);
   int pos;
@@ -226,7 +228,7 @@ int VCFInputFile::setSiteFile(const std::string fn) {
       chromPos = fd[0] ;
       chromPos += ':';
       chromPos += fd[1];
-      this->allowedSite.insert(fd[0]);
+      this->allowedSite.insert(chromPos);
       continue;
     }
   }

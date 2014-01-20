@@ -187,6 +187,9 @@ class SummaryHeader{
     // other cov
     const int n = covLabel.size();
     for (int i = 0; i < n; ++i) {
+      // quick fix
+      // todo: check more
+      if  (i + 1 >= beta.Length() ) break;
       fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
     }
     // sigma

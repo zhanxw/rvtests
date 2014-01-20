@@ -25,6 +25,7 @@ public:
     // magic number
     char magic1 = 0x6c; // 0b01101100;
     int ret;
+    UNUSED(ret);
     ret = fread(&c, sizeof(char), 1, this->fpBed);
     assert(ret == 1);
     if (c != magic1) {

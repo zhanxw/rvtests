@@ -327,7 +327,8 @@ int main(int argc, char** argv){
 
   vin.excludeAllPeople();
   vin.includePeople(commonNames);
-
+  fprintf(stderr, "Total %d samples are included.\n", (int)commonNames.size());
+  
   // set range filters here
   // e.g.
   // vin.setRangeList("1:69500-69600");
@@ -357,7 +358,7 @@ int main(int argc, char** argv){
     fprintf(stderr, "Process %s ... \n", FLAG_REMAIN_ARG[i].c_str());
     compareVcfs[i]->setRangeList(FLAG_rangeList.c_str());
     compareVcfs[i]->setRangeFile(FLAG_rangeList.c_str());
-    compareVcfs[i]->setSetFile(FLAG_setList.c_str());    
+    compareVcfs[i]->setSiteFile(FLAG_siteFile.c_str());    
     loadGenotype(*compareVcfs[i], &data, Value::COMPARISON);
 
     StringArray names;

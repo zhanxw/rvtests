@@ -205,13 +205,30 @@ class FastLMM::Impl{
     this->nullLikelihood = ret;
     return ret;
   }
-  // NOTE: need to fit null model fit before calling this function
+  // NOTE: need to fit null model before calling this function
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) const{
     const Eigen::MatrixXf& U = kinshipU.mat;
     Eigen::MatrixXf u1 = Eigen::MatrixXf::Ones(U.rows(), 1);
     u1 = U.transpose() *  u1;
     Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * u1;
     Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ug;
+    Eigen::MatrixXf beta = (x.transpose() * x).inverse() * x.transpose() * y;
+    // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
+    // multiply by 0.5 to get AF
+    double af = 0.5 * beta(0, 0);
+    return af;
+  }
+  // NOTE: need to fit null model before calling this function
+  double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol) const{
+    Eigen::MatrixXf g;
+    G_to_Eigen(Xcol, &g);
+
+    const Eigen::MatrixXf& U = kinshipU.mat;
+    // Eigen::MatrixXf u1 = Eigen::MatrixXf::Ones(U.rows(), 1);
+    // u1 = U.transpose() *  u1;
+    Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
+    Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * u1;
+    Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * U.transpose() * g;
     Eigen::MatrixXf beta = (x.transpose() * x).inverse() * x.transpose() * y;
     // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
     // multiply by 0.5 to get AF
@@ -282,6 +299,9 @@ int FastLMM::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
 }
 double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
   return this->impl->GetAF(kinshipU, kinshipS);
+}
+double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol){
+  return this->impl->GetAF(kinshipU, kinshipS, Xcol);
 }
 double FastLMM::GetPValue(){
   return this->impl->GetPValue();

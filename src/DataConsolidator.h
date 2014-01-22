@@ -9,6 +9,19 @@
 
 extern Logger* logger;
 
+class WarningOnce{
+ public:
+  WarningOnce(const std::string& msg):warningGiven(false), msg(msg) {};
+  void warningIf(bool cond) {
+    if (cond && !warningGiven) {
+      warningGiven = true;
+      fprintf(stderr, "%s", msg.c_str());
+    }
+  }
+ private:
+  bool warningGiven;
+  std::string msg;
+};
 class EigenMatrix;
 
 /**
@@ -211,7 +224,6 @@ class DataConsolidator{
       } else{
         this->covariateUpdated = false;
       }
-      
     } else if (this->strategy == IMPUTE_HWE) {
       // impute missing genotypes
       imputeGenotypeByFrequency(&genotype, &this->random);
@@ -496,6 +508,95 @@ class DataConsolidator{
                       (int)this->sex->size() == genotype.rows);
     return checkSex;
 #endif
+  }
+
+  void codeGenotypeForDominantModel(Matrix* geno) {
+    int n = genotype.cols;
+    static WarningOnce warning("Encoding only use the first variant!\n");
+    warning.warningIf(n != 1);
+    
+    int m = genotype.rows;
+    if (n != 1) {
+      fprintf(stderr, "n = %d, m = %d \n", n, m);
+    }
+
+    geno->Dimension(m, 1);
+    double s = 0; // sum of genotypes
+    int numGeno = 0;
+    if (this->strategy == IMPUTE_MEAN ||
+        this->strategy == IMPUTE_HWE) {
+      for (int i = 0; i < m; ++i) {
+        if (this->originalGenotype[i][0] < 0 )
+          continue;
+
+        if (this->originalGenotype[i][0] > 0.5 ) {
+          (*geno)[i][0] = 1.0;
+          s += 1.;
+          numGeno ++;
+        } else {
+          (*geno)[i][0] = 0.0;
+          numGeno ++;
+        }
+      }
+      double avg = 0.0;
+      if (numGeno > 0) {
+        avg = s / numGeno;
+      }
+      for (int i = 0; i < m; ++i) {
+        if (this->originalGenotype[i][0] < 0 )
+          (*geno)[i][0] = avg;
+      }
+    } else if (this->strategy == DROP) {
+      for (int i = 0; i < m; ++i) {
+        if (this->genotype[i][0] > 0.5) {
+          (*geno)[0][i] = 1.;
+        } else {
+          (*geno)[0][i] = 0.;          
+        }
+      }
+    } 
+  }
+  void codeGenotypeForRecessiveModel(Matrix* geno) {
+    int n = genotype.cols;
+    static WarningOnce warning("Encoding only use the first variant!\n");
+    warning.warningIf(n != 1);
+
+    int m = genotype.rows;
+    geno->Dimension(m, 1);
+    double s = 0; // sum of genotypes
+    int numGeno = 0;
+    if (this->strategy == IMPUTE_MEAN ||
+        this->strategy == IMPUTE_HWE) {
+      for (int i = 0; i < m; ++i) {
+        if (this->originalGenotype[i][0] < 0 )
+          continue;
+
+        if (this->originalGenotype[i][0] > 1.5 ) {
+          (*geno)[i][0] = 1.0;
+          s += 1.;
+          numGeno ++;
+        } else {
+          (*geno)[i][0] = 0.0;
+          numGeno ++;
+        }
+      }
+      double avg = 0.0;
+      if (numGeno > 0) {
+        avg = s / numGeno;
+      }
+      for (int i = 0; i < m; ++i) {
+        if (this->originalGenotype[i][0] < 0 )
+          (*geno)[i][0] = avg;
+      }
+    } else if (this->strategy == DROP) {
+      for (int i = 0; i < m; ++i) {
+        if (this->genotype[i][0] > 1.5) {
+          (*geno)[0][i] = 1.;
+        } else {
+          (*geno)[0][i] = 0.;          
+        }
+      }
+    } 
   }
 private:
   //don't copy

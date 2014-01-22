@@ -4,7 +4,7 @@
 #include "base/IO.h"
 #include "ModelUtil.h"
 
-inline void convert(const std::vector<double>& in, Vector* out) {
+inline void assign(const std::vector<double>& in, Vector* out) {
   if (!out) return;
   int n = in.size();
   out->Dimension(n);
@@ -91,7 +91,7 @@ class SummaryHeader{
   void fitModel(const std::vector<double>& pheno, bool binaryPhenotype, Matrix& cov) {
     this->isBinaryPhenotype = binaryPhenotype;
     Vector p;
-    convert(pheno, &p);
+    assign(pheno, &p);
     Matrix c;
     copyCovariateAndIntercept(p.Length(), cov, &c);
     if (binaryPhenotype) {
@@ -187,8 +187,6 @@ class SummaryHeader{
     // other cov
     const int n = covLabel.size();
     for (int i = 0; i < n; ++i) {
-      // quick fix
-      // todo: check more
       if  (i + 1 >= beta.Length() ) break;
       fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
     }

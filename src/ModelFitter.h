@@ -2064,10 +2064,14 @@ class MetaScoreTest: public ModelFitter{
     this->modelName = "MetaScore";
   };
   // fitting model
-  int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
+  virtual int fit(DataConsolidator* dc) {
     Matrix& genotype  = dc->getGenotype();
+    return this->fitWithGivenGenotype(genotype, dc);
+  }
+  int fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
+    Matrix& phenotype = dc->getPhenotype();
     Matrix& covariate = dc->getCovariate();
+    
     this->isHemiRegion = dc->isHemiRegion(0);
 
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
@@ -2175,10 +2179,10 @@ class MetaScoreTest: public ModelFitter{
 
         if (!isHemiRegion) {
           fitOK = (0 == linearFamScore.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
-          this->af = linearFamScore.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
+          this->af = linearFamScore.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(), dc->getGenotype());
         } else {
           fitOK = (0 == linearFamScoreForX.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()) ? true: false);
-          this->af = linearFamScoreForX.GetAF(*dc->getKinshipUForX(), *dc->getKinshipSForX());          
+          this->af = linearFamScoreForX.GetAF(*dc->getKinshipUForX(), *dc->getKinshipSForX(), dc->getGenotype());          
         }
       } else {
         /* if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) { */
@@ -2244,7 +2248,6 @@ class MetaScoreTest: public ModelFitter{
     }
 
     siteInfo.writeHeaderTab(fp);
-    // fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
     result.addHeader("AF");
     result.addHeader("INFORMATIVE_ALT_AC");
     result.addHeader("CALL_RATE");
@@ -2260,7 +2263,6 @@ class MetaScoreTest: public ModelFitter{
   };
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
-
     siteInfo.writeValueTab(fp);
     int informativeAC = het + 2* homAlt;
 
@@ -2291,7 +2293,7 @@ class MetaScoreTest: public ModelFitter{
           result.updateValue("U_STAT", linearFamScore.GetUStat());
           result.updateValue("SQRT_V_STAT", sqrt(linearFamScore.GetVStat()));
           result.updateValue("ALT_EFFSIZE", linearFamScore.GetVStat() != 0.0 ?
-			     linearFamScore.GetUStat() / linearFamScore.GetVStat() : 0.0);
+                             linearFamScore.GetUStat() / linearFamScore.GetVStat() : 0.0);
           result.updateValue("PVALUE", linearFamScore.GetPValue());
         } else {
           /* result.updateValue("U_STAT", logistic.GetU()[0][0]); */
@@ -2303,7 +2305,7 @@ class MetaScoreTest: public ModelFitter{
         if (!isBinaryOutcome()) {
           result.updateValue("U_STAT", linear.GetU()[0][0]);
           result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]));
-	  result.updateValue("ALT_EFFSIZE", linear.GetV()[0][0] != 0.0 ? linear.GetU()[0][0] / linear.GetV()[0][0] : 0.0);
+          result.updateValue("ALT_EFFSIZE", linear.GetV()[0][0] != 0.0 ? linear.GetU()[0][0] / linear.GetV()[0][0] : 0.0);
           result.updateValue("PVALUE", linear.GetPvalue());
         } else {
           result.updateValue("U_STAT", logistic.GetU()[0][0]);
@@ -2350,6 +2352,33 @@ class MetaScoreTest: public ModelFitter{
   bool isHemiRegion; // is the variant tested in hemi region?
 }; // MetaScoreTest
 
+class MetaDominantTest: public MetaScoreTest{
+ public:
+  MetaDominantTest(): MetaScoreTest() {
+    this->modelName = "MetaDominant";
+  }
+  virtual int fit(DataConsolidator* dc) {
+    dc->codeGenotypeForDominantModel(&geno);
+    return fitWithGivenGenotype(geno, dc);
+  }
+ private:
+  Matrix geno;
+};
+
+class MetaRecessiveTest: public MetaScoreTest{
+ public:
+  MetaRecessiveTest(): MetaScoreTest() {
+    this->modelName = "MetaRecessive";
+  }
+  virtual int fit(DataConsolidator* dc) {
+    dc->codeGenotypeForRecessiveModel(&geno);
+    return fitWithGivenGenotype(geno, dc);
+  }
+ private:
+  Matrix geno;
+};
+
+  
 class MetaCovTest: public ModelFitter{
  private:
   typedef std::vector<double> Genotype;
@@ -2737,7 +2766,6 @@ class MetaCovTest: public ModelFitter{
   Vector pheno;
   bool isHemiRegion; // is the variant tested in hemi region
 }; // MetaCovTest
-
 
 class MetaSkewTest: public ModelFitter{
  private:

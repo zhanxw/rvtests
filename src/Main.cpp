@@ -3,7 +3,6 @@
    31. Family burden
    12. Add support multi-thread
    13. Add optional weight
-   23. Add dominant model
    25. Take optional weight, e.g. GERP
 
    DONE:
@@ -46,7 +45,7 @@
    36. Support BCF file
    37. Support dosage (imputed genotypes)
    33. Support sex chromosome coding.
-
+   23. Add dominant model
 
    Future TODO:
    22. Add U-statistics
@@ -95,7 +94,7 @@
 
 Logger* logger = NULL;
 
-#define VERSION "20131202"
+#define VERSION "20140120"
 
 void banner(FILE* fp) {
   const char* string =
@@ -105,7 +104,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      December 2013                     ...   \n"
+      "      ...      January 2014                      ...   \n"
       "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
@@ -577,7 +576,6 @@ int excludeSamplesByIndex(const std::vector<int>& index,
 
 SummaryHeader* g_SummaryHeader = NULL;
 
-
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
@@ -962,7 +960,6 @@ int main(int argc, char** argv){
   // phenotype transformation
   g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
   if (FLAG_inverseNormal) {
-
     if (binaryPhenotype){
       logger->warn("WARNING: Skip transforming binary phenotype, although you required inverse normalization!");
     } else {
@@ -1123,6 +1120,10 @@ int main(int argc, char** argv){
 
       if (modelName == "score") {
         model.push_back( new MetaScoreTest() );
+      } else if (modelName == "dominant") {
+        model.push_back( new MetaDominantTest() );
+      } else if (modelName == "recessive") {
+        model.push_back( new MetaRecessiveTest() );
       } else if (modelName == "cov") {
         int windowSize;
         parser.assign("windowSize", &windowSize, 1000000);

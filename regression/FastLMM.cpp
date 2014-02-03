@@ -47,6 +47,8 @@ class FastLMM::Impl{
       loglik[i] = getLogLikelihood(delta);
 #ifdef DEBUG
       fprintf(stderr, "%d\tdelta=%g\tll=%lf\n", i, delta, loglik[i]);
+      fprintf(stderr, "beta(0)=%lf\tsigma2=%lf\n",
+              beta(0), sigma2);
 #endif
       if (std::isnan(loglik[i])) {
         continue;
@@ -60,6 +62,11 @@ class FastLMM::Impl{
       fprintf(stderr, "Cannot optimize\n");
       return -1;
     }
+#ifdef DEBUG
+    fprintf(stderr, "maxIndex = %d\tll=%lf\t\tbeta(0)=%lf\tsigma2=%lf\n",
+            maxIndex, maxLogLik, beta(0), sigma2);
+#endif
+
     if (maxIndex == 0 || maxIndex == 100) {
       // on the boundary
       // do not try maximize it.
@@ -191,7 +198,7 @@ class FastLMM::Impl{
     double ret = 0;
     if (this->model == FastLMM::MLE) {
       ret = 1.0 * this->ux.rows() * log( 2.0 * PI);
-      ret += (this->lambda.array() + delta).log().sum();
+      ret += (this->lambda.array() + delta).abs().log().sum();
       ret += this->ux.rows();
       ret += 1.0 * this->ux.rows() * log(this->getSumResidual2(delta));
     }
@@ -208,11 +215,10 @@ class FastLMM::Impl{
   // NOTE: need to fit null model before calling this function
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) const{
     const Eigen::MatrixXf& U = kinshipU.mat;
-    Eigen::MatrixXf u1 = Eigen::MatrixXf::Ones(U.rows(), 1);
-    u1 = U.transpose() *  u1;
-    Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * u1;
-    Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ug;
-    Eigen::MatrixXf beta = (x.transpose() * x).inverse() * x.transpose() * y;
+    Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
+    Eigen::MatrixXf u1s = u1.transpose() * (this->lambda.array() + delta).matrix().asDiagonal();
+    Eigen::MatrixXf beta = (u1s * u1).inverse() * (u1s * this->ug);
+
     // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
     // multiply by 0.5 to get AF
     double af = 0.5 * beta(0, 0);
@@ -224,12 +230,10 @@ class FastLMM::Impl{
     G_to_Eigen(Xcol, &g);
 
     const Eigen::MatrixXf& U = kinshipU.mat;
-    // Eigen::MatrixXf u1 = Eigen::MatrixXf::Ones(U.rows(), 1);
-    // u1 = U.transpose() *  u1;
     Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
-    Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * u1;
-    Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * U.transpose() * g;
-    Eigen::MatrixXf beta = (x.transpose() * x).inverse() * x.transpose() * y;
+    Eigen::MatrixXf u1s = u1.transpose() * (this->lambda.array() + delta).matrix().asDiagonal();
+    Eigen::MatrixXf beta = (u1s * u1).inverse() * (u1s * U.transpose() * g);
+
     // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
     // multiply by 0.5 to get AF
     double af = 0.5 * beta(0, 0);

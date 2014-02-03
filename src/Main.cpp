@@ -1253,7 +1253,7 @@ int main(int argc, char** argv){
       abort();
     }
     diff = ( std::clock() - start ) / (double)CLOCKS_PER_SEC;
-    logger->info("DONE: Loaded kinship file [ %s ] successfully in [ %.1f ] seconds).", FLAG_kinship.c_str(), diff);
+    logger->info("DONE: Loaded kinship file [ %s ] successfully in [ %.1f ] seconds.", FLAG_kinship.c_str(), diff);
 
     start = clock();
     if (dc.decomposeKinshipForAuto()) {

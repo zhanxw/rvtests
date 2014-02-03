@@ -103,6 +103,10 @@ We support both unrelated individuals and related indivudlas (e.g. family data).
 
 The file `input.kinship` is calculated by `vcf2kinship` program, and usage to this program is described in [Related individual tests](#related-individual-tests).
 
+Dominant and recessive disease models are supported by appending "dominant" and/or "recessive" after "--meta" option. For example, use "--meta dominant,recessive" will 
+generate two files ".MetaDominant.assoc" and ".MetaRecessive.assoc". Details: In dominant models, genotypes 0/1/2 are coded as 0/1/1. In recessive models, genotypes 0/1/2 are 
+coded as 0/0/1. Missing genotypes will be imputed to the mean.
+
 # Input files
 
 ## Genotype file (VCF)

@@ -683,11 +683,6 @@ int main(int argc, char** argv){
     std::string chrom = chopChr(r.getChrom());
     int pos = r.getPos();
 
-    // if (chrom < 1 && chrom > 22) {
-    //   ++ skipSexChrom;
-    //   continue;
-    // }
-
     // site filter
     if (FLAG_minSiteQual > 0 && r.getQualDouble() < FLAG_minSiteQual) {
       ++lowSiteFreq;
@@ -776,7 +771,7 @@ int main(int argc, char** argv){
       continue;
     }
 
-    fprintf(stderr, "chrom = %s, pos %d\n", r.getChrom(), r.getPos());
+    // fprintf(stderr, "chrom = %s, pos %d\n", r.getChrom(), r.getPos());
     
     if (!parRegion.isHemiRegion(chrom, pos)) {
       // process autosomal

@@ -384,7 +384,7 @@ void usage(int argc, char** argv) {
   fprintf(stderr, "\n");
 }
 
-#define VERSION "20131126"
+#define VERSION "20140204"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);

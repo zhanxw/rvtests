@@ -63,7 +63,7 @@ class IBSKinshipImpute: public EmpiricalKinship {
   int addGenotype(const std::vector<double>& g) {
     if (n == 0) {
       k.resize(g.size(), g.size());
-      k.clear();
+      k.zero();
     }
     ++n;
     geno.resize(g.size());
@@ -138,9 +138,9 @@ class IBSKinship: public EmpiricalKinship {
   int addGenotype(const std::vector<double>& g) {
     if (n == 0) {
       k.resize(g.size(), g.size());
-      k.clear();
+      k.zero();
       count.resize(g.size(), g.size());
-      count.clear();
+      count.zero();
     }
     ++n;
     for (size_t i = 0; i < g.size(); ++i) {
@@ -187,7 +187,7 @@ class BaldingNicolsKinship: public EmpiricalKinship {
   int addGenotype(const std::vector<double>& g) {
     if (n == 0) {
       k.resize(g.size(), g.size());
-      k.clear();
+      k.zero();
     }
 
     geno.resize(g.size());
@@ -219,20 +219,25 @@ class BaldingNicolsKinship: public EmpiricalKinship {
       // mean = 2*p, var = 2*p*(1-p)
       // var = mean * (1 - mean / 2)
       scale = sqrt(1.0 / (1.0 - mean/2.0) / mean);
+      // fprintf(stderr, "mean = %g, scale = %g\n", mean, scale);
     }
 
     for (size_t i = 0 ; i < geno.size(); ++i) {
-      geno[i] -= mean;
+      if (geno[i] < 0) { // missing genotype
+        geno[i] = 0.0;
+      } else {
+        geno[i] -= mean;
+        geno[i] *= scale;
+      }
     }
     const size_t numG = g.size();
 #pragma omp for
     for (size_t i = 0; i < numG; ++i) {
       for (size_t j = 0; j <= i; ++j) {
-        // as missing genotypes are coded as -9,
-        // non missing genotype minus its mean should be larger than -5.
-        if (geno[i] >= -5 || geno[j] >= -5) {
-          k[i][j] += (geno[i] * geno[j]) * scale;
-        }
+        // if (i == 0 && j == 0) {
+        //   fprintf(stderr, "k[0][0] = %g\n", k[0][0]);
+        // }
+        k[i][j] += (geno[i] * geno[j]);
       }
     }
     // fprintf(stderr, "mean = %g, scale = %g, k[0][0] = %g\n", mean, scale, k[0][0]);
@@ -273,7 +278,7 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
   int addGenotype(const std::vector<double>& g) {
     if (n == 0) {
       k.resize(g.size(), g.size());
-      k.clear();
+      k.zero();
     }
 
     if (!this->sex || g.size() != this->sex->size()) {
@@ -379,7 +384,7 @@ void usage(int argc, char** argv) {
   fprintf(stderr, "\n");
 }
 
-#define VERSION "20131126"
+#define VERSION "20140204"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
@@ -678,11 +683,6 @@ int main(int argc, char** argv){
     std::string chrom = chopChr(r.getChrom());
     int pos = r.getPos();
 
-    // if (chrom < 1 && chrom > 22) {
-    //   ++ skipSexChrom;
-    //   continue;
-    // }
-
     // site filter
     if (FLAG_minSiteQual > 0 && r.getQualDouble() < FLAG_minSiteQual) {
       ++lowSiteFreq;
@@ -771,6 +771,8 @@ int main(int argc, char** argv){
       continue;
     }
 
+    // fprintf(stderr, "chrom = %s, pos %d\n", r.getChrom(), r.getPos());
+    
     if (!parRegion.isHemiRegion(chrom, pos)) {
       // process autosomal
       int ch = atoi(chopChr(chrom));

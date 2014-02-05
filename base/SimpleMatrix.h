@@ -71,6 +71,9 @@ public:
     return 0;
   }
   void clear() {
+    mat.clear();
+  }
+  void zero() {
     for (unsigned int i = 0; i < mat.size(); i++){
       for (unsigned int j = 0; j < mat[i].size(); j++){
         mat[i][j] = 0.0;

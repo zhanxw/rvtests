@@ -149,7 +149,7 @@ class GrammarGamma::Impl{
     double ret = 0;
     // if (this->model == GrammarGamma::MLE) {
     ret = 1.0 * this->ux.rows() * log( 2.0 * PI);
-    ret += (this->lambda.array() + delta).log().sum();
+    ret += (this->lambda.array() + delta).abs().log().sum();
     ret += this->ux.rows();
     ret += 1.0 * this->ux.rows() * log(this->getSumResidual2(delta));
     // }

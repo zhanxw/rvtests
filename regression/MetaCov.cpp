@@ -5,7 +5,7 @@
 #include "GSLMinimizer.h"
 
 #undef DEBUG
-
+// #define DEBUG
 #define PI 3.1415926535897
 
 static double goalFunction(double x, void* param);
@@ -36,6 +36,8 @@ class MetaCov::Impl{
       loglik[i] = getLogLikelihood(delta);
 #ifdef DEBUG
       fprintf(stderr, "%d\tdelta=%g\tll=%lf\n", i, delta, loglik[i]);
+      fprintf(stderr, "beta(0)=%lf\tsigma2=%lf\n",
+              beta(0), sigma2);
 #endif
       if (std::isnan(loglik[i])) {
         continue;
@@ -74,7 +76,7 @@ class MetaCov::Impl{
     // store some intermediate results
 #ifdef DEBUG       
     fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
-    // fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
+    fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
 #endif
     // if (this->test == MetaCov::LRT) {
     // this->nullLikelihood = getLogLikelihood(this->delta);
@@ -106,7 +108,7 @@ class MetaCov::Impl{
     double ret = 0;
     // if (this->model == MetaCov::MLE) {
       ret = 1.0 * this->ux.rows() * log( 2.0 * PI);
-      ret += (this->lambda.array() + delta).log().sum();
+      ret += (this->lambda.array() + delta).abs().log().sum();
       ret += this->ux.rows();
       ret += 1.0 * this->ux.rows() * log(this->getSumResidual2(delta));
     // }
@@ -156,7 +158,7 @@ class MetaCov::Impl{
     for (int i = 0; i < n ; ++i){
       (*out)[i] = sigma2 * (lambda(i) + delta) ;
     }
-    fprintf(stderr, "sigma2 = %g, lambda(0) = %g, lambda(99) = %g, delta = %g\n", sigma2, lambda(0), lambda(99), delta);
+    // fprintf(stderr, "sigma2 = %g, lambda(0) = %g, lambda(99) = %g, delta = %g\n", sigma2, lambda(0), lambda(99), delta);
     return 0;
   }
 

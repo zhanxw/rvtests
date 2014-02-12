@@ -2462,6 +2462,12 @@ class MetaCovTest: public ModelFitter{
         // fprintf(stderr, "fit ok!\n");
         if (!fitOK)
           return -1;
+        // get weight
+        if (!isHemiRegion) {
+          metaCov.GetWeight(&this->weight);
+        } else {
+          metaCovForX.GetWeight(&this->weight);
+        }
       } else { // not family model
         double s = 0;
         double s2 = 0;
@@ -2536,8 +2542,8 @@ class MetaCovTest: public ModelFitter{
                                     *dc->getKinshipSForAuto());
         } else {
           metaCovForX.TransformCentered(&loci.geno,
-                                        *dc->getKinshipUForAuto(),
-                                        *dc->getKinshipSForAuto());
+                                        *dc->getKinshipUForX(),
+                                        *dc->getKinshipSForX());
         }
       } else { // unrelated individuals
         // center genotype

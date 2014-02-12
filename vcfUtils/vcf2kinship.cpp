@@ -384,12 +384,13 @@ void usage(int argc, char** argv) {
   fprintf(stderr, "\n");
 }
 
+#define PROGRAM "vcf2kinship"
 #define VERSION "20140204"
 void welcome() {
 #ifdef NDEBUG
-  fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
+  fprintf(stdout, "Thank you for using %s (version %s)\n", PROGRAM, VERSION);
 #else
-  fprintf(stdout, "Thank you for using rvtests (version %s-Debug)\n", VERSION);
+  fprintf(stdout, "Thank you for using %s (version %s-Debug)\n", PROGRAM, VERSION);
 #endif
   // fprintf(stdout, "  For documentation, refer to http://zhanxw.github.io/rvtests/\n");
   // fprintf(stdout, "  For questions and comments, send to Xiaowei Zhan <zhanxw@umich.edu>\n");
@@ -397,8 +398,8 @@ void welcome() {
 }
 
 int main(int argc, char** argv){
-  time_t currentTime = time(0);
-  fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
+  time_t startTime = time(0);
+  fprintf(stderr, "Analysis started at: %s", ctime(&startTime));
 
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
@@ -821,6 +822,12 @@ int main(int argc, char** argv){
   if (FLAG_xHemi) {
     fprintf(stdout, "Total %d variants are used to calculate chromosome X kinship matrix.\n", variantX);
   }
+
+  time_t endTime = time(0);
+  fprintf(stderr, "Analysis ends at: %s", ctime(&endTime));
+  int elapsedSecond = (int) (endTime - startTime);
+  fprintf(stderr, "Analysis took %d seconds", elapsedSecond);
+  
   return 0;
 };
 
@@ -898,5 +905,6 @@ int output( const std::vector<std::string>& famName,
       fprintf(stderr, "Kinship decomposition failed!\n");
     }
   }
+
   return 0;
-}
+} // end output()

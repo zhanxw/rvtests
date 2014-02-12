@@ -16,6 +16,7 @@ void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
 #endif
 // #define EIGEN_NO_DEBUG
 #undef DEBUG
+// #define DEBUG
 
 #define PI 3.1415926535897
 
@@ -92,7 +93,7 @@ class FastLMM::Impl{
     // store some intermediate results
 #ifdef DEBUG       
     fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
-    // fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
+    fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
 #endif
     if (this->test == FastLMM::LRT) {
       this->nullLikelihood = getLogLikelihood(this->delta);
@@ -185,9 +186,6 @@ class FastLMM::Impl{
     } else {
       this->sigma2 = sumResidual2 / (x.rows() - x.cols());
     }
-
-    
-    
   }
   /**
    * NOTE: it's necesary to calculate beta and sigma2 beforehand.

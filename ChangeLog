@@ -1,3 +1,7 @@
+2014-02-11  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+
+	* Fix bug in MetaCov outputs
+
 2013-11-26  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Support X chromosome analysis

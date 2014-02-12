@@ -94,7 +94,7 @@
 
 Logger* logger = NULL;
 
-#define VERSION "20140203"
+#define VERSION "20140211"
 
 void banner(FILE* fp) {
   const char* string =

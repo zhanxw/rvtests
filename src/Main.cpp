@@ -1276,7 +1276,7 @@ int main(int argc, char** argv){
       }
     }
     if (FLAG_xHemiKinship.empty()) {
-      logger->warn("Autosomal kinship loaded, but no hemizygote region kinship provided, family-based tests will failed to fit.");
+      logger->warn("Autosomal kinship loaded, but no hemizygote region kinship provided, some sex chromosome tests will be skipped.");
     } else {
       start = clock();
       if (dc.loadKinshipFileForX(FLAG_kinship, phenotypeNameInOrder)){

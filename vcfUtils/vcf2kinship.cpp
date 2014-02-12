@@ -826,7 +826,7 @@ int main(int argc, char** argv){
   time_t endTime = time(0);
   fprintf(stderr, "Analysis ends at: %s", ctime(&endTime));
   int elapsedSecond = (int) (endTime - startTime);
-  fprintf(stderr, "Analysis took %d seconds", elapsedSecond);
+  fprintf(stderr, "Analysis took %d seconds.\n", elapsedSecond);
   
   return 0;
 };

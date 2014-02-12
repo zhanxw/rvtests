@@ -8,6 +8,38 @@
 #include <math.h> // for HUGE_VALH, HUGE_VALL
 #include <sstream>
 
+////////////////////////////////////////////////////////////////////////
+// define HUGE_VALF, HUGE_VALL for Solaris 10
+/* HUGE_VALF is a 'float' Infinity.  */
+#ifndef HUGE_VALF
+# if defined _MSC_VER
+/* The Microsoft MSVC 9 compiler chokes on the expression 1.0f / 0.0f.  */
+#  define HUGE_VALF (1e25f * 1e25f)
+# else
+#  define HUGE_VALF (1.0f / 0.0f)
+# endif
+#endif
+
+/* HUGE_VAL is a 'double' Infinity.  */
+#ifndef HUGE_VAL
+# if defined _MSC_VER
+/* The Microsoft MSVC 9 compiler chokes on the expression 1.0 / 0.0.  */
+#  define HUGE_VAL (1e250 * 1e250)
+# else
+#  define HUGE_VAL (1.0 / 0.0)
+# endif
+#endif
+
+/* HUGE_VALL is a 'long double' Infinity.  */
+#ifndef HUGE_VALL
+# if defined _MSC_VER
+/* The Microsoft MSVC 9 compiler chokes on the expression 1.0L / 0.0L.  */
+#  define HUGE_VALL (1e250L * 1e250L)
+# else
+#  define HUGE_VALL (1.0L / 0.0L)
+# endif
+#endif
+
 // convert double/int/byte to string type
 template<class T>
 inline std::string toString(T i){

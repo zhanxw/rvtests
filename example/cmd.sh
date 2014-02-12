@@ -9,3 +9,4 @@
 ../executable/vcf2kinship --ped pheno --bn --out output
 ../executable/vcf2kinship --inVcf example.vcf --bn --out output
 ../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov --covar covar --covar-name c1,c2 --useResidualAsPhenotype --inverseNormal --kinship output.kinship --out out7
+../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov,dominant,recessive --covar covar --covar-name c1,c2 --out out8 --pheno-name y4

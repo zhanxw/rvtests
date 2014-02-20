@@ -2071,7 +2071,8 @@ class MetaScoreTest: public ModelFitter{
   int fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
     Matrix& covariate = dc->getCovariate();
-    
+
+    // check column name for hemi region
     this->isHemiRegion = dc->isHemiRegion(0);
 
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);

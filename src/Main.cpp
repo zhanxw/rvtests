@@ -94,7 +94,7 @@
 
 Logger* logger = NULL;
 
-#define VERSION "20140211"
+#define VERSION "20140220"
 
 void banner(FILE* fp) {
   const char* string =
@@ -933,12 +933,13 @@ int main(int argc, char** argv){
       if (covariate.cols > 0) {
         LinearRegression lr;
         Vector pheno;
+        centerVector(&phenotypeInOrder);
         pheno.Dimension(phenotypeInOrder.size());
         for (size_t i = 0; i < phenotypeInOrder.size(); ++i){
           pheno[(int)i] = phenotypeInOrder[i];
         }
         if (!lr.FitLinearModel(covariate, pheno)) {
-          logger->error("Cannot fit model: [ phenotype ~ covariates ], now use the original phenotype");
+          logger->error("Cannot fit model: [ phenotype ~ 1 + covariates ], now use the original phenotype");
         } else {
           int n = lr.GetResiduals().Length();
           for (int i = 0; i < n; ++i) {
@@ -948,15 +949,12 @@ int main(int argc, char** argv){
           logger->info("DONE: Fit model [ phenotype ~ covariates ] and model residuals will be used as responses.");
         }
       } else{ // no covaraites
-        double m = calculateMean(phenotypeInOrder);
-        for (size_t i = 0; i < phenotypeInOrder.size(); ++i) {
-          phenotypeInOrder[i] -= m;
-        }
+        centerVector(&phenotypeInOrder);      
         logger->info("DONE: Use residual as phenotype by centerng it");
       }
     }
   }
-
+  
   // phenotype transformation
   g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
   if (FLAG_inverseNormal) {

@@ -80,6 +80,14 @@ inline double calculateMean(const std::vector<double>& v ){
   return s / v.size();
 }
 
+inline void centerVector(std::vector<double>* v ){
+  if (v->empty()) return;
+  double m = calculateMean(*v);
+  for(size_t i = 0; i < v->size(); ++i) {
+    (*v)[i] -= m;
+  }
+}
+
 // this calculate standard deviation by dividing N
 // sd ^ 2 = \frac{1}{N}  (v_i - mean of v_i) ^ 2
 inline double calculateSD(const std::vector<double>& v ){
@@ -145,11 +153,23 @@ inline void inverseNormalizeLikeR(std::vector<double>* y){
     (*y)[i] = qnorm( ( 1.0 + ord[i] - a) / ( n + (1 - a) - a));
 }
 
+inline void zero(std::vector<double>* y) {
+  const size_t n = y->size();
+  for (size_t i = 0; i < n ; i++) {
+    (*y)[i] = 0.0;
+  }
+}
+
 inline void standardize(std::vector<double>* y) {
   // center
   size_t n = y->size();
   double m = calculateMean(*y);
   double sd = calculateSD(*y);
+  if (sd == 0.0) {
+    zero(y);
+  }
+  return;
+  
   for (size_t i = 0; i < n ; i++) {
     (*y)[i] -= m;
     (*y)[i] /= sd;

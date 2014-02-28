@@ -1,3 +1,34 @@
+- [Introduction](#introduction)
+- [Download](#download)
+- [Quick Tutorial](#quick-tutorial)
+	- [Single variant tests](#single-variant-tests)
+	- [Groupwise tests](#groupwise-tests)
+	- [Related individual tests](#related-individual-tests)
+	- [Meta-analysis tests](#meta-analysis-tests)
+		- [Dominant model and recessive model](#dominant-model-and-recessive-model)
+- [Input files](#input-files)
+	- [Genotype file (VCF)](#genotype-file-vcf)
+	- [Phenotype file](#phenotype-file)
+	- [Covariate file](#covariate-file)
+	- [Trait transformation](#trait-transformation)
+- [Models](#models)
+	- [Single variant tests](#single-variant-tests-1)
+	- [Burden tests](#burden-tests)
+	- [Variable threshold models](#variable-threshold-models)
+	- [Kernel models](#kernel-models)
+	- [Meta-analysis models](#meta-analysis-models)
+	- [Utility models](#utility-models)
+- [Association test options](#association-test-options)
+	- [Sample inclusion/exclusion](#sample-inclusionexclusion)
+	- [Variant site filters](#variant-site-filters)
+	- [Genotype filters](#genotype-filters)
+	- [Handle missing genotypes and phenotypes](#handle-missing-genotypes-and-phenotypes)
+	- [Specify groups (e.g burden unit)](#specify-groups-eg-burden-unit)
+- [Sex chromosome analysis](#sex-chromosome-analysis)
+- [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
+- [Feedback/Contact](#feedbackcontact)
+
+
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
 # Introduction
@@ -208,12 +239,11 @@ Kernel | Model(*)    |Traits(#) | Covariates | Related / unrelated | Description
 SKAT     |  skat    |B, Q  |     Y      |         U           | Sequencing kernel association test by Shawn Lee.
 KBAC     |  kbac     |B  |     N      |         U           | Kernel-based adaptive clustering model by Dajiang Liu.
 
-
 (*) Model columns list the regconized names in rvtests. For example, use `--kernel skat` will apply SKAT test.
 To further customize SKAT test, you can use *--kernel skat[nPerm=100:alpha=0.001:beta1=1:beta2=20]* to specify permutation counts, type-1 error, 
 beta distribution parameters for upweighting rare variants. Rvtests will output a message showing: 
 
-[INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)
+    [INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)
 
 (#) In trait column, B and Q stand for binary, quantitiave trait.
 
@@ -228,7 +258,7 @@ Covariance          |  cov      | Q  |     Y      |         R, U           | cov
 Dominant coding covariance          |  dominantCov      | Q  |     Y      |         R, U           | covariance matrix using dominant coding
 Recessive coding covariance          |  recessiveCov      | Q  |     Y      |         R, U           | covariance matrix using recessive coding
 
-
+(*) Model columns list the regconized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
 (#) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
 
 
@@ -290,7 +320,7 @@ It is supported to filter variant site by site depth, minor allele count or anno
 VCF with annotatino information are called annotated VCF here. And to annotate 
 a VCF file, you can use [ANNO](https://github.com/zhanxw/anno), a fast and accurate annotation software.
 
-## Genotyep filters
+## Genotype filters
 
 Genotype with low depth or low quality can be filtered out by these options:
 

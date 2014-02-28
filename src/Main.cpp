@@ -558,7 +558,7 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Specify Covariate")
       ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
-      ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be incluced in analysis")
+      ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be included in analysis")
       ADD_BOOL_PARAMETER(pl, sex, "--sex", "Include sex (5th) as covaraite from PED file")
 
       ADD_PARAMETER_GROUP(pl, "Specify Phenotype")
@@ -587,16 +587,16 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, siteFile,  "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
-      ADD_INT_PARAMETER(pl, siteDepthMin, "--siteDepthMin", "Specify minimum depth(inclusive) to be incluced in analysis")
-      ADD_INT_PARAMETER(pl, siteDepthMax, "--siteDepthMax", "Specify maximum depth(inclusive) to be incluced in analysis")
-      // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis")
-      ADD_INT_PARAMETER(pl, siteMACMin,   "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis")
+      ADD_INT_PARAMETER(pl, siteDepthMin, "--siteDepthMin", "Specify minimum depth(inclusive) to be included in analysis")
+      ADD_INT_PARAMETER(pl, siteDepthMax, "--siteDepthMax", "Specify maximum depth(inclusive) to be included in analysis")
+      // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be included in analysis")
+      ADD_INT_PARAMETER(pl, siteMACMin,   "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be included in analysis")
       ADD_STRING_PARAMETER(pl, annoType,  "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field, regular expression is allowed ")
 
       ADD_PARAMETER_GROUP(pl, "Genotype Filter")
-      ADD_INT_PARAMETER(pl, indvDepthMin, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
-      ADD_INT_PARAMETER(pl, indvDepthMax, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis")
-      ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis")
+      ADD_INT_PARAMETER(pl, indvDepthMin, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be included in analysis")
+      ADD_INT_PARAMETER(pl, indvDepthMax, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be included in analysis")
+      ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be included in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Association Model")
       ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt, famGrammarGamma")
@@ -624,7 +624,7 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Impute missing genotype (default:mean):  mean, hwe, and drop")
-      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean of those have genotypes but no phenotpyes")
+      ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean of those have genotypes but no phenotypes")
       ADD_BOOL_PARAMETER(pl, imputeCov, "--imputeCov", "Impute each covariate to its mean, instead of drop samples with missing covariates")
 
       ADD_PARAMETER_GROUP(pl, "Conditional Analysis")

@@ -5,7 +5,7 @@
 	- [Groupwise tests](#groupwise-tests)
 	- [Related individual tests](#related-individual-tests)
 	- [Meta-analysis tests](#meta-analysis-tests)
-		- [Dominant model and recessive model](#dominant-model-and-recessive-model)
+		- [Dominant models and recessive models](#dominant-models-and-recessive-models)
 - [Input files](#input-files)
 	- [Genotype file (VCF)](#genotype-file-vcf)
 	- [Phenotype file](#phenotype-file)
@@ -106,14 +106,12 @@ We support both unrelated individuals and related indivudlas (e.g. family data).
 
 The file `input.kinship` is calculated by `vcf2kinship` program, and usage to this program is described in [Related individual tests](#related-individual-tests).
 
-### Dominant model and recessive model
+### Dominant models and recessive models
 
 Dominant and recessive disease models are supported by appending "dominant" and/or "recessive" after "--meta" option. For example, use "--meta dominant,recessive" will 
-generate two files ".MetaDominant.assoc" and ".MetaRecessive.assoc". Details: In dominant models, genotypes 0/1/2 are coded as 0/1/1. In recessive models, genotypes 0/1/2 are 
+generate two sets of files. For dominant model, they are "prefix.MetaDominant.assoc" and "prefix.MetaDominantCov.assoc.gz"; for recessive model,
+they are "prefix.MetaRecessive.assoc" and "prefix.MetaRecessiveCov.assoc.gz". Internally, in dominant models, genotypes 0/1/2 are coded as 0/1/1; in recessive models, genotypes 0/1/2 are 
 coded as 0/0/1. Missing genotypes will be imputed to the mean.
-
-It is of intersts to meta-analyze the association reuslts of dominant/recessive model. That requires covariance matrix generated under dominant (or recessive) model.
-Use `--meta dominantCov` (or `--meta recessiveCov`) will generate `prefix.MetaDominantCov.assoc.gz` (or `prefix.MetaRecessiveCov.assoc.gz`).
 
 # Input files
 
@@ -252,11 +250,9 @@ beta distribution parameters for upweighting rare variants. Rvtests will output 
 Type | Model(*)    |Traits(#) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 Score test          |  score      | Q  |     Y      |         R, U           | standard score tests
-Dominant coding score test       |  dominant   | Q  |     Y      |         R, U           | score tests, dominant disease model
-Recessive coding score test      |  recessive  | Q  |     Y      |         R, U           | score tests, recessive disease model
+Dominant model       |  dominant   | Q  |     Y      |         R, U           | score tests and covariance matrix under dominant disease model
+Recessive model      |  recessive  | Q  |     Y      |         R, U           | score tests and covariance matrix under recessive disease model
 Covariance          |  cov      | Q  |     Y      |         R, U           | covariance matrix
-Dominant coding covariance          |  dominantCov      | Q  |     Y      |         R, U           | covariance matrix using dominant coding
-Recessive coding covariance          |  recessiveCov      | Q  |     Y      |         R, U           | covariance matrix using recessive coding
 
 (*) Model columns list the regconized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
 (#) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.

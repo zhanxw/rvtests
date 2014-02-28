@@ -386,7 +386,7 @@ void usage(int argc, char** argv) {
 }
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20140227"
+#define VERSION "20140228"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s)\n", PROGRAM, VERSION);
@@ -503,7 +503,7 @@ int main(int argc, char** argv){
   zhanxw::Pedigree ped;
   if (!FLAG_ped.empty()) {
     if (loadPedigree(FLAG_ped, &ped)) {
-      fprintf(stderr, "Failed to load pedigree file [ %s ]!", FLAG_ped.c_str());
+      fprintf(stderr, "Failed to load pedigree file [ %s ]!\n", FLAG_ped.c_str());
       exit(1);
     }
   }

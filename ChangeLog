@@ -1,3 +1,7 @@
+2014-02-28  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Change: for dominant/recessive model, automatically generate covariance
+
 2014-02-27  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Change: for X chrom, also use male to get AF

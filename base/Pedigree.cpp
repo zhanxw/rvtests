@@ -79,11 +79,11 @@ int Pedigree::add(const std::string& family,
                   const std::string& mother)  {
 
   if (person != "0" && (person == father || person == mother) ) {
-    fprintf(stderr, "One and his father/mother are both [ %s ]\n", person.c_str());
+    fprintf(stderr, "ERROR: Individual cannot be his own father/mother [ %s ]\n", person.c_str());
     return -1;
   }
   if (father != "0" && mother != "0" && father == mother) {
-    fprintf(stderr, "Father and mother are both [ %s ]\n", father.c_str());
+    fprintf(stderr, "ERROR: Father and mother are the same individual [ %s ]\n", father.c_str());
     return -1;
   }
 
@@ -110,14 +110,14 @@ int Pedigree::add(const std::string& family,
   if (fatherId >= 0) {
     this->people[fatherId].addChild(pid);
     if (this->people[fatherId].setGender(MALE) < 0) {
-      fprintf(stderr, "Father but not male according to pedigree!\n");
+      fprintf(stderr, "ERROR: Father [ %s ] is not male according to pedigree!\n", father.c_str());
       errorOccured = true;
     };
   }
   if (motherId >= 0) {
     this->people[motherId].addChild(pid);
     if (this->people[motherId].setGender(FEMALE) < 0 ) {
-      fprintf(stderr, "Mother but not female according to pedigree!\n");
+      fprintf(stderr, "ERROR: Mother [ %s ] is not female according to pedigree!\n", mother.c_str());
       errorOccured = true;
     }
   }
@@ -133,6 +133,7 @@ int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
   std::vector<std::string> fd;
   LineReader lr(fn);
   int lineNo = 0;
+  bool errorOccured = false;
   while (lr.readLineBySep(&fd, " \t")) {
     ++lineNo;
     removeEmptyField(&fd);
@@ -145,10 +146,12 @@ int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
     }
     if (p.add(fd[0], fd[1], fd[2], fd[3]) < 0) {
       fprintf(stderr, "Encounter error when adding line %d.\n", lineNo);
+      errorOccured = true;
     }
     if (fd.size() >= 5 )
       p.addGender(fd[1], fd[4]);
   }
-  
+
+  if (errorOccured) return -1;
   return 0;
 }

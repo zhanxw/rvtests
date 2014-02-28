@@ -36,7 +36,7 @@
 
 Logger* logger = NULL;
 
-#define VERSION "20140227"
+#define VERSION "20140228"
 
 void banner(FILE* fp) {
   const char* string =
@@ -603,7 +603,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
-      ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov, dominant, recessive, dominantCov, recessiveCov")
+      ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov, dominant, recessive")
 
       ADD_PARAMETER_GROUP(pl, "Family-based Models")
       ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file for autosomal analysis, use vcf2kinship to generate")
@@ -711,7 +711,7 @@ int main(int argc, char** argv){
   }
   if (FLAG_freqLower > 0) {
     vin.setSiteFreqMin(FLAG_freqLower);
-    logger->info("Set upper frequency limit to %f", FLAG_freqLower);
+    logger->info("Set lower frequency limit to %f", FLAG_freqLower);
   }
 
   // add filters. e.g. put in VCFInputFile is a good method
@@ -1098,20 +1098,18 @@ int main(int argc, char** argv){
         model.push_back( new MetaScoreTest() );
       } else if (modelName == "dominant") {
         model.push_back( new MetaDominantTest() );
+        parser.assign("windowSize", &windowSize, 1000000);
+        logger->info("Meta analysis uses window size %s to produce covariance statistics under dominant model", toStringWithComma(windowSize).c_str());
+        model.push_back( new MetaDominantCovTest(windowSize) );
       } else if (modelName == "recessive") {
         model.push_back( new MetaRecessiveTest() );
+        parser.assign("windowSize", &windowSize, 1000000);
+        logger->info("Meta analysis uses window size %s to produce covariance statistics under recessive model", toStringWithComma(windowSize).c_str());
+        model.push_back( new MetaRecessiveCovTest(windowSize) );
       } else if (modelName == "cov") {
         parser.assign("windowSize", &windowSize, 1000000);
         logger->info("Meta analysis uses window size %s to produce covariance statistics", toStringWithComma(windowSize).c_str());
         model.push_back( new MetaCovTest(windowSize) );
-      } else if (modelName == "dominantcov") {
-        parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %s to produce covariance statistics", toStringWithComma(windowSize).c_str());
-        model.push_back( new MetaDominantCovTest(windowSize) );
-      } else if (modelName == "recessivecov") {
-        parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %s to produce covariance statistics", toStringWithComma(windowSize).c_str());
-        model.push_back( new MetaRecessiveCovTest(windowSize) );
       }
 #if 0
       else if (modelName == "skew") {
@@ -1152,16 +1150,24 @@ int main(int argc, char** argv){
     std::string s = FLAG_outPrefix;
     s += ".";
     s += model[i]->getModelName();
-    s += ".assoc";
     if (model[i]->getModelName() == "MetaCov" ||
         model[i]->getModelName() == "MetaSkew" ||
-        model[i]->getModelName() == "MetaKurt" ||
-        model[i]->getModelName() == "MetaDominantCov" ||                
-        model[i]->getModelName() == "MetaRecessiveCov") {
-      s += ".gz";
+        model[i]->getModelName() == "MetaKurt") {
+      s += "assoc.gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
       metaFileToIndex.push_back(s);
+    } else if (model[i]->getModelName() == "MetaDominant" ||                
+               model[i]->getModelName() == "MetaRecessive")  {
+      s += ".assoc";
+      fOuts[i] = new FileWriter(s.c_str());
+
+      ++i;
+      s.resize(s.size() - strlen(".assoc"));
+      s += "Cov.assoc.gz";
+      fOuts[i] = new FileWriter(s.c_str(), BGZIP);
+      metaFileToIndex.push_back(s);      
     } else {
+      s += ".assoc";
       fOuts[i] = new FileWriter(s.c_str());
     }
   }

@@ -42,7 +42,7 @@
 <a href="#meta-analysis-tests">Meta-analysis tests</a>
 
 <ul>
-<li><a href="#dominant-model-and-recessive-model">Dominant model and recessive model</a></li>
+<li><a href="#dominant-models-and-recessive-models">Dominant models and recessive models</a></li>
 </ul>
 </li>
 </ul>
@@ -94,7 +94,7 @@
 <a name="download" class="anchor" href="#download"><span class="octicon octicon-link"></span></a>Download</h1>
 
 <p>Source file can be downloaded from <a href="https://github.com/zhanxw/rvtests/archive/master.zip">github</a> or <a href="https://github.com/zhanxw/rvtests">github page</a>.
-Executable binary file can be downloaded from <a href="http://www.sph.umich.edu/csg/zhanxw/software/rvtests/rvtests-latest.tar.gz">here</a>.</p>
+Executable binary file can be downloaded from <a href="https://github.com/zhanxw/rvtests/releases/download/v1.4.0/rvtests-20140228.tar.gz">here</a>.</p>
 
 <h1>
 <a name="quick-tutorial" class="anchor" href="#quick-tutorial"><span class="octicon octicon-link"></span></a>Quick Tutorial</h1>
@@ -172,14 +172,12 @@ You can use command:</p>
 <p>The file <code>input.kinship</code> is calculated by <code>vcf2kinship</code> program, and usage to this program is described in <a href="#related-individual-tests">Related individual tests</a>.</p>
 
 <h3>
-<a name="dominant-model-and-recessive-model" class="anchor" href="#dominant-model-and-recessive-model"><span class="octicon octicon-link"></span></a>Dominant model and recessive model</h3>
+<a name="dominant-models-and-recessive-models" class="anchor" href="#dominant-models-and-recessive-models"><span class="octicon octicon-link"></span></a>Dominant models and recessive models</h3>
 
 <p>Dominant and recessive disease models are supported by appending "dominant" and/or "recessive" after "--meta" option. For example, use "--meta dominant,recessive" will 
-generate two files ".MetaDominant.assoc" and ".MetaRecessive.assoc". Details: In dominant models, genotypes 0/1/2 are coded as 0/1/1. In recessive models, genotypes 0/1/2 are 
+generate two sets of files. For dominant model, they are "prefix.MetaDominant.assoc" and "prefix.MetaDominantCov.assoc.gz"; for recessive model,
+they are "prefix.MetaRecessive.assoc" and "prefix.MetaRecessiveCov.assoc.gz". Internally, in dominant models, genotypes 0/1/2 are coded as 0/1/1; in recessive models, genotypes 0/1/2 are 
 coded as 0/0/1. Missing genotypes will be imputed to the mean.</p>
-
-<p>It is of intersts to meta-analyze the association reuslts of dominant/recessive model. That requires covariance matrix generated under dominant (or recessive) model.
-Use <code>--meta dominantCov</code> (or <code>--meta recessiveCov</code>) will generate <code>prefix.MetaDominantCov.assoc.gz</code> (or <code>prefix.MetaRecessiveCov.assoc.gz</code>).</p>
 
 <h1>
 <a name="input-files" class="anchor" href="#input-files"><span class="octicon octicon-link"></span></a>Input files</h1>
@@ -501,20 +499,20 @@ beta distribution parameters for upweighting rare variants. Rvtests will output 
 <td align="left">standard score tests</td>
 </tr>
 <tr>
-<td align="left">Dominant coding score test</td>
+<td align="left">Dominant model</td>
 <td align="center">dominant</td>
 <td align="center">Q</td>
 <td align="center">Y</td>
 <td align="center">R, U</td>
-<td align="left">score tests, dominant disease model</td>
+<td align="left">score tests and covariance matrix under dominant disease model</td>
 </tr>
 <tr>
-<td align="left">Recessive coding score test</td>
+<td align="left">Recessive model</td>
 <td align="center">recessive</td>
 <td align="center">Q</td>
 <td align="center">Y</td>
 <td align="center">R, U</td>
-<td align="left">score tests, recessive disease model</td>
+<td align="left">score tests and covariance matrix under recessive disease model</td>
 </tr>
 <tr>
 <td align="left">Covariance</td>
@@ -523,22 +521,6 @@ beta distribution parameters for upweighting rare variants. Rvtests will output 
 <td align="center">Y</td>
 <td align="center">R, U</td>
 <td align="left">covariance matrix</td>
-</tr>
-<tr>
-<td align="left">Dominant coding covariance</td>
-<td align="center">dominantCov</td>
-<td align="center">Q</td>
-<td align="center">Y</td>
-<td align="center">R, U</td>
-<td align="left">covariance matrix using dominant coding</td>
-</tr>
-<tr>
-<td align="left">Recessive coding covariance</td>
-<td align="center">recessiveCov</td>
-<td align="center">Q</td>
-<td align="center">Y</td>
-<td align="center">R, U</td>
-<td align="left">covariance matrix using recessive coding</td>
 </tr>
 </tbody>
 </table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--meta score,cov</code> will generate score statistics and covariance matrix for meta-analysis.

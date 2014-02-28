@@ -144,7 +144,7 @@ int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
       continue;
     }
     if (p.add(fd[0], fd[1], fd[2], fd[3]) < 0) {
-      fprintf(stderr, "Encounter error when adding line %d.\n\n", lineNo);
+      fprintf(stderr, "Encounter error when adding line %d.\n", lineNo);
     }
     if (fd.size() >= 5 )
       p.addGender(fd[1], fd[4]);

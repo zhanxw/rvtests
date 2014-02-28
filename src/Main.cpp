@@ -1,61 +1,3 @@
-/**
-   immediately TODO:
-   31. Family burden
-   12. Add support multi-thread
-   13. Add optional weight
-   25. Take optional weight, e.g. GERP
-
-   DONE:
-   2. support access INFO tag
-   5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
-   8. Make code easy to use ( hide PeopleSet and RangeList)
-   9. Inclusion/Exclusion set should be considered sequentially.
-   8. force loading index when read by region.
-   3. support tri-allelic (fix some relateds codes when output vcf/plink file)
-   9. Add more filter to individuals (see VCFExtractor)
-   10. Fast VCF INFO field retrieve (VCFInfo class has cache)
-   1. fix suppport PLINK output
-   1. handle different format GT:GD:DP ... // use getFormatIndex()
-   8. Test permutation test
-   11. Fast VCF Individual inner field retrieve
-   14. for vcflib, getInfoTag(), also return how many tags are there.
-   16. add KBAC
-   18. add binary phenotype support
-   12. Design command line various models (collapsing method, freq-cutoff)
-   4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
-   5. loading phenotype  (need tests now).
-   14. support VCF specify given locationsNSample
-   15. region class support union, support region names
-   17. add permutation tests (mb, skat)
-   7. Test VT
-   6. Test CMC
-   20. Add rare cover
-   21. Add CMAT
-   18. Add filtering on GD, GQ
-   19. Add command line support for different imputation methods
-   5. loading covariate
-   27. Output .MetaCov.assoc into gzipped format
-   26. Take family structure into consideration.
-   28. Display monomorhpic in MetaScore model
-   24. Conditional analysis + burden test (via --condition)
-   29. Cache score test to speed things up.
-   30. When taking covariates, check if the covariates are unique, if so, generate a warning and abort.
-   34. Output null model for meta analysis
-   35. Output case/control frequencies
-   36. Support BCF file
-   37. Support dosage (imputed genotypes)
-   33. Support sex chromosome coding.
-   23. Add dominant model
-
-   Future TODO:
-   22. Add U-statistics
-   38. Support SKAT-O
-
-   Not sure if worthy to do:
-   32. Optional output tag from VCF
-
-*/
-
 #include "base/Argument.h"
 #include "base/IO.h"
 #include "base/SimpleMatrix.h"
@@ -94,7 +36,7 @@
 
 Logger* logger = NULL;
 
-#define VERSION "20140220"
+#define VERSION "20140227"
 
 void banner(FILE* fp) {
   const char* string =
@@ -104,7 +46,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      January 2014                      ...   \n"
+      "      ...      February 2014                     ...   \n"
       "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
@@ -146,6 +88,7 @@ class GenotypeExtractor{
       }
       int GDidx = r.getFormatIndex("GD");
       int GQidx = r.getFormatIndex("GQ");
+      bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
       // e.g.: Loop each (selected) people in the same order as in the VCF
       for (int i = 0; i < (int)people.size(); i++) {
         indv = people[i];
@@ -155,7 +98,17 @@ class GenotypeExtractor{
           if (useDose) {
             m[row][i] = indv->justGet(genoIdx).toDouble();
           } else {
-            m[row][i] = indv->justGet(genoIdx).getGenotype();
+            if (!hemiRegion) {
+              m[row][i] = indv->justGet(genoIdx).getGenotype();
+            } else {
+              if ((*sex)[i] == PLINK_MALE) {
+                m[row][i] = indv->justGet(genoIdx).getMaleNonParGenotype02();
+              } else if ((*sex)[i] == PLINK_FEMALE){
+                m[row][i] = indv->justGet(genoIdx).getGenotype();
+              } else {
+                m[row][i] = MISSING_GENOTYPE;
+              }
+            }
           }
           if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
             m[row][i] = MISSING_GENOTYPE;
@@ -182,12 +135,6 @@ class GenotypeExtractor{
     g->Transpose(m);
     for (int i = 0; i < row; ++i) {
       g->SetColumnLabel(i, colNames[i].c_str());
-    }
-    // adjust male chrX genotype
-    for (int i = 0; i < g->cols; ++i) {
-      if (this->hemiRegion[i] == true) {
-        adjustSexGenotype(g, i);
-      }
     }
     return 0;
   };
@@ -227,6 +174,8 @@ class GenotypeExtractor{
     // int GTidx = r.getFormatIndex("GT");
     int GDidx = r.getFormatIndex("GD");
     int GQidx = r.getFormatIndex("GQ");
+
+    bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
     // e.g.: Loop each (selected) people in the same order as in the VCF
     for (size_t i = 0; i < people.size(); i++) {
       indv = people[i];
@@ -236,7 +185,17 @@ class GenotypeExtractor{
         if (useDose) {
           genotype[i][0] = indv->justGet(genoIdx).toDouble();
         } else {
-          genotype[i][0] = indv->justGet(genoIdx).getGenotype();
+          if (!hemiRegion) {
+            genotype[i][0] = indv->justGet(genoIdx).getGenotype();
+          } else {
+            if ((*sex)[i] == PLINK_MALE) {
+              genotype[i][0] = indv->justGet(genoIdx).getMaleNonParGenotype02();
+            } else if ((*sex)[i] == PLINK_FEMALE){
+              genotype[i][0] = indv->justGet(genoIdx).getGenotype();
+            } else {
+              genotype[i][0] = MISSING_GENOTYPE;
+            }
+          }
         }
         if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
           genotype[i][0] = MISSING_GENOTYPE;
@@ -262,12 +221,13 @@ class GenotypeExtractor{
     } else {
       this->hemiRegion[0] = false;
     }
-    // adjust male chrX genotype
-    if (this->hemiRegion[0])
-      adjustSexGenotype(g, 0);
+    // // adjust male chrX genotype
+    // if (this->hemiRegion[0])
+    //   adjustSexGenotype(g, 0);
     return 0;
   }
 
+#if 1
   /**
    * Adjust genotype matrix @param geno (people by marker) at column @param col
    * These adjustment only happen to male chromX genotypes
@@ -302,6 +262,7 @@ class GenotypeExtractor{
     }
     return 0;
   }
+#endif
 
   // @return true if GD is valid
   // if GD is missing, we will take GD = 0
@@ -610,6 +571,7 @@ int main(int argc, char** argv){
 
       ADD_PARAMETER_GROUP(pl, "Specify Genotype")
       ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC)")
+      // ADD_STRING_PARAMETER(pl, glTag, "--gl", "Specify which genotype likelihood tag to use. (e.g. GL)")
 
       ADD_PARAMETER_GROUP(pl, "Chromsome X Options")
       ADD_STRING_PARAMETER(pl, xLabel, "--xLabel", "Specify X chromosome label (default: 23|X")
@@ -663,6 +625,7 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Impute missing genotype (default:mean):  mean, hwe, and drop")
       ADD_BOOL_PARAMETER(pl, imputePheno, "--imputePheno", "Impute phenotype to mean of those have genotypes but no phenotpyes")
+      ADD_BOOL_PARAMETER(pl, imputeCov, "--imputeCov", "Impute each covariate to its mean, instead of drop samples with missing covariates")
 
       ADD_PARAMETER_GROUP(pl, "Conditional Analysis")
       ADD_STRING_PARAMETER(pl, condition, "--condition", "Specify markers to be conditions (specify range)")
@@ -819,6 +782,11 @@ int main(int argc, char** argv){
 
   // load covariate
   Matrix covariate;
+  HandleMissingCov handleMissingCov = COVARIATE_DROP;
+  if (FLAG_imputeCov) {
+    handleMissingCov = COVARIATE_IMPUTE;
+  }
+
   if (FLAG_cov.empty() && !FLAG_covName.empty()) {
     logger->info("Use phenotype file as covariate file [ %s ]", FLAG_pheno.c_str());
     FLAG_cov = FLAG_pheno;
@@ -827,7 +795,13 @@ int main(int argc, char** argv){
     logger->info("Begin to read covariate file.");
     std::vector<std::string> columnNamesInCovariate;
     std::set< std::string > sampleToDropInCovariate;
-    int ret = loadCovariate(FLAG_cov.c_str(), phenotypeNameInOrder, FLAG_covName.c_str(), &covariate, &columnNamesInCovariate, &sampleToDropInCovariate );
+    int ret = loadCovariate(FLAG_cov.c_str(),
+                            phenotypeNameInOrder,
+                            FLAG_covName.c_str(),
+                            handleMissingCov,
+                            &covariate,
+                            &columnNamesInCovariate,
+                            &sampleToDropInCovariate);
     if (ret < 0) {
       logger->error("Load covariate file failed !");
       abort();
@@ -933,12 +907,15 @@ int main(int argc, char** argv){
       if (covariate.cols > 0) {
         LinearRegression lr;
         Vector pheno;
-        centerVector(&phenotypeInOrder);
-        pheno.Dimension(phenotypeInOrder.size());
-        for (size_t i = 0; i < phenotypeInOrder.size(); ++i){
-          pheno[(int)i] = phenotypeInOrder[i];
-        }
-        if (!lr.FitLinearModel(covariate, pheno)) {
+        Matrix covAndInt;
+        copy(phenotypeInOrder, &pheno);
+        // centerVector(&phenotypeInOrder);
+        // pheno.Dimension(phenotypeInOrder.size());
+        // for (size_t i = 0; i < phenotypeInOrder.size(); ++i){
+        //   pheno[(int)i] = phenotypeInOrder[i];
+        // }
+        copyCovariateAndIntercept(covariate.rows, covariate, &covAndInt);
+        if (!lr.FitLinearModel(covAndInt, pheno)) {
           logger->error("Cannot fit model: [ phenotype ~ 1 + covariates ], now use the original phenotype");
         } else {
           int n = lr.GetResiduals().Length();
@@ -946,15 +923,15 @@ int main(int argc, char** argv){
             phenotypeInOrder[i] = lr.GetResiduals()[i];
           }
           covariate.Dimension(0,0);
-          logger->info("DONE: Fit model [ phenotype ~ covariates ] and model residuals will be used as responses.");
+          logger->info("DONE: Fit model [ phenotype ~ 1 + covariates ] and model residuals will be used as responses.");
         }
       } else{ // no covaraites
-        centerVector(&phenotypeInOrder);      
+        centerVector(&phenotypeInOrder);
         logger->info("DONE: Use residual as phenotype by centerng it");
       }
     }
   }
-  
+
   // phenotype transformation
   g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
   if (FLAG_inverseNormal) {
@@ -1115,6 +1092,7 @@ int main(int argc, char** argv){
     for (size_t i = 0; i < argModelName.size(); i++ ){
       parser.parse(argModelName[i]);
       modelName = parser.getName();
+      int windowSize;
 
       if (modelName == "score") {
         model.push_back( new MetaScoreTest() );
@@ -1123,11 +1101,20 @@ int main(int argc, char** argv){
       } else if (modelName == "recessive") {
         model.push_back( new MetaRecessiveTest() );
       } else if (modelName == "cov") {
-        int windowSize;
         parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %d to produce covariance statistics", windowSize);
+        logger->info("Meta analysis uses window size %s to produce covariance statistics", toStringWithComma(windowSize).c_str());
         model.push_back( new MetaCovTest(windowSize) );
-      } else if (modelName == "skew") {
+      } else if (modelName == "dominantcov") {
+        parser.assign("windowSize", &windowSize, 1000000);
+        logger->info("Meta analysis uses window size %s to produce covariance statistics", toStringWithComma(windowSize).c_str());
+        model.push_back( new MetaDominantCovTest(windowSize) );
+      } else if (modelName == "recessivecov") {
+        parser.assign("windowSize", &windowSize, 1000000);
+        logger->info("Meta analysis uses window size %s to produce covariance statistics", toStringWithComma(windowSize).c_str());
+        model.push_back( new MetaRecessiveCovTest(windowSize) );
+      }
+#if 0
+      else if (modelName == "skew") {
         int windowSize;
         parser.assign("windowSize", &windowSize, 1000000);
         logger->info("Meta analysis uses window size %d to produce skewnewss statistics", windowSize);
@@ -1137,7 +1124,9 @@ int main(int argc, char** argv){
         parser.assign("windowSize", &windowSize, 1000000);
         logger->info("Meta analysis uses window size %d to produce kurtosis statistics", windowSize);
         model.push_back( new MetaKurtTest(windowSize) );
-      } else {
+      }
+#endif
+      else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
       };
@@ -1164,15 +1153,11 @@ int main(int argc, char** argv){
     s += ".";
     s += model[i]->getModelName();
     s += ".assoc";
-    if (model[i]->getModelName() == "MetaCov") {
-      s += ".gz";
-      fOuts[i] = new FileWriter(s.c_str(), BGZIP);
-      metaFileToIndex.push_back(s);
-    } else if (model[i]->getModelName() == "MetaSkew") {
-      s += ".gz";
-      fOuts[i] = new FileWriter(s.c_str(), BGZIP);
-      metaFileToIndex.push_back(s);
-    } else if (model[i]->getModelName() == "MetaKurt") {
+    if (model[i]->getModelName() == "MetaCov" ||
+        model[i]->getModelName() == "MetaSkew" ||
+        model[i]->getModelName() == "MetaKurt" ||
+        model[i]->getModelName() == "MetaDominantCov" ||                
+        model[i]->getModelName() == "MetaRecessiveCov") {
       s += ".gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
       metaFileToIndex.push_back(s);
@@ -1316,7 +1301,7 @@ int main(int argc, char** argv){
   // set up par region
   ParRegion parRegion(FLAG_xLabel, FLAG_xParRegion);
   dc.setParRegion(&parRegion);
-  
+
   // genotype will be extracted and stored
   Matrix genotype;
   GenotypeExtractor ge(&vin);

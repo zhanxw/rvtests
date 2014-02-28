@@ -83,7 +83,7 @@ inline void imputeGenotypeToMean(Matrix* genotype) {
         m[j][i] = g;
       }
     }
-    // fprintf(stderr, "impute to mean = %g, ac = %d, an = %d", g, ac, an);
+    // fprintf(stderr, "impute to mean = %g, ac = %d, an = %d\n", g, ac, an);
   }
 };
 

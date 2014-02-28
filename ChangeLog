@@ -1,4 +1,14 @@
-2014-02-11  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2014-02-27  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Change: for X chrom, also use male to get AF
+	* Support generating covariance matrix for dominant/recessive model
+	* Change now, by default, rvtests drops samples with missing covariates (to resume previous behavior, imputing to the mean, use --imputeCov). 
+	
+2014-02-20  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Revise --useResidualAsPhenotype, now regress out intercept by default
+
+2014-02-11  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix bug in MetaCov outputs
 

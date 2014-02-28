@@ -43,42 +43,46 @@
 // convert double/int/byte to string type
 template<class T>
 inline std::string toString(T i){
-    std::stringstream ss;
-    ss << i;
-    return ss.str();
+  std::stringstream ss;
+  ss << i;
+  return ss.str();
 }
 
 // convert double/float to string type
 // we try to mimic the '%g' in printf
 template<class T>
 inline std::string floatToString(T i){
-    std::stringstream ss;
-    ss.precision(6);
-    ss << std::noshowpoint << i;
-    return ss.str();
+  std::stringstream ss;
+  ss.precision(6);
+  ss << std::noshowpoint << i;
+  return ss.str();
 }
+
+// convert int to comma-separated string type
+// e.g. -123456 => "-123,456"
+std::string toStringWithComma(int in);
 
 // convert std::string to integer
 // @return true if conversion succeed
 inline bool str2int(const char* input, int* output) {
-    char* endptr;
-    long val;
-    errno = 0;
-    val = strtol(input, &endptr, 10);
+  char* endptr;
+  long val;
+  errno = 0;
+  val = strtol(input, &endptr, 10);
 
-    if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
-        || (errno != 0 && val == 0)) {
-        perror("strtol");
-        return false;
-    }
+  if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
+      || (errno != 0 && val == 0)) {
+    perror("strtol");
+    return false;
+  }
 
-    if (endptr == input) {
-        // no digits found
-        return false;
-    }
+  if (endptr == input) {
+    // no digits found
+    return false;
+  }
 
-    *output = val;
-    return true;
+  *output = val;
+  return true;
 }
 
 // convert std::string to integer
@@ -90,45 +94,45 @@ inline bool str2int(const std::string& input, int* output) {
 // convert std::string to double
 // @return true if conversion succeed
 inline bool str2double(const char* input, double* output) {
-    char* endptr;
-    double val;
+  char* endptr;
+  double val;
 
-    errno = 0;
-    val = strtod(input, &endptr);
+  errno = 0;
+  val = strtod(input, &endptr);
 
-    if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL))
-        || (errno != 0 && val == 0.)) {
-        perror("strtod");
-        return false;
-    }
+  if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL))
+      || (errno != 0 && val == 0.)) {
+    perror("strtod");
+    return false;
+  }
 
-    if (endptr == input) {
-        // no digits found
-        return false;
-    }
-    *output = val;
-    return true;
+  if (endptr == input) {
+    // no digits found
+    return false;
+  }
+  *output = val;
+  return true;
 }
 inline bool str2double(std::string& input, double* output) {
   return str2double(input.c_str(), output);
 }
 
 inline int atoi(const std::string& s) {
-    int result;
-    bool ret = str2int(s.c_str(), & result);
-    if (!ret) {
-        return 0;
-    }
-    return result;
+  int result;
+  bool ret = str2int(s.c_str(), & result);
+  if (!ret) {
+    return 0;
+  }
+  return result;
 };
 
 inline double atof(const std::string& s) {
-    double result;
-    bool ret = str2double(s.c_str(), & result);
-    if (!ret) {
-        return 0.0;
-    }
-    return result;
+  double result;
+  bool ret = str2double(s.c_str(), & result);
+  if (!ret) {
+    return 0.0;
+  }
+  return result;
 };
 
 // convert std::string to double
@@ -140,7 +144,7 @@ inline bool isdigit(const std::string& s) {
   }
   return true;
 }
-  
+
 /**
  * convert @param chrom to integer for easier comparisons
  * leading "chr" will not be considered

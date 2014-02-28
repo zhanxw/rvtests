@@ -220,7 +220,7 @@ int VCFInputFile::setSiteFile(const std::string& fn) {
   std::string chromPos;
   while(lr.readLineBySep(&fd, "\t ")) {
     if (fd.empty()) continue;
-    if (fd.size() >= 1 && fd[0].find(':')!= std::string::npos) {
+    if (fd[0].find(':')!= std::string::npos) {
       this->allowedSite.insert(fd[0]);
       continue;
     }

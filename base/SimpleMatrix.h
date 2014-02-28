@@ -9,7 +9,7 @@
  * This matrix class is for convenient store matrix class.
  */
 class SimpleMatrix{
-public:
+ public:
   SimpleMatrix() {};
   SimpleMatrix(int nr, int nc) {
     this->resize(nr, nc);
@@ -48,13 +48,13 @@ public:
     }
 
     mat.resize(d.size());
-    for (unsigned int i = 0; i < d.size(); i++) {
+    for (size_t i = 0; i < d.size(); i++) {
       mat[i].push_back(d[i]);
     }
     return 0;
   }
   int deleteRow(int i) {
-    if (i < 0 || i > (int)mat.size()) return -1;
+    if (i < 0 || (size_t)i > mat.size()) return -1;
     mat.erase(mat.begin() + i);
     if (!rowName.empty())
       rowName.erase(rowName.begin() + i);
@@ -89,7 +89,7 @@ public:
     return mat[0].size();
   };
   const std::vector<std::string>& getRowName() const{ return this->rowName;};
-  const std::vector<std::string>& getColName() const{ return this->colName;};  
+  const std::vector<std::string>& getColName() const{ return this->colName;};
   int setRowName(const int idx, const std::string& s){
     if (idx < 0 || idx >= nrow()) return -1;
     rowName.resize(nrow());
@@ -102,7 +102,7 @@ public:
     colName[idx] = s;
     return 0;
   }
-private:
+ private:
   std::vector<std::string> rowName;
   std::vector<std::string> colName;
   std::vector< std::vector<double> > mat;

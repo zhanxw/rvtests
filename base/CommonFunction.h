@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <set>
+#include <map>
 #include "gsl/gsl_cdf.h"
 #include "Utils.h"
 
@@ -31,33 +32,50 @@ OrderFunction(T& t): v(t) {};
  * extract second element:
  * 2, 1, 0, 3
  */
-inline void order(std::vector<double>& freq, std::vector<int>* ord) {
-  ord->resize(freq.size());
-  for (size_t i = 0; i < freq.size(); ++i)
+inline void order(std::vector<double>& in, std::vector<int>* ord) {
+  ord->resize(in.size());
+  for (size_t i = 0; i < in.size(); ++i)
     (*ord)[i] = i;
 
-  OrderFunction< std::vector<double> > func(freq);
+  OrderFunction< std::vector<double> > func(in);
   std::sort(ord->begin(), ord->end(), func);
 };
 
-inline void order(std::vector<int>& freq, std::vector<int>* ord) {
-  ord->resize(freq.size());
-  for (size_t i = 0; i < freq.size(); ++i)
+inline void order(std::vector<int>& in, std::vector<int>* ord) {
+  ord->resize(in.size());
+  for (size_t i = 0; i < in.size(); ++i)
     (*ord)[i] = i;
 
-  OrderFunction< std::vector<int> > func(freq);
+  OrderFunction< std::vector<int> > func(in);
   std::sort(ord->begin(), ord->end(), func);
 };
 
 /**
  * Calculate rank, using average for ties.
+ * Rank starts at 0.
+ * For tie rank, rank = (rank_min + rank_high) / 2
  */
-inline void calculateRank(std::vector<double>& freq, std::vector<int>* res) {
-  std::vector<int> ord;
-  order(freq, &ord);
-  order(ord, res);
-  
-  // calculate the mean of rank if there are ties
+inline void calculateRank(std::vector<double>& in, std::vector<double>* out) {
+  std::map<double, double> counter;
+  for (size_t i = 0; i != in.size(); ++i) {
+    counter[in[i]] ++;
+  }
+  int low = 0; // start with lowest rank
+  int high = 0;
+  std::map<double, double>::iterator it = counter.begin();
+  for (; it != counter.end(); ++it) {
+    high = low + it->second;
+    if (it -> second == 1) { // not a tie
+      it->second = low;
+    } else { // encounter tie
+      it->second = 0.5 * (low + (low + it->second - 1.0) );
+    }
+    low = high;    
+  }
+  out->resize(in.size());
+  for (size_t i = 0; i != in.size(); ++i) {
+    (*out)[i] = counter[ in[i] ];
+  }
 };
 
 inline double pnorm(double x) {
@@ -119,12 +137,12 @@ inline double calculateSampleSD(const std::vector<double>& v ){
 inline void inverseNormalizeLikeMerlin(std::vector<double>* y){
   if (!y || !y->size()) return;
   const int n = y->size();
-  std::vector<int> yRank;
+  std::vector<double> yRank;
   calculateRank(*y, &yRank);
 
   // change order to 1-based rank
   for (int i = 0; i < n; ++i ) {
-    (*y)[i] = qnorm( ( 0.5 + yRank[i]) / n );
+    (*y)[i] = qnorm( ( 0.5 + yRank[i]) / n ); // rank start with 0, so + 0.5 here
     // fprintf(stderr, "%zu - %g - %d \n", i,  (*y)[i], ord[i]);
   }
   /* double m = calculateMean(*y); */

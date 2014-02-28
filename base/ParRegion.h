@@ -18,7 +18,7 @@
 class ParRegion{
  public:
   ParRegion() {
-    init("chrX,X,23", "hg19");
+    init("chrX,X,chr23,23", "hg19");
   }
   ParRegion(const std::string& xLabel,
             const std::string& parRegion) {
@@ -82,15 +82,15 @@ class ParRegion{
    */
   bool isParRegion(const std::string& chrom,
                    int pos) const {
-    if (label.count(chrom) > 0 &&
-        inParRegion(pos))
+    if (this->isParRegionChrom(chrom) &&
+        this->inParRegion(pos))
       return true;
     return false;
   }
   bool isHemiRegion(const std::string& chrom,
                     int pos) const {
-  if (label.count(chrom) > 0 &&
-      !inParRegion(pos))
+  if (this->isParRegionChrom(chrom) &&
+      !this->inParRegion(pos))
       return true;
     return false;
   }
@@ -133,7 +133,7 @@ class ParRegion{
   }
  private:
   std::set<std::string> label;
-  std::vector< std::pair<int, int> > region;
+  std::vector< std::pair<int, int> > region; // inclusive booundaries
 };
 
 #endif /* _PARREGION_H_ */

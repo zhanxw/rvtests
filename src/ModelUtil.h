@@ -1,6 +1,15 @@
 #ifndef _MODELUTIL_H_
 #define _MODELUTIL_H_
 
+void copy(const std::vector<double>& in, Vector* o){
+  Vector& out = *o;
+  out.Dimension(in.size());
+  int n = in.size();
+  for (int i = 0; i < n; ++i){
+    out[i] = in[i];
+  }
+};
+
 
 void copyPhenotype(Matrix& in, Vector* o){
   Vector& out = *o;

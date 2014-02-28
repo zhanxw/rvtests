@@ -161,38 +161,6 @@ class SingleVariantWaldTest: public ModelFitter{
   bool fitOK;
 }; // SingleVariantWaldTest
 
-/* /\** */
-/*  * @return 0 if success */
-/*  *\/ */
-/* int checkHWEandCallRate(Matrix& geno, int* homRef, int* het, int* homAlt, double* hweP, double* callRate) { */
-/*   *homRef = *het = *homAlt = 0; */
-/*   *hweP = 0.0; */
-/*   *callRate = 0.0; */
-
-/*   int nonMissingGeno = 0; */
-/*   int totalGeno = geno.rows; */
-
-/*   for (int i = 0; i < totalGeno; ++i) { */
-/*     const int& g = geno[i][0]; */
-/*     if (g < 0) continue; */
-/*     if (g == 0) { */
-/*       ++ (*homRef); */
-/*       ++ (nonMissingGeno); */
-/*     } else if (g == 1) { */
-/*       ++ (*het); */
-/*       ++ (nonMissingGeno); */
-/*     } else if (g == 2) { */
-/*       ++ (*homAlt); */
-/*       ++ (nonMissingGeno); */
-/*     } */
-/*   } */
-/*   if (totalGeno) */
-/*     (*callRate) = 1.0 * nonMissingGeno / totalGeno; */
-/*   if ( (*homRef) >= 0 && (*het) >= 0 && (*homAlt) >= 0) */
-/*     (*hweP) = SNPHWE( (*het), (*homRef), (*homAlt)); */
-/*   return 0; */
-/* } */
-
 class SingleVariantScoreTest: public ModelFitter{
  public:
   SingleVariantScoreTest(){
@@ -2076,7 +2044,6 @@ class MetaScoreTest: public ModelFitter{
     this->isHemiRegion = dc->isHemiRegion(0);
 
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
-    
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
     int nSample = (homRef + het + homAlt + missing);
@@ -2085,24 +2052,30 @@ class MetaScoreTest: public ModelFitter{
     } else {
       callRate = 0.0;
     }
-
-    // use female info to get hwe and af
+    // use all samples to get af
+    if (nSample){
+      af = 0.5 * (het + 2. * homAlt) / (homRef + het + homAlt);
+    } else {
+      af = 0.0;
+    }
+    // fprintf(stderr, "af = %g\n", af);
+    // use female info to get HWE
     if (isHemiRegion) {
       dc->countRawGenotypeFromFemale(0, &homRef, &het, &homAlt, &missing);
     }
     if (homRef + het + homAlt == 0 ||
         (het < 0 || homRef < 0 || homAlt < 0)) {
       hweP = 0.0;
-      af = 0.0;
       hwePvalueFromCase = 0.0;
-      afFromCase = 0.0;
       hwePvalueFromControl = 0.0;
-      afFromControl = 0.0;
+      // af = 0.0;
+      // afFromCase = 0.0;
+      // afFromControl = 0.0;
     } else {
       hweP = SNPHWE( het, homRef, homAlt);
-      af = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
+      // af = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
     }
-
+               
     // handle binary cases
     if (isBinaryOutcome()) {
       int homRefCase, hetCase, homAltCase, missingCase;
@@ -2379,7 +2352,6 @@ class MetaRecessiveTest: public MetaScoreTest{
   Matrix geno;
 };
 
-  
 class MetaCovTest: public ModelFitter{
  private:
   typedef std::vector<double> Genotype;
@@ -2422,9 +2394,12 @@ class MetaCovTest: public ModelFitter{
   }
 
   // fitting model
-  int fit(DataConsolidator* dc) {
+  virtual int fit(DataConsolidator* dc) {
+    Matrix& genotype  = dc->getGenotype();
+    return this->fitWithGivenGenotype(genotype, dc);
+  }
+  int fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
-    Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
     Result& siteInfo = dc->getResult();
     this->isHemiRegion = dc->isHemiRegion(0);
@@ -2774,6 +2749,34 @@ class MetaCovTest: public ModelFitter{
   bool isHemiRegion; // is the variant tested in hemi region
 }; // MetaCovTest
 
+class MetaDominantCovTest: public MetaCovTest{
+ public:
+  MetaDominantCovTest(int windowSize): MetaCovTest(windowSize) {
+    this->modelName = "MetaDominantCov";
+  }
+  virtual int fit(DataConsolidator* dc) {
+    dc->codeGenotypeForDominantModel(&geno);
+    return fitWithGivenGenotype(geno, dc);
+  }
+ private:
+  Matrix geno;
+};
+
+class MetaRecessiveCovTest: public MetaCovTest{
+ public:
+  MetaRecessiveCovTest(int windowSize): MetaCovTest(windowSize) {
+    this->modelName = "MetaRecessiveCov";
+  }
+  virtual int fit(DataConsolidator* dc) {
+    dc->codeGenotypeForRecessiveModel(&geno);
+    return fitWithGivenGenotype(geno, dc);
+  }
+ private:
+  Matrix geno;
+};
+
+
+#if 0
 class MetaSkewTest: public ModelFitter{
  private:
   typedef std::vector<double> Genotype;
@@ -3381,6 +3384,8 @@ class MetaKurtTest: public ModelFitter{
   std::map< std::pair<std::string, int>, bool> hasSmallPvalue;
   double mafThreshold;
 }; // MetaKurtTest
+
+#endif
 
 class DumpModel: public ModelFitter{
  public:

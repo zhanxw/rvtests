@@ -6,6 +6,8 @@
 
 extern Logger* logger;
 
+typedef enum {COVARIATE_IMPUTE, COVARIATE_DROP} HandleMissingCov;
+
 /**
  * Extract covaraite from file @param fn.
  * Only samples included in @param includedSample will be processed
@@ -19,6 +21,7 @@ extern Logger* logger;
 int extractCovariate(const std::string& fn,
                      const std::vector<std::string>& sampleToInclude,
                      const std::vector<std::string>& covNameToUse,
+                     HandleMissingCov handleMissingCov,
                      SimpleMatrix* mat,
                      std::set<std::string>* sampleToDrop) {
   std::set<std::string> includeSampleSet;
@@ -31,6 +34,8 @@ int extractCovariate(const std::string& fn,
   std::map< std::string, int > processed; // record how many times a sample is processed
   std::set< std::pair<int, int> > missing; // record which number is covaraite is missing.
   int missingCovariateWarning = 0; // record how many times a missing warning is geneated.
+  bool missingValueInLine; // record whether there is missing value in the line
+  int missingLines = 0; // record how many lines has missing values
   std::vector<int> columnToExtract;
   std::vector<std::string> extractColumnName;
   std::vector< std::string > fd;
@@ -72,7 +77,7 @@ int extractCovariate(const std::string& fn,
         logger->error("Inconsistent column number in covariate file line [ %d ] - skip this file!", lineNo);
         return -1;
       }
-      if (includeSampleSet.find(fd[1]) == includeSampleSet.end()) {
+      if (includeSampleSet.find(fd[1]) == includeSampleSet.end()) { // does not have phenotype
         noPhenotypeSample.push_back(fd[1]);
         continue;
       };
@@ -84,25 +89,42 @@ int extractCovariate(const std::string& fn,
       int idx = (*mat).nrow();
       (*mat).resize( idx + 1, columnToExtract.size());
       (*mat).setRowName(idx, fd[1]);
-      
+
+      missingValueInLine = false;
       for (int i = 0; i < (int)columnToExtract.size(); ++i) {
         double d;
         if (str2double(fd[columnToExtract[i]], &d)) {
           (*mat)[idx][i] = d;
-        } else {
+        } else { // found missing
+          missingValueInLine = true;
           ++ missingCovariateWarning;
           if (missingCovariateWarning <= 10) {
-            logger->warn("Covariate file line [ %d ] has non-numerical value [ %s ], we will impute to its mean.", lineNo, fd[columnToExtract[i]].c_str());
+            if (handleMissingCov == COVARIATE_IMPUTE) {
+              logger->warn("Covariate file line [ %d ] has non-numerical value [ %s ], we will impute to its mean.", lineNo, fd[columnToExtract[i]].c_str());
+            } else if (handleMissingCov == COVARIATE_DROP) {
+              logger->warn("Covariate file line [ %d ] has non-numerical value [ %s ], we will skip this sample.", lineNo, fd[columnToExtract[i]].c_str());
+            }
           }
           (*mat)[idx][i] = 0.0; // will later be updated
           missing.insert( std::make_pair(idx, i) );
         };
       }
+      if (!missing.empty() && handleMissingCov == COVARIATE_DROP) {
+        // drop row and row name
+        (*mat).deleteRow( (*mat).nrow() - 1 );
+        missing.clear();
+      }
+      missingLines += missingValueInLine ? 1 : 0;
     }
   }
   if (missingCovariateWarning > 10) {
-    logger->warn("Total [ %d ] lines in covariate file contain non-numerical values, we will impute these to their mean.", missingCovariateWarning - 10);    
+    if (handleMissingCov == COVARIATE_IMPUTE) {
+      logger->warn("Total [ %d ] lines in covariate file contain non-numerical values, we will impute these to their mean.", missingLines);
+    } else if (handleMissingCov == COVARIATE_DROP) {
+      logger->warn("Total [ %d ] lines in covariate file contain non-numerical values, we will skip these lines.", missingLines);
+    }
   }
+  
   // output samples in covaraite but without phenotype
   for (size_t i = 0; i < noPhenotypeSample.size(); ++i) {
     if (i == 0)
@@ -125,6 +147,10 @@ int extractCovariate(const std::string& fn,
     };
   }
 
+  if (handleMissingCov == COVARIATE_DROP) {
+    assert(missing.empty());
+    return (*mat).nrow();
+  }
   // impute missing covariates to mean by column
   for (int col = 0; col < mat->ncol(); ++col) {
     double sum = 0;
@@ -164,12 +190,13 @@ int extractCovariate(const std::string& fn,
 int loadCovariate(const std::string& fn,
                   const std::vector<std::string>& includedSample,
                   const std::vector<std::string>& covNameToUse,
+                  HandleMissingCov handleMissingCov,
                   Matrix* covariate,
                   std::vector<std::string>* colNames,
                   std::set< std::string >* sampleToDrop) {
   // load covariate
   SimpleMatrix mat;
-  int ret = extractCovariate(fn, includedSample, covNameToUse, &mat, sampleToDrop);
+  int ret = extractCovariate(fn, includedSample, covNameToUse, handleMissingCov, &mat, sampleToDrop);
   if (ret < 0) {
     return -1;
   }
@@ -204,6 +231,7 @@ int loadCovariate(const std::string& fn,
 int loadCovariate(const std::string& fn,
                   const std::vector<std::string>& includedSample,
                   const std::string& covNameToUse,
+                  HandleMissingCov handleMissingCov,
                   Matrix* covariate,
                   std::vector<std::string>* colNames,
                   std::set< std::string >* sampleToDrop) {
@@ -217,7 +245,7 @@ int loadCovariate(const std::string& fn,
     logger->error("Unable to include duplicated samples.");
     return -1;
   }
-  return loadCovariate(fn, includedSample, fd, covariate, colNames, sampleToDrop);
+  return loadCovariate(fn, includedSample, fd, handleMissingCov, covariate, colNames, sampleToDrop);
 }
   
 /**
@@ -533,7 +561,9 @@ int removeByIndex(const std::vector<int>& index,
       ++nRemoved;
       continue;
     }
-    (*val)[last] = (*val)[i];
+    if (last != i) {
+      (*val)[last] = (*val)[i];
+    }
     ++last;
   }
   val->resize(last);

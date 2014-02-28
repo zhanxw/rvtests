@@ -12,12 +12,12 @@
  * the versatile format to store value for VCF file.
  */
 class VCFValue{
-public:
+ public:
   const char* line;
   int beg; // inclusive
   int end; // exclusive, and beg <= end
-VCFValue():line(NULL), beg(0), end(0){};
-public:
+  VCFValue():line(NULL), beg(0), end(0){};
+ public:
   int toInt() const{
     if (!line) return 0;
     return atoi(line+beg);
@@ -65,18 +65,20 @@ public:
       fputc(line[i], fp);
     }
   };
-public:
+ public:
   // try to convert to genotype
   int getGenotype() const{
     int g = 0;
     int p = beg;
     if (line[p] == '.')
       return MISSING_GENOTYPE;
-    if (line[p] < '0')
+    if (line[p] < '0') {
       REPORT("Wrong genotype detected. [1]");
-    else
+      return MISSING_GENOTYPE;
+    } else {
       g += line[p] - '0';
-
+    }
+    
     p ++ ;
     if (p == end)
       return g;
@@ -85,8 +87,10 @@ public:
     }
 
     p ++;
-    if (p == end)
+    if (p == end) {
       REPORT("Wrong genotype length = 2");
+      return MISSING_GENOTYPE;
+    }
     if (line[p] == '.')
       return MISSING_GENOTYPE;
     if (line[p] < '0')
@@ -100,6 +104,44 @@ public:
     }
     return g;
   };
+  /**
+   * return male genotype (0 or 2 or missing) that is located in Non-PAR region
+   * (1) encoded as haploid, only "0", "1" is allowed and coded as 0, 2
+   * (2) encoded as dipolid, only "0|0", "1|1", "0/0", "1/1" is allowed, and
+   *     will coded as 0, 2
+   * (3) all other genotypes will be coded as missing
+   */
+  int getMaleNonParGenotype02() const {
+    int g = getAllele1();
+    if (g == MISSING_GENOTYPE) return MISSING_GENOTYPE;
+    if (isHaploid()) {
+      if (g == 0) return 0;
+      if (g == 1) return 2;
+      return MISSING_GENOTYPE;
+    }
+
+    // diploid case
+    int g2 = getAllele2();
+    if (g2 == MISSING_GENOTYPE) return MISSING_GENOTYPE;
+    if (g == g2) {
+      if (g == 0) return 0;
+      if (g == 1) return 2;
+    }
+    return MISSING_GENOTYPE;
+  };
+  /**
+   * return male genotype (0 or 2 or missing) that is located in Non-PAR region
+   * (1) encoded as haploid, only "0", "1" is allowed and coded as 0, 1
+   * (2) encoded as dipolid, only "0|0", "1|1", "0/0", "1/1" is allowed, and
+   *     will coded as 0, 1
+   * (3) all other genotypes will be coded as missing
+   */
+  int getMaleNonParGenotype01() const {
+    int g = getMaleNonParGenotype01();
+    if (g == 2) return 1;
+    return g;
+  }
+  
   /**
    * @return 0 or 1 or 2 as genotype
    */

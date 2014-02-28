@@ -103,9 +103,14 @@ We support both unrelated individuals and related indivudlas (e.g. family data).
 
 The file `input.kinship` is calculated by `vcf2kinship` program, and usage to this program is described in [Related individual tests](#related-individual-tests).
 
+### Dominant model and recessive model
+
 Dominant and recessive disease models are supported by appending "dominant" and/or "recessive" after "--meta" option. For example, use "--meta dominant,recessive" will 
 generate two files ".MetaDominant.assoc" and ".MetaRecessive.assoc". Details: In dominant models, genotypes 0/1/2 are coded as 0/1/1. In recessive models, genotypes 0/1/2 are 
 coded as 0/0/1. Missing genotypes will be imputed to the mean.
+
+It is of intersts to meta-analyze the association reuslts of dominant/recessive model. That requires covariance matrix generated under dominant (or recessive) model.
+Use `--meta dominantCov` (or `--meta recessivecov`) will generate `prefix.MetaDominantCov.assoc.gz` (or `prefix.MetaRecessiveCov.assoc.gz`).
 
 # Input files
 
@@ -119,6 +124,8 @@ Here are the commands to convert plain text format to bgzipped VCF format:
     tabix -f -p vcf $your_vcf_file
 
 The above commands will (1) remove the `chr` prefix from chromosome names; (2) sort VCF files by chromosome first, then by chromosomal positions; (3) compress using bgzip; (4) create tabix index.
+
+Rvtests support genotype dosages. Use `--dosage DosageTag` to specify the dosage tag. For example, if VCF format field is "GT:EC" and individual genotype fields is "0/0:0.02", you can use `--dosage EC`, and rvtests will use the dosage 0.02 in the regression models.
 
 ## Phenotype file
 
@@ -170,7 +177,7 @@ In meta analysis, an exemplar command for using rvtest looks like the following:
     ./rvtest --inVcf $vcf --pheno $example.pheno --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out $output_prefix  
 
 # Models
-	
+
 Rvtests support various association models.
 
 ## Single variant tests
@@ -366,6 +373,39 @@ In summary, options related to *Grouping Unit* are listed below:
                           setName chr:beg-end)
                   --set : specify which set to test (1st column)
 
+
+# Sex chromosome analysis
+
+male genotype coding
+
+internal coding for male is always 0 and 2
+
+meta assoc HWE calculation from female
+
+example code to generate kinship
+
+example code to generate meta
+
+
+
+# Further help
+
+## FAQ
+
+* Does rvtests suppport binary traits of related-individuals?
+
+Not yet. It's a complex scenario and we have not found good solutions.
+
+* Can you provide a list of command line options?
+
+Rvtests have build help taht can be found by executing `rvtest --help`.
+We also put all available options in this link:
+(Todo) XXX
+
+* Can you provide standard error or confidence interval for the estimated Beta in the score model?
+
+In the output of MetaScore model (--meta score), the standard error is the inverse of SQRT_V_STAT.
+For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta is 1/2 = 0.5.
 
 # Contact
 

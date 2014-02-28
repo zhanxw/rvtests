@@ -4,7 +4,8 @@ EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange \
       testVCFMissingIndex testBCFMissingIndex \
       testReadBCFByRange \
       testVCFExtractChromX \
-      testVCFSite
+      testVCFSite \
+      testVCFExtractChromXPar \
 
 all: $(EXE)
 debug: all
@@ -34,7 +35,7 @@ endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
 check: check1 check2 check3 check4 check5 check6 check7 check8 check9 check10 \
-       check11 check12
+       check11 check12 check13 check14
 check1:
 	./testPlinkInputFile > testPlinkInputFile.output
 	diff -q testPlinkInputFile.output testPlinkInputFile.output.correct
@@ -76,5 +77,8 @@ check12:
 check13:
 	./testVCFSite > testVCFSite.output
 	diff -q testVCFSite.output testVCFSite.correct
+check14:
+	./testVCFExtractChromXPar > testVCFExtractChromXPar.output
+	diff -q testVCFExtractChromXPar.output testVCFExtractChromXPar.output.correct
 clean:
 	-rm -f $(EXE) *.d *.output

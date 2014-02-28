@@ -1,0 +1,6 @@
+--------- Extract for male PAR region -------------------------------------------------------------
+CHROM:POS	AC	AN	AF	GENOTYPES...
+X:60001				-9	0	2	2	0	-9	-9	-9	
+--------- Extract as autosomal region -------------------------------------------------------------
+CHROM:POS	AC	AN	AF	GENOTYPES...
+X:60001				-9	0	1	2	0	1	-9	-9	

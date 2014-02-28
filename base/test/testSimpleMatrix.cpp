@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     assert (m.nrow() == 3);
     assert (m.ncol() == 2);
 
-    m.clear();
+    m.zero();
     assert (m[0][0] == 0.0);
     assert (m[2][1] == 0.0);
     

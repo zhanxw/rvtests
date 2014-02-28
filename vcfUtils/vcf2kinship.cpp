@@ -24,9 +24,6 @@
 #include "Regex.h"
 #include "ParRegion.h"
 
-#define PLINK_MALE 1
-#define PLINK_FEMALE 2
-
 class EmpiricalKinship{
  public:
   virtual int addGenotype(const std::vector<double>& g) = 0;
@@ -208,7 +205,7 @@ class BaldingNicolsKinship: public EmpiricalKinship {
         ++nonMiss;
       }
     }
-    if (sum == 0.0) return 0;
+    if (sum == 0.0) return 0; // monomorphic site
 
     double mean = 0.0;
     double scale = 0.0;
@@ -233,6 +230,7 @@ class BaldingNicolsKinship: public EmpiricalKinship {
     const size_t numG = g.size();
 #pragma omp for
     for (size_t i = 0; i < numG; ++i) {
+      if (geno[i] == 0.0) continue; // skip missing marker
       for (size_t j = 0; j <= i; ++j) {
         // if (i == 0 && j == 0) {
         //   fprintf(stderr, "k[0][0] = %g\n", k[0][0]);
@@ -274,6 +272,8 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
  public:
   BaldingNicolsKinshipForX(): n(0) {};
 
+  // male genotypes should be coded as 0, 1, -9
+  // female gentoypes should be coded as 0, 1, 2, -9
   // missing genotype is less than 0.0
   int addGenotype(const std::vector<double>& g) {
     if (n == 0) {
@@ -309,39 +309,39 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
         }
       }
     }
-    if (sum == 0.0) return 0;
+    if (sum == 0.0) return 0; // monomorphic site
 
-    double mean = 0.0;
-    double scaleMM = 0.0;
-    double scaleMF = 0.0;
-    double scaleFF = 0.0;
-
-    mean = sum / alleleCount;
-    scaleMM = sqrt(1.0 / (1.0 - mean) / mean);
-    scaleMF = sqrt(2.0) * scaleMM;
-    scaleFF = 2.0 * scaleMM;
-
+    double af = sum /alleleCount;
+    double meanM = af;
+    double meanF = 2.0 * af;
+    double scaleM = sqrt(1.0 / (1.0 - af) / af);
+    double scaleF = scaleM * sqrt(0.5); // make sure the variance of female is half of male
+                                        // as we will code male as 0/2 in the association test
+                                        // that means variance of male genotype doubles
+                                        // the variance of female (4pq vs. 2pq)
+    
     for (size_t i = 0 ; i < geno.size(); ++i) {
-      geno[i] -= mean;
-      if ((*sex)[i] == PLINK_FEMALE)
-        geno[i] -= mean;
+      if (geno[i] < 0 ) {
+        geno[i] = 0.0;
+      } else {
+        if ((*sex)[i] == PLINK_MALE) {
+          geno[i] -= meanM;
+          geno[i] *= scaleM;
+        } else if ((*sex)[i] == PLINK_FEMALE) {
+          geno[i] -= meanF;
+          geno[i] *= scaleF;
+        } else { // sex unknown
+          geno[i] = 0.0;
+        }
+      }
     }
 
     const size_t numG = g.size();
 #pragma omp for
     for (size_t i = 0; i < numG; ++i) {
+      if (geno[i] == 0.0) continue; // skip missing marker
       for (size_t j = 0; j <= i; ++j) {
-        // as missing genotypes are coded as -9,
-        // non missing genotype minus its mean should be larger than -5.
-        if (geno[i] >= -5 || geno[j] >= -5) {
-          if ( (*sex)[i] == PLINK_MALE && (*sex)[j] == PLINK_MALE) {
-            k[i][j] += (geno[i] * geno[j]) * scaleMM;
-          } else if ( (*sex)[i] == PLINK_FEMALE && (*sex)[j] == PLINK_FEMALE) {
-            k[i][j] += (geno[i] * geno[j]) * scaleFF;
-          } else {
-            k[i][j] += (geno[i] * geno[j]) * scaleMF;
-          }
-        }
+        k[i][j] += geno[i] * geno[j];
       }
     }
     // fprintf(stderr, "mean = %g, scale = %g, k[0][0] = %g\n", mean, scale, k[0][0]);
@@ -385,7 +385,7 @@ void usage(int argc, char** argv) {
 }
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20140204"
+#define VERSION "20140227"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s)\n", PROGRAM, VERSION);
@@ -479,13 +479,13 @@ int main(int argc, char** argv){
     useEmpKinship = true;
     fprintf(stderr, "Empiricial kinship will be calculated.\n");
 
-    if (!FLAG_ped.empty() ^ FLAG_xHemi){
-      fprintf(stderr, "Please specify --ped input.ped and --xHemi together.\n");
-      abort();
-    }    
+    if (!FLAG_xHemi && !FLAG_ped.empty()) {
+      fprintf(stderr, "Warning: Specified parameter --ped has no effect.\n");      
+    }
+    
     if (FLAG_xHemi) {
       if (FLAG_ped.empty()) {
-        fprintf(stderr, "Failed to calculate kinship from X chromosome as PED file is missing!\n");
+        fprintf(stderr, "Failed to calculate kinship from X chromosome as PED file is missing! Please specify --ped input.ped and --xHemi together.\n");
         abort();
       }
       if (FLAG_ibs) {
@@ -714,10 +714,24 @@ int main(int argc, char** argv){
     int nMiss = 0;
     int totalAC = 0;
     bool hemiRegion = parRegion.isHemiRegion(chrom, pos);
+    // don't process hemi region unless specified
+    if (!FLAG_xHemi && hemiRegion) continue;
+    
     // extract data
     for (size_t i = 0; i < people.size() ;i ++) {
       indv = people[i];
-      geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists
+      if (!hemiRegion) {
+        geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists
+      } else {
+        if (sex[i] == 1) {
+          geno = indv->get(GTidx, &missing).getMaleNonParGenotype01();
+        } else if (sex[i] == 2) {
+          geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists          
+        } else {
+          geno = MISSING_GENOTYPE;
+          missing = true;
+        }
+      }
       if (!missing && geno >= 0 && GDidx >= 0) {
         int gd = indv->get(GDidx, &missing).toInt();
         if (gd < FLAG_minGD) {
@@ -730,10 +744,6 @@ int main(int argc, char** argv){
           missing = true;
         }
       }
-      // don't allow male het site
-      if (FLAG_xHemi && sex[i] == 1 && geno == 1 && hemiRegion) {
-        missing = true;
-      }
 
       // set genotype
       if (missing || geno < 0) {
@@ -745,7 +755,7 @@ int main(int argc, char** argv){
         if (geno != 0)
           hasVariant = true;
 
-        if (FLAG_xHemi && sex[i] == 1 && hemiRegion) { // 1 is PLINK_MALE
+        if (hemiRegion && sex[i] == 1) { // 1 is PLINK_MALE
           totalAC += 1;
         } else{
           totalAC += 2;
@@ -774,7 +784,7 @@ int main(int argc, char** argv){
 
     // fprintf(stderr, "chrom = %s, pos %d\n", r.getChrom(), r.getPos());
     
-    if (!parRegion.isHemiRegion(chrom, pos)) {
+    if (!hemiRegion) {
       // process autosomal
       int ch = atoi(chopChr(chrom));
       if ( (ch > 0 && ch <= 22) || parRegion.isParRegion(chrom, pos)) {
@@ -872,9 +882,6 @@ int output( const std::vector<std::string>& famName,
         m(i, j) = mat[i][j];
       }
     }
-
-    // delete kinship; // release memory
-    // kinship = NULL;
 
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(m);
     if (es.info() == Eigen::Success) {

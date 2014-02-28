@@ -2025,9 +2025,9 @@ class KbacTest: public ModelFitter{
 class MetaScoreTest: public ModelFitter{
  public:
   MetaScoreTest():
-      linearFamScore(FastLMM::SCORE, FastLMM::MLE),
+      linearFamScoreForAuto(FastLMM::SCORE, FastLMM::MLE),
       linearFamScoreForX(FastLMM::SCORE, FastLMM::MLE),      
-      needToFitNullModel(true),
+      needToFitNullModelForAuto(true),
       needToFitNullModelForX(true){
     this->modelName = "MetaScore";
   };
@@ -2128,13 +2128,13 @@ class MetaScoreTest: public ModelFitter{
     if (this->useFamilyModel) {
       if (!isBinaryOutcome()) { // quant trait
         if (!isHemiRegion) {
-          if (needToFitNullModel ||
+          if (needToFitNullModelForAuto ||
               dc->isPhenotypeUpdated() ||
               dc->isCovariateUpdated()) {
             copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-            fitOK = (0 == linearFamScore.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+            fitOK = (0 == linearFamScoreForAuto.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
             if (!fitOK) return -1;
-            needToFitNullModel = false;
+            needToFitNullModelForAuto = false;
           }
         } else { // hemi region
           if (!dc->hasKinshipForX()) {
@@ -2152,8 +2152,8 @@ class MetaScoreTest: public ModelFitter{
         }
 
         if (!isHemiRegion) {
-          fitOK = (0 == linearFamScore.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
-          this->af = linearFamScore.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(), dc->getGenotype());
+          fitOK = (0 == linearFamScoreForAuto.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+          this->af = linearFamScoreForAuto.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(), dc->getGenotype());
         } else {
           fitOK = (0 == linearFamScoreForX.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()) ? true: false);
           this->af = linearFamScoreForX.GetAF(*dc->getKinshipUForX(), *dc->getKinshipSForX(), dc->getGenotype());          
@@ -2173,23 +2173,23 @@ class MetaScoreTest: public ModelFitter{
       }
     } else { // unrelated
       if (!isBinaryOutcome()) { // continuous/quantative trait
-        if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+        if (this->needToFitNullModelForAuto || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
           copyCovariateAndIntercept(genotype.rows, covariate, &cov);
           copyPhenotype(phenotype, &this->pheno);
           fitOK = linear.FitNullModel(cov, pheno);
           if (!fitOK) return -1;
-          needToFitNullModel = false;
+          needToFitNullModelForAuto = false;
         }
         fitOK = linear.TestCovariate(cov, pheno, genotype);
         if (!fitOK) return -1;
       } else { // binary trait
         // fit null model
-        if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+        if (this->needToFitNullModelForAuto || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
           copyCovariateAndIntercept(genotype.rows, covariate, &cov);
           copyPhenotype(phenotype, &this->pheno);
           fitOK = logistic.FitNullModel(cov, pheno, 100);
           if (!fitOK) return -1;
-          needToFitNullModel = false;
+          needToFitNullModelForAuto = false;
         }
         fitOK = logistic.TestCovariate(cov, pheno, genotype);
         if (!fitOK) return -1;
@@ -2264,11 +2264,19 @@ class MetaScoreTest: public ModelFitter{
     if (fitOK) {
       if (this->useFamilyModel) {
         if (!isBinaryOutcome()) {
-          result.updateValue("U_STAT", linearFamScore.GetUStat());
-          result.updateValue("SQRT_V_STAT", sqrt(linearFamScore.GetVStat()));
-          result.updateValue("ALT_EFFSIZE", linearFamScore.GetVStat() != 0.0 ?
-                             linearFamScore.GetUStat() / linearFamScore.GetVStat() : 0.0);
-          result.updateValue("PVALUE", linearFamScore.GetPValue());
+          if (!isHemiRegion) {
+            result.updateValue("U_STAT", linearFamScoreForAuto.GetUStat());
+            result.updateValue("SQRT_V_STAT", sqrt(linearFamScoreForAuto.GetVStat()));
+            result.updateValue("ALT_EFFSIZE", linearFamScoreForAuto.GetVStat() != 0.0 ?
+                               linearFamScoreForAuto.GetUStat() / linearFamScoreForAuto.GetVStat() : 0.0);
+            result.updateValue("PVALUE", linearFamScoreForAuto.GetPValue());
+          } else {
+            result.updateValue("U_STAT", linearFamScoreForX.GetUStat());
+            result.updateValue("SQRT_V_STAT", sqrt(linearFamScoreForX.GetVStat()));
+            result.updateValue("ALT_EFFSIZE", linearFamScoreForX.GetVStat() != 0.0 ?
+                               linearFamScoreForX.GetUStat() / linearFamScoreForX.GetVStat() : 0.0);
+            result.updateValue("PVALUE", linearFamScoreForX.GetPValue());
+          }
         } else {
           /* result.updateValue("U_STAT", logistic.GetU()[0][0]); */
           /* result.updateValue("SQRT_V_STAT", sqrt(logistic.GetV()[0][0])); */
@@ -2303,7 +2311,7 @@ class MetaScoreTest: public ModelFitter{
   LogisticRegressionScoreTest logistic;
   LogisticRegression logisticAlt;
   // QT linear model for related
-  FastLMM linearFamScore;
+  FastLMM linearFamScoreForAuto;
   FastLMM linearFamScoreForX;
   
   bool fitOK;
@@ -2319,7 +2327,7 @@ class MetaScoreTest: public ModelFitter{
   double hwePvalueFromControl;
   double callRate;
 
-  bool needToFitNullModel;
+  bool needToFitNullModelForAuto;
   bool needToFitNullModelForX;  
   bool useFamilyModel;
 

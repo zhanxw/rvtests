@@ -137,7 +137,7 @@ class VCFValue{
    * (3) all other genotypes will be coded as missing
    */
   int getMaleNonParGenotype01() const {
-    int g = getMaleNonParGenotype01();
+    int g = getMaleNonParGenotype02();
     if (g == 2) return 1;
     return g;
   }

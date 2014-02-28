@@ -286,7 +286,6 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
       return -1;
     }
 
-
     geno.resize(g.size());
     double sum = 0.0;
     // double sumSquare = 0.0;

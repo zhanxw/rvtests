@@ -28,9 +28,7 @@
     <div id="content-wrapper">
       <div class="inner clearfix">
         <section id="main-content">
-          <p><strong>Table of Contents</strong>  </p>
-
-<ul>
+          <ul>
 <li><a href="#introduction">Introduction</a></li>
 <li><a href="#download">Download</a></li>
 <li>
@@ -40,7 +38,13 @@
 <li><a href="#single-variant-tests">Single variant tests</a></li>
 <li><a href="#groupwise-tests">Groupwise tests</a></li>
 <li><a href="#related-individual-tests">Related individual tests</a></li>
-<li><a href="#meta-analysis-tests">Meta-analysis tests</a></li>
+<li>
+<a href="#meta-analysis-tests">Meta-analysis tests</a>
+
+<ul>
+<li><a href="#dominant-model-and-recessive-model">Dominant model and recessive model</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li>
@@ -61,6 +65,7 @@
 <li><a href="#burden-tests">Burden tests</a></li>
 <li><a href="#variable-threshold-models">Variable threshold models</a></li>
 <li><a href="#kernel-models">Kernel models</a></li>
+<li><a href="#meta-analysis-models">Meta-analysis models</a></li>
 <li><a href="#utility-models">Utility models</a></li>
 </ul>
 </li>
@@ -70,12 +75,14 @@
 <ul>
 <li><a href="#sample-inclusionexclusion">Sample inclusion/exclusion</a></li>
 <li><a href="#variant-site-filters">Variant site filters</a></li>
-<li><a href="#genotyep-filters">Genotyep filters</a></li>
+<li><a href="#genotype-filters">Genotype filters</a></li>
 <li><a href="#handle-missing-genotypes-and-phenotypes">Handle missing genotypes and phenotypes</a></li>
 <li><a href="#specify-groups-eg-burden-unit">Specify groups (e.g burden unit)</a></li>
 </ul>
 </li>
-<li><a href="#contact">Contact</a></li>
+<li><a href="#sex-chromosome-analysis">Sex chromosome analysis</a></li>
+<li><a href="#frequently-asked-questions-faq">Frequently Asked Questions (FAQ)</a></li>
+<li><a href="#feedbackcontact">Feedback/Contact</a></li>
 </ul><p><a href="https://travis-ci.org/zhanxw/rvtests"><img src="https://travis-ci.org/zhanxw/rvtests.png?branch=master" alt="Build Status"></a></p>
 
 <h1>
@@ -164,9 +171,15 @@ You can use command:</p>
 
 <p>The file <code>input.kinship</code> is calculated by <code>vcf2kinship</code> program, and usage to this program is described in <a href="#related-individual-tests">Related individual tests</a>.</p>
 
+<h3>
+<a name="dominant-model-and-recessive-model" class="anchor" href="#dominant-model-and-recessive-model"><span class="octicon octicon-link"></span></a>Dominant model and recessive model</h3>
+
 <p>Dominant and recessive disease models are supported by appending "dominant" and/or "recessive" after "--meta" option. For example, use "--meta dominant,recessive" will 
 generate two files ".MetaDominant.assoc" and ".MetaRecessive.assoc". Details: In dominant models, genotypes 0/1/2 are coded as 0/1/1. In recessive models, genotypes 0/1/2 are 
 coded as 0/0/1. Missing genotypes will be imputed to the mean.</p>
+
+<p>It is of intersts to meta-analyze the association reuslts of dominant/recessive model. That requires covariance matrix generated under dominant (or recessive) model.
+Use <code>--meta dominantCov</code> (or <code>--meta recessiveCov</code>) will generate <code>prefix.MetaDominantCov.assoc.gz</code> (or <code>prefix.MetaRecessiveCov.assoc.gz</code>).</p>
 
 <h1>
 <a name="input-files" class="anchor" href="#input-files"><span class="octicon octicon-link"></span></a>Input files</h1>
@@ -183,6 +196,8 @@ tabix -f -p vcf $your_vcf_file
 </code></pre>
 
 <p>The above commands will (1) remove the <code>chr</code> prefix from chromosome names; (2) sort VCF files by chromosome first, then by chromosomal positions; (3) compress using bgzip; (4) create tabix index.</p>
+
+<p>Rvtests support genotype dosages. Use <code>--dosage DosageTag</code> to specify the dosage tag. For example, if VCF format field is "GT:EC" and individual genotype fields is "0/0:0.02", you can use <code>--dosage EC</code>, and rvtests will use the dosage 0.02 in the regression models.</p>
 
 <h2>
 <a name="phenotype-file" class="anchor" href="#phenotype-file"><span class="octicon octicon-link"></span></a>Phenotype file</h2>
@@ -459,9 +474,75 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 To further customize SKAT test, you can use *--kernel skat[nPerm=100:alpha=0.001:beta1=1:beta2=20]</em> to specify permutation counts, type-1 error, 
 beta distribution parameters for upweighting rare variants. Rvtests will output a message showing: </p>
 
-<p>[INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)</p>
+<pre><code>[INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)
+</code></pre>
 
 <p>(#) In trait column, B and Q stand for binary, quantitiave trait.</p>
+
+<h2>
+<a name="meta-analysis-models" class="anchor" href="#meta-analysis-models"><span class="octicon octicon-link"></span></a>Meta-analysis models</h2>
+
+<table>
+<thead><tr>
+<th align="left">Type</th>
+<th align="center">Model(*)</th>
+<th align="center">Traits(#)</th>
+<th align="center">Covariates</th>
+<th align="center">Related / unrelated</th>
+<th align="left">Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="left">Score test</td>
+<td align="center">score</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">standard score tests</td>
+</tr>
+<tr>
+<td align="left">Dominant coding score test</td>
+<td align="center">dominant</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">score tests, dominant disease model</td>
+</tr>
+<tr>
+<td align="left">Recessive coding score test</td>
+<td align="center">recessive</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">score tests, recessive disease model</td>
+</tr>
+<tr>
+<td align="left">Covariance</td>
+<td align="center">cov</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">covariance matrix</td>
+</tr>
+<tr>
+<td align="left">Dominant coding covariance</td>
+<td align="center">dominantCov</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">covariance matrix using dominant coding</td>
+</tr>
+<tr>
+<td align="left">Recessive coding covariance</td>
+<td align="center">recessiveCov</td>
+<td align="center">Q</td>
+<td align="center">Y</td>
+<td align="center">R, U</td>
+<td align="left">covariance matrix using recessive coding</td>
+</tr>
+</tbody>
+</table><p>(*) Model columns list the regconized names in rvtests. For example, use <code>--meta score,cov</code> will generate score statistics and covariance matrix for meta-analysis.
+(#) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.</p>
 
 <h2>
 <a name="utility-models" class="anchor" href="#utility-models"><span class="octicon octicon-link"></span></a>Utility models</h2>
@@ -528,7 +609,7 @@ VCF with annotatino information are called annotated VCF here. And to annotate
 a VCF file, you can use <a href="https://github.com/zhanxw/anno">ANNO</a>, a fast and accurate annotation software.</p>
 
 <h2>
-<a name="genotyep-filters" class="anchor" href="#genotyep-filters"><span class="octicon octicon-link"></span></a>Genotyep filters</h2>
+<a name="genotype-filters" class="anchor" href="#genotype-filters"><span class="octicon octicon-link"></span></a>Genotype filters</h2>
 
 <p>Genotype with low depth or low quality can be filtered out by these options:</p>
 
@@ -602,7 +683,45 @@ but do not want to make another file, you can use <code>--setList 2:500-600</cod
 </code></pre>
 
 <h1>
-<a name="contact" class="anchor" href="#contact"><span class="octicon octicon-link"></span></a>Contact</h1>
+<a name="sex-chromosome-analysis" class="anchor" href="#sex-chromosome-analysis"><span class="octicon octicon-link"></span></a>Sex chromosome analysis</h1>
+
+<p>Rvtests suppport X chromosome analysis. In human X chromosome, there is PAR (pseudoautosomal region) and non-PAR region.
+For males, there are two X allele in PAR region and one allele in non-PAR region.
+While the PAR region is treated in the same way as autosomes, rvtests treate non-PAR region differently.
+Below we will describe the details about how rvtests handles non-PAR region.</p>
+
+<p><em>Prepare data</em>. According to VCF standard, male genotype needs to coded as 0 or 1. For compatibility, rvtests also support 0/0 or 1/1 coding. 
+In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1/1". All other genotypes will be treated as missing.</p>
+
+<p><em>Genotype in the regression model</em>. For consistencmaine, male genotypes are converted to 0 or 2.</p>
+
+<p><em>MetaScore results</em>. If specify <code>--meta score</code>, the output file <code>prefix.MetaScore.assoc</code> includes PAR-region and non-PAR region analysis. 
+But in the non-PAR region, the difference is that Hardy-Weinberg P-value are calculated using female samples.</p>
+
+<p><em>Related individuals</em>. Just append <code>--xHemi</code> to the <code>vcf2kinship</code> and <code>rvtest</code> command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.</p>
+
+<p><em>PAR region</em>. PAR region is defined as two regions X:60001-2699520 and X:154931044-155270560. Use <code>--xLabel</code> can speicify which chromosome has PAR region (default: 23|X)
+and use <code>--xParRegion</code> to specify PAR region (default: hg19, meaning '60001-2699520,154931044-155260560' in the UCSC build hg19, specify "hg18" will use PAR region definition in the UCSC build hg18).</p>
+
+<h1>
+<a name="frequently-asked-questions-faq" class="anchor" href="#frequently-asked-questions-faq"><span class="octicon octicon-link"></span></a>Frequently Asked Questions (FAQ)</h1>
+
+<ul>
+<li>Does rvtests suppport binary traits of related-individuals?</li>
+</ul><p>Not yet. It's a complex scenario and we have not found good solutions.</p>
+
+<ul>
+<li>Can you provide a list of command line options?</li>
+</ul><p>Rvtests have build help taht can be found by executing <code>rvtest --help</code>.
+We also put all available options in this <a href="https://github.com/zhanxw/rvtests/wiki/Command-Line-Options">link</a>.</p>
+
+<ul>
+<li>Can you provide standard error (SE) or confidence interval (CI) for the estimated Beta in the score model?</li>
+</ul><p>In the output of MetaScore model (--meta score), the standard error is the inverse of SQRT_V_STAT.
+For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta is 1/2 = 0.5.</p>
+
+<h1>
+<a name="feedbackcontact" class="anchor" href="#feedbackcontact"><span class="octicon octicon-link"></span></a>Feedback/Contact</h1>
 
 <p>Questions and requests can be sent to Xiaowei Zhan
 (<a href="mailto:zhanxw@umich.edu" title="mailto:zhanxw@umich.edu">zhanxw@umich.edu</a>)

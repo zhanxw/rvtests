@@ -419,7 +419,7 @@ Not yet. It's a complex scenario and we have not found good solutions.
 * Can you provide a list of command line options?
 
 Rvtests have build help taht can be found by executing `rvtest --help`.
-We also put all available options in this link: [CommandList.wiki]
+We also put all available options in this [link](https://github.com/zhanxw/rvtests/wiki/Command-Line-Options).
 
 * Can you provide standard error (SE) or confidence interval (CI) for the estimated Beta in the score model?
 

@@ -603,7 +603,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
-      ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov")
+      ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov, dominant, recessive, dominantCov, recessiveCov")
 
       ADD_PARAMETER_GROUP(pl, "Family-based Models")
       ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file for autosomal analysis, use vcf2kinship to generate")

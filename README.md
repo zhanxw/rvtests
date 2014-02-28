@@ -1,31 +1,3 @@
-**Table of Contents**  
-
-- [Introduction](#introduction)
-- [Download](#download)
-- [Quick Tutorial](#quick-tutorial)
-	- [Single variant tests](#single-variant-tests)
-	- [Groupwise tests](#groupwise-tests)
-	- [Related individual tests](#related-individual-tests)
-	- [Meta-analysis tests](#meta-analysis-tests)
-- [Input files](#input-files)
-	- [Genotype file (VCF)](#genotype-file-vcf)
-	- [Phenotype file](#phenotype-file)
-	- [Covariate file](#covariate-file)
-	- [Trait transformation](#trait-transformation)
-- [Models](#models)
-	- [Single variant tests](#single-variant-tests-1)
-	- [Burden tests](#burden-tests)
-	- [Variable threshold models](#variable-threshold-models)
-	- [Kernel models](#kernel-models)
-	- [Utility models](#utility-models)
-- [Association test options](#association-test-options)
-	- [Sample inclusion/exclusion](#sample-inclusionexclusion)
-	- [Variant site filters](#variant-site-filters)
-	- [Genotyep filters](#genotyep-filters)
-	- [Handle missing genotypes and phenotypes](#handle-missing-genotypes-and-phenotypes)
-	- [Specify groups (e.g burden unit)](#specify-groups-eg-burden-unit)
-- [Contact](#contact)
-
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
 # Introduction
@@ -110,7 +82,7 @@ generate two files ".MetaDominant.assoc" and ".MetaRecessive.assoc". Details: In
 coded as 0/0/1. Missing genotypes will be imputed to the mean.
 
 It is of intersts to meta-analyze the association reuslts of dominant/recessive model. That requires covariance matrix generated under dominant (or recessive) model.
-Use `--meta dominantCov` (or `--meta recessivecov`) will generate `prefix.MetaDominantCov.assoc.gz` (or `prefix.MetaRecessiveCov.assoc.gz`).
+Use `--meta dominantCov` (or `--meta recessiveCov`) will generate `prefix.MetaDominantCov.assoc.gz` (or `prefix.MetaRecessiveCov.assoc.gz`).
 
 # Input files
 
@@ -245,6 +217,20 @@ beta distribution parameters for upweighting rare variants. Rvtests will output 
 
 (#) In trait column, B and Q stand for binary, quantitiave trait.
 
+## Meta-analysis models
+
+Type | Model(*)    |Traits(#) | Covariates | Related / unrelated | Description
+:--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
+Score test          |  score      | Q  |     Y      |         R, U           | standard score tests
+Dominant coding score test       |  dominant   | Q  |     Y      |         R, U           | score tests, dominant disease model
+Recessive coding score test      |  recessive  | Q  |     Y      |         R, U           | score tests, recessive disease model
+Covariance          |  cov      | Q  |     Y      |         R, U           | covariance matrix
+Dominant coding covariance          |  dominantCov      | Q  |     Y      |         R, U           | covariance matrix using dominant coding
+Recessive coding covariance          |  recessiveCov      | Q  |     Y      |         R, U           | covariance matrix using recessive coding
+
+
+(#) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
+
 
 ## Utility models
 
@@ -376,21 +362,25 @@ In summary, options related to *Grouping Unit* are listed below:
 
 # Sex chromosome analysis
 
-male genotype coding
+Rvtests suppport X chromosome analysis. In human X chromosome, there is PAR (pseudoautosomal region) and non-PAR region.
+For males, there are two X allele in PAR region and one allele in non-PAR region.
+While the PAR region is treated in the same way as autosomes, rvtests treate non-PAR region differently.
+Below we will describe the details about how rvtests handles non-PAR region.
 
-internal coding for male is always 0 and 2
+*Prepare data*. According to VCF standard, male genotype needs to coded as 0 or 1. For compatibility, rvtests also support 0/0 or 1/1 coding. 
+In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1/1". All other genotypes will be treated as missing.
 
-meta assoc HWE calculation from female
+*Genotype in the regression model*. For consistencmaine, male genotypes are converted to 0 or 2.
 
-example code to generate kinship
+*MetaScore results*. If specify `--meta score`, the output file `prefix.MetaScore.assoc` includes PAR-region and non-PAR region analysis. 
+But in the non-PAR region, the difference is that Hardy-Weinberg P-value are calculated using female samples.
 
-example code to generate meta
+*Related individuals*. Just append `--xHemi` to the `vcf2kinship` and `rvtest` command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.
 
+*PAR region*. PAR region is defined as two regions X:60001-2699520 and X:154931044-155270560. Use `--xLabel` can speicify which chromosome has PAR region (default: 23|X)
+and use `--xParRegion` to specify PAR region (default: hg19, meaning '60001-2699520,154931044-155260560' in the UCSC build hg19, specify "hg18" will use PAR region definition in the UCSC build hg18).
 
-
-# Further help
-
-## FAQ
+# Frequently Asked Questions (FAQ)
 
 * Does rvtests suppport binary traits of related-individuals?
 
@@ -399,15 +389,14 @@ Not yet. It's a complex scenario and we have not found good solutions.
 * Can you provide a list of command line options?
 
 Rvtests have build help taht can be found by executing `rvtest --help`.
-We also put all available options in this link:
-(Todo) XXX
+We also put all available options in this link: [CommandList.wiki]
 
-* Can you provide standard error or confidence interval for the estimated Beta in the score model?
+* Can you provide standard error (SE) or confidence interval (CI) for the estimated Beta in the score model?
 
 In the output of MetaScore model (--meta score), the standard error is the inverse of SQRT_V_STAT.
 For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta is 1/2 = 0.5.
 
-# Contact
+# Feedback/Contact
 
 Questions and requests can be sent to Xiaowei Zhan
 ([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))

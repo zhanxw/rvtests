@@ -314,10 +314,12 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
     double meanM = af;
     double meanF = 2.0 * af;
     double scaleM = sqrt(1.0 / (1.0 - af) / af);
-    double scaleF = scaleM * sqrt(0.5); // make sure the variance of female is half of male
+    double scaleF = scaleM * (0.5);     // make sure the variance of female is half of male
                                         // as we will code male as 0/2 in the association test
                                         // that means variance of male genotype doubles
                                         // the variance of female (4pq vs. 2pq)
+    // original female variance = 2 * af * (1 - af), so need to divide scaleM by sqrt(2)
+    // then, to make female variance smaller, further divide by sqrt(2) again.
     
     for (size_t i = 0 ; i < geno.size(); ++i) {
       if (geno[i] < 0 ) {

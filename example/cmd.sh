@@ -1,5 +1,11 @@
+#!/bin/bash
 # each command here is an example of how to use rvtests
-# see README for more information
+# see README.md for more information
+
+if [ ! -e ../executable/rvtest ]; then
+    (cd ../; make)
+fi
+
 ../executable/rvtest --pheno pheno --inVcf example.vcf --single wald --out out1
 ../executable/rvtest --pheno pheno --inVcf example.vcf --single wald --mpheno 2 --out out2
 ../executable/rvtest --pheno pheno --inVcf example.vcf --single wald --pheno-name y2 --out out3

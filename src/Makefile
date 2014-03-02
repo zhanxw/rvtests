@@ -50,6 +50,10 @@ Main.o: Main.cpp ../GitVersion.h
 DataConsolidator.o: DataConsolidator.cpp DataConsolidator.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
+-include ModelFitter.d
+ModelFitter.o: ModelFitter.cpp ModelFitter.h
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+
 -include TabixUtil.d
 TabixUtil.o: TabixUtil.cpp TabixUtil.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__

@@ -22,10 +22,10 @@ release: $(DIR_EXEC)/$(EXEC)
 $(DIR_EXEC)/$(EXEC):  $(LIBS) \
                       Main.o \
                       DataConsolidator.o \
-                      ModelFitter.h \
+                      ModelFitter.o \
                       TabixUtil.o \
                       |$(DIR_EXEC)
-	$(CXX) -o $@ Main.o DataConsolidator.o TabixUtil.o $(CXX_FLAGS) $(CXX_LIB)
+	$(CXX) -o $@ Main.o DataConsolidator.o ModelFitter.o TabixUtil.o $(CXX_FLAGS) $(CXX_LIB)
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) 
@@ -33,10 +33,10 @@ $(DIR_EXEC_DBG)/$(EXEC): $(LIBS_DBG) \
                          Main.o \
                          DataConsolidator.o \
                          Collapsor.h \
-                         ModelFitter.h \
+                         ModelFitter.o \
                          TabixUtil.o \
                          | $(DIR_EXEC_DBG)
-	$(CXX) -o $@ Main.o DataConsolidator.o TabixUtil.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
+	$(CXX) -o $@ Main.o DataConsolidator.o ModelFitter.o TabixUtil.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
 
 
 ##################################################

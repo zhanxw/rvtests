@@ -28,6 +28,11 @@ class FastLMM::Impl{
   }
   int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
+    // sanity check
+    if (mat_Xnull.rows != mat_y.rows) return -1;
+    if (mat_Xnull.rows != kinshipU.mat.rows()) return -1;
+    if (mat_Xnull.rows != kinshipS.mat.rows()) return -1;
+    
     // type conversion
     G_to_Eigen(mat_Xnull, &this->ux);
     G_to_Eigen(mat_y, &this->uy);
@@ -237,7 +242,7 @@ class FastLMM::Impl{
     double af = 0.5 * beta(0, 0);
     return af;
   }
-  double GetPValue() const{
+  double GetPvalue() const{
     return this->pvalue;
   }
   double GetUStat() const {
@@ -305,8 +310,8 @@ double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
 double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol){
   return this->impl->GetAF(kinshipU, kinshipS, Xcol);
 }
-double FastLMM::GetPValue(){
-  return this->impl->GetPValue();
+double FastLMM::GetPvalue(){
+  return this->impl->GetPvalue();
 }
 double FastLMM::GetUStat() { return this->impl->GetUStat();};
 double FastLMM::GetVStat() { return this->impl->GetVStat();};

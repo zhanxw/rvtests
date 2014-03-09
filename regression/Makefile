@@ -15,7 +15,9 @@ SRC = LogisticRegression \
       GSLMinimizer \
       GrammarGamma \
       MetaCov \
-      FirthRegression
+      LogisticRegressionVT \
+      LinearRegressionVT \
+      FirthRegression \
 
 .PHONY: all release debug
 all: release
@@ -30,8 +32,9 @@ $(EIGEN_INC) $(EIGEN_LIB):
 
 GSL_INC = ../third/gsl/include
 
-$(KBAC_LIB): 
-	(cd kbac; make)
+MVTNORM_OBJ = libMvtnorm/mvtnorm.o libMvtnorm/mvt.o libMvtnorm/randomF77.o
+$(MVTNORM_OBJ):
+	cd libMvtnorm; make
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 release: CXXFLAGS = -O2 -msse2 -DNDEBUG $(DEFAULT_CXXFLAGS)
@@ -40,10 +43,10 @@ debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB-DBG)
 
 
-OBJ = $(SRC:%=%.o) $(KBAC_LIB)
-$(LIB): $(OBJ)
+OBJ = $(SRC:%=%.o)
+$(LIB): $(OBJ) $(MVTNORM_OBJ)
 	ar -cqs $@ $^
-$(LIB-DBG): $(OBJ)
+$(LIB-DBG): $(OBJ) $(MVTNORM_OBJ)
 	ar -cqs $@ $^
 
 define BUILD_each
@@ -55,7 +58,6 @@ define BUILD_each
 endef
 $(foreach s, $(SRC), $(eval $(call BUILD_each, $(s))))
 
-
 clean:
 	rm -rf *.o *.a *.d
 
@@ -63,3 +65,4 @@ test: Test.cpp $(LIB)
 	g++ -g $(CXXFLAGS) -c $< -I$(GONCALO_INC) 
 	g++ -g $(CXXFLAGS) -o $@ Test.o $(LIB) $(GONCALO_LIB) -lz
 	./test
+

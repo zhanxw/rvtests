@@ -6,7 +6,7 @@ void permute(Vector* vec1, Vector* vec2); //permute both vector.
 void centerVector(Vector* v);
 
 
-void permute(Vector* vec){
+inline void permute(Vector* vec){
   Vector& v = *vec;
   int n = v.Length();
   double tmp;
@@ -21,7 +21,7 @@ void permute(Vector* vec){
   }
 };
 
-void permute(Vector* vec1, Vector* vec2){
+inline void permute(Vector* vec1, Vector* vec2){
   Vector& v1 = *vec1;
   Vector& v2 = *vec2;
   int n = v1.Length();
@@ -41,7 +41,7 @@ void permute(Vector* vec1, Vector* vec2){
   }
 };
 
-void centerVector(Vector* v){
+inline void centerVector(Vector* v){
   double avg = v->Average();
   int n = v->Length();
   for (int i = 0; i < n; ++i) {
@@ -52,7 +52,7 @@ void centerVector(Vector* v){
 /*
  *@return -1: if error happen 
  */
-int corr(Vector& v1, Vector& v2, double* ret){
+inline int corr(Vector& v1, Vector& v2, double* ret){
   if (v1.Length() != v2.Length()) {
     return -1;
   }
@@ -84,12 +84,13 @@ int corr(Vector& v1, Vector& v2, double* ret){
   };
   return 0;
 };
+
 /**
  * copy m[,col] to @param v
  * @param: 0-based column index
  * @return 0 if OK
  */
-int extractColumn(Matrix& m, int col, Vector* v){
+inline int extractColumn(Matrix& m, int col, Vector* v){
   if (col >= m.cols) {
     v = NULL;
     return -1;

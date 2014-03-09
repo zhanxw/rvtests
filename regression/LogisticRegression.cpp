@@ -47,19 +47,19 @@ void printToFile(Matrix& m, String fn, int index) {
 
 class WorkingData {
  public:
-  Eigen::MatrixXf X;
-  Eigen::VectorXf r;    // residual
-  Eigen::VectorXf eta;  // X * beta
-  Eigen::VectorXf p;
-  Eigen::VectorXf V;    // p * (1-p)
-  Eigen::MatrixXf D;  //  X' V X
-  Eigen::MatrixXf covB; // (X' V X)^(-1)
-  Eigen::VectorXf beta;
-  Eigen::VectorXf delta_beta;
+  Eigen::MatrixXd X;
+  Eigen::VectorXd r;    // residual
+  Eigen::VectorXd eta;  // X * beta
+  Eigen::VectorXd p;
+  Eigen::VectorXd V;    // p * (1-p)
+  Eigen::MatrixXd D;  //  X' V X
+  Eigen::MatrixXd covB; // (X' V X)^(-1)
+  Eigen::VectorXd beta;
+  Eigen::VectorXd delta_beta;
 
-  Eigen::VectorXf y;
-  Eigen::VectorXf succ;
-  Eigen::VectorXf total;
+  Eigen::VectorXd y;
+  Eigen::VectorXd succ;
+  Eigen::VectorXd total;
 };
 
 LogisticRegression::LogisticRegression()
@@ -76,6 +76,11 @@ LogisticRegression::~LogisticRegression()
 }
 
 double LogisticRegression::GetDeviance() {
+  // int i1x, i1y, i2x, i2y;
+  // fprintf(stderr, "min[%d][%d] = %g, max[%d][%d] = %g\n",
+  //         i1x, i1y, w->p.minCoeff(&i1x, &i1y),
+  //         i2x, i2y, w->p.maxCoeff(&i2x, &i2y));
+  
   double ll = 0.0;
   if (this->w->y.size()) {
     ll = (
@@ -248,7 +253,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& tot
     printf("[ %s:%d ] Not enough iterations!", __FILE__, __LINE__);
     return false;
   }
-  this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
+  this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXd::Identity(this->w->D.rows(), this->w->D.rows()));
 
   Eigen_to_G(this->w->beta, &B);
   Eigen_to_G(this->w->covB, &covB);
@@ -322,7 +327,7 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & y, int nrrounds)
            (rounds >1 && std::fabs(currentDeviance - lastDeviance) < 1e-3)?"true":"false");
     return false;
   }
-  this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
+  this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXd::Identity(this->w->D.rows(), this->w->D.rows()));
 
   Eigen_to_G(this->w->beta, &B);
   Eigen_to_G(this->w->covB, &covB);

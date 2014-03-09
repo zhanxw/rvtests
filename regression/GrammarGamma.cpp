@@ -176,7 +176,7 @@ class GrammarGamma::Impl{
     double af = 0.5 * beta(0, 0);
     return af;
   }
-  double GetPValue() const{
+  double GetPvalue() const{
     return this->pvalue;
   }
   double GetBeta() const {
@@ -230,8 +230,8 @@ int GrammarGamma::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
 double GrammarGamma::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
   return this->impl->GetAF(kinshipU, kinshipS);
 }
-double GrammarGamma::GetPValue(){
-  return this->impl->GetPValue();
+double GrammarGamma::GetPvalue(){
+  return this->impl->GetPvalue();
 }
 double GrammarGamma::GetBeta() { return this->impl->GetBeta();};
 double GrammarGamma::GetBetaVar() { return this->impl->GetBetaVar();};

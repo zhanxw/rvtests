@@ -21,6 +21,13 @@ double getMarkerFrequency(Matrix& in, int col){
   return freq;
 };
 
+void getMarkerFrequency(Matrix& in, std::vector<double>* freq) {
+  freq->resize(in.cols);
+  for (int i = 0; i < in.cols; ++i) {
+    (*freq)[i] = getMarkerFrequency(in, i);
+  }
+}
+
 double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col){
   int& numPeople = in.rows;
   double ac = 0; // NOTE: here genotype may be imputed, thus not integer
@@ -64,12 +71,10 @@ void cmcCollapse(Matrix& in, Matrix* out){
 void cmcCollapse(Matrix& in, const std::vector<int>& index,
                  Matrix* out, int outIndex){
   assert(out);
-  
   int numPeople = in.rows;
-  int numMarker = in.cols;
   assert(out->rows == numPeople);
   assert(out->cols > outIndex);
-    
+
   for (int p = 0; p < numPeople; p++){
     for (size_t m = 0; m < index.size(); m++) {
       int g = (int)(in[p][index[m]]);
@@ -174,6 +179,49 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out){
 };
 
 /**
+ * Convert genotype back to reference allele count
+ * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
+ */
+void convertToMinorAlleleCount(Matrix& in, Matrix* g){
+  Matrix& m = *g;
+  m.Dimension(in.rows, in.cols);
+  double s = 0;
+  for (int j = 0; j < m.cols; ++j) {
+    s = 0;
+    for (int i = 0; i < m.rows; ++i) {
+      s += in[i][j];
+    }
+    if (2.0 * s < m.rows) {
+      for (int i = 0; i < m.rows; ++i) {
+        m[i][j] = in[i][j];
+      }
+    } else {
+      // flip to minor
+      for (int i = 0; i < m.rows; ++i) {
+        m[i][j] = 2 - in[i][j];
+      }
+
+    }
+  }
+};
+
+/**
+ * Convert genotype back to reference allele count
+ * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
+ */
+void convertToReferenceAlleleCount(Matrix& in, Matrix* g){
+  Matrix& m = *g;
+  m.Dimension(in.rows, in.cols);
+  for (int i = 0; i < m.rows; ++i) {
+    for (int j = 0; j < m.cols; ++j) {
+      m[i][j] = 2 - in[i][j];
+    }
+  }
+};
+
+
+
+/**
  * group genotype by its frequency
  * @param in: sample by marker genotype matrix
  * @param out: key: frequency value:0-based index for freq
@@ -186,6 +234,74 @@ void groupFrequency(std::vector<double> freq, std::map<double, std::vector<int> 
     (*group)[freq[i]].push_back(i);
   }
 };
+
+/**
+ * Collapsing @param in (people by marker) to @param out (people by marker),
+ * if @param freqIn is empty, then frequncy is calculated from @param in
+ * or according to @param freqIn to rearrange columns of @param in.
+ * Reordered frequency are stored in @param freqOut, in ascending order
+ */
+void rearrangeGenotypeByFrequency(Matrix& in,
+                                  const std::vector<double>& freqIn,
+                                  Matrix* out,
+                                  std::vector<double>* freqOut) {
+  std::map <double, std::vector<int> > freqGroup;
+  std::map <double, std::vector<int> >::const_iterator freqGroupIter;
+  if (freqIn.empty()) {
+    getMarkerFrequency(in, freqOut);
+    groupFrequency(*freqOut, &freqGroup);    
+  } else {
+    groupFrequency(freqIn, &freqGroup);
+  }
+
+  Matrix& sortedGenotype = *out;
+  sortedGenotype.Dimension(in.rows, freqGroup.size());
+  sortedGenotype.Zero();
+  freqOut->clear();
+  int idx = 0;
+  for(freqGroupIter = freqGroup.begin();
+      freqGroupIter != freqGroup.end();
+      freqGroupIter ++) {
+    (*freqOut)[idx] = freqGroupIter->first;
+    const std::vector<int>& cols = freqGroupIter->second;
+    for (size_t j = 0; j != cols.size(); ++j) {
+      for (int i = 0; i < in.rows; ++i) {
+        sortedGenotype[i][cols[j]] += in[i][cols[j]];
+      }
+    }
+    ++idx;
+  }
+}
+
+void makeVariableThreshodlGenotype(Matrix& in,
+                                   const std::vector<double>& freqIn,
+                                   Matrix* out,
+                                   std::vector<double>* freqOut,
+                                   void (*collapseFunc)(Matrix& , const std::vector<int>& , Matrix*, int)
+                                   ) {
+  std::map <double, std::vector<int> > freqGroup;
+  std::map <double, std::vector<int> >::const_iterator freqGroupIter;
+  if (freqIn.empty()) {
+    getMarkerFrequency(in, freqOut);
+    groupFrequency(*freqOut, &freqGroup);    
+  } else {
+    groupFrequency(freqIn, &freqGroup);
+  }
+
+  Matrix& sortedGenotype = *out;
+  sortedGenotype.Dimension(in.rows, freqGroup.size());
+  sortedGenotype.Zero();
+  freqOut->clear();
+  int idx = 0;
+  for(freqGroupIter = freqGroup.begin();
+      freqGroupIter != freqGroup.end();
+      freqGroupIter ++) {
+    (*freqOut)[idx] = freqGroupIter->first;
+    const std::vector<int>& cols = freqGroupIter->second;
+    (*collapseFunc)(in, cols, out, idx);
+    ++idx;
+  }
+}
 
 
 #if 0

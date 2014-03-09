@@ -18,7 +18,7 @@ public:
   int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
-  double GetPValue();
+  double GetPvalue();
   double GetBeta();
   double GetBetaVar();
 };

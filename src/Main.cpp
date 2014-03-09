@@ -1002,7 +1002,7 @@ int main(int argc, char** argv){
         abort();
       };
     }
-  };
+  }
 
   if (FLAG_modelBurden != "") {
     stringTokenize(FLAG_modelBurden, ",", &argModelName);
@@ -1032,12 +1032,17 @@ int main(int argc, char** argv){
         logger->info("cmat test significance will be evaluated using %d permutations", nPerm);
       } else if (modelName == "cmcwald") {
         model.push_back( new CMCWaldTest );
+      } else if (modelName == "famcmc") {
+        model.push_back( new FamCMC );
+      } else if (modelName == "famzeggini") {
+        model.push_back( new FamZeggini );
       } else {
         logger->error("Unknown model name: [ %s ].", argModelName[i].c_str());
         abort();
       };
     }
-  };
+  }
+  
   if (FLAG_modelVT != "") {
     stringTokenize(FLAG_modelVT, ",", &argModelName);
     for (size_t i = 0; i < argModelName.size(); i++ ){
@@ -1045,7 +1050,7 @@ int main(int argc, char** argv){
       modelName = parser.getName();
 
       if (modelName == "cmc") {
-        model.push_back( new VariableThresholdCMC );
+        model.push_back( new VTCMC );
       } else if (modelName == "price") {
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new VariableThresholdPrice(nPerm, alpha) );
@@ -1063,7 +1068,8 @@ int main(int argc, char** argv){
         abort();
       };
     }
-  };
+  }
+  
   if (FLAG_modelKernel != "") {
     stringTokenize(FLAG_modelKernel, ",", &argModelName);
     for (size_t i = 0; i < argModelName.size(); i++ ){
@@ -1085,7 +1091,7 @@ int main(int argc, char** argv){
         abort();
       };
     }
-  };
+  }
 
   if (FLAG_modelMeta != "") {
     stringTokenize(FLAG_modelMeta, ",", &argModelName);
@@ -1129,7 +1135,7 @@ int main(int argc, char** argv){
         abort();
       };
     }
-  };
+  }
 
   if (FLAG_outputRaw) {
     model.push_back( new DumpModel(FLAG_outPrefix.c_str()));

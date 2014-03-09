@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <math.h> // for HUGE_VALH, HUGE_VALL
 #include <sstream>
+#include <vector>
 
 ////////////////////////////////////////////////////////////////////////
 // define HUGE_VALF, HUGE_VALL for Solaris 10
@@ -55,6 +56,22 @@ inline std::string floatToString(T i){
   std::stringstream ss;
   ss.precision(6);
   ss << std::noshowpoint << i;
+  return ss.str();
+}
+
+template<class T>
+inline std::string floatToString(std::vector<T>& i){
+  std::stringstream ss;
+  if (i.empty()) {
+    return ss.str();
+  }
+
+  ss.precision(6);
+  ss << std::noshowpoint << i[0];
+  for (size_t j = 1; j < i.size(); ++j) {
+    ss << ", ";
+    ss << std::noshowpoint << i[j];
+  }
   return ss.str();
 }
 

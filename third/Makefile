@@ -8,7 +8,7 @@ tabix: tabix-0.2.6.tar.bz2
 	tar jvxf tabix-0.2.6.tar.bz2
 	ln -s -f tabix-0.2.6 tabix
 	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
-	(cd tabix-0.2.6; make; make libtabix.so.1)
+	(cd tabix-0.2.6; make)
 
 pcre: pcre-8.21.tar.gz
 	-mv pcre-8.21.tar.gz* pcre-8.21.tar.gz

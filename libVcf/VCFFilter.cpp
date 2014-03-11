@@ -3,13 +3,13 @@
 
 VCFSiteFilter::VCFSiteFilter():
     // Site filter
-    siteDepthFromInfo(false),      // read depth from INFO field
+    siteDepthFromInfo(false),   // read depth from INFO field
     siteDepthMin(-1),
     siteDepthMax(-1),
     siteQualMin(-1),
 
-    siteFreqFromInfo(false),      // read AF from INFO field
-    siteFreqMin(-1.0),            // here freq means minor allele frequency
+    siteFreqFromInfo(false),    // read AF from INFO field
+    siteFreqMin(-1.0),          // here freq means minor allele frequency
     siteFreqMax(-1.0),
     siteMACMin(-1),
 

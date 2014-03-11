@@ -363,7 +363,7 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
   while (lr.readLineBySep(&fd, "\t ")){
     ++ lineNo;
     if (fd.size() < 6) {
-      logger->error("Skip %d line (short of columns) in gene file [ %s ].", lineNo, fn);
+      logger->error("Skip %d line (short of columns) in gene file [ %s ], is gene file format correct?", lineNo, fn);
       continue;
     }
 
@@ -407,12 +407,20 @@ int loadRangeFile(const char* fn, const char* givenRangeName, OrderedMap<std::st
   while (lr.readLineBySep(&fd, "\t ")){
     ++ lineNo;
     if (fd.size() < 2) {
-      logger->error("Skip %d line (short of columns) when reading range file [ %s ].", lineNo, fn);
+      logger->error("Skip lines [ %d ] (short of columns) when reading range file [ %s ].", lineNo, fn);
       continue;
     }
     if (rangeSet.size() && rangeSet.find(fd[0]) == rangeSet.end())
       continue;
 
+    if (fd[0].empty()) {
+      logger->warn("Skip line [ %d ] (first column is empty) when reading range file [ %s ].", lineNo, fn);      
+      continue;
+    }
+    if (fd[1].empty()) {
+      logger->warn("Skip line [ %d ] (second column is empty) when reading range file [ %s ].", lineNo, fn);      
+      continue;
+    }
     m[ fd[0] ].addRangeList (fd[1].c_str());
   }
   return m.size();
@@ -619,8 +627,8 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Frequency Cutoff")
       /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
       // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
-      ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
-      ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
+      ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper minor allele frequency bound to be included in analysis")
+      ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower minor allele frequency bound to be included in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Impute missing genotype (default:mean):  mean, hwe, and drop")

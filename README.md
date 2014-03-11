@@ -294,8 +294,10 @@ Therefore, rvtests specify frequency cutoffs.
 
 Frequency Cutoff
 
-                 --freqUpper : Specify upper frequency bound to be included in analysis
-                 --freqLower : Specify lower frequency bound to be included in analysis
+                 --freqUpper : Specify upper minor allele frequency bound to be included in analysis
+                 --freqLower : Specify lower minor allele frequency bound to be included in analysis
+
+If you specify `--freqLower 0.01 --freqUpper 0.05`, only the variants with minor allele ferquncy between 0.01 and 0.05 (boundary inclusive) will be analyzed.
 
 Similar to sample inclusion/exclusion options, you can specify a range of variants to be included by 
 specifying `--rangeList` option. For example `--rangeList 1:100-200` will include the chromosome 1 position 100bp to 200bp region.

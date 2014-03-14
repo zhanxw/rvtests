@@ -125,7 +125,7 @@ int main(int argc, char** argv){
   assert(fout);
 
   std::string lastChrom, chrom;
-  int lastPos, pos;
+  int lastPos, pos = 0;
   std::string lastRs, rs;
 
   fputs("ChrA\tPosA\tMarkerA\tChrB\tPosB\tMarkerB\tN00\tN01\tN10\tN11\tD\tDprime\tr\n", fout);

@@ -25,10 +25,14 @@ BCF_INC = ../third/samtools/bcftools
 $(SAMTOOLS_INC) $(BCF_INC):
 	(cd ../third; make samtools)
 
-THIRD_INC = $(TABIX_INC) $(PCRE_INC) $(BCF_INC)
+BZIP2_INC = ../third/bzip2
+$(BZIP2_INC):
+	(cd ../third; make bzip2)
+
+THIRD_INC = $(addprefix -I,$(TABIX_INC) $(PCRE_INC) $(BCF_INC) $(BZIP2_INC))
 
 ### put BCF_INC ahead of TABIX, so correct kseq.h can be included
-DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I.. -I../base -I$(SAMTOOLS_INC) -I$(BCF_INC) -I$(PCRE_INC) -I$(GSL_INC) -I$(TABIX_INC) -D_FILE_OFFSET_BITS=64 -D_USE_KNETFILE
+DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I.. -I../base $(THIRD_INC) -D_FILE_OFFSET_BITS=64 -D_USE_KNETFILE
 
 # 'make release' will: clean current build; build with -O4 flags;
 # NOTE: don't use -j flag!

@@ -33,7 +33,7 @@ bzip2: bzip2-1.0.6.tar.gz
 samtools: samtools-0.1.19.tar.bz2
 	tar jvxf $<
 	ln -s -f samtools-0.1.19 samtools
-	(cd samtools; make)
+	(cd samtools; make lib-recur)
 
 ######################################################################
 # download sources

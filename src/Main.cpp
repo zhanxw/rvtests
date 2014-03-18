@@ -36,7 +36,7 @@
 
 Logger* logger = NULL;
 
-#define VERSION "20140228"
+#define VERSION "20140317"
 
 void banner(FILE* fp) {
   const char* string =
@@ -1153,7 +1153,7 @@ int main(int argc, char** argv){
     if (model[i]->getModelName() == "MetaCov" ||
         model[i]->getModelName() == "MetaSkew" ||
         model[i]->getModelName() == "MetaKurt") {
-      s += "assoc.gz";
+      s += ".assoc.gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
       metaFileToIndex.push_back(s);
     } else if (model[i]->getModelName() == "MetaDominant" ||                

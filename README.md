@@ -39,8 +39,8 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 
 # Download
 
-Source file can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
-Executable binary file can be downloaded from [here](http://www.sph.umich.edu/csg/zhanxw/software/rvtests/rvtests-latest.tar.gz).
+Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
+Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.4.0/rvtests-20140228.tar.gz).
 
 # Quick Tutorial
 
@@ -54,7 +54,7 @@ This specifies single variant Wald and score test for association
 tests for every variant in the `input.vcf` file. The 6th column of the phenotype file, `phenotype.ped`, which is in PLINK format, is used. Rvtests will automatically check whether the phenotype is binary trait or quantitative trait.
 For binary trait, the recommended way of coding is to code controls as 1, cases as 2, missing phenotypes as -9 or 0.
 
-For other types of association tests, you can refer to [Models](#Models)
+For other types of association tests, you can refer to [Models](#models)
 
 ## Groupwise tests
 Groupwise tests includes three major kinds of tests.

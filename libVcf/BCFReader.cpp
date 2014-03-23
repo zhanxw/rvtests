@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "bcf.h"
-#include "kstring.h"
-#include "kseq.h"
+#include "third/samtools/bcftools/bcf.h"
+#include "third/samtools/kstring.h"
+#include "third/samtools/kseq.h"
 
 KSTREAM_INIT(gzFile, gzread, 4096)
 

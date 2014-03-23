@@ -2,37 +2,37 @@
 ROOT?=.
 ## third-party lib
 $(TABIX_INC) $(TABIX_LIB):
-	(cd $(ROOT)/third; make tabix)
+	(cd $(ROOT)/third; $(MAKE) tabix)
 $(EIGEN_INC) $(EIGEN_LIB):
-	(cd $(ROOT)/third; make eigen)
+	(cd $(ROOT)/third; $(MAKE) eigen)
 $(PCRE_INC) $(PCRE_LIB):
-	(cd $(ROOT)/third; make pcre)
+	(cd $(ROOT)/third; $(MAKE) pcre)
 $(GSL_INC) $(GSL_LIB):
-	(cd $(ROOT)/third; make gsl)
+	(cd $(ROOT)/third; $(MAKE) gsl)
 
 $(BZIP2_INC) $(BZIP2_LIB):
-	(cd $(ROOT)/third; make bzip2)
+	(cd $(ROOT)/third; $(MAKE) bzip2)
 
 $(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
-	(cd $(ROOT)/third; make samtools)   
+	(cd $(ROOT)/third; $(MAKE)  samtools)   
 
 ## our libs
 $(BASE_LIB):
-	(cd $(ROOT)/base; make)
+	(cd $(ROOT)/base; $(MAKE) )
 $(BASE_LIB_DBG):
-	(cd $(ROOT)/base; make debug)
+	(cd $(ROOT)/base; $(MAKE) debug)
 $(VCF_LIB):
-	(cd $(ROOT)/libVcf; make)
+	(cd $(ROOT)/libVcf; $(MAKE) )
 $(VCF_LIB_DBG):
-	(cd $(ROOT)/libVcf; make debug)
+	(cd $(ROOT)/libVcf; $(MAKE) debug)
 $(REGRESSION_LIB): $(EIGEN_INC)
-	(cd $(ROOT)/regression; make)
+	(cd $(ROOT)/regression; $(MAKE) )
 $(REGRESSION_LIB_DBG):
-	(cd $(ROOT)/regression; make debug)
+	(cd $(ROOT)/regression; $(MAKE) debug)
 $(GONCALO_LIB):
-	(cd $(ROOT)/libsrc; make)
+	(cd $(ROOT)/libsrc; $(MAKE) )
 $(GONCALO_LIB_DBG):
-	(cd $(ROOT)/libsrc; make debug)
+	(cd $(ROOT)/libsrc; $(MAKE) debug)
 
 ## rule to make lib
 # to build lib, we will use reverse order

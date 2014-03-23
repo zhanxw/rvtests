@@ -28,13 +28,13 @@ GONCALO_INC = ../libsrc
 EIGEN_INC = ../third/eigen
 EIGEN_LIB =  # Eigen are header files only
 $(EIGEN_INC) $(EIGEN_LIB):
-	(cd ../third; make eigen)
+	(cd ../third; $(MAKE) eigen)
 
 GSL_INC = ../third/gsl/include
 
 MVTNORM_OBJ = libMvtnorm/mvtnorm.o libMvtnorm/mvt.o libMvtnorm/randomF77.o
 $(MVTNORM_OBJ):
-	cd libMvtnorm; make
+	cd libMvtnorm; $(MAKE)
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 release: CXXFLAGS = -O2 -msse2 -DNDEBUG $(DEFAULT_CXXFLAGS)
@@ -45,24 +45,21 @@ debug: $(LIB-DBG)
 
 OBJ = $(SRC:%=%.o)
 $(LIB): $(OBJ) $(MVTNORM_OBJ)
-	ar -cqs $@ $^
+	$(AR) -cqs $@ $^
 $(LIB-DBG): $(OBJ) $(MVTNORM_OBJ)
-	ar -cqs $@ $^
+	$(AR) -cqs $@ $^
 
 define BUILD_each
   TAR := $(1).o
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): $$(SRC) 
-	g++ -MMD $$(CXXFLAGS) -c $$< -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC)
+  $$(TAR): $$(SRC) $$(EIGEN_INC)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC)
 endef
 $(foreach s, $(SRC), $(eval $(call BUILD_each, $(s))))
 
 clean:
 	rm -rf *.o *.a *.d
 
-test: Test.cpp $(LIB)
-	g++ -g $(CXXFLAGS) -c $< -I$(GONCALO_INC) 
-	g++ -g $(CXXFLAGS) -o $@ Test.o $(LIB) $(GONCALO_LIB) -lz
-	./test
-
+deepclean: clean
+	(cd libMvtnorm; $(MAKE) clean)

@@ -8,9 +8,9 @@
 
 LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
-BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
+SRC = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship
-OBJ = $(BASE:=.o)
+OBJ = $(SRC:=.o)
 
 DEFAULT_CXXFLAGS = -I. -I../third/tabix -I../third/pcre/include -I../third/bzip2
 
@@ -30,20 +30,15 @@ $(LIB): $(OBJ)
 $(LIB_DBG): $(OBJ)
 	ar rcs $(LIB_DBG) $(OBJ)
 
-%: %.cpp # remove implicit Makefile rule of converting ABC.cpp to ABC
-%.o: %.cpp %.h
-	g++ -c $(CXXFLAGS) $<
+define BUILD_each
+  TAR := $(1).o
+  SRC := $(1).cpp
+  -include  $(1).d
+  $$(TAR): $$(SRC) 
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< $$(CXXFLAGS)
+endef
+$(foreach s, $(SRC), $(eval $(call BUILD_each, $(s))))
 
 clean:
 	rm -rf $(LIB) $(LIB_DBG) *.o *.d
 
-
-# INC=-I. -I./cityhash/include -I/home/zhanxw/software/sparsehash/include
-# LIB= -L./cityhash/lib -lcityhash
-
-# map:
-# 	g++ -std=c++0x -static -g -O0 -o test StringMap.cpp $(INC) $(LIB)
-# mapTest:
-# 	g++ -std=c++0x -static -O3 -o test StringMap.cpp $(INC) $(LIB) && xtime ./test
-# mapTest2:
-# 	g++ -std=c++0x -static -pg -g -o test StringMap.cpp $(INC) $(LIB) && xtime ./test

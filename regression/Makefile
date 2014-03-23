@@ -1,23 +1,25 @@
 LIB = lib-regression.a 
 LIB-DBG = lib-dbg-regression.a 
 
-SRC = LogisticRegression \
-      LogisticRegressionScoreTest \
-      LogisticRegressionPermutationTest \
-      LinearRegression \
-      LinearRegressionScoreTest \
-      LinearRegressionPermutationTest \
-      kbac_interface kbac \
-      Skat qfc MixtureChiSquare \
-      Table2by2 \
-      EigenMatrixInterface \
-      FastLMM \
-      GSLMinimizer \
-      GrammarGamma \
-      MetaCov \
-      LogisticRegressionVT \
-      LinearRegressionVT \
-      FirthRegression \
+BASE = LogisticRegression \
+       LogisticRegressionScoreTest \
+       LogisticRegressionPermutationTest \
+       LinearRegression \
+       LinearRegressionScoreTest \
+       LinearRegressionPermutationTest \
+       kbac_interface kbac \
+       Skat qfc MixtureChiSquare \
+       Table2by2 \
+       EigenMatrixInterface \
+       FastLMM \
+       GSLMinimizer \
+       GrammarGamma \
+       MetaCov \
+       LogisticRegressionVT \
+       LinearRegressionVT \
+       FirthRegression \
+
+OBJ = $(BASE:%=%.o)
 
 .PHONY: all release debug
 all: release
@@ -43,7 +45,7 @@ debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB-DBG)
 
 
-OBJ = $(SRC:%=%.o)
+
 $(LIB): $(OBJ) $(MVTNORM_OBJ)
 	$(AR) -cqs $@ $^
 $(LIB-DBG): $(OBJ) $(MVTNORM_OBJ)
@@ -56,7 +58,7 @@ define BUILD_each
   $$(TAR): $$(SRC) $$(EIGEN_INC)
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC)
 endef
-$(foreach s, $(SRC), $(eval $(call BUILD_each, $(s))))
+$(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 
 clean:
 	rm -rf *.o *.a *.d

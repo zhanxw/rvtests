@@ -8,9 +8,9 @@
 
 LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
-SRC = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
+BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship
-OBJ = $(SRC:=.o)
+OBJ = $(BASE:%=%.o)
 
 DEFAULT_CXXFLAGS = -I. -I../third/tabix -I../third/pcre/include -I../third/bzip2
 
@@ -26,9 +26,9 @@ debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB_DBG)
 
 $(LIB): $(OBJ)
-	ar rcs $(LIB) $(OBJ)
+	$(AR) rcs $(LIB) $(OBJ)
 $(LIB_DBG): $(OBJ)
-	ar rcs $(LIB_DBG) $(OBJ)
+	$(AR) rcs $(LIB_DBG) $(OBJ)
 
 define BUILD_each
   TAR := $(1).o
@@ -37,7 +37,7 @@ define BUILD_each
   $$(TAR): $$(SRC) 
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< $$(CXXFLAGS)
 endef
-$(foreach s, $(SRC), $(eval $(call BUILD_each, $(s))))
+$(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 
 clean:
 	rm -rf $(LIB) $(LIB_DBG) *.o *.d

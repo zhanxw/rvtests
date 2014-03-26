@@ -27,16 +27,9 @@
 #include "TabixUtil.h"
 #include "base/Indexer.h"
 
-#if 0  // need more test for openMP
-#ifdef _OPENMP
-#include <omp.h>
-#pragma message "Enable multithread using OpenMP"
-#endif
-#endif
-
 Logger* logger = NULL;
 
-#define VERSION "20140228"
+#define VERSION "20140325"
 
 void banner(FILE* fp) {
   const char* string =
@@ -57,6 +50,7 @@ void banner(FILE* fp) {
 class GenotypeExtractor{
  public:
   GenotypeExtractor(VCFExtractor* v): vin(*v),
+                                      freqMin(-1), freqMax(-1),
                                       GDmin(-1), GDmax(-1), needGD(false),
                                       GQmin(-1), GQmax(-1), needGQ(false),
                                       parRegion(NULL), sex(NULL),
@@ -90,7 +84,8 @@ class GenotypeExtractor{
       int GQidx = r.getFormatIndex("GQ");
       bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
       // e.g.: Loop each (selected) people in the same order as in the VCF
-      for (int i = 0; i < (int)people.size(); i++) {
+      const int numPeople = (int)people.size();
+      for (int i = 0; i < numPeople; i++) {
         indv = people[i];
         // get GT index. if you are sure the index will not change, call this function only once!
         if (genoIdx >= 0) {
@@ -119,6 +114,19 @@ class GenotypeExtractor{
           return -1;
         }
       }
+      
+      // check frequency cutoffs
+      double maf = 0.;
+      for (int i = 0; i < numPeople; ++i) {
+        maf += m[row][i];
+      }
+      maf = maf / ( 2. * numPeople);
+      if (maf > .5) {
+        maf = 1.0 - maf;
+      }
+      if (this->freqMin > 0. && this->freqMin > maf) continue;
+      if (this->freqMax > 0. && this->freqMax < maf) continue;
+      
       name  = r.getChrom();
       name += ":";
       name += r.getPosStr();
@@ -264,6 +272,20 @@ class GenotypeExtractor{
   }
 #endif
 
+  bool setSiteFreqMin(const double f) {
+    if (f < 0.0 || f > 1.0) {
+      return false;
+    }
+    this->freqMin = f;
+    return true;
+  }
+  bool setSiteFreqMax(const double f) {
+    if (f < 0.0 || f > 1.0) {
+      return false;
+    }
+    this->freqMax = f;
+    return true;
+  }
   // @return true if GD is valid
   // if GD is missing, we will take GD = 0
   bool checkGD(VCFIndividual* indv, int gdIdx){
@@ -315,7 +337,7 @@ class GenotypeExtractor{
   //      Sex (1=male; 2=female; other=unknown)
   void setSex(const std::vector<int>* sex) {
     this->sex = sex;
-  };
+  }
   // coding male chromX as 0/2 instead of 0/1
   // similarly, for dosage, just multiply 2.0 from original dosage
   void enableClaytonCoding() {
@@ -326,6 +348,8 @@ class GenotypeExtractor{
   }
  private:
   VCFExtractor& vin;
+  double freqMin;
+  double freqMax;
   int GDmin;
   int GDmax;
   bool needGD;
@@ -713,14 +737,6 @@ int main(int argc, char** argv){
     vin.setAnnoType(FLAG_annoType.c_str());
     logger->info("Set annotype type filter to %s", FLAG_annoType.c_str());
   };
-  if (FLAG_freqUpper > 0) {
-    vin.setSiteFreqMax(FLAG_freqUpper);
-    logger->info("Set upper frequency limit to %f", FLAG_freqUpper);
-  }
-  if (FLAG_freqLower > 0) {
-    vin.setSiteFreqMin(FLAG_freqLower);
-    logger->info("Set lower frequency limit to %f", FLAG_freqLower);
-  }
 
   // add filters. e.g. put in VCFInputFile is a good method
   // site: DP, MAC, MAF (T3, T5)
@@ -1122,7 +1138,7 @@ int main(int argc, char** argv){
         model.push_back( new MetaRecessiveCovTest(windowSize) );
       } else if (modelName == "cov") {
         parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %s to produce covariance statistics", toStringWithComma(windowSize).c_str());
+        logger->info("Meta analysis uses window size %s to produce covariance statistics under additive model", toStringWithComma(windowSize).c_str());
         model.push_back( new MetaCovTest(windowSize) );
       }
 #if 0
@@ -1325,6 +1341,14 @@ int main(int argc, char** argv){
   // genotype will be extracted and stored
   Matrix genotype;
   GenotypeExtractor ge(&vin);
+  if (FLAG_freqUpper > 0) {
+    ge.setSiteFreqMax(FLAG_freqUpper);
+    logger->info("Set upper frequency limit to %f", FLAG_freqUpper);
+  }
+  if (FLAG_freqLower > 0) {
+    ge.setSiteFreqMin(FLAG_freqLower);
+    logger->info("Set lower frequency limit to %f", FLAG_freqLower);
+  }
 
   // handle sex chromosome
   ge.setParRegion(&parRegion);

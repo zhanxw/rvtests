@@ -1,12 +1,12 @@
 #ifndef _MODELFITTER_H_
 #define _MODELFITTER_H_
 
-#include "libsrc/MathMatrix.h"
-
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
 #include <deque>
+
+#include "libsrc/MathMatrix.h"
 
 #include "base/ParRegion.h"
 #include "regression/LogisticRegression.h"
@@ -30,6 +30,14 @@
 #include "Result.h"
 #include "Summary.h"
 #include "Permutation.h"
+
+#if 0
+// may decrease speed.
+#ifdef _OPENMP
+#include <omp.h>
+#pragma message "Enable multithread using OpenMP"
+#endif
+#endif
 
 extern SummaryHeader* g_SummaryHeader;
 
@@ -57,123 +65,123 @@ void convertToMinorAlleleCount(Matrix& in, Matrix* g);
 void convertToReferenceAlleleCount(Matrix& in, Matrix* g);
 
 void makeVariableThreshodlGenotype(Matrix& in,
-                                     const std::vector<double>& freqIn,
-                                     Matrix* out,
-                                     std::vector<double>* freqOut,
-                                     void (*collapseFunc)(Matrix& , const std::vector<int>& , Matrix*, int)
-                                       );
+                                   const std::vector<double>& freqIn,
+                                   Matrix* out,
+                                   std::vector<double>* freqOut,
+                                   void (*collapseFunc)(Matrix& , const std::vector<int>& , Matrix*, int)
+                                   );
 
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
 class ModelFitter{
-public:
-virtual int fit(DataConsolidator* dc) = 0;
+ public:
+  virtual int fit(DataConsolidator* dc) = 0;
 
-// write result header
-virtual void writeHeader(FileWriter* fp, const Result& siteInfo) = 0;
-// write model output
-virtual void writeOutput(FileWriter* fp, const Result& siteInfo) = 0;
+  // write result header
+  virtual void writeHeader(FileWriter* fp, const Result& siteInfo) = 0;
+  // write model output
+  virtual void writeOutput(FileWriter* fp, const Result& siteInfo) = 0;
 
-ModelFitter(){
-this->modelName = "Unassigned_Model_Name";
-this->binaryOutcome = false; // default: using continuous outcome
-};
-virtual ~ModelFitter() {};
-const std::string& getModelName() const { return this->modelName; };
-// for particular class to call when fitting repeatedly
-// e.g. clear permutation counter
-// e.g. clear internal cache
-virtual void reset() { this->result.clearValue();};
-// virtual void needFittingCovariate();
-bool isBinaryOutcome() const{
-return this->binaryOutcome;
-}
-void setBinaryOutcome() {
-this->binaryOutcome = true;
-};
-void setContinuousOutcome() {
-this->binaryOutcome = false;
-};
-const Result& getResult() const {
-return this->result;
-};
-protected:
-std::string modelName;
-bool binaryOutcome;
-Result result;
+  ModelFitter(){
+    this->modelName = "Unassigned_Model_Name";
+    this->binaryOutcome = false; // default: using continuous outcome
+  };
+  virtual ~ModelFitter() {};
+  const std::string& getModelName() const { return this->modelName; };
+  // for particular class to call when fitting repeatedly
+  // e.g. clear permutation counter
+  // e.g. clear internal cache
+  virtual void reset() { this->result.clearValue();};
+  // virtual void needFittingCovariate();
+  bool isBinaryOutcome() const{
+    return this->binaryOutcome;
+  }
+  void setBinaryOutcome() {
+    this->binaryOutcome = true;
+  };
+  void setContinuousOutcome() {
+    this->binaryOutcome = false;
+  };
+  const Result& getResult() const {
+    return this->result;
+  };
+ protected:
+  std::string modelName;
+  bool binaryOutcome;
+  Result result;
 }; // end ModelFitter
 
 class SingleVariantWaldTest: public ModelFitter{
-public:
-SingleVariantWaldTest(){
-this->modelName = "SingleWald";
-result.addHeader("Test");
-result.addHeader("Beta");
-result.addHeader("SE");
-result.addHeader("Pvalue");
+ public:
+  SingleVariantWaldTest(){
+    this->modelName = "SingleWald";
+    result.addHeader("Test");
+    result.addHeader("Beta");
+    result.addHeader("SE");
+    result.addHeader("Pvalue");
 
-};
-// fitting model
-int fit(DataConsolidator* dc) {
-Matrix& phenotype = dc-> getPhenotype();
-Matrix& genotype = dc->getGenotype();
-Matrix& cov= dc->getCovariate();
+  };
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& cov= dc->getCovariate();
 
-if (genotype.cols != 1) {
-fitOK = false;
-return -1;
-}
-copyPhenotype(phenotype, &this->Y);
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    copyPhenotype(phenotype, &this->Y);
 
-if (cov.cols) {
-copyGenotypeWithCovariateAndIntercept(genotype, cov, &this->X);
-} else {
-copyGenotypeWithIntercept(genotype, &this->X);
-}
+    if (cov.cols) {
+      copyGenotypeWithCovariateAndIntercept(genotype, cov, &this->X);
+    } else {
+      copyGenotypeWithIntercept(genotype, &this->X);
+    }
 
-if (!isBinaryOutcome()) {
-fitOK = linear.FitLinearModel(this->X, this->Y);
-} else {
-fitOK = logistic.FitLogisticModel(this->X, this->Y, 100);
-}
-return (fitOK ? 0 : 1);
-};
-// write result header
-void writeHeader(FileWriter* fp, const Result& siteInfo) {
-siteInfo.writeHeaderTab(fp);
-// fprintf(fp, "Test\tBeta\tSE\tPvalue\n");
-result.writeHeaderLine(fp);
-};
-// write model output
-void writeOutput(FileWriter* fp, const Result& siteInfo) {
-// skip interecept (column 0)
-for (int i = 1; i < this->X.cols; ++i) {
-siteInfo.writeValueTab(fp);
-if (!fitOK) {
-// fprintf(fp, "%s\tNA\tNA\tNA\n", this->X.GetColumnLabel(i));
-result.updateValue("Test", this->X.GetColumnLabel(i));
-} else {
-double beta, se, pval;
-if (!isBinaryOutcome()) {
-beta = linear.GetCovEst()[i];
-se = sqrt(linear.GetCovB()[i][i]);
-pval = linear.GetAsyPvalue()[i];
-} else {
-beta = logistic.GetCovEst()[i];
-se = sqrt(logistic.GetCovB()[i][i]);
-pval = logistic.GetAsyPvalue()[i];
-}
+    if (!isBinaryOutcome()) {
+      fitOK = linear.FitLinearModel(this->X, this->Y);
+    } else {
+      fitOK = logistic.FitLogisticModel(this->X, this->Y, 100);
+    }
+    return (fitOK ? 0 : 1);
+  };
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    // fprintf(fp, "Test\tBeta\tSE\tPvalue\n");
+    result.writeHeaderLine(fp);
+  };
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    // skip interecept (column 0)
+    for (int i = 1; i < this->X.cols; ++i) {
+      siteInfo.writeValueTab(fp);
+      if (!fitOK) {
+        // fprintf(fp, "%s\tNA\tNA\tNA\n", this->X.GetColumnLabel(i));
+        result.updateValue("Test", this->X.GetColumnLabel(i));
+      } else {
+        double beta, se, pval;
+        if (!isBinaryOutcome()) {
+          beta = linear.GetCovEst()[i];
+          se = sqrt(linear.GetCovB()[i][i]);
+          pval = linear.GetAsyPvalue()[i];
+        } else {
+          beta = logistic.GetCovEst()[i];
+          se = sqrt(logistic.GetCovB()[i][i]);
+          pval = logistic.GetAsyPvalue()[i];
+        }
 
-// fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se, pval);
-result.updateValue("Test", this->X.GetColumnLabel(i));
-result.updateValue("Beta", beta);
-result.updateValue("SE", se);
-result.updateValue("Pvalue", pval);
-}
-result.writeValueLine(fp);
-}
-};
+        // fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se, pval);
+        result.updateValue("Test", this->X.GetColumnLabel(i));
+        result.updateValue("Beta", beta);
+        result.updateValue("SE", se);
+        result.updateValue("Pvalue", pval);
+      }
+      result.writeValueLine(fp);
+    }
+  };
  private:
   Matrix X; // 1 + cov + geno
   Vector Y; // phenotype
@@ -2367,10 +2375,7 @@ class MetaScoreTest: public ModelFitter{
     }
 
     // skip monomorphic sites
-    const int nonMissing = nSample - missing;
-    if (nonMissing == homRef ||
-        nonMissing == het ||
-        nonMissing == homAlt) {
+    if (isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
       return -1;
     }
@@ -2677,12 +2682,11 @@ class MetaCovTest: public ModelFitter{
       // calculate variance of y
       nSample = genotype.rows;
       weight.Dimension(nSample);
-    } else {
-      if (nSample != genotype.rows){
-        fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
-        fitOK = false;
-        return -1;
-      }
+    }
+    if (nSample != genotype.rows){
+      fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+      fitOK = false;
+      return -1;
     }
 
     // set weight
@@ -2766,10 +2770,22 @@ class MetaCovTest: public ModelFitter{
       fitOK = false;
       return -1;
     };
+
+    // assign loci.geno, and
+    // check if this is a monomorphic site, if so, just skip it.
     loci.geno.resize(nSample);
+    double g0 = genotype[0][0];
+    bool isVarint = false;
     for (int i = 0; i < nSample; ++i) {
       loci.geno[i] = genotype[i][0];
+      if (loci.geno[i] != g0)
+        isVarint = true;
     }
+    if (!isVarint) {
+      fitOK = false;
+      return -1;
+    }
+
     if (!isBinaryOutcome()) {
       if (useFamilyModel) {
         if (!isHemiRegion) {

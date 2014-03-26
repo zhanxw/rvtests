@@ -15,7 +15,6 @@ UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcf2kinship \
             vcfPeek \
             vcf2ld_neighbor 
-#            gerp \
             # vcf2merlin 
 
 DIR_EXEC = ../executable

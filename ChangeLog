@@ -1,3 +1,7 @@
+2014-03-25  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+
+	* Improve: greatly improve the speed for cov,dominant and recessive models
+
 2014-03-18  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix: MetaCov model now have the correct suffix

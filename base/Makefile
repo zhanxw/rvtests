@@ -25,6 +25,9 @@ release: $(LIB)
 debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB_DBG)
 
+profile: CXXFLAGS = -Wall -pg -O0 $(DEFAULT_CXXFLAGS)
+profile: $(LIB_DBG)
+
 $(LIB): $(OBJ)
 	$(AR) rcs $(LIB) $(OBJ)
 $(LIB_DBG): $(OBJ)

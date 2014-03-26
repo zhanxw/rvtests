@@ -29,6 +29,8 @@ $(DIR_EXEC)/$(EXEC):  $(LIBS) \
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) 
+profile: CXX_FLAGS = -pg -O0 $(DEFAULT_CXXFLAGS)
+profile: $(DIR_EXEC_DBG)/$(EXEC) 
 $(DIR_EXEC_DBG)/$(EXEC): $(LIBS_DBG) \
                          Main.o \
                          DataConsolidator.o \

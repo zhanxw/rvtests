@@ -14,16 +14,19 @@ $(DIR_EXEC):
 $(DIR_EXEC_DBG):
 	mkdir -p $@
 
-.PHONY: release debug lib lib-dbg clean tar doc
+.PHONY: release debug profile lib lib-dbg clean tar doc
 
 release: lib
-	cd $(ROOT)/src && $(MAKE) release
-	cd $(ROOT)/vcfUtils && $(MAKE) release
+	$(MAKE) -C $(ROOT)/src release
+	$(MAKE) -C $(ROOT)/vcfUtils release
 
 debug: lib-dbg
-	cd $(ROOT)/src && $(MAKE) debug
-	cd $(ROOT)/vcfUtils && $(MAKE) debug
+	$(MAKE) -C $(ROOT)/src debug
+	$(MAKE) -C $(ROOT)/vcfUtils debug
 
+profile: lib-dbg
+	$(MAKE) -C $(ROOT)/src profile
+	$(MAKE) -C $(ROOT)/vcfUtils profile
 ##################################################
 GitVersion.h: .git/HEAD .git/index
 	-echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
@@ -34,18 +37,18 @@ GitVersion.h: .git/HEAD .git/index
 ## clean
 ##################################################
 clean: 
-	cd $(ROOT)/src && $(MAKE) clean
-	cd $(ROOT)/vcfUtils && $(MAKE) clean
+	$(MAKE) -C $(ROOT)/src clean
+	$(MAKE) -C $(ROOT)/vcfUtils clean
 
 libclean:
-	(cd $(ROOT)/base; make clean)
-	(cd $(ROOT)/regression; make clean)
-	(cd $(ROOT)/libVcf; make clean)
+	$(MAKE) -C $(ROOT)/base clean
+	$(MAKE) -C $(ROOT)/regression clean
+	$(MAKE) -C $(ROOT)/libVcf clean
 
 deepclean: clean libclean
 	rm -rf *~
-	(cd $(ROOT)/third; make deepclean)
-	(cd $(ROOT)/libsrc; make clean)
+	$(MAKE) -C $(ROOT)/third deepclean
+	$(MAKE) -C $(ROOT)/libsrc clean
 
 # archive 
 DATE=$(shell date '+%m%d')

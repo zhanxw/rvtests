@@ -251,6 +251,26 @@ class FastLMM::Impl{
   double GetVStat() const {
     return this->Vstat;
   }
+  double GetEffect() {
+    if (this->Vstat != 0.0)
+      return this->Ustat / this->Vstat;
+    return 0.;
+  };   // U/V
+  double GetSE()  {
+    if (this->Vstat != 0.0)
+      return 1 / sqrt(this->Vstat);
+    return 0.;
+  };   // 1/sqrt(V)
+  double GetSigmaG2() {
+    return this->sigma2;
+  };
+  double GetSigmaE2() {
+    return this->sigma2 * this->delta;
+  };
+  double GetDelta()  {
+    return this->delta;
+  };    // delta = sigma2_e / sigma2_g
+  
   double GetNullLogLikelihood() const {
     return this->nullLikelihood;
   }
@@ -282,7 +302,6 @@ class FastLMM::Impl{
   FastLMM::Test test;
   FastLMM::Model model;
   double sumResidual2; // sum (  (Uy - Ux *beta)^2/(lambda + delta) )
-
 };
 
 //////////////////////////////////////////////////
@@ -315,6 +334,11 @@ double FastLMM::GetPvalue(){
 }
 double FastLMM::GetUStat() { return this->impl->GetUStat();};
 double FastLMM::GetVStat() { return this->impl->GetVStat();};
+double FastLMM::GetEffect() { return this->impl->GetEffect(); };   // U/V
+double FastLMM::GetSE()      { return this->impl->GetSE(); };   // 1/sqrt(V)
+double FastLMM::GetSigmaE2() { return this->impl->GetSigmaE2(); };
+double FastLMM::GetSigmaG2() { return this->impl->GetSigmaG2(); };
+double FastLMM::GetDelta()  { return this->impl->GetDelta(); };    // delta = sigma2_e / sigma2_g
 double FastLMM::GetNullLogLikelihood() { return this->impl->GetNullLogLikelihood(); };
 double FastLMM::GetAltLogLikelihood() { return this->impl->GetAltLogLikelihood(); };
 

@@ -126,7 +126,7 @@ class GenotypeExtractor{
       }
       if (this->freqMin > 0. && this->freqMin > maf) continue;
       if (this->freqMax > 0. && this->freqMax < maf) continue;
-      
+
       name  = r.getChrom();
       name += ":";
       name += r.getPosStr();
@@ -185,7 +185,8 @@ class GenotypeExtractor{
 
     bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
     // e.g.: Loop each (selected) people in the same order as in the VCF
-    for (size_t i = 0; i < people.size(); i++) {
+    const int numPeople = (int)people.size();
+    for (int i = 0; i < numPeople; i++) {
       indv = people[i];
 
       if (genoIdx >= 0) {
@@ -218,6 +219,18 @@ class GenotypeExtractor{
       }
     }
 
+    // check frequency cutoffs
+      double maf = 0.;
+      for (int i = 0; i < numPeople; ++i) {
+        maf += genotype[i][0];
+      }
+      maf = maf / ( 2. * numPeople);
+      if (maf > .5) {
+        maf = 1.0 - maf;
+      }
+      if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
+      if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
+    
     std::string label = r.getChrom();
     label += ':';
     label += r.getPosStr();
@@ -1020,6 +1033,8 @@ int main(int argc, char** argv){
         logger->info("cmat test significance will be evaluated using %d permutations", nPerm);
       } else if (modelName == "cmcwald") {
         model.push_back( new CMCWaldTest );
+      } else if (modelName == "zegginiwald") {
+        model.push_back( new ZegginiWaldTest );
       } else if (modelName == "famcmc") {
         model.push_back( new FamCMC );
       } else if (modelName == "famzeggini") {
@@ -1072,7 +1087,7 @@ int main(int argc, char** argv){
                      nPerm, alpha, beta1, beta2);
       } else if (modelName == "kbac") {
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
-        model.push_back( new KbacTest(nPerm, alpha) );
+        model.push_back( new KBACTest(nPerm, alpha) );
         logger->info("KBAC test significance will be evaluated using %d permutations", nPerm);
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());

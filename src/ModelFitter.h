@@ -274,15 +274,15 @@ class SingleVariantFisherExactTest: public ModelFitter{
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
-    result.addHeader("Fisher.N00");
-    result.addHeader("Fisher.N01");
-    result.addHeader("Fisher.N10");
-    result.addHeader("Fisher.N11");
+    result.addHeader("N00");
+    result.addHeader("N01");
+    result.addHeader("N10");
+    result.addHeader("N11");
     result.addHeader("CtrlAF");
     result.addHeader("CaseAF");
-    result.addHeader("Fisher.PvalueTwoSide");
-    result.addHeader("Fisher.PvalueLess");
-    result.addHeader("Fisher.PvalueGreater");
+    result.addHeader("PvalueTwoSide");
+    result.addHeader("PvalueLess");
+    result.addHeader("PvalueGreater");
     result.writeHeaderLine(fp);
   };
   // fitting model
@@ -341,10 +341,10 @@ class SingleVariantFisherExactTest: public ModelFitter{
       /* fprintf(fp, "%d\t", model.Get01()); */
       /* fprintf(fp, "%d\t", model.Get10()); */
       /* fprintf(fp, "%d\t", model.Get11()); */
-      result.updateValue("Fisher.N00", model.Get00());
-      result.updateValue("Fisher.N01", model.Get01());
-      result.updateValue("Fisher.N10", model.Get10());
-      result.updateValue("Fisher.N11", model.Get11());
+      result.updateValue("N00", model.Get00());
+      result.updateValue("N01", model.Get01());
+      result.updateValue("N10", model.Get10());
+      result.updateValue("N11", model.Get11());
 
       if (ctrlAN == 0) {
         // fprintf(fp, "0\t");
@@ -363,9 +363,9 @@ class SingleVariantFisherExactTest: public ModelFitter{
       /* fprintf(fp, "%lf\t"  , model.getPExactTwoSided()); */
       /* fprintf(fp, "%lf\t"  , model.getPExactOneSidedLess()); */
       /* fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater()); OB*/
-      result.updateValue("Fisher.PvalueTwoSide", model.getPExactTwoSided());
-      result.updateValue("Fisher.PvalueLess", model.getPExactOneSidedLess());
-      result.updateValue("Fisher.PvalueGreater", model.getPExactOneSidedGreater());
+      result.updateValue("PvalueTwoSide", model.getPExactTwoSided());
+      result.updateValue("PvalueLess", model.getPExactOneSidedLess());
+      result.updateValue("PvalueGreater", model.getPExactOneSidedGreater());
     } /* else { */
     /*   fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n"); */
     /* } */
@@ -391,7 +391,7 @@ class SingleVariantFamilyScore: public ModelFitter{
     result.addHeader("AF");
     result.addHeader("U.Stat");
     result.addHeader("V.Stat");
-    result.addHeader("FamScore.Pvalue");
+    result.addHeader("Pvalue");
     needToFitNullModel = true;
   }
   // fitting model
@@ -438,7 +438,7 @@ class SingleVariantFamilyScore: public ModelFitter{
         result.updateValue("AF", af);
         result.updateValue("U.Stat", u);
         result.updateValue("V.Stat", v);
-        result.updateValue("FamScore.Pvalue", pvalue);
+        result.updateValue("Pvalue", pvalue);
       }
     }
     result.writeValueLine(fp);
@@ -462,7 +462,7 @@ class SingleVariantFamilyLRT: public ModelFitter{
     result.addHeader("AF");
     result.addHeader("NullLogLik");
     result.addHeader("AltLogLik");
-    result.addHeader("FamLRT.Pvalue");
+    result.addHeader("Pvalue");
     needToFitNullModel = true;
   }
   // fitting model
@@ -508,7 +508,7 @@ class SingleVariantFamilyLRT: public ModelFitter{
         result.updateValue("AF", af);
         result.updateValue("NullLogLik", nullLogLik);
         result.updateValue("AltLogLik", altLogLik);
-        result.updateValue("FamLRT.Pvalue", pvalue);
+        result.updateValue("Pvalue", pvalue);
       }
     }
     result.writeValueLine(fp);
@@ -532,7 +532,7 @@ class SingleVariantFamilyGrammarGamma: public ModelFitter{
     result.addHeader("AF");
     result.addHeader("Beta");
     result.addHeader("BetaVar");
-    result.addHeader("FamGrammarGamma.Pvalue");
+    result.addHeader("Pvalue");
     needToFitNullModel = true;
   }
   // fitting model
@@ -578,7 +578,7 @@ class SingleVariantFamilyGrammarGamma: public ModelFitter{
         result.updateValue("AF", af);
         result.updateValue("Beta", beta);
         result.updateValue("BetaVar", betaVar);
-        result.updateValue("FamGrammarGamma.Pvalue", pvalue);
+        result.updateValue("Pvalue", pvalue);
       }
     }
     result.writeValueLine(fp);
@@ -600,7 +600,13 @@ class CMCTest: public ModelFitter{
   CMCTest() {
     this->modelName = "CMC";
     result.addHeader("NonRefSite");
-    result.addHeader("CMC.Pvalue");
+#if 0
+    result.addHeader("U.Stat");
+    result.addHeader("V.Stat");
+    result.addHeader("Effect");
+    result.addHeader("SE");
+#endif
+    result.addHeader("Pvalue");
   };
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -648,9 +654,21 @@ class CMCTest: public ModelFitter{
     if (fitOK) {
       result.updateValue("NonRefSite", this->totalNonRefSite());
       if (isBinaryOutcome()) {
-        result.updateValue("CMC.Pvalue", logistic.GetPvalue());
+#if 0
+        result.updateValue("U.Stat", logistic.GetUStat());
+        result.updateValue("V.Stat", logistic.GetVStat());
+        result.updateValue("Effect", logistic.GetEffect());
+        result.updateValue("SE"    , logistic.GetSE());
+#endif
+        result.updateValue("Pvalue", logistic.GetPvalue());
       } else {
-        result.updateValue("CMC.Pvalue", linear.GetPvalue());
+#if 0
+        result.updateValue("U.Stat", linear.GetUStat());
+        result.updateValue("V.Stat", linear.GetVStat());
+        result.updateValue("Effect", linear.GetEffect());
+        result.updateValue("SE"    , linear.GetSE());
+#endif
+        result.updateValue("Pvalue", linear.GetPvalue());
       }
     }
     result.writeValueLine(fp);
@@ -681,7 +699,7 @@ class CMCWaldTest: public ModelFitter{
     result.addHeader("NonRefSite");
     result.addHeader("Beta");
     result.addHeader("SE");
-    result.addHeader("CMCWald.Pvalue");
+    result.addHeader("Pvalue");
   };
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -739,7 +757,7 @@ class CMCWaldTest: public ModelFitter{
         }
         result.updateValue("Beta", beta);
         result.updateValue("SE", se);
-        result.updateValue("CMCWald.Pvalue", pval);
+        result.updateValue("Pvalue", pval);
       }
       result.writeValueLine(fp);
     }
@@ -764,17 +782,95 @@ class CMCWaldTest: public ModelFitter{
   int numVariant;
 }; // CMCWaldTest
 
+class ZegginiWaldTest: public ModelFitter{
+ public:
+  ZegginiWaldTest() {
+    this->modelName = "ZegginiWald";
+    result.addHeader("Beta");
+    result.addHeader("SE");
+    result.addHeader("Pvalue");
+  };
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+
+    this->numVariant = genotype.cols;
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
+
+    Vector pheno;
+    pheno.Dimension(phenotype.rows);
+    for (int i = 0; i< phenotype.rows; i++){
+      pheno[i] = phenotype[i][0];
+    }
+
+    zegginiCollapse(genotype, &collapsedGenotype);
+
+    if (covariate.cols) {
+      copyGenotypeWithCovariateAndIntercept(collapsedGenotype, covariate, &this->X);
+    } else {
+      copyGenotypeWithIntercept(collapsedGenotype, &this->X);
+    }
+
+    if (!isBinaryOutcome()) {
+      fitOK = linear.FitLinearModel(X, phenotype);
+    } else {
+      fitOK = logistic.FitLogisticModel(X, phenotype, 100);
+    }
+    return (fitOK ? 0 : -1);
+  };
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    result.writeHeaderLine(fp);
+  };
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    for (int i = 1; i < this->X.cols; ++i) {
+      siteInfo.writeValueTab(fp);
+      if (fitOK) {
+        // result.updateValue("NonRefSite", this->totalNonRefSite());
+        double beta, se, pval;
+        if (!isBinaryOutcome()) {
+          beta = linear.GetCovEst()[i];
+          se = sqrt(linear.GetCovB()[i][i]);
+          pval = linear.GetAsyPvalue()[i];
+        } else {
+          beta = logistic.GetCovEst()[i];
+          se = sqrt(logistic.GetCovB()[i][i]);
+          pval = logistic.GetAsyPvalue()[i];
+        }
+        result.updateValue("Beta", beta);
+        result.updateValue("SE", se);
+        result.updateValue("Pvalue", pval);
+      }
+      result.writeValueLine(fp);
+    }
+  };
+ private:
+  Matrix collapsedGenotype;
+  Matrix X;
+  LogisticRegression logistic;
+  LinearRegression linear;
+  bool fitOK;
+  int numVariant;
+}; // ZegginiWaldTest
+
 class CMCFisherExactTest: public ModelFitter{
  public:
   CMCFisherExactTest() {
     this->modelName = "CMCFisherExact";
-    result.addHeader("exactCMC.N00");
-    result.addHeader("exactCMC.N01");
-    result.addHeader("exactCMC.N10");
-    result.addHeader("exactCMC.N11");
-    result.addHeader("exactCMC.PvalueTwoSide");
-    result.addHeader("exactCMC.PvalueLess");
-    result.addHeader("exactCMC.PvalueGreater");
+    result.addHeader("N00");
+    result.addHeader("N01");
+    result.addHeader("N10");
+    result.addHeader("N11");
+    result.addHeader("PvalueTwoSide");
+    result.addHeader("PvalueLess");
+    result.addHeader("PvalueGreater");
   };
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -820,35 +916,19 @@ class CMCFisherExactTest: public ModelFitter{
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     result.writeHeaderLine(fp);
-    /* fputs("exactCMC.N00\t", fp); */
-    /* fputs("exactCMC.N01\t", fp); */
-    /* fputs("exactCMC.N10\t", fp); */
-    /* fputs("exactCMC.N11\t", fp); */
-    /* fputs("exactCMC.PvalueTwoSide\t", fp); */
-    /* fputs("exactCMC.PvalueLess\t", fp); */
-    /* fputs("exactCMC.PvalueGreater\n", fp); */
   };
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     result.clearValue();
     if (fitOK) {
-      /* fprintf(fp, "%d\t", model.Get00()); */
-      /* fprintf(fp, "%d\t", model.Get01()); */
-      /* fprintf(fp, "%d\t", model.Get10()); */
-      /* fprintf(fp, "%d\t", model.Get11()); */
-
-      /* fprintf(fp, "%lf\t", model.getPExactTwoSided()); */
-      /* fprintf(fp, "%lf\t", model.getPExactOneSidedLess()); */
-      /* fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater()); */
-
-      result.updateValue("exactCMC.N00", model.Get00());
-      result.updateValue("exactCMC.N01", model.Get01());
-      result.updateValue("exactCMC.N10", model.Get10());
-      result.updateValue("exactCMC.N11", model.Get11());
-      result.updateValue("exactCMC.PvalueTwoSide", model.getPExactTwoSided());
-      result.updateValue("exactCMC.PvalueLess", model.getPExactOneSidedLess());
-      result.updateValue("exactCMC.PvalueGreater", model.getPExactOneSidedGreater());
+      result.updateValue("N00", model.Get00());
+      result.updateValue("N01", model.Get01());
+      result.updateValue("N10", model.Get10());
+      result.updateValue("N11", model.Get11());
+      result.updateValue("PvalueTwoSide", model.getPExactTwoSided());
+      result.updateValue("PvalueLess", model.getPExactOneSidedLess());
+      result.updateValue("PvalueGreater", model.getPExactOneSidedGreater());
 
     }
     /*  else { */
@@ -869,7 +949,7 @@ class ZegginiTest: public ModelFitter{
  public:
   ZegginiTest(){
     this->modelName = "Zeggini";
-    result.addHeader("Zeggini.Pvalue");
+    result.addHeader("Pvalue");
   };
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -908,7 +988,7 @@ class ZegginiTest: public ModelFitter{
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
-    //fprintf(fp, "Zeggini.Pvalue\n");
+    //fprintf(fp, "Pvalue\n");
     result.writeHeaderLine(fp);
   };
   // write model output
@@ -917,9 +997,9 @@ class ZegginiTest: public ModelFitter{
     result.clearValue();
     if (fitOK) {
       if (isBinaryOutcome()) {
-        result.updateValue("Zeggini.Pvalue", logistic.GetPvalue());
+        result.updateValue("Pvalue", logistic.GetPvalue());
       } else {
-        result.updateValue("Zeggini.Pvalue", linear.GetPvalue());
+        result.updateValue("Pvalue", linear.GetPvalue());
       }
     }
     result.writeValueLine(fp);
@@ -946,7 +1026,7 @@ class MadsonBrowningTest: public ModelFitter{
  public:
   MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "MadsonBrowning";
-    result.addHeader("MB.Pvalue");
+    result.addHeader("Pvalue");
   }
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -1087,29 +1167,20 @@ class FpTest: public ModelFitter{
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
-    //fprintf(fp, "Fp.Pvalue\n");
-    result.addHeader("Fp.Pvalue");
+    //fprintf(fp, "Pvalue\n");
+    result.addHeader("Pvalue");
   };
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (fitOK) {
       if (isBinaryOutcome()) {
-        result.updateValue("Fp.Pvalue", logistic.GetPvalue());
+        result.updateValue("Pvalue", logistic.GetPvalue());
       } else {
-        result.updateValue("Fp.Pvalue", linear.GetPvalue());
+        result.updateValue("Pvalue", linear.GetPvalue());
       }
     }
     result.writeValueLine(fp);
-    /* if (!fitOK) { */
-    /*   fprintf(fp, "NA\n"); */
-    /* } else { */
-    /*   if (isBinaryOutcome()) { */
-    /*     fprintf(fp, "%f\n", logistic.GetPvalue()); */
-    /*   } else { */
-    /*     fprintf(fp, "%f\n", linear.GetPvalue()); */
-    /*   } */
-    /* }; */
   };
  private:
   Matrix collapsedGenotype;
@@ -1197,20 +1268,6 @@ class RareCoverTest: public ModelFitter{
     result.writeValueTab(fp);
     this->perm.writeOutputLine(fp);
 
-
-    /* if (isBinaryOutcome()) { */
-    /*   if (fitOK){ */
-    /*     fprintf(fp, "%zu\t", this->selected.size()); */
-    /*     this->perm.writeOutput(fp); */
-    /*     fprintf(fp, "\n"); */
-    /*   } else { */
-    /*     fprintf(fp, "NA\t"); */
-    /*     this->perm.writeOutput(fp); */
-    /*     fprintf(fp, "\n"); */
-    /*   } */
-    /* } else { */
-    /*   fprintf(fp, "NA\n"); */
-    /* } */
   };
   /**
    * For a given genotype and phenotype, calculate RareCover stats, which markers are selected
@@ -2141,13 +2198,13 @@ class SkatTest: public ModelFitter{
   Permutation perm;
 }; // SkatTest
 
-class KbacTest: public ModelFitter{
+class KBACTest: public ModelFitter{
  public:
-  KbacTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
+  KBACTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
                                     xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
-    this->modelName = "KBAC";
+    this->modelName = "Kbac";
   };
-  ~KbacTest() {
+  ~KBACTest() {
     if (this->xdatIn) delete[] this->xdatIn;
     if (this->ydatIn) delete[] this->ydatIn;
     if (this->mafIn) delete[] this->mafIn;
@@ -2155,7 +2212,7 @@ class KbacTest: public ModelFitter{
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
-    fp->write("KBAC.Pvalue\n");
+    fp->write("Pvalue\n");
   };
   void reset() {
     // clear_kbac_test();
@@ -2275,7 +2332,7 @@ class KbacTest: public ModelFitter{
   int twosided;
   bool fitOK;
   double pValue;
-}; // KbacTest
+}; // KBACTest
 
 //////////////////////////////////////////////////////////////////////
 // Meta-analysis based methods

@@ -1,4 +1,10 @@
-2014-03-25  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2014-03-26  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Improve: for "--meta recessive" model, output PVALUE = NA instead of 1 at monomorphic sites
+	* Improve: frequency filtering for dosage and genotype
+	* Change: Pvalue header for burden tests are now "Pvalue"
+
+2014-03-25  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve: greatly improve the speed for cov,dominant and recessive models
 

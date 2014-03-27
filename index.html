@@ -94,7 +94,7 @@
 <a name="download" class="anchor" href="#download"><span class="octicon octicon-link"></span></a>Download</h1>
 
 <p>Source files can be downloaded from <a href="https://github.com/zhanxw/rvtests/archive/master.zip">github</a> or <a href="https://github.com/zhanxw/rvtests">github page</a>.
-Executable binary files (for Linux 64bit) can be downloaded from <a href="https://github.com/zhanxw/rvtests/releases/download/v1.4.0/rvtests-20140228.tar.gz">here</a>.</p>
+Executable binary files (for Linux 64bit) can be downloaded from <a href="https://github.com/zhanxw/rvtests/releases/download/v.1.6.1/rvtests-20140326.tar.gz">here</a>.</p>
 
 <h1>
 <a name="quick-tutorial" class="anchor" href="#quick-tutorial"><span class="octicon octicon-link"></span></a>Quick Tutorial</h1>
@@ -565,9 +565,11 @@ Therefore, rvtests specify frequency cutoffs.</p>
 
 <p>Frequency Cutoff</p>
 
-<pre><code>             --freqUpper : Specify upper frequency bound to be included in analysis
-             --freqLower : Specify lower frequency bound to be included in analysis
+<pre><code>             --freqUpper : Specify upper minor allele frequency bound to be included in analysis
+             --freqLower : Specify lower minor allele frequency bound to be included in analysis
 </code></pre>
+
+<p>If you specify <code>--freqLower 0.01 --freqUpper 0.05</code>, only the variants with minor allele ferquncy between 0.01 and 0.05 (boundary inclusive) will be analyzed.</p>
 
 <p>Similar to sample inclusion/exclusion options, you can specify a range of variants to be included by 
 specifying <code>--rangeList</code> option. For example <code>--rangeList 1:100-200</code> will include the chromosome 1 position 100bp to 200bp region.

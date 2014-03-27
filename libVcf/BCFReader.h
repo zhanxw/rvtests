@@ -1,7 +1,7 @@
 #ifndef _BCFREADER_H_
 #define _BCFREADER_H_
 
-#include "bcf.h"
+#include "third/samtools/bcftools/bcf.h"
 #include "RangeList.h"
 
 // static void write_header(bcf_hdr_t *h);

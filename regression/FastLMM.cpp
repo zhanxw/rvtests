@@ -28,6 +28,11 @@ class FastLMM::Impl{
   }
   int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
+    // sanity check
+    if (mat_Xnull.rows != mat_y.rows) return -1;
+    if (mat_Xnull.rows != kinshipU.mat.rows()) return -1;
+    if (mat_Xnull.rows != kinshipS.mat.rows()) return -1;
+    
     // type conversion
     G_to_Eigen(mat_Xnull, &this->ux);
     G_to_Eigen(mat_y, &this->uy);
@@ -237,7 +242,7 @@ class FastLMM::Impl{
     double af = 0.5 * beta(0, 0);
     return af;
   }
-  double GetPValue() const{
+  double GetPvalue() const{
     return this->pvalue;
   }
   double GetUStat() const {
@@ -246,6 +251,26 @@ class FastLMM::Impl{
   double GetVStat() const {
     return this->Vstat;
   }
+  double GetEffect() {
+    if (this->Vstat != 0.0)
+      return this->Ustat / this->Vstat;
+    return 0.;
+  };   // U/V
+  double GetSE()  {
+    if (this->Vstat != 0.0)
+      return 1 / sqrt(this->Vstat);
+    return 0.;
+  };   // 1/sqrt(V)
+  double GetSigmaG2() {
+    return this->sigma2;
+  };
+  double GetSigmaE2() {
+    return this->sigma2 * this->delta;
+  };
+  double GetDelta()  {
+    return this->delta;
+  };    // delta = sigma2_e / sigma2_g
+  
   double GetNullLogLikelihood() const {
     return this->nullLikelihood;
   }
@@ -277,7 +302,6 @@ class FastLMM::Impl{
   FastLMM::Test test;
   FastLMM::Model model;
   double sumResidual2; // sum (  (Uy - Ux *beta)^2/(lambda + delta) )
-
 };
 
 //////////////////////////////////////////////////
@@ -305,11 +329,16 @@ double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
 double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol){
   return this->impl->GetAF(kinshipU, kinshipS, Xcol);
 }
-double FastLMM::GetPValue(){
-  return this->impl->GetPValue();
+double FastLMM::GetPvalue(){
+  return this->impl->GetPvalue();
 }
 double FastLMM::GetUStat() { return this->impl->GetUStat();};
 double FastLMM::GetVStat() { return this->impl->GetVStat();};
+double FastLMM::GetEffect() { return this->impl->GetEffect(); };   // U/V
+double FastLMM::GetSE()      { return this->impl->GetSE(); };   // 1/sqrt(V)
+double FastLMM::GetSigmaE2() { return this->impl->GetSigmaE2(); };
+double FastLMM::GetSigmaG2() { return this->impl->GetSigmaG2(); };
+double FastLMM::GetDelta()  { return this->impl->GetDelta(); };    // delta = sigma2_e / sigma2_g
 double FastLMM::GetNullLogLikelihood() { return this->impl->GetNullLogLikelihood(); };
 double FastLMM::GetAltLogLikelihood() { return this->impl->GetAltLogLikelihood(); };
 

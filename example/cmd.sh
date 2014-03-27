@@ -6,13 +6,25 @@ if [ ! -e ../executable/rvtest ]; then
     (cd ../; make)
 fi
 
+echo "Single variant analysis"
 ../executable/rvtest --pheno pheno --inVcf example.vcf --single wald --out out1
 ../executable/rvtest --pheno pheno --inVcf example.vcf --single wald --mpheno 2 --out out2
 ../executable/rvtest --pheno pheno --inVcf example.vcf --single wald --pheno-name y2 --out out3
 ../executable/rvtest --pheno pheno --inVcf example.vcf --single wald --covar covar --covar-name c1,c2 --out out4
 ../executable/rvtest --pheno pheno --inVcf example.vcf --single wald --covar covar.missing --covar-name c1,c2 --out out5
+
+echo "Meta-analysis"
 ../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov --covar covar --covar-name c1,c2 --useResidualAsPhenotype --inverseNormal --out out6
+## for related individual, need to have their kinship estimated
 ../executable/vcf2kinship --ped pheno --bn --out output
 ../executable/vcf2kinship --inVcf example.vcf --bn --out output
+## now use "--kinship" to speicfy kinship file
 ../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov --covar covar --covar-name c1,c2 --useResidualAsPhenotype --inverseNormal --kinship output.kinship --out out7
-../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov,dominant,recessive --covar covar --covar-name c1,c2 --out out8 --pheno-name y4
+../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov,dominant,recessive --covar covar --covar-name c1,c2 --useResidualAsPhenotype --inverseNormal --kinship output.kinship --out out8
+
+echo "Rare-variant analysis"
+../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --burden cmc,cmcWald,zeggini,zegginiWald --out out9
+../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --vt price --out out10
+../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --kernel kbac,skat --out out11
+
+echo "Documentation of the examples can be found in README.md."

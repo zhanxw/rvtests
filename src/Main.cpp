@@ -27,16 +27,9 @@
 #include "TabixUtil.h"
 #include "base/Indexer.h"
 
-#if 0  // need more test for openMP
-#ifdef _OPENMP
-#include <omp.h>
-#pragma message "Enable multithread using OpenMP"
-#endif
-#endif
-
 Logger* logger = NULL;
 
-#define VERSION "20140317"
+#define VERSION "20140326"
 
 void banner(FILE* fp) {
   const char* string =
@@ -46,7 +39,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      February 2014                     ...   \n"
+      "      ...      March 2014                        ...   \n"
       "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
@@ -57,6 +50,7 @@ void banner(FILE* fp) {
 class GenotypeExtractor{
  public:
   GenotypeExtractor(VCFExtractor* v): vin(*v),
+                                      freqMin(-1), freqMax(-1),
                                       GDmin(-1), GDmax(-1), needGD(false),
                                       GQmin(-1), GQmax(-1), needGQ(false),
                                       parRegion(NULL), sex(NULL),
@@ -90,7 +84,8 @@ class GenotypeExtractor{
       int GQidx = r.getFormatIndex("GQ");
       bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
       // e.g.: Loop each (selected) people in the same order as in the VCF
-      for (int i = 0; i < (int)people.size(); i++) {
+      const int numPeople = (int)people.size();
+      for (int i = 0; i < numPeople; i++) {
         indv = people[i];
         // get GT index. if you are sure the index will not change, call this function only once!
         if (genoIdx >= 0) {
@@ -119,6 +114,19 @@ class GenotypeExtractor{
           return -1;
         }
       }
+      
+      // check frequency cutoffs
+      double maf = 0.;
+      for (int i = 0; i < numPeople; ++i) {
+        maf += m[row][i];
+      }
+      maf = maf / ( 2. * numPeople);
+      if (maf > .5) {
+        maf = 1.0 - maf;
+      }
+      if (this->freqMin > 0. && this->freqMin > maf) continue;
+      if (this->freqMax > 0. && this->freqMax < maf) continue;
+
       name  = r.getChrom();
       name += ":";
       name += r.getPosStr();
@@ -150,7 +158,7 @@ class GenotypeExtractor{
 
     bool hasRead = vin.readRecord();
     if (!hasRead)
-      return -2; // meaning end of file
+      return FILE_END; 
 
     VCFRecord& r = vin.getVCFRecord();
     VCFPeople& people = r.getPeople();
@@ -177,7 +185,8 @@ class GenotypeExtractor{
 
     bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
     // e.g.: Loop each (selected) people in the same order as in the VCF
-    for (size_t i = 0; i < people.size(); i++) {
+    const int numPeople = (int)people.size();
+    for (int i = 0; i < numPeople; i++) {
       indv = people[i];
 
       if (genoIdx >= 0) {
@@ -206,10 +215,22 @@ class GenotypeExtractor{
         logger->error("Cannot find [ %s ] field when read individual information [ %s ]!",
                       this->doseTag.empty() ? "GT" : this->doseTag.c_str(),
                       indv->getSelf().toStr());
-        return -1;
+        return ERROR;
       }
     }
 
+    // check frequency cutoffs
+      double maf = 0.;
+      for (int i = 0; i < numPeople; ++i) {
+        maf += genotype[i][0];
+      }
+      maf = maf / ( 2. * numPeople);
+      if (maf > .5) {
+        maf = 1.0 - maf;
+      }
+      if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
+      if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
+    
     std::string label = r.getChrom();
     label += ':';
     label += r.getPosStr();
@@ -221,49 +242,23 @@ class GenotypeExtractor{
     } else {
       this->hemiRegion[0] = false;
     }
-    // // adjust male chrX genotype
-    // if (this->hemiRegion[0])
-    //   adjustSexGenotype(g, 0);
-    return 0;
+    return SUCCEED;
   }
 
-#if 1
-  /**
-   * Adjust genotype matrix @param geno (people by marker) at column @param col
-   * These adjustment only happen to male chromX genotypes
-   * @return 0 if succeed
-   */
-  int adjustSexGenotype(Matrix* geno, int col) {
-    Matrix& genotype = *geno;
-
-    // no sex information, just return
-    if (!this->sex) return 0;
-    if ((size_t) col >= this->hemiRegion.size()) return 0;
-
-    // non-hemi region, no need to adjust
-    if (!this->hemiRegion[col]) return 0;
-
-    for (int i = 0 ; i < genotype.rows; ++i) {
-      if ( (*sex)[col] != 1) continue;
-
-      // male
-      if (genotype[i][col] < 0) continue; //missing genotype
-      if (genotype[i][col] == 1.0 ) {
-        // male genotype cannot be het
-        genotype[i][col] = MISSING_GENOTYPE;
-        continue;
-      }
-      if (claytonCoding) {
-        genotype[i][col] *= 2.0;
-        if (genotype[i][col] > 2.0) {
-          genotype[i][col] = 2.0;
-        }
-      }
+  bool setSiteFreqMin(const double f) {
+    if (f < 0.0 || f > 1.0) {
+      return false;
     }
-    return 0;
+    this->freqMin = f;
+    return true;
   }
-#endif
-
+  bool setSiteFreqMax(const double f) {
+    if (f < 0.0 || f > 1.0) {
+      return false;
+    }
+    this->freqMax = f;
+    return true;
+  }
   // @return true if GD is valid
   // if GD is missing, we will take GD = 0
   bool checkGD(VCFIndividual* indv, int gdIdx){
@@ -315,7 +310,7 @@ class GenotypeExtractor{
   //      Sex (1=male; 2=female; other=unknown)
   void setSex(const std::vector<int>* sex) {
     this->sex = sex;
-  };
+  }
   // coding male chromX as 0/2 instead of 0/1
   // similarly, for dosage, just multiply 2.0 from original dosage
   void enableClaytonCoding() {
@@ -324,8 +319,15 @@ class GenotypeExtractor{
   void disableClaytonCoding() {
     this->claytonCoding = false;
   }
+ public:
+  const static int SUCCEED = 0;
+  const static int ERROR = -1;
+  const static int FILE_END = -2;
+  const static int FAIL_FILTER = -3;
  private:
   VCFExtractor& vin;
+  double freqMin;
+  double freqMax;
   int GDmin;
   int GDmax;
   bool needGD;
@@ -363,7 +365,7 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
   while (lr.readLineBySep(&fd, "\t ")){
     ++ lineNo;
     if (fd.size() < 6) {
-      logger->error("Skip %d line (short of columns) in gene file [ %s ].", lineNo, fn);
+      logger->error("Skip %d line (short of columns) in gene file [ %s ], is gene file format correct?", lineNo, fn);
       continue;
     }
 
@@ -407,12 +409,20 @@ int loadRangeFile(const char* fn, const char* givenRangeName, OrderedMap<std::st
   while (lr.readLineBySep(&fd, "\t ")){
     ++ lineNo;
     if (fd.size() < 2) {
-      logger->error("Skip %d line (short of columns) when reading range file [ %s ].", lineNo, fn);
+      logger->error("Skip lines [ %d ] (short of columns) when reading range file [ %s ].", lineNo, fn);
       continue;
     }
     if (rangeSet.size() && rangeSet.find(fd[0]) == rangeSet.end())
       continue;
 
+    if (fd[0].empty()) {
+      logger->warn("Skip line [ %d ] (first column is empty) when reading range file [ %s ].", lineNo, fn);      
+      continue;
+    }
+    if (fd[1].empty()) {
+      logger->warn("Skip line [ %d ] (second column is empty) when reading range file [ %s ].", lineNo, fn);      
+      continue;
+    }
     m[ fd[0] ].addRangeList (fd[1].c_str());
   }
   return m.size();
@@ -619,8 +629,8 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Frequency Cutoff")
       /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
       // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
-      ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
-      ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
+      ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper minor allele frequency bound to be included in analysis")
+      ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower minor allele frequency bound to be included in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Missing Data")
       ADD_STRING_PARAMETER(pl, impute, "--impute", "Impute missing genotype (default:mean):  mean, hwe, and drop")
@@ -705,14 +715,6 @@ int main(int argc, char** argv){
     vin.setAnnoType(FLAG_annoType.c_str());
     logger->info("Set annotype type filter to %s", FLAG_annoType.c_str());
   };
-  if (FLAG_freqUpper > 0) {
-    vin.setSiteFreqMax(FLAG_freqUpper);
-    logger->info("Set upper frequency limit to %f", FLAG_freqUpper);
-  }
-  if (FLAG_freqLower > 0) {
-    vin.setSiteFreqMin(FLAG_freqLower);
-    logger->info("Set lower frequency limit to %f", FLAG_freqLower);
-  }
 
   // add filters. e.g. put in VCFInputFile is a good method
   // site: DP, MAC, MAF (T3, T5)
@@ -850,7 +852,6 @@ int main(int argc, char** argv){
                           &covariate);
     appendToMatrix("Sex", sex, &covariate);
   }
-
 
   // load conditional markers
   if (!FLAG_condition.empty()) {
@@ -1002,7 +1003,7 @@ int main(int argc, char** argv){
         abort();
       };
     }
-  };
+  }
 
   if (FLAG_modelBurden != "") {
     stringTokenize(FLAG_modelBurden, ",", &argModelName);
@@ -1032,12 +1033,19 @@ int main(int argc, char** argv){
         logger->info("cmat test significance will be evaluated using %d permutations", nPerm);
       } else if (modelName == "cmcwald") {
         model.push_back( new CMCWaldTest );
+      } else if (modelName == "zegginiwald") {
+        model.push_back( new ZegginiWaldTest );
+      } else if (modelName == "famcmc") {
+        model.push_back( new FamCMC );
+      } else if (modelName == "famzeggini") {
+        model.push_back( new FamZeggini );
       } else {
         logger->error("Unknown model name: [ %s ].", argModelName[i].c_str());
         abort();
       };
     }
-  };
+  }
+  
   if (FLAG_modelVT != "") {
     stringTokenize(FLAG_modelVT, ",", &argModelName);
     for (size_t i = 0; i < argModelName.size(); i++ ){
@@ -1045,7 +1053,7 @@ int main(int argc, char** argv){
       modelName = parser.getName();
 
       if (modelName == "cmc") {
-        model.push_back( new VariableThresholdCMC );
+        model.push_back( new VTCMC );
       } else if (modelName == "price") {
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new VariableThresholdPrice(nPerm, alpha) );
@@ -1063,7 +1071,8 @@ int main(int argc, char** argv){
         abort();
       };
     }
-  };
+  }
+  
   if (FLAG_modelKernel != "") {
     stringTokenize(FLAG_modelKernel, ",", &argModelName);
     for (size_t i = 0; i < argModelName.size(); i++ ){
@@ -1078,14 +1087,14 @@ int main(int argc, char** argv){
                      nPerm, alpha, beta1, beta2);
       } else if (modelName == "kbac") {
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
-        model.push_back( new KbacTest(nPerm, alpha) );
+        model.push_back( new KBACTest(nPerm, alpha) );
         logger->info("KBAC test significance will be evaluated using %d permutations", nPerm);
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
       };
     }
-  };
+  }
 
   if (FLAG_modelMeta != "") {
     stringTokenize(FLAG_modelMeta, ",", &argModelName);
@@ -1108,7 +1117,7 @@ int main(int argc, char** argv){
         model.push_back( new MetaRecessiveCovTest(windowSize) );
       } else if (modelName == "cov") {
         parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %s to produce covariance statistics", toStringWithComma(windowSize).c_str());
+        logger->info("Meta analysis uses window size %s to produce covariance statistics under additive model", toStringWithComma(windowSize).c_str());
         model.push_back( new MetaCovTest(windowSize) );
       }
 #if 0
@@ -1129,7 +1138,7 @@ int main(int argc, char** argv){
         abort();
       };
     }
-  };
+  }
 
   if (FLAG_outputRaw) {
     model.push_back( new DumpModel(FLAG_outPrefix.c_str()));
@@ -1311,6 +1320,14 @@ int main(int argc, char** argv){
   // genotype will be extracted and stored
   Matrix genotype;
   GenotypeExtractor ge(&vin);
+  if (FLAG_freqUpper > 0) {
+    ge.setSiteFreqMax(FLAG_freqUpper);
+    logger->info("Set upper frequency limit to %f", FLAG_freqUpper);
+  }
+  if (FLAG_freqLower > 0) {
+    ge.setSiteFreqMin(FLAG_freqLower);
+    logger->info("Set lower frequency limit to %f", FLAG_freqLower);
+  }
 
   // handle sex chromosome
   ge.setParRegion(&parRegion);
@@ -1372,10 +1389,13 @@ int main(int argc, char** argv){
       //int ret = extractSiteGenotype(&vin, &genotype, &buf);
       int ret = ge.extractSingleGenotype(&genotype, &buf);
 
-      if (ret == -2) { // reach file end
+      if (ret == GenotypeExtractor::FILE_END) { // reach file end
         break;
       }
-      if (ret < 0) {
+      if (ret == GenotypeExtractor::FAIL_FILTER) {
+        continue;
+      }
+      if (ret != GenotypeExtractor::SUCCEED) {
         logger->error("Extract genotype failed at site: %s:%s!", buf["CHROM"].c_str(), buf["POS"].c_str());
         continue;
       };
@@ -1421,9 +1441,13 @@ int main(int argc, char** argv){
       while (true) {
         buf.clearValue();
         int ret = ge.extractSingleGenotype(&genotype, &buf);
-        if (ret == -2) // reach end of this region
+        if (ret == GenotypeExtractor::FILE_END) { // reach end of this region
           break;
-        if (ret < 0) {
+        }            
+        if (ret == GenotypeExtractor::FAIL_FILTER) {
+          continue;
+        }
+        if (ret != GenotypeExtractor::SUCCEED) {
           logger->error("Extract genotype failed for gene %s!", geneName.c_str());
           continue;
         };
@@ -1470,7 +1494,7 @@ int main(int argc, char** argv){
       buf.clearValue();
       // int ret = extractGenotype(&vin, &genotype);
       int ret = ge.extractMultipleGenotype(&genotype);
-      if (ret < 0) {
+      if (ret != GenotypeExtractor::SUCCEED) {
         logger->error("Extract genotype failed for gene %s!", geneName.c_str());
         continue;
       };

@@ -1,5 +1,6 @@
 #include "TypeConversion.h"
 #include <climits>
+#include <string>
 
 int main(int argc, char *argv[])
 {
@@ -12,6 +13,14 @@ int main(int argc, char *argv[])
       printf("%-15d : %s\n", x[i], toStringWithComma(x[i]).c_str());
     }
   }
-  
+
+  {
+    // test toString
+    std::vector<double> a;
+    a.push_back(1.1);
+    a.push_back(2.0);
+    std::string s = floatToString(a);
+    printf("%s\n", s.c_str());
+  }
   return 0;
 }

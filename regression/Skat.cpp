@@ -6,7 +6,9 @@
 //#include <Eigen/Dense>
 #include "MixtureChiSquare.h"
 
-#ifndef NDEBUG
+// #define DEBUG
+#undef DEBUG
+#ifdef DEBUG
 #include <fstream>
 #endif
 
@@ -66,7 +68,7 @@ class Skat::SkatImpl{
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
   es.compute( K_sqrt * P0 * K_sqrt.transpose());
 
-#ifndef NDEBUG  
+#ifdef DEBUG  
   std::ofstream k("K");
   k << K_sqrt;
   k.close();

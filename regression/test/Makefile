@@ -4,7 +4,10 @@ EXE = testLinearRegression \
       testLogisticRegressionCov \
       testLinearRegressionScoreTest \
       testLogisticRegressionScoreTest \
-      testFirthRegression
+      testFirthRegression \
+      testLogisticVT \
+      testLinearVT \
+
 
 all: $(EXE)
 debug: $(EXE)
@@ -78,6 +81,22 @@ correct.firth.out:
 	Rscript testFirthRegression.R $@
 test.firth.out: $(EXE)
 	./testFirthRegression > $@
+
+######################################################################
+check8: correct.logistic.mvt.out test.logistic.mvt.out
+	Rscript compare.R $^
+correct.logistic.mvt.out: 
+	Rscript testLogisticVT.R $@
+test.logistic.mvt.out: $(EXE)
+	./testLogisticVT > $@
+
+######################################################################
+check9: correct.linear.mvt.out test.linear.mvt.out
+	Rscript compare.R $^
+correct.linear.mvt.out: 
+	Rscript testLinearVT.R $@
+test.linear.mvt.out: $(EXE)
+	./testLinearVT > $@
 
 deepclean: clean
 	-rm output.* input.*

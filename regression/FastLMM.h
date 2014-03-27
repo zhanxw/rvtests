@@ -30,13 +30,18 @@ public:
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   // NOTE: need to fit null model fit before calling this function  
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol);
-  double GetPValue();
+  double GetPvalue();
   // for LRT Test
   double GetNullLogLikelihood();
   double GetAltLogLikelihood();
   // for Score Test
   double GetUStat();
   double GetVStat();
+  double GetEffect();   // U/V
+  double GetSE();       // 1/sqrt(V)
+  double GetSigmaG2();  // sigma_g^2
+  double GetSigmaE2();  // sigma_e^2
+  double GetDelta();    // delta = sigma2_e / sigma2_g
 };
 
 

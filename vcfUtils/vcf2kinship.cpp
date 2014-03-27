@@ -24,11 +24,18 @@
 #include "Regex.h"
 #include "ParRegion.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+// #pragma message "Enable multithread using OpenMP"
+#endif
+
 class EmpiricalKinship{
  public:
   virtual int addGenotype(const std::vector<double>& g) = 0;
   virtual void calculate() = 0;
   virtual const SimpleMatrix& getKinship() const = 0;
+  // number of sites used in this calculation
+  virtual int getSiteNumber() const = 0; 
   virtual ~EmpiricalKinship() {};
  public:
   int setSex(std::vector<int>* sex) {
@@ -109,6 +116,9 @@ class IBSKinshipImpute: public EmpiricalKinship {
   const SimpleMatrix& getKinship() const{
     return this->k;
   }
+  int getSiteNumber() const{
+    return this->n;
+  }
   void clear() {
     n = 0;
     k.clear();
@@ -163,6 +173,9 @@ class IBSKinship: public EmpiricalKinship {
   }
   const SimpleMatrix& getKinship() const {
     return this->k;
+  }
+  int getSiteNumber() const{
+    return this->n;
   }
   void clear() {
     n = 0;
@@ -228,7 +241,7 @@ class BaldingNicolsKinship: public EmpiricalKinship {
       }
     }
     const size_t numG = g.size();
-#pragma omp for
+#pragma omp parallel for
     for (size_t i = 0; i < numG; ++i) {
       if (geno[i] == 0.0) continue; // skip missing marker
       for (size_t j = 0; j <= i; ++j) {
@@ -254,6 +267,9 @@ class BaldingNicolsKinship: public EmpiricalKinship {
   }
   const SimpleMatrix& getKinship() const {
     return this->k;
+  }
+  int getSiteNumber() const{
+    return this->n;
   }
   void clear() {
     n = 0;
@@ -338,7 +354,7 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
     }
 
     const size_t numG = g.size();
-#pragma omp for
+#pragma omp parallel for
     for (size_t i = 0; i < numG; ++i) {
       if (geno[i] == 0.0) continue; // skip missing marker
       for (size_t j = 0; j <= i; ++j) {
@@ -361,6 +377,10 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
   const SimpleMatrix& getKinship() const {
     return this->k;
   }
+  int getSiteNumber() const{
+    return this->n;
+  }
+  
   void clear() {
     n = 0;
     k.clear();
@@ -386,7 +406,7 @@ void usage(int argc, char** argv) {
 }
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20140228"
+#define VERSION "20140326"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s)\n", PROGRAM, VERSION);
@@ -666,6 +686,8 @@ int main(int argc, char** argv){
   double maxMissing = 1.0 * FLAG_maxMissing * names.size();
   int variantAuto = 0;
   int variantX = 0;
+  int variantAutoUsed = 0;
+  int variantXUsed = 0;
   int lowSiteFreq = 0; // counter of low site qualities
   int filterSite = 0; // counter of site with too many bad genotypes
   int lineNo = 0;
@@ -798,17 +820,21 @@ int main(int argc, char** argv){
       ++variantX;
     }
   }
-  fprintf(stdout, "\rTotal [ %d ] VCF records ( %d autosomal/X-PAR, %d X-hemizygote varaints ) have processed.\n", lineNo, variantAuto, variantX);  
+  fprintf(stdout, "\rTotal [ %d ] VCF records have been processed.\n",
+          lineNo);  
   
   // output
   kinship->calculate();
+  variantAutoUsed = kinship->getSiteNumber();
   const SimpleMatrix& ret = kinship->getKinship();
   output(names, names, ret, FLAG_pca, FLAG_outPrefix);
-  if (!kinship)
+  if (!kinship) {
     delete kinship;
+  }
   // output kinship on X if possible
   if (FLAG_xHemi) {
     kinshipForX->calculate();
+    variantXUsed = kinshipForX->getSiteNumber();
     const SimpleMatrix& ret = kinshipForX->getKinship();
     std::string fn = FLAG_outPrefix + ".xHemi";
     output(names, names, ret, FLAG_pca, fn.c_str());
@@ -816,22 +842,26 @@ int main(int argc, char** argv){
   }
 
   // end
-  fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+  // fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
   // if (skipSexChrom) {
   //   fprintf(stdout, "Skipped %d variants non autosomal variants\n", skipSexChrom);
   // }
   if (nonVariantSite) {
-    fprintf(stdout, "Skipped %d non-variant VCF records\n", nonVariantSite);
+    fprintf(stdout, "Skipped [ %d ] non-variant VCF records\n", nonVariantSite);
   }
   if (lowSiteFreq) {
-    fprintf(stdout, "Skipped %d low sites due to site quality lower than %f\n", lowSiteFreq, FLAG_minSiteQual);
+    fprintf(stdout, "Skipped [ %d ] low sites due to site quality lower than %f\n", lowSiteFreq, FLAG_minSiteQual);
   };
   if (filterSite) {
-    fprintf(stdout, "Skipped %d sites due to MAF or high misssingness\n", filterSite);
+    fprintf(stdout, "Skipped [ %d ] sites due to MAF or high misssingness\n", filterSite);
   }
-  fprintf(stdout, "Total %d variants are used to calculate autosomal kinship matrix.\n", variantAuto);
+  // report count of variant used from autosomal/X-PAR region
+  fprintf(stdout, "Total [ %d ] variants are used to calculate autosomal kinship matrix.\n",
+          variantAutoUsed);
   if (FLAG_xHemi) {
-    fprintf(stdout, "Total %d variants are used to calculate chromosome X kinship matrix.\n", variantX);
+    // report count of varaint used in X-hemizygote region
+    fprintf(stdout, "Total [ %d ] variants are used to calculate chromosome X kinship matrix.\n",
+            variantXUsed);
   }
 
   time_t endTime = time(0);
@@ -908,7 +938,7 @@ int output( const std::vector<std::string>& famName,
         fprintf(out, "\n");
       }
       fclose(out);
-      fprintf(stderr, "PCA decomposition results are stored in [ %s ]\n", fn.c_str());
+      fprintf(stderr, "PCA decomposition results are stored in [ %s ].\n", fn.c_str());
     } else{
       fprintf(stderr, "Kinship decomposition failed!\n");
     }

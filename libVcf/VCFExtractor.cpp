@@ -28,6 +28,8 @@ bool VCFExtractor::passFilter() {
     }
   }
   if (checkSiteFreq() && useSiteFreqFromInfo()) {
+    //fprintf(stderr, "useSiteFreqFromInfo = %s\n",
+    //        useSiteFreqFromInfo() ? "true" : "false");
     const VCFValue& v = r.getInfoTag("AF", &missing);
     if (missing)
       return false;

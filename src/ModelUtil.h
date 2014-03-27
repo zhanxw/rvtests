@@ -1,7 +1,7 @@
 #ifndef _MODELUTIL_H_
 #define _MODELUTIL_H_
 
-void copy(const std::vector<double>& in, Vector* o){
+inline void copy(const std::vector<double>& in, Vector* o){
   Vector& out = *o;
   out.Dimension(in.size());
   int n = in.size();
@@ -11,7 +11,7 @@ void copy(const std::vector<double>& in, Vector* o){
 };
 
 
-void copyPhenotype(Matrix& in, Vector* o){
+inline void copyPhenotype(Matrix& in, Vector* o){
   Vector& out = *o;
   out.Dimension(in.rows);
   for (int i = 0; i <in.rows; ++i){
@@ -22,7 +22,7 @@ void copyPhenotype(Matrix& in, Vector* o){
 /**
  * copy @param in to @param o, with first column being intercept
  */
-void copyGenotypeWithIntercept(Matrix& in, Matrix* o){
+inline void copyGenotypeWithIntercept(Matrix& in, Matrix* o){
   Matrix& out = *o;
   out.Dimension(in.rows, in.cols+1);
   for (int i = 0; i <in.rows; ++i){
@@ -38,7 +38,7 @@ void copyGenotypeWithIntercept(Matrix& in, Matrix* o){
 /**
  * copy vector of one, @param in and @param cov to @param o (essentially: o = cbind(1, in, cov))
  */
-void copyGenotypeWithCovariateAndIntercept(Matrix& in, Matrix& cov, Matrix* o){
+inline void copyGenotypeWithCovariateAndIntercept(Matrix& in, Matrix& cov, Matrix* o){
   Matrix& out = *o;
   out.Dimension(in.rows, 1+in.cols+cov.cols);
 
@@ -65,7 +65,7 @@ void copyGenotypeWithCovariateAndIntercept(Matrix& in, Matrix& cov, Matrix* o){
 /**
  * copy intercept and @param cov to @param o with its first column equaling to 1.0
  */
-void copyCovariateAndIntercept(int n, Matrix& cov, Matrix* o){
+inline void copyCovariateAndIntercept(int n, Matrix& cov, Matrix* o){
   if (cov.cols == 0 ) {
     (*o).Dimension(n, 1);
     for (int i = 0; i < n; ++i) {

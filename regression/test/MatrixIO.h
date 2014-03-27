@@ -10,7 +10,8 @@ void LoadVector(const char* fn, Vector& v){
         v.Dimension(lineNo);
         v[lineNo - 1] = atof(s[0].c_str());
     }
-};
+}
+
 void LoadMatrix(const char* fn, Matrix& m){
     LineReader lr(fn);
     std::vector< std::string> s;
@@ -22,16 +23,15 @@ void LoadMatrix(const char* fn, Matrix& m){
             m[lineNo - 1][j] = atof(s[j].c_str());
         }
     }
-
-
-};
+}
 
 void Print(Vector& v){
     for (int i = 0; i < v.Length() ; i++){
         if (i) { fprintf(stdout, "\t");}
         fprintf(stdout, "%.3f", v[i]);
     }
-};
+}
+
 void Print(Matrix& m){
     for (int i = 0; i < m.rows ; i++){
         if (i) { fprintf(stdout, "\t");}
@@ -41,6 +41,7 @@ void Print(Matrix& m){
         }
     }
 }
+
 void Print(double& d){
     fprintf(stdout, "%.3f", d);
 }
@@ -50,12 +51,13 @@ void extractColumn(Matrix& x, int col, Vector* v) {
   for (int i = 0; i < x.rows; ++i) {
     (*v)[i] = x[i][col];
   }
-};
+}
 
 void extractColumn(Matrix& x, int col, Matrix* m) {
   (*m).Dimension(x.rows, 1);
   for (int i = 0; i < x.rows; ++i) {
     (*m)[i][0] = x[i][col];
   }
-};
+}
+
 #endif /* _MATRIXIO_H_ */

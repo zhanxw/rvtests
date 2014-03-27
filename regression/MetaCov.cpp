@@ -220,8 +220,8 @@ int  MetaCov::GetWeight(Vector* out){
 // double MetaCov::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
 //   return this->impl->GetAF(kinshipU, kinshipS);
 // }
-// double MetaCov::GetPValue(){
-//   return this->impl->GetPValue();
+// double MetaCov::GetPvalue(){
+//   return this->impl->GetPvalue();
 // }
 // double MetaCov::GetUStat() { return this->impl->GetUStat();};
 // double MetaCov::GetVStat() { return this->impl->GetVStat();};

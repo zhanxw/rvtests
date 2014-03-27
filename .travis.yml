@@ -3,4 +3,11 @@ compiler:
   - gcc
   - clang
 # Change this to your needs
+before_install:
+  - uname -a
+  - free -m
+  - df -h
+  - ulimit -a
+# - sudo apt-get install -qq libatlas-dev libatlas-base-dev gfortran
+  - sudo apt-get install -qq gfortran
 script: make

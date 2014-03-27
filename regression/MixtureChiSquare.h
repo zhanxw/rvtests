@@ -58,16 +58,17 @@ MixtureChiSquare():
   double getPvalue(double Q);
   void dumpLambda() const;
 private:
-  const double sigma;
-  const int lim;
-  const double acc;
-
+  const double sigma;   // coefficient of standard normal variable
+  const int lim;        // maximum number of terms in tegration
+  const double acc;     // accuracy
+  int lambda_cap;       // capacity of *lambda
+  
   // fit in parameters to qf()
-  double *lambda;
-  double *noncen;
-  int *df;
-  int lambda_size;
-  int lambda_cap;
+  double *lambda;       // weight of each ChiSquare statistics
+  double *noncen;       // non-central parameter
+  int *df;              // degree of freeom for each lambda
+  int lambda_size;      // # of lambda
+
 };
 
 #endif /* _MIXTURECHISQUARE_H_ */

@@ -65,7 +65,7 @@ void printSubHeader(const std::string& s) {
 void printFrequency(const OrderedMap<std::string, int>& freq, const char* header) {
   const size_t s = freq.size();
   std::string key;
-  int count;
+  int count = 0;
   int total = 0;
   fprintf(stdout, "  %s\t%s\t%s\n", "Index", header, "Count");  
   for (size_t i = 0; i != s; ++i) {

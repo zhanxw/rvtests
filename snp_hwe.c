@@ -1,18 +1,18 @@
 // obtained from http://www.sph.umich.edu/csg/abecasis/Exact/snp_hwe.c
-// 2012-11-29 Xiaowei 
+// 2012-11-29 Xiaowei
 /*
-  // This code implements an exact SNP test of Hardy-Weinberg Equilibrium as described in
-  // Wigginton, JE, Cutler, DJ, and Abecasis, GR (2005) A Note on Exact Tests of
-  // Hardy-Weinberg Equilibrium. American Journal of Human Genetics. 76: 000 - 000
-  //
-  // Written by Jan Wigginton
-  */
+// This code implements an exact SNP test of Hardy-Weinberg Equilibrium as described in
+// Wigginton, JE, Cutler, DJ, and Abecasis, GR (2005) A Note on Exact Tests of
+// Hardy-Weinberg Equilibrium. American Journal of Human Genetics. 76: 000 - 000
+//
+// Written by Jan Wigginton
+*/
 
 /**
  * NOTE (by zhanxw)
  * !! Makesure not all parameters equal to 0, or the program will crash.
  */
-double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
+inline double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
 {
   if (obs_hom1 < 0 || obs_hom2 < 0 || obs_hets < 0)
   {
@@ -67,29 +67,29 @@ double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
   curr_homc = genotypes - curr_hets - curr_homr;
   for (curr_hets = mid; curr_hets <= rare_copies - 2; curr_hets += 2)
   {
-          het_probs[curr_hets + 2] = het_probs[curr_hets] * 4.0 * curr_homr * curr_homc
-                                     /((curr_hets + 2.0) * (curr_hets + 1.0));
-          sum += het_probs[curr_hets + 2];
+    het_probs[curr_hets + 2] = het_probs[curr_hets] * 4.0 * curr_homr * curr_homc
+                               /((curr_hets + 2.0) * (curr_hets + 1.0));
+    sum += het_probs[curr_hets + 2];
 
-          /* add 2 heterozygotes for next iteration -> subtract one rare, one common homozygote */
-          curr_homr--;
-          curr_homc--;
+    /* add 2 heterozygotes for next iteration -> subtract one rare, one common homozygote */
+    curr_homr--;
+    curr_homc--;
   }
 
   for (i = 0; i <= rare_copies; i++)
     het_probs[i] /= sum;
 
   /* alternate p-value calculation for p_hi/p_lo
-        double p_hi = het_probs[obs_hets];
-           for (i = obs_hets + 1; i <= rare_copies; i++)
-                p_hi += het_probs[i];
+     double p_hi = het_probs[obs_hets];
+     for (i = obs_hets + 1; i <= rare_copies; i++)
+     p_hi += het_probs[i];
 
-                   double p_lo = het_probs[obs_hets];
-                      for (i = obs_hets - 1; i >= 0; i--)
-                            p_lo += het_probs[i];
+     double p_lo = het_probs[obs_hets];
+     for (i = obs_hets - 1; i >= 0; i--)
+     p_lo += het_probs[i];
 
 
-                               double p_hi_lo = p_hi < p_lo ? 2.0 * p_hi : 2.0 * p_lo;
+     double p_hi_lo = p_hi < p_lo ? 2.0 * p_hi : 2.0 * p_lo;
   */
 
   double p_hwe = 0.0;

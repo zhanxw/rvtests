@@ -39,8 +39,8 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 
 # Download
 
-Source file can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
-Executable binary file can be downloaded from [here](http://www.sph.umich.edu/csg/zhanxw/software/rvtests/rvtests-latest.tar.gz).
+Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
+Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.4.0/rvtests-20140228.tar.gz).
 
 # Quick Tutorial
 
@@ -54,7 +54,7 @@ This specifies single variant Wald and score test for association
 tests for every variant in the `input.vcf` file. The 6th column of the phenotype file, `phenotype.ped`, which is in PLINK format, is used. Rvtests will automatically check whether the phenotype is binary trait or quantitative trait.
 For binary trait, the recommended way of coding is to code controls as 1, cases as 2, missing phenotypes as -9 or 0.
 
-For other types of association tests, you can refer to [Models](#Models)
+For other types of association tests, you can refer to [Models](#models)
 
 ## Groupwise tests
 Groupwise tests includes three major kinds of tests.
@@ -294,8 +294,10 @@ Therefore, rvtests specify frequency cutoffs.
 
 Frequency Cutoff
 
-                 --freqUpper : Specify upper frequency bound to be included in analysis
-                 --freqLower : Specify lower frequency bound to be included in analysis
+                 --freqUpper : Specify upper minor allele frequency bound to be included in analysis
+                 --freqLower : Specify lower minor allele frequency bound to be included in analysis
+
+If you specify `--freqLower 0.01 --freqUpper 0.05`, only the variants with minor allele ferquncy between 0.01 and 0.05 (boundary inclusive) will be analyzed.
 
 Similar to sample inclusion/exclusion options, you can specify a range of variants to be included by 
 specifying `--rangeList` option. For example `--rangeList 1:100-200` will include the chromosome 1 position 100bp to 200bp region.

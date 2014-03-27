@@ -10,7 +10,7 @@ LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship
-OBJ = $(BASE:=.o)
+OBJ = $(BASE:%=%.o)
 
 DEFAULT_CXXFLAGS = -I. -I../third/tabix -I../third/pcre/include -I../third/bzip2
 
@@ -25,25 +25,23 @@ release: $(LIB)
 debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB_DBG)
 
-$(LIB): $(OBJ)
-	ar rcs $(LIB) $(OBJ)
-$(LIB_DBG): $(OBJ)
-	ar rcs $(LIB_DBG) $(OBJ)
+profile: CXXFLAGS = -Wall -pg -O0 $(DEFAULT_CXXFLAGS)
+profile: $(LIB_DBG)
 
-%: %.cpp # remove implicit Makefile rule of converting ABC.cpp to ABC
-%.o: %.cpp %.h
-	g++ -c $(CXXFLAGS) $<
+$(LIB): $(OBJ)
+	$(AR) rcs $(LIB) $(OBJ)
+$(LIB_DBG): $(OBJ)
+	$(AR) rcs $(LIB_DBG) $(OBJ)
+
+define BUILD_each
+  TAR := $(1).o
+  SRC := $(1).cpp
+  -include  $(1).d
+  $$(TAR): $$(SRC) 
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< $$(CXXFLAGS)
+endef
+$(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 
 clean:
 	rm -rf $(LIB) $(LIB_DBG) *.o *.d
 
-
-# INC=-I. -I./cityhash/include -I/home/zhanxw/software/sparsehash/include
-# LIB= -L./cityhash/lib -lcityhash
-
-# map:
-# 	g++ -std=c++0x -static -g -O0 -o test StringMap.cpp $(INC) $(LIB)
-# mapTest:
-# 	g++ -std=c++0x -static -O3 -o test StringMap.cpp $(INC) $(LIB) && xtime ./test
-# mapTest2:
-# 	g++ -std=c++0x -static -pg -g -o test StringMap.cpp $(INC) $(LIB) && xtime ./test

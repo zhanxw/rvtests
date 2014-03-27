@@ -37,6 +37,8 @@ public:
   // for Score Test
   double GetUStat();
   double GetVStat();
+  double GetSigma2();
+  double GetDelta(); // delta = sigma2_e / sigma2_g
 };
 
 

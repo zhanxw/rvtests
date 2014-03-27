@@ -29,7 +29,7 @@
 
 Logger* logger = NULL;
 
-#define VERSION "20140325"
+#define VERSION "20140326"
 
 void banner(FILE* fp) {
   const char* string =
@@ -39,7 +39,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      February 2014                     ...   \n"
+      "      ...      March 2014                        ...   \n"
       "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
@@ -158,7 +158,7 @@ class GenotypeExtractor{
 
     bool hasRead = vin.readRecord();
     if (!hasRead)
-      return -2; // meaning end of file
+      return FILE_END; 
 
     VCFRecord& r = vin.getVCFRecord();
     VCFPeople& people = r.getPeople();
@@ -214,7 +214,7 @@ class GenotypeExtractor{
         logger->error("Cannot find [ %s ] field when read individual information [ %s ]!",
                       this->doseTag.empty() ? "GT" : this->doseTag.c_str(),
                       indv->getSelf().toStr());
-        return -1;
+        return ERROR;
       }
     }
 
@@ -229,48 +229,8 @@ class GenotypeExtractor{
     } else {
       this->hemiRegion[0] = false;
     }
-    // // adjust male chrX genotype
-    // if (this->hemiRegion[0])
-    //   adjustSexGenotype(g, 0);
-    return 0;
+    return SUCCEED;
   }
-
-#if 1
-  /**
-   * Adjust genotype matrix @param geno (people by marker) at column @param col
-   * These adjustment only happen to male chromX genotypes
-   * @return 0 if succeed
-   */
-  int adjustSexGenotype(Matrix* geno, int col) {
-    Matrix& genotype = *geno;
-
-    // no sex information, just return
-    if (!this->sex) return 0;
-    if ((size_t) col >= this->hemiRegion.size()) return 0;
-
-    // non-hemi region, no need to adjust
-    if (!this->hemiRegion[col]) return 0;
-
-    for (int i = 0 ; i < genotype.rows; ++i) {
-      if ( (*sex)[col] != 1) continue;
-
-      // male
-      if (genotype[i][col] < 0) continue; //missing genotype
-      if (genotype[i][col] == 1.0 ) {
-        // male genotype cannot be het
-        genotype[i][col] = MISSING_GENOTYPE;
-        continue;
-      }
-      if (claytonCoding) {
-        genotype[i][col] *= 2.0;
-        if (genotype[i][col] > 2.0) {
-          genotype[i][col] = 2.0;
-        }
-      }
-    }
-    return 0;
-  }
-#endif
 
   bool setSiteFreqMin(const double f) {
     if (f < 0.0 || f > 1.0) {
@@ -346,6 +306,11 @@ class GenotypeExtractor{
   void disableClaytonCoding() {
     this->claytonCoding = false;
   }
+ public:
+  const static int SUCCEED = 0;
+  const static int ERROR = -1;
+  const static int FILE_END = -2;
+  const static int FAIL_FILTER = -3;
  private:
   VCFExtractor& vin;
   double freqMin;
@@ -874,7 +839,6 @@ int main(int argc, char** argv){
                           &covariate);
     appendToMatrix("Sex", sex, &covariate);
   }
-
 
   // load conditional markers
   if (!FLAG_condition.empty()) {
@@ -1410,10 +1374,13 @@ int main(int argc, char** argv){
       //int ret = extractSiteGenotype(&vin, &genotype, &buf);
       int ret = ge.extractSingleGenotype(&genotype, &buf);
 
-      if (ret == -2) { // reach file end
+      if (ret == GenotypeExtractor::FILE_END) { // reach file end
         break;
       }
-      if (ret < 0) {
+      if (ret == GenotypeExtractor::FAIL_FILTER) {
+        continue;
+      }
+      if (ret != GenotypeExtractor::SUCCEED) {
         logger->error("Extract genotype failed at site: %s:%s!", buf["CHROM"].c_str(), buf["POS"].c_str());
         continue;
       };
@@ -1459,9 +1426,13 @@ int main(int argc, char** argv){
       while (true) {
         buf.clearValue();
         int ret = ge.extractSingleGenotype(&genotype, &buf);
-        if (ret == -2) // reach end of this region
+        if (ret == GenotypeExtractor::FILE_END) { // reach end of this region
           break;
-        if (ret < 0) {
+        }            
+        if (ret == GenotypeExtractor::FAIL_FILTER) {
+          continue;
+        }
+        if (ret != GenotypeExtractor::SUCCEED) {
           logger->error("Extract genotype failed for gene %s!", geneName.c_str());
           continue;
         };
@@ -1508,7 +1479,7 @@ int main(int argc, char** argv){
       buf.clearValue();
       // int ret = extractGenotype(&vin, &genotype);
       int ret = ge.extractMultipleGenotype(&genotype);
-      if (ret < 0) {
+      if (ret != GenotypeExtractor::SUCCEED) {
         logger->error("Extract genotype failed for gene %s!", geneName.c_str());
         continue;
       };

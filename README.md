@@ -427,7 +427,7 @@ For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta
 
 * Why the INFORMATIVE_ALT_AC, N_REF and N_ALT columns have zero counts for certain chromosome X regions in meta-analysis models?
 
-These counts are calculated from female individuals. If your study only has male samples, rvtests cannot report these counts. Because if a male carries a heterzygous allele, we cannot say it's heterozygous (0/1) or homozygous alternatives (1/1).
+These counts are calculated from female individuals. If your study only has male samples, rvtests cannot report these counts. Because if a male carries a non-reference allele, we cannot conclude that this is heterozygous (0/1) site or homozygous alternatives (1/1) site.
 
 # Feedback/Contact
 

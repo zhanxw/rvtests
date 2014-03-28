@@ -425,6 +425,10 @@ We also put all available options in this [link](https://github.com/zhanxw/rvtes
 In the output of MetaScore model (--meta score), the standard error is the inverse of SQRT_V_STAT.
 For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta is 1/2 = 0.5.
 
+* Why the INFORMATIVE_ALT_AC, N_REF and N_ALT columns have zero counts for certain chromosome X regions in meta-analysis models?
+
+These counts are calculated from female individuals. If your study only has male samples, rvtests cannot report these counts. Because if a male carries a heterzygous allele, we cannot say it's heterozygous (0/1) or homozygous alternatives (1/1).
+
 # Feedback/Contact
 
 Questions and requests can be sent to Xiaowei Zhan

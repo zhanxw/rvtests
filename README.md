@@ -40,7 +40,8 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 # Download
 
 Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
-Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.4.0/rvtests-20140228.tar.gz).
+Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v.1.6.1/rvtests-20140326.tar.gz).
+
 
 # Quick Tutorial
 
@@ -423,6 +424,10 @@ We also put all available options in this [link](https://github.com/zhanxw/rvtes
 
 In the output of MetaScore model (--meta score), the standard error is the inverse of SQRT_V_STAT.
 For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta is 1/2 = 0.5.
+
+* Why the INFORMATIVE_ALT_AC, N_REF and N_ALT columns have zero counts for certain chromosome X regions in meta-analysis models?
+
+These counts are calculated from female individuals. If your study only has male samples, rvtests cannot report these counts. Because if a male carries a non-reference allele, we cannot conclude that this is heterozygous (0/1) site or homozygous alternatives (1/1) site.
 
 # Feedback/Contact
 

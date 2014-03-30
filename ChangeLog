@@ -1,3 +1,7 @@
+2014-03-30  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+
+	* Improve: faster calculation of covariance in "--meta" models
+
 2014-03-26  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve: for "--meta recessive" model, output PVALUE = NA instead of 1 at monomorphic sites

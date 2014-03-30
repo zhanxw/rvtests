@@ -2694,7 +2694,8 @@ class MetaCovTest: public ModelFitter{
     // this->mleVarY = -1.;
     this->fout = NULL;
     this->windowSize = windowSize;
-    this->needToFitNullModel = true;
+    this->needToFitNullModelForAuto = true;
+    this->needToFitNullModelForX = true;    
     result.addHeader("CHROM");
     result.addHeader("START_POS");
     result.addHeader("END_POS");
@@ -2747,23 +2748,31 @@ class MetaCovTest: public ModelFitter{
     }
 
     // set weight
-    if (!isBinaryOutcome()) {
+    if (!isBinaryOutcome()) { // qtl
       if (useFamilyModel) {
-        // copyPhenotype(phenotype, pheno);
-        // fit null model
-        if (!isHemiRegion) {
-          fitOK = (0 == metaCov.FitNullModel(genotype, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()));
+        if (!isHemiRegion) { // autosomal
+          // fit null model
+          if (this->needToFitNullModelForAuto || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+            copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+            fitOK = (0 == metaCovForAuto.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()));
+            if (!fitOK) {
+              return -1;
+            }
+            needToFitNullModelForAuto = false;
+            // get weight
+            metaCovForAuto.GetWeight(&this->weight);
+          }              
         } else {
-          fitOK = (0 == metaCovForX.FitNullModel(genotype, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()));
-        }
-        // fprintf(stderr, "fit ok!\n");
-        if (!fitOK)
-          return -1;
-        // get weight
-        if (!isHemiRegion) {
-          metaCov.GetWeight(&this->weight);
-        } else {
-          metaCovForX.GetWeight(&this->weight);
+          if (this->needToFitNullModelForX || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+            copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+            fitOK = (0 == metaCovForX.FitNullModel(cov, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()));            
+            if (!fitOK) {
+              return -1;
+            }
+            needToFitNullModelForX = false;
+            // get weight
+            metaCovForX.GetWeight(&this->weight);
+          }
         }
       } else { // not family model
         double s = 0;
@@ -2791,13 +2800,13 @@ class MetaCovTest: public ModelFitter{
         fprintf(stderr, "Binary trait meta covariance are not supported!\n");
         exit(1); // not supported yet
       } else {
-        // fit null model
-        if (this->needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+        // fit null model, don't distinguish chrom X in this case
+        if (this->needToFitNullModelForAuto || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
           copyCovariateAndIntercept(genotype.rows, covariate, &cov);
           copyPhenotype(phenotype, &this->pheno);
           fitOK = logistic.FitLogisticModel(cov, pheno, 100);
           if (!fitOK) return -1;
-          needToFitNullModel = false;
+          needToFitNullModelForAuto = false;
 
           // skip store Z, as Z = this->cov
           // store V in weight
@@ -2846,7 +2855,7 @@ class MetaCovTest: public ModelFitter{
     if (!isBinaryOutcome()) {
       if (useFamilyModel) {
         if (!isHemiRegion) {
-          metaCov.TransformCentered(&loci.geno,
+          metaCovForAuto.TransformCentered(&loci.geno,
                                     *dc->getKinshipUForAuto(),
                                     *dc->getKinshipSForAuto());
         } else {
@@ -2870,7 +2879,7 @@ class MetaCovTest: public ModelFitter{
     }
     fitOK = true;
     return (fitOK ? 0 : -1);
-  };
+  }; // fitWithGivenGenotype
 
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
@@ -3070,12 +3079,13 @@ class MetaCovTest: public ModelFitter{
   Loci loci;
   bool fitOK;
   // Result result;
-  MetaCov metaCov;
+  MetaCov metaCovForAuto;
   MetaCov metaCovForX;
+  bool needToFitNullModelForAuto;
+  bool needToFitNullModelForX;  
   bool useFamilyModel;
   Vector weight; // per individual weight
   LogisticRegression logistic;
-  bool needToFitNullModel;
   Matrix cov;
   Matrix ZVZ;
   Vector pheno;

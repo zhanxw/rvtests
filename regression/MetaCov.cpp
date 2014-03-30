@@ -152,8 +152,8 @@ class MetaCov::Impl{
     }
     return 0;
   }
-  int GetWeight(Vector* out) {
-    int n = lambda.rows();
+  int GetWeight(Vector* out) const {
+    const int n = lambda.rows();
     out->Dimension(n);
     for (int i = 0; i < n ; ++i){
       (*out)[i] = sigma2 * (lambda(i) + delta) ;

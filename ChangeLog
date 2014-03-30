@@ -1,4 +1,6 @@
-2014-03-30  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2014-03-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Improve: allele frequency calculation is faster
 
 	* Improve: faster calculation of covariance in "--meta" models
 

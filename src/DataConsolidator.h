@@ -616,7 +616,7 @@ private:
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
 
-  //Kinship for related indvidual on autosomal
+  // Kinship for related indvidual on autosomal
   // K = U %*% S %*%* t(U)
   EigenMatrix* kinshipForAuto;
   EigenMatrix* kinshipUForAuto; 

@@ -217,14 +217,30 @@ class FastLMM::Impl{
   }
   // NOTE: need to fit null model before calling this function
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) const{
+    // K = U S U^t = U * (lambda + delta) * U^t
+    // 1 = (n by 1)  matrix
+    // G = (n by 1) genotype matrix
+    // AF = (1^t K^(-1) 1)^(-1) * (1^t K^(-1) G)
+    //    = (1^t U (lambda + delta)^(-1) * U^t * 1)^(-1) *
+    //      (1^t U (lambda + delta)^(-1) * U^t * G)
+    //    = ((U^t*1)^t * (lambda + delta)^(-1) * (U^t*1))^(-1)
+    //      ((U^t*1)^t * (lambda + delta)^(-1) * (U^t * G))
+    //    = (u1s * u1)^(-1) * (u1s * ug)
     const Eigen::MatrixXf& U = kinshipU.mat;
     Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
-    Eigen::MatrixXf u1s = u1.transpose() * (this->lambda.array() + delta).matrix().asDiagonal();
-    Eigen::MatrixXf beta = (u1s * u1).inverse() * (u1s * this->ug);
+    // Eigen::MatrixXf ug = U.transpose() .rowwise().sum();
+    // Eigen::MatrixXf u1s = u1.transpose() * (this->lambda.array() + delta).matrix().asDiagonal();
+    Eigen::ArrayXf u1s = u1.array() / (this->lambda.array() + delta).array();
+    double denom = (u1s * u1.array()).sum();
+    if (denom == 0.0) {
+      return 0.0;
+    }
+    double numer = (u1s * ug.array()).sum();
+    double beta =  numer / denom;
 
     // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
     // multiply by 0.5 to get AF
-    double af = 0.5 * beta(0, 0);
+    double af = 0.5 * beta;
     return af;
   }
   // NOTE: need to fit null model before calling this function
@@ -234,12 +250,19 @@ class FastLMM::Impl{
 
     const Eigen::MatrixXf& U = kinshipU.mat;
     Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
-    Eigen::MatrixXf u1s = u1.transpose() * (this->lambda.array() + delta).matrix().asDiagonal();
-    Eigen::MatrixXf beta = (u1s * u1).inverse() * (u1s * U.transpose() * g);
+    Eigen::MatrixXf ug = U.transpose() * g;
+    Eigen::ArrayXf u1s = u1.array() / (this->lambda.array() + delta).abs().array();
+    // This is usually the same, must avoid future calculations...
+    double denom = (u1s * u1.array()).sum();
+    if (denom == 0.0) {
+      return 0.0;
+    }
+    double numer = (u1s * ug.array()).sum();
+    double beta =  numer / denom;
 
     // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
     // multiply by 0.5 to get AF
-    double af = 0.5 * beta(0, 0);
+    double af = 0.5 * beta;
     return af;
   }
   double GetPvalue() const{

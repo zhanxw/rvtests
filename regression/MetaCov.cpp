@@ -194,6 +194,7 @@ class MetaCov::Impl{
 MetaCov::MetaCov(){
   this->impl = new Impl();
 }
+
 MetaCov::~MetaCov(){
   delete this->impl;
 }
@@ -208,26 +209,10 @@ int  MetaCov::TransformCentered(std::vector<double>* x,
                                 const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
   return this->impl->TransformCentered(x, kinshipU, kinshipS);
 }
+
 int  MetaCov::GetWeight(Vector* out){
   return this->impl->GetWeight(out);
 }
-
-
-// int MetaCov::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
-//                            const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
-//   return this->impl->TestCovariate(Xnull, y, Xcol, kinshipU, kinshipS);
-// }
-// double MetaCov::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
-//   return this->impl->GetAF(kinshipU, kinshipS);
-// }
-// double MetaCov::GetPvalue(){
-//   return this->impl->GetPvalue();
-// }
-// double MetaCov::GetUStat() { return this->impl->GetUStat();};
-// double MetaCov::GetVStat() { return this->impl->GetVStat();};
-// double MetaCov::GetNullLogLikelihood() { return this->impl->GetNullLogLikelihood(); };
-// double MetaCov::GetAltLogLikelihood() { return this->impl->GetAltLogLikelihood(); };
-
 
 // need to negaive the MLE to minize it
 double goalFunction(double x, void* param) {

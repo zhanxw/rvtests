@@ -1,3 +1,7 @@
+2014-04-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* New parallele computation option (--thread) in vcf2kinship
+
 2014-03-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve: allele frequency calculation is faster

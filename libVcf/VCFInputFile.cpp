@@ -102,7 +102,8 @@ void VCFInputFile::init(const char* fn) {
   this->fp = NULL;
   this->tabixReader = NULL;
   this->bcfReader = NULL;
-
+  this->autoMergeRange = false;
+  
   // check whether file exists.
   FILE* fp = fopen(fn, "rb");
   if (!fp) {

@@ -27,6 +27,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 // #pragma message "Enable multithread using OpenMP"
+int g_NumThread = 1;
 #endif
 
 class EmpiricalKinship{
@@ -241,7 +242,9 @@ class BaldingNicolsKinship: public EmpiricalKinship {
       }
     }
     const size_t numG = g.size();
+#ifdef _OPENMP    
 #pragma omp parallel for
+#endif
     for (size_t i = 0; i < numG; ++i) {
       if (geno[i] == 0.0) continue; // skip missing marker
       for (size_t j = 0; j <= i; ++j) {
@@ -354,7 +357,9 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
     }
 
     const size_t numG = g.size();
+#ifdef _OPENMP    
 #pragma omp parallel for
+#endif
     for (size_t i = 0; i < numG; ++i) {
       if (geno[i] == 0.0) continue; // skip missing marker
       for (size_t j = 0; j <= i; ++j) {
@@ -406,7 +411,7 @@ void usage(int argc, char** argv) {
 }
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20140326"
+#define VERSION "20140401"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s)\n", PROGRAM, VERSION);
@@ -460,6 +465,7 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Other Function")
       // ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")
       ADD_STRING_PARAMETER(pl, updateId, "--update-id", "Update VCF sample id using given file (column 1 and 2 are old and new id).")
+      ADD_DEFAULT_INT_PARAMETER(pl, thread, 1, "--thread", "Specify number of parallel threads to speed up")      
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
       END_PARAMETER_LIST(pl)
       ;
@@ -483,7 +489,18 @@ int main(int argc, char** argv){
   }
   // PAR region setting
   ParRegion parRegion(FLAG_xLabel, FLAG_xParRegion);
-
+  // Set threads
+  if (FLAG_thread < 1) {
+    fprintf(stderr, "Invalid thread number: %d\n", FLAG_thread);
+    abort();
+  } else if (FLAG_thread > 1){
+    fprintf(stderr, "Multiple ( %d ) threads will be used.\n", FLAG_thread);
+  }
+  g_NumThread = FLAG_thread;
+#ifdef _OPENMP    
+    omp_set_num_threads(g_NumThread);
+#endif
+    
   // REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
   if (FLAG_inVcf.empty() && FLAG_ped.empty()) {
     fprintf(stderr, "Please provide input file using: --inVcf or --ped");

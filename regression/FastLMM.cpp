@@ -162,7 +162,7 @@ class FastLMM::Impl{
     if (this->test == FastLMM::SCORE) {
       // just return score test statistics
       // Eigen::RowVectorXf g_mean = g.colwise().mean();
-      Eigen::MatrixXf u_g_center = U.transpose() *  (g.rowwise() - g_mean);
+      Eigen::MatrixXf u_g_center = U.transpose() *  (g.rowwise() - g.colwise().mean());
       this->Ustat = (  (  (u_g_center).array() *
                           (  (this->uResid)).array() ) /
                        (lambda.array() + delta)
@@ -270,9 +270,9 @@ class FastLMM::Impl{
   // NOTE2: assuming kinship matrices are unchanged
   double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol) const{
     const Eigen::MatrixXf& U = kinshipU.mat;
-    static initialized = false;
+    static bool initialized = false;
     static Eigen::MatrixXf g;
-    static Eigen::MatrixXf u1s;
+    static Eigen::ArrayXf u1s;
     static double denom;
 
     if (!initialized) {

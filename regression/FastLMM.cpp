@@ -161,12 +161,13 @@ class FastLMM::Impl{
 
     if (this->test == FastLMM::SCORE) {
       // just return score test statistics
-      Eigen::RowVectorXf g_mean = g.colwise().mean();
-      this->Ustat = (  (  (U.transpose() *  (g.rowwise() - g_mean)).array() *
+      // Eigen::RowVectorXf g_mean = g.colwise().mean();
+      Eigen::MatrixXf u_g_center = U.transpose() *  (g.rowwise() - g_mean);
+      this->Ustat = (  (  (u_g_center).array() *
                           (  (this->uResid)).array() ) /
                        (lambda.array() + delta)
                        ).sum() / this->sigma2;
-      this->Vstat = ((U.transpose() *  (g.rowwise() - g_mean)).array().square() / (lambda.array() + delta)).sum() / this->sigma2 ;
+      this->Vstat = ((u_g_center).array().square() / (lambda.array() + delta)).sum() / this->sigma2 ;
       if (this->Vstat > 0.0) {
         this->stat = this->Ustat * this->Ustat / this->Vstat;
         this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
@@ -265,6 +266,36 @@ class FastLMM::Impl{
     double af = 0.5 * beta;
     return af;
   }
+  // NOTE: need to fit null model before calling this function
+  // NOTE2: assuming kinship matrices are unchanged
+  double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol) const{
+    const Eigen::MatrixXf& U = kinshipU.mat;
+    static initialized = false;
+    static Eigen::MatrixXf g;
+    static Eigen::MatrixXf u1s;
+    static double denom;
+
+    if (!initialized) {
+      Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
+      Eigen::MatrixXf ug = U.transpose() * g;
+      u1s = u1.array() / (this->lambda.array() + delta).abs().array();
+      denom = (u1s * u1.array()).sum();
+      initialized = true;
+    }
+    
+    if (denom == 0.0) {
+      return 0.0;
+    }
+    G_to_Eigen(Xcol, &g);
+    double numer = (u1s * ug.array()).sum();
+    double beta =  numer / denom;
+
+    // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
+    // multiply by 0.5 to get AF
+    double af = 0.5 * beta;
+    return af;
+  }
+  
   double GetPvalue() const{
     return this->pvalue;
   }

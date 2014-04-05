@@ -2467,10 +2467,10 @@ class MetaScoreTest: public ModelFitter{
 
         if (!isHemiRegion) {
           fitOK = (0 == linearFamScoreForAuto.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
-          this->af = linearFamScoreForAuto.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(), dc->getGenotype());
+          this->af = linearFamScoreForAuto.FastGetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(), dc->getGenotype());
         } else {
           fitOK = (0 == linearFamScoreForX.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()) ? true: false);
-          this->af = linearFamScoreForX.GetAF(*dc->getKinshipUForX(), *dc->getKinshipSForX(), dc->getGenotype());
+          this->af = linearFamScoreForX.FastGetAF(*dc->getKinshipUForX(), *dc->getKinshipSForX(), dc->getGenotype());
         }
       } else {
         /* if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) { */

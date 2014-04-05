@@ -277,7 +277,6 @@ class FastLMM::Impl{
 
     if (!initialized) {
       Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
-      Eigen::MatrixXf ug = U.transpose() * g;
       u1s = u1.array() / (this->lambda.array() + delta).abs().array();
       denom = (u1s * u1.array()).sum();
       initialized = true;
@@ -287,6 +286,7 @@ class FastLMM::Impl{
       return 0.0;
     }
     G_to_Eigen(Xcol, &g);
+    Eigen::MatrixXf ug = U.transpose() * g;
     double numer = (u1s * ug.array()).sum();
     double beta =  numer / denom;
 

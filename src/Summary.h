@@ -14,6 +14,8 @@ inline void assign(const std::vector<double>& in, Vector* out) {
   }
 }
 
+extern const char* VERSION;
+
 class Summary{
  public:
   Summary(): min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0){};
@@ -104,6 +106,8 @@ class SummaryHeader{
   void outputHeader(FileWriter* fp) {
     // write summaries
     int nSample = pheno.size()? pheno[0].n: 0;
+    fp->printf("##ProgramName=Rvtests\n");
+    fp->printf("##Version=%s\n", VERSION);
     fp->printf("##Samples=%d\n", nSample);
     fp->printf("##AnalyzedSamples=%d\n", nSample);
     fp->printf("##Families=%d\n", nSample);

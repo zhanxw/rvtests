@@ -224,7 +224,7 @@ class FastLMM::Impl{
       ret = n * log( 2.0 * PI);
       ret += (this->lambda.array() + delta).abs().log().sum();
       ret += n;
-      ret += n * log(this->getSumResidual2(delta)/n);
+      ret += n * log(this->sigma2);
     }
     ret *= -0.5;
     if (this->model == FastLMM::REML) {
@@ -287,7 +287,7 @@ class FastLMM::Impl{
     return af;
   }
   // NOTE: need to fit null model before calling this function
-  // NOTE2: assuming kinship matrices are unchanged
+  // NOTE2: assume kinship matrices are unchanged
   double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol) const{
     const Eigen::MatrixXf& U = kinshipU.mat;
     static bool initialized = false;
@@ -302,15 +302,13 @@ class FastLMM::Impl{
       denom = (u1s * u1.array()).sum();
       alpha = (u1.transpose() * (this->lambda.array() + delta).abs().inverse().matrix().asDiagonal() * U.transpose()).transpose();
       initialized = true;
-      fprintf(stderr, "initialized\n");
+      // fprintf(stderr, "initialized\n");
     }
     
     if (denom == 0.0) {
       return 0.0;
     }
     G_to_Eigen(Xcol, &g);
-    // Eigen::MatrixXf ug = U.transpose() * g;
-    // double numer = (u1s * ug.array()).sum();
 
     double beta =  (alpha * g.array()).sum()  / denom;
 

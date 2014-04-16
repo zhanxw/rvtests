@@ -1,15 +1,17 @@
 EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
       testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
-      testCommonFunction testTypeConversion
-TIMER =  testSimpleTimer1 testSimpleTimer2
-all: $(EXE) $(TIMER)
+      testCommonFunction testTypeConversion testSimpleTimer
+all: $(EXE)
 debug: all
 
 CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/tabix/ \
 -I../../third/pcre/include \
 ../../base/lib-dbg-base.a -lz -lbz2 \
 ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
-../../third/tabix/libtabix.a
+../../third/tabix/libtabix.a \
+-DUSE_ACCURATE_TIMER \
+-std=c++0x \
+-Wall
 
 define BUILD_each
   TAR := $(1)
@@ -33,8 +35,7 @@ check: kinship
         ./testParRegion && \
         ./testCommonFunction && \
         ./testTypeConversion > test.TypeConversion.output && diff test.TypeConversion.output test.TypeConversion.correct && \
-        ./testSimpleTimer1 && \
-        ./testSimpleTimer2 && \
+        ./testSimpleTimer && \
         echo "All tests passed!"
 
 kinship:
@@ -43,11 +44,6 @@ kinship:
         ./testKinshipToKinInbcoef x test.KinInbcoefX.pedtestX2 test.KinInbcoefX.listtestX2 > test.KinInbcoefX.outtestX2 && diff test.KinInbcoefX.outtestX2 test.KinInbcoefX.outtestX2.correct
 
 #diff -q t1.output t1.correct
-
-testSimpleTimer1: testSimpleTimer.cpp
-	g++ -o $@ $< -MMD $(CXX_FLAGS)
-testSimpleTimer2: testSimpleTimer.cpp
-	g++ -o $@ $< -MMD $(CXX_FLAGS) -DTIMER_HIGH_ACCURACY -std=c++0x
 
 clean:
 	-rm -f $(EXE) *.o *.d *.out

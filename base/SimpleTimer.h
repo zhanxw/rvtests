@@ -1,7 +1,6 @@
 #ifndef _SIMPLETIMER_H_
 #define _SIMPLETIMER_H_
 
-#ifndef TIMER_HIGH_ACCURACY
 #include <ctime>
 
 class SimpleTimer{
@@ -30,15 +29,15 @@ class SimpleTimer{
   int _elapsed;
 };
 
-#else
+#ifdef USE_ACCURATE_TIMER
 
 #include <ctime>
 #include <ratio>
 #include <chrono>
 
-class SimpleTimer {
+class AccurateTimer {
  public:
-  SimpleTimer() {
+  AccurateTimer() {
     start();
   };
   void start() {

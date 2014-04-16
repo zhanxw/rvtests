@@ -1,3 +1,8 @@
+2014-04-16  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix "--meta score" model outputs on X chromosome hemizygous region
+	* Add header in "--meta score" model outputs
+
 2014-04-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* New parallele computation option (--thread) in vcf2kinship
@@ -17,9 +22,6 @@
 2014-03-25  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve: greatly improve the speed for cov,dominant and recessive models
-
->>>>>>> 94af5795688b69b4819d3ab56b0e5722720dd6a9
-
 	* Fix: MetaCov model now have the correct suffix
 
 2014-02-28  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
@@ -31,7 +33,7 @@
 	* Change: for X chrom, also use male to get AF
 	* Support generating covariance matrix for dominant/recessive model
 	* Change now, by default, rvtests drops samples with missing covariates (to resume previous behavior, imputing to the mean, use --imputeCov). 
-	
+
 2014-02-20  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Revise --useResidualAsPhenotype, now regress out intercept by default

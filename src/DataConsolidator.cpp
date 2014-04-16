@@ -7,6 +7,13 @@
 #include "regression/EigenMatrix.h"
 #include "IO.h"
 
+#undef DEBUG
+//#define DEBUG
+#ifdef DEBUG
+#include <iostream>
+#include <fstream>
+#endif
+
 DataConsolidator::DataConsolidator()
   :
   strategy(DataConsolidator::UNINITIALIZED),
@@ -125,6 +132,14 @@ int DataConsolidator::loadKinshipFile(const std::string& fn,
       }
     }
   }
+#ifdef DEBUG
+  std::string tmp = fn;
+  tmp += ".tmp";
+  std::ofstream ofs(tmp.c_str(), std::ofstream::out);
+  ofs << mat;
+  ofs.close();
+#endif
+
   // fprintf(stderr, "Kinship matrix [ %d x %d ] loaded", (int)mat.rows(), (int)mat.cols());
   kinshipLoaded = true;
   return 0;

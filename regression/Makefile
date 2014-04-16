@@ -41,7 +41,7 @@ $(MVTNORM_OBJ):
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 release: CXXFLAGS = -O2 -msse2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
-debug: CXXFLAGS = -Wall -pg -O0 $(DEFAULT_CXXFLAGS)
+debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB-DBG)
 profile: CXXFLAGS = -Wall -pg -O0 $(DEFAULT_CXXFLAGS)
 profile: $(LIB-DBG)

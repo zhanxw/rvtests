@@ -1,8 +1,8 @@
 EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
       testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
       testCommonFunction testTypeConversion
-
-all: $(EXE)
+TIMER =  testSimpleTimer1 testSimpleTimer2
+all: $(EXE) $(TIMER)
 debug: all
 
 CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/tabix/ \
@@ -33,6 +33,8 @@ check: kinship
         ./testParRegion && \
         ./testCommonFunction && \
         ./testTypeConversion > test.TypeConversion.output && diff test.TypeConversion.output test.TypeConversion.correct && \
+        ./testSimpleTimer1 && \
+        ./testSimpleTimer2 && \
         echo "All tests passed!"
 
 kinship:
@@ -41,6 +43,11 @@ kinship:
         ./testKinshipToKinInbcoef x test.KinInbcoefX.pedtestX2 test.KinInbcoefX.listtestX2 > test.KinInbcoefX.outtestX2 && diff test.KinInbcoefX.outtestX2 test.KinInbcoefX.outtestX2.correct
 
 #diff -q t1.output t1.correct
+
+testSimpleTimer1: testSimpleTimer.cpp
+	g++ -o $@ $< -MMD $(CXX_FLAGS)
+testSimpleTimer2: testSimpleTimer.cpp
+	g++ -o $@ $< -MMD $(CXX_FLAGS) -DTIMER_HIGH_ACCURACY -std=c++0x
 
 clean:
 	-rm -f $(EXE) *.o *.d *.out

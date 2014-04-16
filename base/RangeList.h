@@ -344,8 +344,10 @@ class RangeList{
         positionPair(NULL){
       chromSize = rc.getChromVector().size();
       inChromRegionSize = getRegions(chromIndex)? getRegions(chromIndex)->size() : 0;
-      chrom = &(rc.getChromVector()[chromIndex]);
-      positionPair = getRegions(chromIndex);
+      if (chromIndex) {
+        chrom = &(rc.getChromVector()[chromIndex]);
+        positionPair = getRegions(chromIndex);
+      }
     };
     iterator& operator++(){
       this->inChromRangeIndex ++;

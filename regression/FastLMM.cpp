@@ -14,6 +14,7 @@ void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
   out.close();
 }
 #endif
+
 // #define EIGEN_NO_DEBUG
 #undef DEBUG
 // #define DEBUG
@@ -38,6 +39,7 @@ class FastLMM::Impl{
     G_to_Eigen(mat_y, &this->uy);
     this->lambda = kinshipS.mat;
     const Eigen::MatrixXf& U = kinshipU.mat;
+
     // rotate
     this->ux = U.transpose() * this->ux;
     this->uy = U.transpose() * this->uy;
@@ -48,11 +50,11 @@ class FastLMM::Impl{
     int maxIndex = -1;
     double maxLogLik = 0;
     for (int i = 0; i <= 100; ++i ){
-      delta = exp(-10 + i * 0.2);
+      delta = exp(-10. + i * 0.2);
       getBetaSigma2(delta);
       loglik[i] = getLogLikelihood(delta);
 #ifdef DEBUG
-      fprintf(stderr, "%d\tdelta=%g\tll=%lf\n", i, delta, loglik[i]);
+      fprintf(stderr, "%d\tdelta=%g\tll=%lf\t", i, delta, loglik[i]);
       fprintf(stderr, "beta(0)=%lf\tsigma2=%lf\n",
               beta(0), sigma2);
 #endif
@@ -82,9 +84,9 @@ class FastLMM::Impl{
       F.params = this;
 
       Minimizer minimizer;
-      double lb = exp(-10 + (maxIndex-1) * 0.2);
-      double ub = exp(-10 + (maxIndex+1) * 0.2);
-      double start =  exp(-10 + maxIndex * 0.2);
+      double lb = exp(-10. + (maxIndex-1) * 0.2);
+      double ub = exp(-10. + (maxIndex+1) * 0.2);
+      double start =  exp(-10. + maxIndex * 0.2);
       if (minimizer.minimize(F, start, lb, ub)) {
         fprintf(stderr, "Minimization failed, fall back to initial guess.\n");
         this->delta = start;
@@ -96,7 +98,8 @@ class FastLMM::Impl{
       }
     }
     // store some intermediate results
-#ifdef DEBUG       
+#ifdef DEBUG
+    fprintf(stderr, "delta = sigma2_e/sigma2_g, and sigma2 is sigma2_g\n");
     fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
     fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
 #endif
@@ -113,13 +116,12 @@ class FastLMM::Impl{
     const Eigen::MatrixXf& U = kinshipU.mat;
     Eigen::MatrixXf g;
     G_to_Eigen(Xcol, &g);
-    this->ug = U.transpose() * g;
 
     // depends on LRT test or Score tests
     if (this->test == FastLMM::LRT) {
       // need to fit alternative model
       // 1. assign obs and parameters
-
+      this->ug.noalias() = U.transpose() * g;
       Eigen::MatrixXf altUx; // X under alternative model
       // cbind_G_to_Eigen(Xnull, Xcol, &altUx);
       altUx.resize(this->ux.rows(), this->ux.cols() + this->ug.cols());
@@ -162,12 +164,13 @@ class FastLMM::Impl{
     if (this->test == FastLMM::SCORE) {
       // just return score test statistics
       // Eigen::RowVectorXf g_mean = g.colwise().mean();
-      Eigen::MatrixXf u_g_center = U.transpose() *  (g.rowwise() - g.colwise().mean());
-      this->Ustat = (  (  (u_g_center).array() *
-                          (  (this->uResid)).array() ) /
+      Eigen::ArrayXf u_g_center;
+      u_g_center = (U.transpose() *  (g.rowwise() - g.colwise().mean())).eval().array();
+      this->Ustat = (  (  (u_g_center) *
+                          (this->uResid).array() ) /
                        (lambda.array() + delta)
                        ).sum() / this->sigma2;
-      this->Vstat = ((u_g_center).array().square() / (lambda.array() + delta)).sum() / this->sigma2 ;
+      this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
       if (this->Vstat > 0.0) {
         this->stat = this->Ustat * this->Ustat / this->Vstat;
         this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
@@ -186,6 +189,22 @@ class FastLMM::Impl{
     Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ux;
     Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->uy;
     this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
+#ifdef DEBUG
+    dumpToFile(beta, "beta.1");
+    Eigen::MatrixXf tmpXX, tmpXY;
+    tmpXX = (this->ux.transpose() *
+             (this->lambda.array() + delta).matrix().asDiagonal() *
+             this->ux);
+    tmpXY = (this->ux.transpose() *
+             (this->lambda.array() + delta).matrix().asDiagonal() *
+             this->uy);
+    this->beta = tmpXX.eval().ldlt().solve(tmpXY);
+    dumpToFile(beta, "beta.2");
+
+    this->beta = tmpXX.inverse() *(tmpXY);
+    dumpToFile(beta, "beta.3");
+
+#endif
     double sumResidual2 = getSumResidual2(delta);
     if ( model == FastLMM::MLE) {
       this->sigma2 = sumResidual2 / x.rows();
@@ -200,11 +219,12 @@ class FastLMM::Impl{
    */
   double getLogLikelihood(double delta) {
     double ret = 0;
+    double const n = this->ux.rows();
     if (this->model == FastLMM::MLE) {
-      ret = 1.0 * this->ux.rows() * log( 2.0 * PI);
+      ret = n * log( 2.0 * PI);
       ret += (this->lambda.array() + delta).abs().log().sum();
-      ret += this->ux.rows();
-      ret += 1.0 * this->ux.rows() * log(this->getSumResidual2(delta));
+      ret += n;
+      ret += n * log(this->getSumResidual2(delta)/n);
     }
     ret *= -0.5;
     if (this->model == FastLMM::REML) {
@@ -274,21 +294,25 @@ class FastLMM::Impl{
     static Eigen::MatrixXf g;
     static Eigen::ArrayXf u1s;
     static double denom;
-
+    static Eigen::ArrayXf alpha;
+    
     if (!initialized) {
-      Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
+      Eigen::MatrixXf u1 = U.transpose().rowwise().sum(); // n by 1
       u1s = u1.array() / (this->lambda.array() + delta).abs().array();
       denom = (u1s * u1.array()).sum();
+      alpha = (u1.transpose() * (this->lambda.array() + delta).abs().inverse().matrix().asDiagonal() * U.transpose()).transpose();
       initialized = true;
+      fprintf(stderr, "initialized\n");
     }
     
     if (denom == 0.0) {
       return 0.0;
     }
     G_to_Eigen(Xcol, &g);
-    Eigen::MatrixXf ug = U.transpose() * g;
-    double numer = (u1s * ug.array()).sum();
-    double beta =  numer / denom;
+    // Eigen::MatrixXf ug = U.transpose() * g;
+    // double numer = (u1s * ug.array()).sum();
+
+    double beta =  (alpha * g.array()).sum()  / denom;
 
     // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
     // multiply by 0.5 to get AF
@@ -346,7 +370,7 @@ class FastLMM::Impl{
   double nullLikelihood;
   double altLikelihood;
   // for score test
-  Eigen::MatrixXf uResid; // U' * (y - mean(y))
+  Eigen::MatrixXf uResid; // U' * (y - mean(y)) or U' * (y - X * beta)
   double Ustat;
   double Vstat;
   double stat;

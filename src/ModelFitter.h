@@ -2763,6 +2763,10 @@ class MetaCovTest: public ModelFitter{
             metaCovForAuto.GetWeight(&this->weight);
           }              
         } else {
+          if (!dc->hasKinshipForX()) {
+            fitOK = false;
+            return -1;
+          }
           if (this->needToFitNullModelForX || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
             copyCovariateAndIntercept(genotype.rows, covariate, &cov);
             fitOK = (0 == metaCovForX.FitNullModel(cov, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()));            

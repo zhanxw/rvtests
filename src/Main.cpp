@@ -1277,7 +1277,7 @@ int main(int argc, char** argv){
       logger->warn("Autosomal kinship loaded, but no hemizygote region kinship provided, some sex chromosome tests will be skipped.");
     } else {
       start = clock();
-      if (dc.loadKinshipFileForX(FLAG_kinship, phenotypeNameInOrder)){
+      if (dc.loadKinshipFileForX(FLAG_xHemiKinship, phenotypeNameInOrder)){
         logger->error("Failed to load kinship file [ %s ]", FLAG_xHemiKinship.c_str());
         abort();
       }

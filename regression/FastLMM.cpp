@@ -70,7 +70,7 @@ class FastLMM::Impl{
       fprintf(stderr, "Cannot optimize\n");
       return -1;
     }
-#ifdef DEBUG
+#if 0
     fprintf(stderr, "maxIndex = %d\tll=%lf\t\tbeta(0)=%lf\tsigma2=%lf\n",
             maxIndex, maxLogLik, beta(0), sigma2);
 #endif
@@ -101,7 +101,7 @@ class FastLMM::Impl{
 #ifdef DEBUG
     fprintf(stderr, "delta = sigma2_e/sigma2_g, and sigma2 is sigma2_g\n");
     fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
-    fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
+    fprintf(stderr, "beta[0][0] = %g\t sigma2_g = %g\tsigma2_e = %g\n", beta(0,0), this->sigma2, delta * sigma2);
 #endif
     if (this->test == FastLMM::LRT) {
       this->nullLikelihood = getLogLikelihood(this->delta);
@@ -130,8 +130,8 @@ class FastLMM::Impl{
       Eigen::MatrixXf& altUy =  this->uy;
       Eigen::MatrixXf& altLambda =  this->lambda;
       // 2. estimate beta and sigma2 using delta under the null model
-      Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * altUx;
-      Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * altUy;
+      Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().inverse().matrix().asDiagonal() * altUx;
+      Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().inverse().matrix().asDiagonal() * altUy;
       Eigen::MatrixXf altBeta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
       double altSumResidual2 = (( altUy.array() - (altUx * altBeta).array() ).square() / (altLambda.array() + delta)).sum();
 
@@ -163,11 +163,10 @@ class FastLMM::Impl{
 
     if (this->test == FastLMM::SCORE) {
       // just return score test statistics
-      // Eigen::RowVectorXf g_mean = g.colwise().mean();
       Eigen::ArrayXf u_g_center;
       u_g_center = (U.transpose() *  (g.rowwise() - g.colwise().mean())).eval().array();
-      this->Ustat = (  (  (u_g_center) *
-                          (this->uResid).array() ) /
+      this->Ustat = (  ( (u_g_center) *
+                          (this->uResid).array()) /
                        (lambda.array() + delta)
                        ).sum() / this->sigma2;
       this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
@@ -186,30 +185,17 @@ class FastLMM::Impl{
     return (( this->uy.array() - (this->ux * this->beta).array() ).square() / (this->lambda.array() + delta)).sum();
   }
   void getBetaSigma2(double delta) {
-    Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ux;
-    Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->uy;
-    this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
-#ifdef DEBUG
-    dumpToFile(beta, "beta.1");
-    Eigen::MatrixXf tmpXX, tmpXY;
-    tmpXX = (this->ux.transpose() *
-             (this->lambda.array() + delta).matrix().asDiagonal() *
-             this->ux);
-    tmpXY = (this->ux.transpose() *
-             (this->lambda.array() + delta).matrix().asDiagonal() *
-             this->uy);
-    this->beta = tmpXX.eval().ldlt().solve(tmpXY);
-    dumpToFile(beta, "beta.2");
-
-    this->beta = tmpXX.inverse() *(tmpXY);
-    dumpToFile(beta, "beta.3");
-
-#endif
+    // Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ux;
+    // Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->uy;
+    // this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
+    this->beta = (ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * ux)
+                 .ldlt().solve(ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * uy);
+    
     double sumResidual2 = getSumResidual2(delta);
     if ( model == FastLMM::MLE) {
-      this->sigma2 = sumResidual2 / x.rows();
+      this->sigma2 = sumResidual2 / ux.rows();
     } else {
-      this->sigma2 = sumResidual2 / (x.rows() - x.cols());
+      this->sigma2 = sumResidual2 / (ux.rows() - ux.cols());
     }
   }
   /**
@@ -420,7 +406,6 @@ double FastLMM::GetSigmaG2() { return this->impl->GetSigmaG2(); };
 double FastLMM::GetDelta()  { return this->impl->GetDelta(); };    // delta = sigma2_e / sigma2_g
 double FastLMM::GetNullLogLikelihood() { return this->impl->GetNullLogLikelihood(); };
 double FastLMM::GetAltLogLikelihood() { return this->impl->GetAltLogLikelihood(); };
-
 
 // need to negaive the MLE to minize it
 double goalFunction(double x, void* param) {

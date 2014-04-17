@@ -29,7 +29,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20140415";
+const char* VERSION = "20140416";
 
 void banner(FILE* fp) {
   const char* string =
@@ -578,7 +578,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "specify which phenotype column to read (default: 1)")
       ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name", "specify which phenotype column to read by header")
       ADD_BOOL_PARAMETER(pl, qtl, "--qtl", "treat phenotype as quantitative trait")
-
+      
       ADD_PARAMETER_GROUP(pl, "Specify Genotype")
       ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC)")
       // ADD_STRING_PARAMETER(pl, glTag, "--gl", "Specify which genotype likelihood tag to use. (e.g. GL)")
@@ -1263,6 +1263,7 @@ int main(int argc, char** argv){
 
     // load hemi kinship
     if (FLAG_xHemiKinship.empty()) {
+      // guess hemi kinshp file name
       std::string fn = FLAG_kinship;
       fn = fn.substr(0, fn.size() - 8); // strip ".kinship"
       fn += ".xHemi.kinship";

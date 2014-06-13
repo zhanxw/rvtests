@@ -29,7 +29,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20140416";
+const char* VERSION = "20140613";
 
 void banner(FILE* fp) {
   const char* string =
@@ -39,7 +39,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      April 2014                        ...   \n"
+      "      ...      June 2014                         ...   \n"
       "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
@@ -709,7 +709,7 @@ int main(int argc, char** argv){
   };
   if (FLAG_siteMACMin > 0) {
     vin.setSiteMACMin(FLAG_siteMACMin);
-    logger->info("Set site minimum MAC to %d", FLAG_siteDepthMax);
+    logger->info("Set site minimum MAC to %d", FLAG_siteDepthMin);
   };
   if (FLAG_annoType != "") {
     vin.setAnnoType(FLAG_annoType.c_str());
@@ -759,7 +759,7 @@ int main(int argc, char** argv){
   vin.getVCFHeader()->getPeopleName(&vcfSampleNames);
   logger->info("Loaded [ %zu ] samples from VCF files", vcfSampleNames.size() );
   std::vector<std::string> vcfSampleToDrop;
-  std::vector<std::string> phenotypeNameInOrder; // phenotype arranged in the same order as in VCF
+  std::vector<std::string> phenotypeNameInOrder; // phenotype names (vcf sample names) arranged in the same order as in VCF
   std::vector<double> phenotypeInOrder; // phenotype arranged in the same order as in VCF
   rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeNameInOrder, &phenotypeInOrder, FLAG_imputePheno);
   if (vcfSampleToDrop.size()) {
@@ -887,6 +887,9 @@ int main(int argc, char** argv){
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
 
+  // record raw phenotype
+  g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
+  
   // adjust phenotype
   bool binaryPhenotype;
   if (FLAG_qtl) {
@@ -919,7 +922,7 @@ int main(int argc, char** argv){
         if (!lr.FitLinearModel(covAndInt, pheno)) {
           logger->error("Cannot fit model: [ phenotype ~ 1 + covariates ], now use the original phenotype");
         } else {
-          int n = lr.GetResiduals().Length();
+          const int n = lr.GetResiduals().Length();
           for (int i = 0; i < n; ++i) {
             phenotypeInOrder[i] = lr.GetResiduals()[i];
           }
@@ -934,7 +937,7 @@ int main(int argc, char** argv){
   }
 
   // phenotype transformation
-  g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
+  // g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
   if (FLAG_inverseNormal) {
     if (binaryPhenotype){
       logger->warn("WARNING: Skip transforming binary phenotype, although you required inverse normalization!");

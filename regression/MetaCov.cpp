@@ -4,8 +4,20 @@
 #include "Eigen/Dense"
 #include "GSLMinimizer.h"
 
+#if 0
+#include <fstream>
+void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
+  std::ofstream out(fn);
+  out << mat.rows() << "\t" << mat.cols() << "\n";
+  out << mat;
+  out.close();
+}
+#endif
+
+// #define EIGEN_NO_DEBUG
 #undef DEBUG
 // #define DEBUG
+
 #define PI 3.1415926535897
 
 static double goalFunction(double x, void* param);
@@ -16,11 +28,17 @@ class MetaCov::Impl{
   }
   int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
+    // sanity check
+    if (mat_Xnull.rows != mat_y.rows) return -1;
+    if (mat_Xnull.rows != kinshipU.mat.rows()) return -1;
+    if (mat_Xnull.rows != kinshipS.mat.rows()) return -1;
+    
     // type conversion
     G_to_Eigen(mat_Xnull, &this->ux);
     G_to_Eigen(mat_y, &this->uy);
     this->lambda = kinshipS.mat;
     const Eigen::MatrixXf& U = kinshipU.mat;
+
     // rotate
     this->ux = U.transpose() * this->ux;
     this->uy = U.transpose() * this->uy;
@@ -51,6 +69,11 @@ class MetaCov::Impl{
       fprintf(stderr, "Cannot optimize\n");
       return -1;
     }
+#if 0
+    fprintf(stderr, "maxIndex = %d\tll=%lf\t\tbeta(0)=%lf\tsigma2=%lf\n",
+            maxIndex, maxLogLik, beta(0), sigma2);
+#endif
+
     if (maxIndex == 0 || maxIndex == 100) {
       // on the boundary
       // do not try maximize it.
@@ -75,8 +98,9 @@ class MetaCov::Impl{
     }
     // store some intermediate results
 #ifdef DEBUG       
+    fprintf(stderr, "delta = sigma2_e/sigma2_g, and sigma2 is sigma2_g\n");
     fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
-    fprintf(stderr, "beta[%d][%d] = %g\n", (int)beta.rows(), (int)beta.cols(), beta(0,0));
+    fprintf(stderr, "beta[0][0] = %g\t sigma2_g = %g\tsigma2_e = %g\n", beta(0,0), this->sigma2, delta * sigma2);
 #endif
     // if (this->test == MetaCov::LRT) {
     // this->nullLikelihood = getLogLikelihood(this->delta);
@@ -89,12 +113,15 @@ class MetaCov::Impl{
     return (( this->uy.array() - (this->ux * this->beta).array() ).square() / (this->lambda.array() + delta)).sum();
   }
   void getBetaSigma2(double delta) {
-    Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ux;
-    Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->uy;
-    this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
+    // Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ux;
+    // Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->uy;
+    // this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
+    this->beta = (ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * ux)
+                 .ldlt().solve(ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * uy);
+    
     double sumResidual2 = getSumResidual2(delta);
     // if ( model == MetaCov::MLE) {
-      this->sigma2 = sumResidual2 / x.rows();
+      this->sigma2 = sumResidual2 / ux.rows();
     // } else {
     //   this->sigma2 = sumResidual2 / (x.rows() - x.cols());
     // }

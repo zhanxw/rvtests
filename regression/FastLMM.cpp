@@ -411,5 +411,6 @@ double FastLMM::GetAltLogLikelihood() { return this->impl->GetAltLogLikelihood()
 double goalFunction(double x, void* param) {
   FastLMM::Impl* p = (FastLMM::Impl*) param;
   p->getBetaSigma2(x);
-  return (- p->getLogLikelihood(x) );
+  double ret = (- p->getLogLikelihood(x) );
+  return ret;
 }

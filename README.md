@@ -142,7 +142,7 @@ An example phenotype file, (`example.pheno`), has the following format:
     P4 P4 0 0 0 0.350528353203767 -1.79533911725537 -1.11916876241804 1
     P5 P5 0 0 1 2.72675074738545 -1.05487747371158 -0.33586430010589 2
 
-Phenotype file is specified by the option `--pheno example.pheno` . The default phenotype column header is “`y1`”. If you want to use alternative columns as phenotype for association analysis (e.g the column with header y2), you may specific the header names using either
+Phenotype file is specified by the option `--pheno example.pheno` . The default phenotype column header is “`y1`”. If you want to use alternative columns as phenotype for association analysis (e.g the column with header y2), you may specify the phenotype by column or by name using either
 
 * --mpheno 2 
 * --pheno-name y2
@@ -150,6 +150,8 @@ Phenotype file is specified by the option `--pheno example.pheno` . The default 
 **NOTE:** to use “`--pheno-name`”, the  header line must starts with “`fid iid`” as PLINK requires.
 
 In phenotype file, missing values can be denoted by NA or any non-numeric values. Individuals with missing phenotypes will be automatically dropped from subsequent association analysis. For each missing phenotype value, a warning will be generated and recorded in the log file.
+
+When the phenotype values are only 0, 1 and 2, rvtests will automatically treat it as binary traits. However, if you want to treat it as continuous trait, please use "`--qtl`" option.
 
 ## Covariate file
 

@@ -10,7 +10,7 @@
 #include "LinearRegression.h"
 
 class LinearRegressionScoreTest{
-public:
+ public:
   LinearRegressionScoreTest();
   /**
    * @param colToTest: 0-based index, for that column of X will be tested
@@ -37,8 +37,8 @@ public:
   const Matrix& GetU() const {return this->Umatrix;};
   const Matrix& GetV() const {return this->Vmatrix;};
   const Matrix& GetBeta() const { return this->betaMatrix;}
-private:
 
+ private:
   void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
   double pvalue;
   double stat;

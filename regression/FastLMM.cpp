@@ -44,6 +44,14 @@ class FastLMM::Impl{
     this->ux = U.transpose() * this->ux;
     this->uy = U.transpose() * this->uy;
 
+    // set scaledK
+    // when K = U * S * U'
+    // From  K^(-1) - K^(-1) * X * (X' * K^(-1) * X)^(-1) * X' * K^(-1)
+    //     = U * (S^(-1) - S^(-1) * UX * ((UX)' * S^(-1) * (UX))^(-1) * (UX)' * S^(-1)) * U'
+    // define scaledK = S^(-1) - S^(-1) * UX * ((UX)' * S^(-1) * (UX))^(-1) * (UX)' * S^(-1)
+    const Eigen::MatrixXf Sinv = (this->lambda.array() + delta).inverse().matrix();
+    this->scaledK = (Sinv - Sinv * ux * (ux.transpose() * Sinv * ux).inverse() * ux.transpose() * Sinv);
+    
     // get beta, sigma and delta
     // where delta = sigma2_e / sigma2_g
     double loglik[101];
@@ -169,7 +177,10 @@ class FastLMM::Impl{
                           (this->uResid).array()) /
                        (lambda.array() + delta)
                        ).sum() / this->sigma2;
-      this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
+      // this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
+      // fprintf(stderr, "dim(scaledK) = %d, %d\n", (int)scaledK.rows(), (int)scaledK.cols());
+      this->Vstat = ((u_g_center).matrix().transpose() * this->scaledK * (u_g_center.matrix()))(0, 0) / this->sigma2;
+      // fprintf(stderr, "Vstat = %g\n", this->Vstat);
       if (this->Vstat > 0.0) {
         this->stat = this->Ustat * this->Ustat / this->Vstat;
         this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
@@ -364,6 +375,9 @@ class FastLMM::Impl{
   FastLMM::Test test;
   FastLMM::Model model;
   double sumResidual2; // sum (  (Uy - Ux *beta)^2/(lambda + delta) )
+
+ private:
+  Eigen::MatrixXf scaledK;
 };
 
 //////////////////////////////////////////////////

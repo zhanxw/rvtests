@@ -1,3 +1,7 @@
+2014-06-20  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix effect estimation in linear score test when covariates exists
+
 2014-06-13  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix trait summary in the MetaScore file header
@@ -41,7 +45,7 @@
 
 	* Change: for X chrom, also use male to get AF
 	* Support generating covariance matrix for dominant/recessive model
-	* Change now, by default, rvtests drops samples with missing covariates (to resume previous behavior, imputing to the mean, use --imputeCov). 
+	* Change now, by default, rvtests drops samples with missing covariates (to resume previous behavior, imputing to the mean, use --imputeCov).
 
 2014-02-20  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

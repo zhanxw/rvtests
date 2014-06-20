@@ -2601,7 +2601,7 @@ class MetaScoreTest: public ModelFitter{
         if (!isBinaryOutcome()) {
           result.updateValue("U_STAT", linear.GetU()[0][0]);
           result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]));
-          result.updateValue("ALT_EFFSIZE", linear.GetV()[0][0] != 0.0 ? linear.GetU()[0][0] / linear.GetV()[0][0] : 0.0);
+          result.updateValue("ALT_EFFSIZE", linear.GetV()[0][0] != 0.0 ? linear.GetBeta()[0][0] : 0.0);
           result.updateValue("PVALUE", linear.GetPvalue());
         } else {
           result.updateValue("U_STAT", logistic.GetU()[0][0]);
@@ -2762,7 +2762,7 @@ class MetaCovTest: public ModelFitter{
             // get weight
             metaCovForAuto.GetWeight(&this->weight);
           }              
-        } else {
+        } else { // hemi region
           if (!dc->hasKinshipForX()) {
             fitOK = false;
             return -1;

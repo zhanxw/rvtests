@@ -145,6 +145,11 @@ int DataConsolidator::loadKinshipFile(const std::string& fn,
   return 0;
 }
 
+/**
+ * Decompose autosomal kinship matrix and release its memory
+ * K = U * S * U'
+ * @return 0 if success
+ */
 int DataConsolidator::decomposeKinshipForAuto(){
   if (!this->kinshipForAuto) return -1;
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->kinshipForAuto->mat);

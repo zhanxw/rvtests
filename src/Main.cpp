@@ -883,7 +883,7 @@ int main(int argc, char** argv){
       abort();
     }
   }
-
+  
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
 

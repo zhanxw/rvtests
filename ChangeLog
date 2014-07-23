@@ -1,3 +1,8 @@
+2014-07-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Update U, V statistics for unrelated individual such that SE(effect_size) = 1/sqrt(V)
+	* Improve vcf2kinship error messages
+
 2014-06-20  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix effect estimation in linear score test when covariates exists

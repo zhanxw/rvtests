@@ -2597,12 +2597,17 @@ class MetaScoreTest: public ModelFitter{
           /* result.updateValue("ALT_EFFSIZE", logistic.GetU()[0][0] / (logistic.GetV()[0][0])); */
           /* result.updateValue("PVALUE", logistic.GetPvalue()); */
         }
-      } else {
+      } else { // unrelated individual
         if (!isBinaryOutcome()) {
-          result.updateValue("U_STAT", linear.GetU()[0][0]);
-          result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]));
-          result.updateValue("ALT_EFFSIZE", linear.GetV()[0][0] != 0.0 ? linear.GetBeta()[0][0] : 0.0);
-          result.updateValue("PVALUE", linear.GetPvalue());
+          const double sigma2 = linear.GetSigma2();
+          if (sigma2 != 0.0) {
+            // U => U / sigma^2
+            // V => V / sigma^2 / sigma^2 (NOTE: V includes the sigma^2 term)
+            result.updateValue("U_STAT", linear.GetU()[0][0] / sigma2);
+            result.updateValue("SQRT_V_STAT", sqrt(linear.GetV()[0][0]) / sigma2 );
+            result.updateValue("ALT_EFFSIZE", linear.GetV()[0][0] != 0.0 ? linear.GetBeta()[0][0] : 0.0);
+            result.updateValue("PVALUE", linear.GetPvalue());
+          }
         } else {
           result.updateValue("U_STAT", logistic.GetU()[0][0]);
           result.updateValue("SQRT_V_STAT", sqrt(logistic.GetV()[0][0]));

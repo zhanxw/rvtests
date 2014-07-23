@@ -25,7 +25,8 @@ bool LinearRegressionScoreTest::FitNullModel(Matrix& Xnull, Vector& y){
     return false;
   }
   return true;
-};
+}
+
 bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol){
   this->Umatrix.Dimension(1,1);
   this->Vmatrix.Dimension(1,1);
@@ -98,7 +99,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y, Vector& 
   //this->pvalue = chidist(this->stat, 1.0); // use chisq to inverse
   this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
-};
+}
 
 bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y){
   this->Umatrix.Dimension(1,1);
@@ -285,8 +286,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y){
   if (this->stat < 0) return false;
   this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
-
-};
+}
 
 void LinearRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol){
   if (x.cols < 2) {
@@ -305,5 +305,4 @@ void LinearRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull, V
       }
     }
   }
-};
-
+}

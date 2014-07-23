@@ -37,7 +37,7 @@ class LinearRegressionScoreTest{
   const Matrix& GetU() const {return this->Umatrix;};
   const Matrix& GetV() const {return this->Vmatrix;};
   const Matrix& GetBeta() const { return this->betaMatrix;}
-
+  const double GetSigma2() const { return this->lr.GetSigma2();};
  private:
   void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
   double pvalue;

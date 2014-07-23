@@ -26,7 +26,7 @@ class LinearRegression{
   Matrix & GetCovB() {return this->covB;};
   Vector & GetPredicted() { return this->predict;};
   Vector & GetResiduals() { return this->residuals;};
-  double GetSigma2() {return this->sigma2;};
+  double GetSigma2() const {return this->sigma2;};
   Vector B;       // coefficient vector
   Matrix covB;    // coefficient covariance matrix
  private:

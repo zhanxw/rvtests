@@ -71,6 +71,9 @@ public:
     }
     return (this->fd[i]);
   };
+  /**
+   * @param isMissing: index @param i does not exists. Not testing if the value in ith field is missing
+   */
   const VCFValue& get(unsigned int i, bool* isMissing) const {
     if (i >= fd.size()) {
       *isMissing = true;

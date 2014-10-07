@@ -40,7 +40,7 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 # Download
 
 Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
-Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v.1.8.3/rvtests-20140620.tar.gz).
+Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.8.3/rvtests-20140723.tar.gz).
 
 
 # Quick Tutorial

@@ -1,3 +1,11 @@
+2014-10-06  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix allele frequency calculation in related samples
+
+2014-07-29  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Change AF = 0 to NA when the sites are all missing
+
 2014-07-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Update U, V statistics for unrelated individual such that SE(effect_size) = 1/sqrt(V)

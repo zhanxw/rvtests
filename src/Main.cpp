@@ -29,7 +29,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20140723";
+const char* VERSION = "20141006";
 
 void banner(FILE* fp) {
   const char* string =
@@ -39,7 +39,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      July 2014                         ...   \n"
+      "      ...      October 2014                      ...   \n"
       "       ...      zhanxw.github.io/rvtests/         ...  \n"
       "        .............................................. \n"
       "                                                       \n"
@@ -752,7 +752,7 @@ int main(int argc, char** argv){
       return -1;
     }
   }
-  logger->info("Loaded %zu sample pheontypes.", phenotype.size());
+  logger->info("Loaded [ %zu ] sample pheontypes.", phenotype.size());
 
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;

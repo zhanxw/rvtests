@@ -5,7 +5,11 @@
 #include "GSLMinimizer.h"
 #include "gsl/gsl_cdf.h" // use gsl_cdf_chisq_Q
 
-#if 0
+// #define EIGEN_NO_DEBUG
+#undef DEBUG
+// #define DEBUG
+
+#ifdef DEBUG 
 #include <fstream>
 void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
   std::ofstream out(fn);
@@ -14,10 +18,6 @@ void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
   out.close();
 }
 #endif
-
-// #define EIGEN_NO_DEBUG
-#undef DEBUG
-// #define DEBUG
 
 #define PI 3.1415926535897
 
@@ -94,6 +94,8 @@ class FastLMM::Impl{
         this->delta = minimizer.getX();
 #ifdef DEBUG       
         fprintf(stderr, "minimization succeed when delta = %g, sigma2 = %g\n", this->delta, this->sigma2);
+        dumpToFile(kinshipS.mat, "S.mat");
+        dumpToFile(kinshipU.mat, "U.mat");
 #endif
       }
     }
@@ -290,13 +292,14 @@ class FastLMM::Impl{
     static Eigen::MatrixXf g;
     static Eigen::ArrayXf u1s;
     static double denom;
-    static Eigen::ArrayXf alpha;
+    // static Eigen::ArrayXf alpha;
+    static Eigen::RowVectorXf alpha;
     
     if (!initialized) {
       Eigen::MatrixXf u1 = U.transpose().rowwise().sum(); // n by 1
-      u1s = u1.array() / (this->lambda.array() + delta).abs().array();
+      u1s = u1.array() / (this->lambda.array()).abs().array();
       denom = (u1s * u1.array()).sum();
-      alpha = (u1.transpose() * (this->lambda.array() + delta).abs().inverse().matrix().asDiagonal() * U.transpose()).transpose();
+      alpha = (u1.transpose() * this->lambda.array().abs().inverse().matrix().asDiagonal() * U.transpose()).row(0);
       initialized = true;
       // fprintf(stderr, "initialized\n");
     }
@@ -306,11 +309,13 @@ class FastLMM::Impl{
     }
     G_to_Eigen(Xcol, &g);
 
-    double beta =  (alpha * g.array()).sum()  / denom;
+    // double beta =  (alpha * g.array()).sum()  / denom;
+    double beta = alpha.dot(g.col(0)) / denom;
 
     // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
     // multiply by 0.5 to get AF
     double af = 0.5 * beta;
+
     return af;
   }
   

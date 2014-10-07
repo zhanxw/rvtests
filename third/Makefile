@@ -19,11 +19,11 @@ gsl: gsl-1.16.tar.gz
 	tar zvxf gsl-1.16.tar.gz
 	-(DIR=`pwd`; cd gsl-1.16; ./configure --prefix="$${DIR}"/gsl; make -j; make install)
 
-eigen: eigen-3.2.1.tar.bz2
+eigen: eigen-3.2.2.tar.bz2
 	-rm -rf eigen-eigen*
-	tar jvxf eigen-3.2.1.tar.bz2
-	-mv eigen-eigen-* eigen-3.2.1
-	ln -s -f eigen-3.2.1 eigen
+	tar jvxf eigen-3.2.2.tar.bz2
+	-mv eigen-eigen-* eigen-3.2.2
+	ln -s -f eigen-3.2.2 eigen
 
 bzip2: bzip2-1.0.6.tar.gz
 	tar zvxf $<
@@ -45,9 +45,9 @@ else
   DOWNLOAD = curl -L $(1) -O
   DOWNLOAD_RENAME = curl -L $(1) -o $(2)
 endif 
-eigen-3.2.1.tar.bz2:
+eigen-3.2.2.tar.bz2:
 	echo "obtain Eigen..."
-	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.2.1.tar.bz2,$@)
+	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.2.2.tar.bz2,$@)
 
 gsl-1.16.tar.gz:
 	echo "obtain GSL"

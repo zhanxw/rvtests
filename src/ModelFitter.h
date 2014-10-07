@@ -2347,7 +2347,7 @@ class MetaScoreTest: public ModelFitter{
       needToFitNullModelForAuto(true),
       needToFitNullModelForX(true){
     this->modelName = "MetaScore";
-  };
+  }
   // fitting model
   virtual int fit(DataConsolidator* dc) {
     Matrix& genotype  = dc->getGenotype();
@@ -2373,7 +2373,7 @@ class MetaScoreTest: public ModelFitter{
     if (nSample){
       af = 0.5 * (het + 2. * homAlt) / (homRef + het + homAlt);
     } else {
-      af = 0.0;
+      af = -1.0;
     }
     // fprintf(stderr, "af = %g\n", af);
     // use female info to get HWE
@@ -2526,12 +2526,11 @@ class MetaScoreTest: public ModelFitter{
       }
     }
     return (fitOK ? 0 : -1);
-  };
+  }
 
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     if (g_SummaryHeader) {
-
       g_SummaryHeader->outputHeader(fp);
     }
 
@@ -2555,12 +2554,14 @@ class MetaScoreTest: public ModelFitter{
     int informativeAC = het + 2* homAlt;
 
     result.clearValue();
-    if (!isBinaryOutcome()) {
-      result.updateValue("AF", af);
-    } else {
-      static char afString[128];
-      snprintf(afString, 128, "%g:%g:%g", af, afFromCase, afFromControl);
-      result.updateValue("AF", afString);
+    if (af > 0) {
+      if (!isBinaryOutcome()) {
+        result.updateValue("AF", af);
+      } else {
+        static char afString[128];
+        snprintf(afString, 128, "%g:%g:%g", af, afFromCase, afFromControl);
+        result.updateValue("AF", afString);
+      }
     }
 
     result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
@@ -2617,7 +2618,7 @@ class MetaScoreTest: public ModelFitter{
       }
     }
     result.writeValueLine(fp);
-  };
+  }
  private:
   double af;
   double afFromCase;
@@ -2700,7 +2701,7 @@ class MetaCovTest: public ModelFitter{
     this->fout = NULL;
     this->windowSize = windowSize;
     this->needToFitNullModelForAuto = true;
-    this->needToFitNullModelForX = true;    
+    this->needToFitNullModelForX = true;
     result.addHeader("CHROM");
     result.addHeader("START_POS");
     result.addHeader("END_POS");
@@ -2766,7 +2767,7 @@ class MetaCovTest: public ModelFitter{
             needToFitNullModelForAuto = false;
             // get weight
             metaCovForAuto.GetWeight(&this->weight);
-          }              
+          }
         } else { // hemi region
           if (!dc->hasKinshipForX()) {
             fitOK = false;
@@ -2774,7 +2775,7 @@ class MetaCovTest: public ModelFitter{
           }
           if (this->needToFitNullModelForX || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
             copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-            fitOK = (0 == metaCovForX.FitNullModel(cov, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()));            
+            fitOK = (0 == metaCovForX.FitNullModel(cov, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()));
             if (!fitOK) {
               return -1;
             }
@@ -2865,8 +2866,8 @@ class MetaCovTest: public ModelFitter{
       if (useFamilyModel) {
         if (!isHemiRegion) {
           metaCovForAuto.TransformCentered(&loci.geno,
-                                    *dc->getKinshipUForAuto(),
-                                    *dc->getKinshipSForAuto());
+                                           *dc->getKinshipUForAuto(),
+                                           *dc->getKinshipSForAuto());
         } else {
           metaCovForX.TransformCentered(&loci.geno,
                                         *dc->getKinshipUForX(),
@@ -3091,7 +3092,7 @@ class MetaCovTest: public ModelFitter{
   MetaCov metaCovForAuto;
   MetaCov metaCovForX;
   bool needToFitNullModelForAuto;
-  bool needToFitNullModelForX;  
+  bool needToFitNullModelForX;
   bool useFamilyModel;
   Vector weight; // per individual weight
   LogisticRegression logistic;

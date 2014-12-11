@@ -332,8 +332,10 @@ class RangeList{
   };
   class iterator{
    public:
-    iterator(): rangeCollection(NULL), chromIndex(-1), inChromRegionSize(-1)
-    {};
+    iterator(): rangeCollection(NULL), chromIndex(-1),
+                chromSize(0),inChromRangeIndex(0),inChromRegionSize(-1),
+                chrom(NULL), positionPair(NULL) {
+    }
     iterator(const RangeCollection& rc, int chrIdx, int inChrIdx):
         rangeCollection(&rc),
         chromIndex(chrIdx),

@@ -133,7 +133,7 @@ void imputeGenotype(Matrix* genotype, Random* r) {
         an += 2;
       }
     }
-    double p = 1.0 * ac / an;
+    double p = an == 0 ? 0. : 1.0 * ac / an;
     double pRef = p * p;
     double pHet = pRef + 2.0*p * (1.0 - p);
     for (int j = 0; j < m.cols; j++){
@@ -166,7 +166,7 @@ void imputeGenotypeToMean(Matrix* genotype) {
         an += 2;
       }
     }
-    double p = 1.0 * ac / an;
+    double p = an == 0 ? 0. : 1.0 * ac / an;
     for (int j = 0; j < m.cols; j++){
       if (m[i][j] < 0) {
         m[i][j] = p;
@@ -247,9 +247,9 @@ double calculateR2(Matrix& genotype, const int i, const int j){
     sum_j2 += genotype[j][c]*genotype[j][c];
   };
   // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
-  double cov_ij = sum_ij - sum_i * sum_j / n;
-  double var_i = sum_i2 - sum_i * sum_i / n;
-  double var_j = sum_j2 - sum_j * sum_j / n;
+  double cov_ij = n == 0 ? 0 : sum_ij - sum_i * sum_j / n;
+  double var_i  = n == 0 ? 0 : sum_i2 - sum_i * sum_i / n;
+  double var_j  = n == 0 ? 0 : sum_j2 - sum_j * sum_j / n;
   double d = var_i * var_j;
   // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
   if (d < 1e-10) return 0.0;

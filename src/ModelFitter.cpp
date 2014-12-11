@@ -228,9 +228,9 @@ void convertToReferenceAlleleCount(Matrix& in, Matrix* g){
  * e.g. freq = [0.1, 0.2, 0.1, 0.3]  =>
  *      *group = {0.1: [0, 2], 0.2: 1, 0.3 : 3}
  */
-void groupFrequency(std::vector<double> freq, std::map<double, std::vector<int> >* group) {
+void groupFrequency(const std::vector<double>& freq, std::map<double, std::vector<int> >* group) {
   group->clear();
-  for (size_t i = 0; i < 0; ++i) {
+  for (size_t i = 0; i != freq.size(); ++i) {
     (*group)[freq[i]].push_back(i);
   }
 };

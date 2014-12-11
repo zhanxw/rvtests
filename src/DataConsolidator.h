@@ -38,7 +38,7 @@ inline void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
         an += 2;
       }
     }
-    double p = 1.0 * ac / an;
+    double p = an == 0 ? 0 : 1.0 * ac / an;
     double pRef = p * p;
     double pHet = pRef + 2.0*p * (1.0 - p);
     for (int j = 0; j < m.rows; j++){
@@ -253,15 +253,15 @@ class DataConsolidator{
     } else {
       logger->error("Uninitialized consolidation methods to handle missing data!");
       // return -1;
-    };
-  };
+    }
+  }
   bool hasNoMissingGenotype(Matrix& g, int r) {
     const int n = g.cols;
     for (int i = 0; i < n; ++i){
       if (g[r][i] < 0) return false;
     }
     return true;
-  };
+  }
   void copyRow(Matrix& src, const int srcRow,
                Matrix* dest, const int destRow) {
     Matrix& m = *dest;
@@ -275,13 +275,13 @@ class DataConsolidator{
     for (int i = 0; i < n; ++i){
       m[destRow][i] = src[srcRow][i];
     }
-  };
+  }
   void copyColName(Matrix& src, Matrix* dest){
     dest->Dimension(dest->rows, src.cols);
     for (int i = 0; i < src.cols; ++i){
       dest->SetColumnLabel(i, src.GetColumnLabel(i));
     }
-  };
+  }
   void setPhenotypeName(const std::vector<std::string>& name) {
     this->originalRowLabel = name;
     this->rowLabel = name;
@@ -630,7 +630,6 @@ private:
   
   // sex chromosome adjustment
   const std::vector<int>* sex;
-  bool kinshipForAutoAsKinshipForX;
 
   ParRegion* parRegion;
 }; // end DataConsolidator

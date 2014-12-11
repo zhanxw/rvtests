@@ -10,7 +10,7 @@
 //use Wald statistics
 class LinearRegression{
  public:
-  LinearRegression() {};
+  LinearRegression():sigma2(0.) {};
   ~LinearRegression() {};
 
   bool FitLinearModel(Matrix & X, Matrix & y); // return false if not converging

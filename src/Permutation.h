@@ -5,7 +5,7 @@
 
 #if 0
 class AdaptivePermutationCheck{
-public:
+ public:
   void addStat(double d) {
     this->stats.push_back(d);
   }
@@ -20,7 +20,7 @@ public:
     if ( s < lb ) return true;
     return false;
   };
-private:
+ private:
   double getMean() {
     double s = 0;
     for (int i = 0; i < stats.size(); i++) {
@@ -46,9 +46,10 @@ private:
 #endif
 
 class Permutation{
-public:
-Permutation():numPerm(10000), alpha(0.05) {};
-Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {
+ public:
+  Permutation():numPerm(10000), alpha(0.05) {};
+  Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha),
+                                       obs(-1.), actualPerm(-1), threshold(-1.), numX(-1), numEqual(-1){
     result.addHeader("NumPerm");
     result.addHeader("ActualPerm");
     result.addHeader("Stat");
@@ -138,7 +139,7 @@ Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha) {
   }
 
 
-private:
+ private:
   int numPerm;
   double alpha;
   double obs;

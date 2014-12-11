@@ -17,11 +17,14 @@
 DataConsolidator::DataConsolidator()
   :
   strategy(DataConsolidator::UNINITIALIZED),
+  phenotypeUpdated(true),
+  covariateUpdated(true),
   kinshipForAuto(NULL), kinshipUForAuto(NULL),
   kinshipSForAuto(NULL), kinshipLoadedForAuto(false),
   kinshipForX(NULL), kinshipUForX(NULL),
-  kinshipSForX(NULL), kinshipLoadedForX(false)
-{
+  kinshipSForX(NULL), kinshipLoadedForX(false),
+  sex(NULL),
+  parRegion(NULL) {
 };
 DataConsolidator::~DataConsolidator(){
   if (!kinshipForAuto) delete kinshipForAuto;

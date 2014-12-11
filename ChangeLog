@@ -1,3 +1,8 @@
+2014-10-11  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+
+	* Clean codes
+	* Upgrade PCRE to version 8.36
+
 2014-10-06  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix allele frequency calculation in related samples

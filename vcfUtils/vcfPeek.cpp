@@ -324,9 +324,9 @@ int main(int argc, char** argv){
             }
           }
           int numAllele = homRef + het + homAlt;
-          double af = 0.5 * (het + 2.0 * homAlt) / numAllele;
+          double af = numAllele == 0 ? 0.0 : 0.5 * (het + 2.0 * homAlt) / numAllele;
           double maf = af > 0.5 ? 1.0 - af : af;
-          double cr = 1.0 * numAllele / (numAllele + missing);
+          double cr = 1.0 * numAllele / (numAllele + missing + 1e-10);
           double hwe = (het > 0 || homAlt > 0 || homRef > 0) ?
                        SNPHWE(het, homAlt, homRef) : 0.0;
           bool nonvariantSite = (het == 0  && (homAlt == 0 || homRef == 0));

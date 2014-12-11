@@ -544,7 +544,7 @@ private:
 
 class Bzip2FileWriter:public AbstractFileWriter{
 public:
-  Bzip2FileWriter(const char* fn, bool append = false){
+  Bzip2FileWriter(const char* fn, bool append = false):bzp(NULL){
     if (this->open(fn, append)){
       fprintf(stderr, "Cannot create bzip2 file %s\n", fn);
     }

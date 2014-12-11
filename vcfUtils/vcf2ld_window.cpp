@@ -71,7 +71,8 @@ double getCovariance(const Genotype& g1, const Genotype& g2) {
     sum_j += g2[c];
   };
   // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij, sum_i, sum_j);
-  double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
+  double cov_ij = n == 0 ? 0. : ((sum_ij - sum_i * sum_j / n) / n);
+  
   // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
   return cov_ij;
 };
@@ -269,7 +270,7 @@ double calculateCov(Matrix& genotype, const int i, const int j){
     sum_j += genotype[j][c];
   };
   // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
-  double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
+  double cov_ij = n == 0 ? 0. : (sum_ij - sum_i * sum_j / n) / n;
   // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
   return cov_ij;
 };

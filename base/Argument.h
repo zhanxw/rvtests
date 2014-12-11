@@ -29,11 +29,11 @@ typedef enum PARAMETER_TYPE{
 
 struct FlagInfo{
  public:
- FlagInfo():
-  pt(UNSUPPORTED_TYPE),
-    data(NULL),
-    isParsed(false),
-    isLongParam(false) {};
+  FlagInfo():
+      pt(UNSUPPORTED_TYPE),
+      data(NULL),
+      isParsed(false),
+      isLongParam(false) {};
  public:
   ParameterType pt;   // the parameter type
   void* data;         // where the parsed value stores
@@ -43,17 +43,17 @@ struct FlagInfo{
 };
 
 class ParameterParser{
-public:
-  ParameterParser(){
+ public:
+  ParameterParser():ptrRemainingArg(NULL) {
     this->currentParameterGroupName = "Default Parameter Group";
   }
   void AddParameterGroup(const char* name) {
     // change default group name
     this->currentParameterGroupName = name;
-  };
+  }
   void AddRemainingArg(void* data) {
     this->ptrRemainingArg = (std::vector<std::string>*) data;
-  };
+  }
   void AddParameter(ParameterType pt, void* data, const char* flag, const char* doc) {
     std::string f = flag;
 
@@ -118,7 +118,7 @@ public:
         fprintf(stderr, "WARNING: Unrecognized parameter type for flag \"%s\"\n", flag);
         return;
     }
-  };
+  }
   // read first uncommented line
   void ReadFromFile(const char* fileName) {
     FILE* fp = fopen(fileName, "r");
@@ -213,14 +213,14 @@ public:
     if (argv)
       free(argv);
 
-  };
+  }
   void WriteToFile(FILE* fp){
     assert(fp);
     this->WriteToFileWithComment(fp, "");
-  };
+  }
   void WriteToFile(const char* fileName) {
     this->WriteToFileWithComment(fileName, "");
-  };
+  }
   void WriteToFileWithComment(FILE* fp, const char* comment) {
     assert(fp);
     if (strlen(comment) > 0) {
@@ -229,7 +229,7 @@ public:
       char username[128] = "unknown_user";
       char* pUsername = getenv("LOGNAME");
       if (pUsername != NULL) {
-        strncpy(username, pUsername, 128);
+        strncpy(username, pUsername, 128 - 1);
       };
       char hostName[128] = "";
       if (gethostname(hostName, 128) == 0) {
@@ -292,7 +292,7 @@ public:
     assert(fp);
     this->WriteToFileWithComment(fp, comment);
     fclose(fp);
-  };
+  }
   /**
    * WriteToStreamWithComment() is EXACTLY the rewrite of WriteToFileWithComment()
    * This repetative work is for output LOG file
@@ -451,7 +451,7 @@ public:
           return;
       }
     }
-  };
+  }
   void Status() {
     fprintf(stderr, "The following parameters are available.  Ones with \"[]\" are in effect:\n");
     fprintf(stderr, "\n");
@@ -535,7 +535,7 @@ public:
       rightColumn.setContent(right);
       printTwoColumn(stderr, leftColumn, rightColumn, "");
     }
-  };
+  }
   void Help() {
     LineBreaker leftColumn(FLAG_WIDTH);
     LineBreaker rightColumn(DOC_WIDTH);
@@ -567,8 +567,8 @@ public:
         printTwoColumn(stderr, leftColumn, rightColumn, " ");
       }
     }
-  };
-private:
+  }
+ private:
   // all flags are stored here, "--flag" will store "flag" in flagVec
   std::vector<std::string> flagVec;
   // store flag -> flagInfo
@@ -596,23 +596,23 @@ private:
   bool FLAG_##x = false;                                \
   (pp).AddParameter(BOOL_TYPE, &FLAG_##x, flag, doc);
 #define ADD_INT_PARAMETER(pp, x, flag, doc)             \
-  int FLAG_##x = 0;                                         \
+  int FLAG_##x = 0;                                     \
   (pp).AddParameter(INT_TYPE, &FLAG_##x, flag, doc);
 #define ADD_DOUBLE_PARAMETER(pp, x, flag, doc)          \
-  double FLAG_##x  = 0.0;                                      \
+  double FLAG_##x  = 0.0;                               \
   (pp).AddParameter(DOUBLE_TYPE, &FLAG_##x, flag, doc);
 #define ADD_STRING_PARAMETER(pp, x, flag, doc)          \
   std::string FLAG_##x;                                 \
   (pp).AddParameter(STRING_TYPE, &FLAG_##x, flag, doc);
 // default arguments
-#define ADD_DEFAULT_INT_PARAMETER(pp, x, def, flag, doc)         \
-  int FLAG_##x = def;                                    \
+#define ADD_DEFAULT_INT_PARAMETER(pp, x, def, flag, doc)        \
+  int FLAG_##x = def;                                           \
   (pp).AddParameter(INT_TYPE, &FLAG_##x, flag, doc);
 #define ADD_DEFAULT_DOUBLE_PARAMETER(pp, x, def, flag, doc)     \
-  double FLAG_##x = def;                                \
+  double FLAG_##x = def;                                        \
   (pp).AddParameter(DOUBLE_TYPE, &FLAG_##x, flag, doc);
 #define ADD_DEFAULT_STRING_PARAMETER(pp, x, def, flag, doc)     \
-  std::string FLAG_##x = def ;                          \
+  std::string FLAG_##x = def ;                                  \
   (pp).AddParameter(STRING_TYPE, &FLAG_##x, flag, doc);
 
 

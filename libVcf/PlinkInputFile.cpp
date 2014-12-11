@@ -1,6 +1,8 @@
 #include "PlinkInputFile.h"
 #include "SimpleMatrix.h"
 
+#define UNUSED(x) (void)(x)
+
 // @param m: people by marker matrix
 int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) {
     assert(mat);
@@ -129,7 +131,8 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* 
                 int pos = 3 + (numPeople / 4 + 1 ) * markerIdx[m] + peopleIdx[p] / 4;
                 int offset = peopleIdx[p] % 4;
                 unsigned char c;
-                fseek(this->fpBed, pos, SEEK_SET);
+                int tmp = fseek(this->fpBed, pos, SEEK_SET);
+                UNUSED(tmp);
                 int nRead = fread(&c, sizeof(unsigned char), 1, fpBed);
                 if (nRead != 1)
                   return -1;

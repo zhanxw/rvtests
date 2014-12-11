@@ -128,7 +128,7 @@ int main(int argc, char** argv){
     printf("\n");
       
     // real working part
-    bool nonVariantSite;
+    int nonVariantSite = 0;
     while (vin.readRecord()){
       VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
@@ -173,7 +173,7 @@ int main(int argc, char** argv){
     };
     
     currentTime = time(0);
-    fprintf(stderr, "Analysis ens at: %s", ctime(&currentTime));
+    fprintf(stderr, "Analysis ends at: %s", ctime(&currentTime));
     
     return 0; 
 };

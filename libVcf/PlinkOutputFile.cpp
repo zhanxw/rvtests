@@ -5,7 +5,7 @@ void PlinkOutputFile::writeBED(SimpleMatrix* mat, int nPeople, int nMarker){
     /* int nPeople = mat->cols; */
     /* int nMarker = mat->rows; */
     unsigned char c = 0;
-    int offset;
+    int offset = 0;
     for (int m = 0; m < nMarker; m++){
         for (int i = 0; i < nPeople ; i ++) {
             offset = i & (4 - 1);

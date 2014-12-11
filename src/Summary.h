@@ -51,7 +51,7 @@ class Summary{
  */
 class SummaryHeader{
  public:
-  SummaryHeader(): inverseNormalized(false) {};
+  SummaryHeader(): inverseNormalized(false), isBinaryPhenotype(false), fitOK(false) {};
   void recordPhenotype(const char* label, const std::vector<double>& pheno){
     this->phenoLabel.push_back(label);
     Summary s;

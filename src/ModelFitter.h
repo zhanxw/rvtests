@@ -60,7 +60,7 @@ void fpCollapse(Matrix& in, Matrix* out);
 
 void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out);
 
-void groupFrequency(std::vector<double> freq, std::map<double, std::vector<int> >* group);
+void groupFrequency(const std::vector<double>& freq, std::map<double, std::vector<int> >* group);
 void convertToMinorAlleleCount(Matrix& in, Matrix* g);
 void convertToReferenceAlleleCount(Matrix& in, Matrix* g);
 
@@ -114,7 +114,7 @@ class ModelFitter{
 
 class SingleVariantWaldTest: public ModelFitter{
  public:
-  SingleVariantWaldTest(){
+  SingleVariantWaldTest(): fitOK(false){
     this->modelName = "SingleWald";
     result.addHeader("Test");
     result.addHeader("Beta");
@@ -192,7 +192,7 @@ class SingleVariantWaldTest: public ModelFitter{
 
 class SingleVariantScoreTest: public ModelFitter{
  public:
-  SingleVariantScoreTest(){
+  SingleVariantScoreTest(): af(-1), nSample(-1), fitOK(false){
     this->modelName = "SingleScore";
   };
   // fitting model
@@ -270,6 +270,8 @@ class SingleVariantFisherExactTest: public ModelFitter{
  public:
   SingleVariantFisherExactTest() {
     this->modelName = "FisherExact";
+    caseAC = caseAN = ctrlAC = ctrlAN = 0;
+    fitOK = false;
   };
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
@@ -386,7 +388,9 @@ class SingleVariantFisherExactTest: public ModelFitter{
 
 class SingleVariantFamilyScore: public ModelFitter{
  public:
-  SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE) {
+  SingleVariantFamilyScore():model(FastLMM::SCORE, FastLMM::MLE),
+                             fitOK(false),
+                             af(-1.), u(-1.), v(-1.), pvalue(-1.){
     this->modelName = "FamScore";
     result.addHeader("AF");
     result.addHeader("U.Stat");
@@ -457,7 +461,9 @@ class SingleVariantFamilyScore: public ModelFitter{
 
 class SingleVariantFamilyLRT: public ModelFitter{
  public:
-  SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE) {
+  SingleVariantFamilyLRT():model(FastLMM::LRT, FastLMM::MLE),
+                           fitOK(false),
+                           af(-1.), nullLogLik(-1.), altLogLik(-1.), pvalue(-1.) {
     this->modelName = "FamLRT";
     result.addHeader("AF");
     result.addHeader("NullLogLik");
@@ -527,13 +533,18 @@ class SingleVariantFamilyLRT: public ModelFitter{
 
 class SingleVariantFamilyGrammarGamma: public ModelFitter{
  public:
-  SingleVariantFamilyGrammarGamma():model() {
+  SingleVariantFamilyGrammarGamma():model(),
+                                    needToFitNullModel(true),
+                                    fitOK(false),
+                                    af (-1.),
+                                    beta(-1.),
+                                    betaVar(-1.),
+                                    pvalue(-1.) {
     this->modelName = "FamGrammarGamma";
     result.addHeader("AF");
     result.addHeader("Beta");
     result.addHeader("BetaVar");
     result.addHeader("Pvalue");
-    needToFitNullModel = true;
   }
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -597,7 +608,7 @@ class SingleVariantFamilyGrammarGamma: public ModelFitter{
 
 class CMCTest: public ModelFitter{
  public:
-  CMCTest() {
+  CMCTest(): fitOK(false), numVariant(-1) {
     this->modelName = "CMC";
     result.addHeader("NonRefSite");
 #if 0
@@ -694,7 +705,7 @@ class CMCTest: public ModelFitter{
 
 class CMCWaldTest: public ModelFitter{
  public:
-  CMCWaldTest() {
+  CMCWaldTest(): fitOK(false), numVariant(-1) {
     this->modelName = "CMCWald";
     result.addHeader("NonRefSite");
     result.addHeader("Beta");
@@ -784,7 +795,7 @@ class CMCWaldTest: public ModelFitter{
 
 class ZegginiWaldTest: public ModelFitter{
  public:
-  ZegginiWaldTest() {
+  ZegginiWaldTest(): fitOK(false), numVariant(-1) {
     this->modelName = "ZegginiWald";
     result.addHeader("Beta");
     result.addHeader("SE");
@@ -862,7 +873,7 @@ class ZegginiWaldTest: public ModelFitter{
 
 class CMCFisherExactTest: public ModelFitter{
  public:
-  CMCFisherExactTest() {
+  CMCFisherExactTest(): fitOK(false) {
     this->modelName = "CMCFisherExact";
     result.addHeader("N00");
     result.addHeader("N01");
@@ -947,7 +958,7 @@ class CMCFisherExactTest: public ModelFitter{
 
 class ZegginiTest: public ModelFitter{
  public:
-  ZegginiTest(){
+  ZegginiTest(): fitOK(false), numVariant(-1) {
     this->modelName = "Zeggini";
     result.addHeader("Pvalue");
   };
@@ -1024,7 +1035,9 @@ class ZegginiTest: public ModelFitter{
 
 class MadsonBrowningTest: public ModelFitter{
  public:
-  MadsonBrowningTest(int nPerm, double alpha): perm(nPerm, alpha) {
+  MadsonBrowningTest(int nPerm, double alpha): fitOK(false),
+                                               numVariant(-1),
+                                               perm(nPerm, alpha) {
     this->modelName = "MadsonBrowning";
     result.addHeader("Pvalue");
   }
@@ -1129,6 +1142,8 @@ class FpTest: public ModelFitter{
  public:
   FpTest() {
     this->modelName = "Fp";
+    fitOK = false;
+    numVariant = -1;
   }
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -1192,7 +1207,10 @@ class FpTest: public ModelFitter{
 
 class RareCoverTest: public ModelFitter{
  public:
-  RareCoverTest(int nPerm, double alpha): perm(nPerm, alpha) {
+  RareCoverTest(int nPerm, double alpha): fitOK(false),
+                                          numVariant(-1),
+                                          stat(-1),
+                                          perm(nPerm, alpha) {
     this->modelName = "RareCover";
     this->result.addHeader("NumIncludeMarker");
   }
@@ -1362,6 +1380,9 @@ class CMATTest:public ModelFitter{
  public:
   CMATTest(int nPerm, double alpha): perm(nPerm, alpha) {
     this->modelName = "CMAT";
+    N_A = N_U = m_A = m_U = M_A = M_U = 0;
+    fitOK = false;
+    stat = -1.;
   }
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -1491,7 +1512,10 @@ class UStatTest{
  */
 class VariableThresholdPrice: public ModelFitter{
  public:
-  VariableThresholdPrice(int nPerm, double alpha): perm(nPerm, alpha) {
+  VariableThresholdPrice(int nPerm, double alpha): fitOK(false),
+                                                   zmax(-1.),
+                                                   optimalFreq(-1),
+                                                   perm(nPerm, alpha) {
     this->modelName = "VariableThresholdPrice";
   };
   // fitting model
@@ -1759,7 +1783,7 @@ class VariableThresholdCMC: public ModelFitter{
 
 class VTCMC: public ModelFitter{
  public:
-  VTCMC() {
+  VTCMC(): fitOK(false), needToFitNullModel(true) {
     this->modelName = "VTCMC";
     result.addHeader("Freq");
     result.addHeader("U");
@@ -1767,7 +1791,6 @@ class VTCMC: public ModelFitter{
     result.addHeader("OptimFreq");
     result.addHeader("Effect");
     result.addHeader("Pvalue");
-
   };
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
@@ -1890,7 +1913,11 @@ class VTCMC: public ModelFitter{
 
 class FamCMC: public ModelFitter{
  public:
-  FamCMC(): linear(FastLMM::SCORE, FastLMM::MLE) {
+  FamCMC(): needToFitNullModel(true),
+            numVariant(0),
+            u(-1.), v(-1.), af(-1.), effect(-1.), pvalue(-1.),
+            linear(FastLMM::SCORE, FastLMM::MLE),
+            fitOK(false){
     this->modelName = "FamCMC";
     result.addHeader("NumSite");
     result.addHeader("AF");
@@ -1976,7 +2003,11 @@ class FamCMC: public ModelFitter{
 
 class FamZeggini: public ModelFitter{
  public:
-  FamZeggini(): linear(FastLMM::SCORE, FastLMM::MLE) {
+  FamZeggini(): needToFitNullModel(true),
+                numVariant(-1),
+                u(-1.), v(-1.), af(-1.), effect(-1.), pvalue(-1.),
+                linear(FastLMM::SCORE, FastLMM::MLE),
+                fitOK(false) {
     this->modelName = "FamZeggini";
     result.addHeader("NumSite");
     result.addHeader("MeanBurden");
@@ -2063,9 +2094,12 @@ class FamZeggini: public ModelFitter{
 class SkatTest: public ModelFitter{
  public:
   /* SkatTest(const std::vector<std::string>& param) { */
-  SkatTest(int nPerm, double alpha, double beta1, double beta2):perm(nPerm, alpha) {
-    if (nPerm > 0)
-      this->usePermutation = true;
+  SkatTest(int nPerm, double alpha, double beta1, double beta2):fitOK(false),
+                                                                pValue(-1.),
+                                                                nMarker(0),
+                                                                stat(-1.),
+                                                                perm(nPerm, alpha) {
+    this->usePermutation = nPerm > 0;
     this->beta1 = beta1;
     this->beta2 = beta2;
     this->modelName = "Skat";
@@ -2201,7 +2235,8 @@ class SkatTest: public ModelFitter{
 class KBACTest: public ModelFitter{
  public:
   KBACTest(int nPerm, double alpha):nPerm(nPerm), alpha(alpha),
-                                    xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0) {
+                                    xdatIn(NULL), ydatIn(NULL),mafIn(NULL), xcol(0), ylen(0), nn(0), qq(0),
+                                    aa(alpha), mafUpper(1.), twosided(1), fitOK(false), pValue(-1.){
     this->modelName = "Kbac";
   };
   ~KBACTest() {
@@ -2288,11 +2323,7 @@ class KBACTest: public ModelFitter{
     if (!fitOK){
       fp->write("NA\n");
     } else {
-      if (isBinaryOutcome() ) {
-        fp->printf("%f\n", this->pValue);
-      } else {
-        fp->printf("%f\n", this->pValue);
-      }
+      fp->printf("%f\n", this->pValue);
     }
   };
   void resize(int numPeople, int numMarker) {
@@ -2347,6 +2378,13 @@ class MetaScoreTest: public ModelFitter{
       needToFitNullModelForAuto(true),
       needToFitNullModelForX(true){
     this->modelName = "MetaScore";
+    af = afFromCase = afFromControl = -1.;
+    fitOK = false;
+    homRef = het = homAlt = missing = -1;
+    hweP = hwePvalueFromCase = hwePvalueFromControl = -1.;
+    callRate = -1.;
+    useFamilyModel = false;
+    isHemiRegion = false;
   }
   // fitting model
   virtual int fit(DataConsolidator* dc) {
@@ -2693,7 +2731,9 @@ class MetaCovTest: public ModelFitter{
   };
 
  public:
-  MetaCovTest(int windowSize){
+  MetaCovTest(int windowSize): fitOK(false),
+                               useFamilyModel(false),
+                               isHemiRegion(false) {
     this->modelName = "MetaCov";
     this->numVariant = 0;
     this->nSample = -1;

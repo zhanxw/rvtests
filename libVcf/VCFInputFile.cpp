@@ -112,7 +112,7 @@ void VCFInputFile::init(const char* fn) {
   }
   fclose(fp);
 
-  bool headerLoaded;
+  bool headerLoaded = false;
   // use file name to check file type
   if (endsWith(fn, ".bcf") || endsWith(fn, ".bcf.gz")) {
     this->mode = BCF_MODE;

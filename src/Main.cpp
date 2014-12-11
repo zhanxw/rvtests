@@ -82,6 +82,7 @@ class GenotypeExtractor{
       }
       int GDidx = r.getFormatIndex("GD");
       int GQidx = r.getFormatIndex("GQ");
+      assert(this->parRegion);
       bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
       // e.g.: Loop each (selected) people in the same order as in the VCF
       const int numPeople = (int)people.size();
@@ -133,6 +134,7 @@ class GenotypeExtractor{
       colNames.push_back(name);
       ++ row;
 
+      assert(this->parRegion);          
       if (this->parRegion && this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
         this->hemiRegion.push_back(true);
       } else {
@@ -237,6 +239,7 @@ class GenotypeExtractor{
     genotype.SetColumnLabel(0, label.c_str());
 
     this->hemiRegion.resize(1);
+    assert(this->parRegion);
     if (this->parRegion && this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
       this->hemiRegion[0] = true;
     } else {

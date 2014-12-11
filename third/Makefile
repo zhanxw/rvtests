@@ -10,10 +10,10 @@ tabix: tabix-0.2.6.tar.bz2
 	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
 	(cd tabix-0.2.6; make)
 
-pcre: pcre-8.21.tar.gz
-	-mv pcre-8.21.tar.gz* pcre-8.21.tar.gz
-	tar zvxf pcre-8.21.tar.gz
-	-(DIR=`pwd`; cd pcre-8.21; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
+pcre: pcre-8.36.tar.gz
+	-mv pcre-8.36.tar.gz* pcre-8.36.tar.gz
+	tar zvxf pcre-8.36.tar.gz
+	-(DIR=`pwd`; cd pcre-8.36; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
 
 gsl: gsl-1.16.tar.gz
 	tar zvxf gsl-1.16.tar.gz
@@ -61,7 +61,7 @@ clean:
 deepclean:
 	-rm -rf $(LIB)
 	-rm -rf tabix-0.2.6
-	-rm -rf pcre-8.21
+	-rm -rf pcre-8.36
 	-rm -rf gsl-1.16
 	-rm -rf eigen-3.1.4
 	-rm -rf bzip2-1.0.6

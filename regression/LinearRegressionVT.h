@@ -1,8 +1,6 @@
 #ifndef _LINEARREGRESSIONVT_H_
 #define _LINEARREGRESSIONVT_H_
 
-// #include "MathMatrix.h"
-
 class Matrix;
 class Vector;
 

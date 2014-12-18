@@ -49,6 +49,22 @@ inline void centerVector(Vector* v){
   };
 };
 
+inline void centerMatrix(Matrix* v){
+  Matrix& m = *v;
+  if (m.rows == 0) return;
+  
+  for (int i = 0; i < m.cols; ++i) {
+    double s  = 0.;
+    for (int j = 0; j < m.rows; ++j) {
+      s += m[j][i];
+    }
+    s /= m.rows;
+    for (int j = 0; j < m.rows; ++j) {
+      m[j][i] -= s;
+    }
+  }
+};
+
 /*
  *@return -1: if error happen 
  */

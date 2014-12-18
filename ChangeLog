@@ -1,4 +1,11 @@
-2014-10-11  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2014-12-11  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Report heritability estimation in family-based models
+	* Add variable threshold test using analytical approach
+	* Add family SKAT
+	* Add Firth regression
+
+2014-10-11  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Clean codes
 	* Upgrade PCRE to version 8.36

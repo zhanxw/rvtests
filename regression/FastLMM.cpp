@@ -9,7 +9,7 @@
 #undef DEBUG
 // #define DEBUG
 
-#ifdef DEBUG 
+#ifdef DEBUG
 #include <fstream>
 void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
   std::ofstream out(fn);
@@ -33,7 +33,7 @@ class FastLMM::Impl{
     if (mat_Xnull.rows != mat_y.rows) return -1;
     if (mat_Xnull.rows != kinshipU.mat.rows()) return -1;
     if (mat_Xnull.rows != kinshipS.mat.rows()) return -1;
-    
+
     // type conversion
     G_to_Eigen(mat_Xnull, &this->ux);
     G_to_Eigen(mat_y, &this->uy);
@@ -92,7 +92,7 @@ class FastLMM::Impl{
         this->delta = start;
       } else {
         this->delta = minimizer.getX();
-#ifdef DEBUG       
+#ifdef DEBUG
         fprintf(stderr, "minimization succeed when delta = %g, sigma2 = %g\n", this->delta, this->sigma2);
         dumpToFile(kinshipS.mat, "S.mat");
         dumpToFile(kinshipU.mat, "U.mat");
@@ -137,7 +137,7 @@ class FastLMM::Impl{
       // cbind_G_to_Eigen(Xnull, Xcol, &altUx);
       altUx.resize(this->ux.rows(), this->ux.cols() + this->ug.cols());
       altUx << this->ux, this->ug;
-      
+
       Eigen::MatrixXf& altUy =  this->uy;
       Eigen::MatrixXf& altLambda =  this->lambda;
       // 2. estimate beta and sigma2 using delta under the null model
@@ -177,7 +177,7 @@ class FastLMM::Impl{
       Eigen::ArrayXf u_g_center;
       u_g_center = (U.transpose() *  (g.rowwise() - g.colwise().mean())).eval().array();
       this->Ustat = (  ( (u_g_center) *
-                          (this->uResid).array()) /
+                         (this->uResid).array()) /
                        (lambda.array() + delta)
                        ).sum() / this->sigma2;
       // this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
@@ -193,6 +193,25 @@ class FastLMM::Impl{
     }
     return 0;
   }
+  /**
+   * calculate U and V matrix as in score test. It's useful when @param has multiple columns.
+   * uMat = Xcol' * K^{-1} Y
+   * vMat = Xcol' * (K^{-1} - K^{-1} * Xnull' (Xnull' * K^{-1} * Xnull)^{-1} * Xnull * K^{-1}) * Xcol
+   */
+  int CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
+                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                     Matrix* uMat, Matrix* vMat){
+    const Eigen::MatrixXf& U = kinshipU.mat;
+    Eigen::MatrixXf u_g_center;
+    Eigen::MatrixXf g;
+    G_to_Eigen(Xcol, &g);
+
+    u_g_center = (U.transpose() *  (g.rowwise() - g.colwise().mean())).eval();
+    Eigen::MatrixXf u = (u_g_center).transpose() * (lambda.array() + delta).matrix().asDiagonal() * (this->uResid) / this->sigma2;
+    Eigen::MatrixXf v = ((u_g_center).matrix().transpose() * this->scaledK * (u_g_center.matrix())) / this->sigma2;
+    Eigen_to_G(u, uMat);
+    Eigen_to_G(v, vMat);
+  }
   double getSumResidual2(double delta) {
     return (( this->uy.array() - (this->ux * this->beta).array() ).square() / (this->lambda.array() + delta)).sum();
   }
@@ -202,7 +221,7 @@ class FastLMM::Impl{
     // this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
     this->beta = (ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * ux)
                  .ldlt().solve(ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * uy);
-    
+
     double sumResidual2 = getSumResidual2(delta);
     if ( model == FastLMM::MLE) {
       this->sigma2 = sumResidual2 / ux.rows();
@@ -235,7 +254,21 @@ class FastLMM::Impl{
     return ret;
   }
   // NOTE: need to fit null model before calling this function
+  // use the internal variable this->ug to calculate
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) const{
+    return GetAFFromUg(kinshipU, kinshipS, this->ug);
+  }
+  // NOTE: need to fit null model before calling this function
+  double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol) const{
+    Eigen::MatrixXf g;
+    G_to_Eigen(Xcol, &g);
+
+    const Eigen::MatrixXf& U = kinshipU.mat;
+    Eigen::MatrixXf ug = U.transpose() * g;
+    return GetAFFromUg(kinshipU, kinshipS, this->ug);
+  }
+  // NOTE: need to fit null model before calling this function
+  double GetAFFromUg(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, const Eigen::MatrixXf& ug) const{
     // K = U S U^t = U * (lambda + delta) * U^t
     // 1 = (n by 1)  matrix
     // G = (n by 1) genotype matrix
@@ -247,31 +280,8 @@ class FastLMM::Impl{
     //    = (u1s * u1)^(-1) * (u1s * ug)
     const Eigen::MatrixXf& U = kinshipU.mat;
     Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
-    // Eigen::MatrixXf ug = U.transpose() .rowwise().sum();
-    // Eigen::MatrixXf u1s = u1.transpose() * (this->lambda.array() + delta).matrix().asDiagonal();
-    Eigen::ArrayXf u1s = u1.array() / (this->lambda.array() + delta).array();
-    double denom = (u1s * u1.array()).sum();
-    if (denom == 0.0) {
-      return 0.0;
-    }
-    double numer = (u1s * ug.array()).sum();
-    double beta =  numer / denom;
-
-    // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
-    // multiply by 0.5 to get AF
-    double af = 0.5 * beta;
-    return af;
-  }
-  // NOTE: need to fit null model before calling this function
-  double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol) const{
-    Eigen::MatrixXf g;
-    G_to_Eigen(Xcol, &g);
-
-    const Eigen::MatrixXf& U = kinshipU.mat;
-    Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
-    Eigen::MatrixXf ug = U.transpose() * g;
-    Eigen::ArrayXf u1s = u1.array() / (this->lambda.array() + delta).abs().array();
-    // This is usually the same, must avoid future calculations...
+    Eigen::ArrayXf u1s = u1.array() / (this->lambda.array()).abs().array();
+    // This is usually the same, may cache the results to avoid future repetitative calculations
     double denom = (u1s * u1.array()).sum();
     if (denom == 0.0) {
       return 0.0;
@@ -286,31 +296,36 @@ class FastLMM::Impl{
   }
   // NOTE: need to fit null model before calling this function
   // NOTE2: assume kinship matrices are unchanged
-  double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol) const{
-    const Eigen::MatrixXf& U = kinshipU.mat;
+  double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol, int col) const{
+    if (col >= Xcol.rows) return -1.;
+
     static bool initialized = false;
-    static Eigen::MatrixXf g;
-    static Eigen::ArrayXf u1s;
     static double denom;
-    // static Eigen::ArrayXf alpha;
     static Eigen::RowVectorXf alpha;
-    
+
+    const Eigen::MatrixXf& U = kinshipU.mat;
     if (!initialized) {
+      Eigen::ArrayXf u1s;
       Eigen::MatrixXf u1 = U.transpose().rowwise().sum(); // n by 1
       u1s = u1.array() / (this->lambda.array()).abs().array();
+      // denom = 1' * K^{-1} * 1 = u1' * lambda^{-1} * u1
+      // here, we only use lambda (the kinship part), but not delta
       denom = (u1s * u1.array()).sum();
+      // alpha = 1' * K^{-1}  = u1' * lambda^{-1} * u
       alpha = (u1.transpose() * this->lambda.array().abs().inverse().matrix().asDiagonal() * U.transpose()).row(0);
       initialized = true;
       // fprintf(stderr, "initialized\n");
     }
-    
+
     if (denom == 0.0) {
       return 0.0;
     }
+
+    Eigen::MatrixXf g;
     G_to_Eigen(Xcol, &g);
 
     // double beta =  (alpha * g.array()).sum()  / denom;
-    double beta = alpha.dot(g.col(0)) / denom;
+    double beta = alpha.dot(g.col(col)) / denom;
 
     // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
     // multiply by 0.5 to get AF
@@ -318,7 +333,7 @@ class FastLMM::Impl{
 
     return af;
   }
-  
+
   double GetPvalue() const{
     return this->pvalue;
   }
@@ -347,14 +362,17 @@ class FastLMM::Impl{
   double GetDelta()  {
     return this->delta;
   };    // delta = sigma2_e / sigma2_g
-  
+
   double GetNullLogLikelihood() const {
     return this->nullLikelihood;
   }
   double GetAltLogLikelihood() const {
     return this->altLikelihood;
   }
-
+  void GetBeta(EigenMatrix* beta) const {
+    EigenMatrix& b = *beta;
+    b.mat = this->beta;
+  }
  private:
   // Eigen::MatrixXf S;
   float sigma2;     // sigma2_g
@@ -403,6 +421,13 @@ int FastLMM::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
                            const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
   return this->impl->TestCovariate(Xnull, y, Xcol, kinshipU, kinshipS);
 }
+int FastLMM::CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
+                            const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                            Matrix* uMat, Matrix* vMat){
+  return this->impl->CalculateUandV(Xnull, Y, Xcol,
+                                    kinshipU, kinshipS,
+                                    uMat, vMat);
+}
 double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
   return this->impl->GetAF(kinshipU, kinshipS);
 }
@@ -410,20 +435,26 @@ double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, 
   return this->impl->GetAF(kinshipU, kinshipS, Xcol);
 }
 double FastLMM::FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol){
-  return this->impl->FastGetAF(kinshipU, kinshipS, Xcol);
+  return this->impl->FastGetAF(kinshipU, kinshipS, Xcol, 0);
+}
+double FastLMM::FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol, int col){
+  return this->impl->FastGetAF(kinshipU, kinshipS, Xcol, col);
 }
 double FastLMM::GetPvalue(){
   return this->impl->GetPvalue();
 }
-double FastLMM::GetUStat() { return this->impl->GetUStat();};
-double FastLMM::GetVStat() { return this->impl->GetVStat();};
-double FastLMM::GetEffect() { return this->impl->GetEffect(); };   // U/V
-double FastLMM::GetSE()      { return this->impl->GetSE(); };   // 1/sqrt(V)
-double FastLMM::GetSigmaE2() { return this->impl->GetSigmaE2(); };
-double FastLMM::GetSigmaG2() { return this->impl->GetSigmaG2(); };
-double FastLMM::GetDelta()  { return this->impl->GetDelta(); };    // delta = sigma2_e / sigma2_g
-double FastLMM::GetNullLogLikelihood() { return this->impl->GetNullLogLikelihood(); };
-double FastLMM::GetAltLogLikelihood() { return this->impl->GetAltLogLikelihood(); };
+double FastLMM::GetUStat() const { return this->impl->GetUStat();};
+double FastLMM::GetVStat() const { return this->impl->GetVStat();};
+double FastLMM::GetEffect() const { return this->impl->GetEffect(); };   // U/V
+double FastLMM::GetSE() const     { return this->impl->GetSE(); };   // 1/sqrt(V)
+double FastLMM::GetSigmaE2() const { return this->impl->GetSigmaE2(); };
+double FastLMM::GetSigmaG2() const { return this->impl->GetSigmaG2(); };
+double FastLMM::GetDelta()  const { return this->impl->GetDelta(); };    // delta = sigma2_e / sigma2_g
+double FastLMM::GetNullLogLikelihood() const { return this->impl->GetNullLogLikelihood(); };
+double FastLMM::GetAltLogLikelihood() const { return this->impl->GetAltLogLikelihood(); };
+void FastLMM::GetBeta(EigenMatrix* beta) const {
+  return this->impl->GetBeta(beta);
+}
 
 // need to negaive the MLE to minize it
 double goalFunction(double x, void* param) {

@@ -233,7 +233,7 @@ class DataConsolidator{
       this->covariate = cov;
     } else if (this->strategy == DROP) {
       // XX: should also consider how kinship matrix changes.
-      
+
       // we process genotype matrix (people by marker)
       // if for the same people, any marker is empty, we will remove this people
       int idxToCopy = 0;
@@ -325,7 +325,7 @@ class DataConsolidator{
     if (sex >0 && sex != MALE && sex != FEMALE) return -2;
     if (sex >0 && (int)this->sex->size() != originalGenotype.rows) return -3;
     if (phenotype >0 && phenotype != CTRL && phenotype != CASE) return -2;
-    
+
     (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
     for (int i = 0; i < originalGenotype.rows; ++i){
       if (sex > 0 && (*this->sex)[i] != sex) {
@@ -334,7 +334,7 @@ class DataConsolidator{
       if (phenotype > 0 && (int)(this->phenotype[i][0]) != phenotype) {
         continue;
       }
-      
+
       int g = (int)originalGenotype[i][columnIndex];
       switch (g) {
         case 0:
@@ -378,7 +378,7 @@ class DataConsolidator{
                             CTRL  // any phenotype
                             );
   }
-  
+
   int countRawGenotype(int columnIndex,
                        int* homRef,
                        int* het,
@@ -402,10 +402,10 @@ class DataConsolidator{
                             );
   }
   int countRawGenotypeFromFemaleCase(int columnIndex,
-                                 int* homRef,
-                                 int* het,
-                                 int* homAlt,
-                                 int* missing) const {
+                                     int* homRef,
+                                     int* het,
+                                     int* homAlt,
+                                     int* missing) const {
     return countRawGenotype(columnIndex,
                             homRef, het, homAlt, missing,
                             FEMALE,
@@ -413,10 +413,10 @@ class DataConsolidator{
                             );
   }
   int countRawGenotypeFromFemaleControl(int columnIndex,
-                                 int* homRef,
-                                 int* het,
-                                 int* homAlt,
-                                 int* missing) const {
+                                        int* homRef,
+                                        int* het,
+                                        int* homAlt,
+                                        int* missing) const {
     return countRawGenotype(columnIndex,
                             homRef, het, homAlt, missing,
                             FEMALE,
@@ -430,7 +430,7 @@ class DataConsolidator{
     return this->covariateUpdated;
   }
   bool needToUpdateKinship() const;
-  
+
   /**
    * Load kinship file @param fn, load samples given by @param names
    * Store results to @param pKinship, @param pKinshipU, @param pKinshipS
@@ -451,7 +451,7 @@ class DataConsolidator{
                            &kinshipLoadedForAuto);
   }
   int loadKinshipFileForX(const std::string& fn,
-                             const std::vector<std::string>& names) {
+                          const std::vector<std::string>& names) {
     return loadKinshipFile(fn, names,
                            &kinshipForX,
                            &kinshipUForX,
@@ -469,7 +469,7 @@ class DataConsolidator{
   bool hasKinshipForAuto() const {
     return this->kinshipLoadedForAuto;
   };
-  
+
   int decomposeKinshipForX();
   const EigenMatrix* getKinshipForX() const;
   const EigenMatrix* getKinshipUForX() const;
@@ -481,7 +481,7 @@ class DataConsolidator{
   bool hasKinship() const {
     return this->hasKinshipForAuto() || this->hasKinshipForX();
   }
-  
+
   void setParRegion(ParRegion* p) {
     this->parRegion = p;
   }
@@ -501,7 +501,7 @@ class DataConsolidator{
     std::string chrom = chromPos.substr(0, posColon);
     int pos = atoi(chromPos.substr(posColon+1));
     return this->parRegion->isHemiRegion(chrom, pos);
-#if 0    
+#if 0
     bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
                        strncmp(chromPos, "23:", 3) == 0) && // 23 is PLINK coding for X
                       this->sex &&
@@ -514,7 +514,7 @@ class DataConsolidator{
     int n = genotype.cols;
     static WarningOnce warning("Encoding only use the first variant!\n");
     warning.warningIf(n != 1);
-    
+
     int m = genotype.rows;
     if (n != 1) {
       fprintf(stderr, "n = %d, m = %d \n", n, m);
@@ -551,10 +551,10 @@ class DataConsolidator{
         if (this->genotype[i][0] > 0.5) {
           (*geno)[0][i] = 1.;
         } else {
-          (*geno)[0][i] = 0.;          
+          (*geno)[0][i] = 0.;
         }
       }
-    } 
+    }
   }
   void codeGenotypeForRecessiveModel(Matrix* geno) {
     int n = genotype.cols;
@@ -593,16 +593,16 @@ class DataConsolidator{
         if (this->genotype[i][0] > 1.5) {
           (*geno)[0][i] = 1.;
         } else {
-          (*geno)[0][i] = 0.;          
+          (*geno)[0][i] = 0.;
         }
       }
-    } 
+    }
   }
-private:
+ private:
   //don't copy
   DataConsolidator(const DataConsolidator&);
   DataConsolidator& operator=(const DataConsolidator&);
-private:
+ private:
   int strategy;
   Random random;
   Matrix genotype;
@@ -619,15 +619,15 @@ private:
   // Kinship for related indvidual on autosomal
   // K = U %*% S %*%* t(U)
   EigenMatrix* kinshipForAuto;
-  EigenMatrix* kinshipUForAuto; 
+  EigenMatrix* kinshipUForAuto;
   EigenMatrix* kinshipSForAuto; // n by 1 column matrix
   bool kinshipLoadedForAuto;
-    //Kinship for related indvidual for chrom X hemi region
+  //Kinship for related indvidual for chrom X hemi region
   EigenMatrix* kinshipForX;
-  EigenMatrix* kinshipUForX; 
+  EigenMatrix* kinshipUForX;
   EigenMatrix* kinshipSForX; // n by 1 column matrix
   bool kinshipLoadedForX;
-  
+
   // sex chromosome adjustment
   const std::vector<int>* sex;
 

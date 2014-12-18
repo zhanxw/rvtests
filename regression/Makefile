@@ -18,6 +18,9 @@ BASE = LogisticRegression \
        LogisticRegressionVT \
        LinearRegressionVT \
        FirthRegression \
+       MultivariateNormalDistribution \
+       MultivariateVT \
+       FamSkat \
 
 OBJ = $(BASE:%=%.o)
 

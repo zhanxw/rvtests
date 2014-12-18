@@ -210,9 +210,9 @@ Zeggini         |  zeggini   |B, Q  |     N      |         U           | Aggrega
 Madsen-Browning |  mb        |B     |     N      |         U           | Up-weight rare variant using inverse frequency from controls by Madsen.
 Fp              |  fp        |B     |     N      |         U           | Up-weight rare variant using inverse frequency from controls by Danyu Lin.
 Exact CMC       |  exactCMC  |B     |     N      |         U           | Collapsing and combine rare variants, then pefore Fisher's exact test.
+CMC Wald        |  cmcWald   |B, Q  |     N      |         U           | Collapsing and combine rare variants, then pefore Wald test.
 RareCover       |  rarecover |B     |     N      |         U           | Find optimal grouping unit for rare variant tests by Thomas Hoffman.
 CMAT            |  cmat      |B     |     N      |         U           | Test non-coding variants by Matt Z.
-CMC Wald        |  cmcWald   |B, Q  |     N      |         U           | Collapsing and combine rare variants, then pefore Wald test.
 
 
 (*) Model columns list the regconized names in rvtests. For example, use `--burden cmc` will apply CMC test.

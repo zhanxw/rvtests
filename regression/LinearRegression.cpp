@@ -57,3 +57,34 @@ Vector& LinearRegression::GetAsyPvalue(){
   }
   return(pValue);
 };
+
+bool LinearRegression::calculateResidualMatrix(Matrix& X, Matrix* out) {
+  if (!calculateHatMatrix(X, out)) return false;
+  Matrix& m = *out;
+  for (int i = 0; i < m.rows; ++i) {
+    for (int j = 0; j < m.cols; ++j) {
+      if (i == j) {
+        m[i][j] = 1.0 - m[i][j];
+      } else {
+        m[i][j] = - m[i][j];
+      }
+    }
+  }
+}
+bool LinearRegression::calculateHatMatrix(Matrix& X, Matrix* out) {
+  Matrix Xt;
+  Xt.Transpose(X);
+
+  Matrix XtX;
+  XtX.Product(Xt, X);
+  if (!this->chol.TryDecompose(XtX))
+    return false;
+  chol.Decompose(XtX);
+  chol.Invert();
+  this->XtXinv = chol.inv;
+
+  Matrix tmp;
+  tmp.Product(XtXinv, Xt);
+  (*out).Product(X, tmp);
+  return true;
+}

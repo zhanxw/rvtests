@@ -29,7 +29,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20141006";
+const char* VERSION = "20141211";
 
 void banner(FILE* fp) {
   const char* string =
@@ -39,8 +39,8 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      October 2014                      ...   \n"
-      "       ...      zhanxw.github.io/rvtests/         ...  \n"
+      "      ...      December 2014                     ...   \n"
+      "       ...      zhanxw.github.io/rvtests          ...  \n"
       "        .............................................. \n"
       "                                                       \n"
       ;
@@ -115,7 +115,7 @@ class GenotypeExtractor{
           return -1;
         }
       }
-      
+
       // check frequency cutoffs
       double maf = 0.;
       for (int i = 0; i < numPeople; ++i) {
@@ -134,7 +134,7 @@ class GenotypeExtractor{
       colNames.push_back(name);
       ++ row;
 
-      assert(this->parRegion);          
+      assert(this->parRegion);
       if (this->parRegion && this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
         this->hemiRegion.push_back(true);
       } else {
@@ -160,7 +160,7 @@ class GenotypeExtractor{
 
     bool hasRead = vin.readRecord();
     if (!hasRead)
-      return FILE_END; 
+      return FILE_END;
 
     VCFRecord& r = vin.getVCFRecord();
     VCFPeople& people = r.getPeople();
@@ -222,17 +222,17 @@ class GenotypeExtractor{
     }
 
     // check frequency cutoffs
-      double maf = 0.;
-      for (int i = 0; i < numPeople; ++i) {
-        maf += genotype[i][0];
-      }
-      maf = maf / ( 2. * numPeople);
-      if (maf > .5) {
-        maf = 1.0 - maf;
-      }
-      if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
-      if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
-    
+    double maf = 0.;
+    for (int i = 0; i < numPeople; ++i) {
+      maf += genotype[i][0];
+    }
+    maf = maf / ( 2. * numPeople);
+    if (maf > .5) {
+      maf = 1.0 - maf;
+    }
+    if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
+    if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
+
     std::string label = r.getChrom();
     label += ':';
     label += r.getPosStr();
@@ -419,11 +419,11 @@ int loadRangeFile(const char* fn, const char* givenRangeName, OrderedMap<std::st
       continue;
 
     if (fd[0].empty()) {
-      logger->warn("Skip line [ %d ] (first column is empty) when reading range file [ %s ].", lineNo, fn);      
+      logger->warn("Skip line [ %d ] (first column is empty) when reading range file [ %s ].", lineNo, fn);
       continue;
     }
     if (fd[1].empty()) {
-      logger->warn("Skip line [ %d ] (second column is empty) when reading range file [ %s ].", lineNo, fn);      
+      logger->warn("Skip line [ %d ] (second column is empty) when reading range file [ %s ].", lineNo, fn);
       continue;
     }
     m[ fd[0] ].addRangeList (fd[1].c_str());
@@ -581,7 +581,7 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "specify which phenotype column to read (default: 1)")
       ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name", "specify which phenotype column to read by header")
       ADD_BOOL_PARAMETER(pl, qtl, "--qtl", "treat phenotype as quantitative trait")
-      
+
       ADD_PARAMETER_GROUP(pl, "Specify Genotype")
       ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC)")
       // ADD_STRING_PARAMETER(pl, glTag, "--gl", "Specify which genotype likelihood tag to use. (e.g. GL)")
@@ -612,10 +612,10 @@ int main(int argc, char** argv){
       ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be included in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Association Model")
-      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt, famGrammarGamma")
+      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt, famGrammarGamma, firth")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
       ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
-      ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC")
+      ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC, FamSKAT")
       ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov, dominant, recessive")
 
       ADD_PARAMETER_GROUP(pl, "Family-based Models")
@@ -886,13 +886,13 @@ int main(int argc, char** argv){
       abort();
     }
   }
-  
+
   g_SummaryHeader = new SummaryHeader;
   g_SummaryHeader->recordCovariate(covariate);
 
   // record raw phenotype
   g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
-  
+
   // adjust phenotype
   bool binaryPhenotype;
   if (FLAG_qtl) {
@@ -1004,6 +1004,8 @@ int main(int argc, char** argv){
       } else if (modelName == "famgrammargamma") {
         model.push_back( new SingleVariantFamilyGrammarGamma);
         hasFamilyModel = true;
+      } else if (modelName == "firth") {
+        model.push_back( new SingleVariantFirthTest);
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
@@ -1043,15 +1045,17 @@ int main(int argc, char** argv){
         model.push_back( new ZegginiWaldTest );
       } else if (modelName == "famcmc") {
         model.push_back( new FamCMC );
+        hasFamilyModel = true;
       } else if (modelName == "famzeggini") {
         model.push_back( new FamZeggini );
+        hasFamilyModel = true;
       } else {
         logger->error("Unknown model name: [ %s ].", argModelName[i].c_str());
         abort();
-      };
+      }
     }
   }
-  
+
   if (FLAG_modelVT != "") {
     stringTokenize(FLAG_modelVT, ",", &argModelName);
     for (size_t i = 0; i < argModelName.size(); i++ ){
@@ -1071,14 +1075,15 @@ int main(int argc, char** argv){
         //////////!!!
         // model.push_back( new VariableThresholdFreqTest );
       } else if (modelName == "skat") {
+        logger->error("Not yet implemented.");
         //model.push_back( new VariableThresholdFreqTest );
       } else {
         logger->error("Unknown model name: %s .", modelName.c_str());
         abort();
-      };
+      }
     }
   }
-  
+
   if (FLAG_modelKernel != "") {
     stringTokenize(FLAG_modelKernel, ",", &argModelName);
     for (size_t i = 0; i < argModelName.size(); i++ ){
@@ -1089,12 +1094,18 @@ int main(int argc, char** argv){
         double beta1, beta2;
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
         model.push_back( new SkatTest(nPerm, alpha, beta1, beta2) );
-        logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g (beta1 = %.2f, beta2 = %.2f)",
+        logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g weight = Beta(beta1 = %.2f, beta2 = %.2f)",
                      nPerm, alpha, beta1, beta2);
       } else if (modelName == "kbac") {
         parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
         model.push_back( new KBACTest(nPerm, alpha) );
         logger->info("KBAC test significance will be evaluated using %d permutations", nPerm);
+      } else if (modelName == "famskat") {
+        double beta1, beta2;
+        parser.assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
+        model.push_back( new FamSkatTest(beta1, beta2) );
+        logger->info("SKAT test significance will be evaluated using weight = Beta(beta1 = %.2f, beta2 = %.2f)",
+                     beta1, beta2);
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
@@ -1171,7 +1182,7 @@ int main(int argc, char** argv){
       s += ".assoc.gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
       metaFileToIndex.push_back(s);
-    } else if (model[i]->getModelName() == "MetaDominant" ||                
+    } else if (model[i]->getModelName() == "MetaDominant" ||
                model[i]->getModelName() == "MetaRecessive")  {
       s += ".assoc";
       fOuts[i] = new FileWriter(s.c_str());
@@ -1180,12 +1191,13 @@ int main(int argc, char** argv){
       s.resize(s.size() - strlen(".assoc"));
       s += "Cov.assoc.gz";
       fOuts[i] = new FileWriter(s.c_str(), BGZIP);
-      metaFileToIndex.push_back(s);      
+      metaFileToIndex.push_back(s);
     } else {
       s += ".assoc";
       fOuts[i] = new FileWriter(s.c_str());
     }
   }
+  const size_t numModel = model.size();
 
   // determine VCF file reading pattern
   // current support:
@@ -1417,13 +1429,16 @@ int main(int argc, char** argv){
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
       // fit each model
-      const size_t numModel = model.size();
       for (size_t m = 0; m != numModel; m++)
       {
         model[m]->reset();
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
       };
+    }
+    for (size_t m = 0; m != numModel; m++)
+    {
+      model[m]->writeFootnote(fOuts[m]);
     }
     logger->info("Analyzed [ %d ] variants", variantProcessed);
   } else if (rangeMode != "Single" && singleVariantMode) { // read by gene/range model, single variant test
@@ -1435,7 +1450,7 @@ int main(int argc, char** argv){
     buf.addHeader("N_INFORMATIVE");
 
     // output headers
-    for (size_t m = 0; m < model.size(); m++) {
+    for (size_t m = 0; m < numModel; m++) {
       model[m]->writeHeader(fOuts[m], buf);
     };
     std::string geneName;
@@ -1450,7 +1465,7 @@ int main(int argc, char** argv){
         int ret = ge.extractSingleGenotype(&genotype, &buf);
         if (ret == GenotypeExtractor::FILE_END) { // reach end of this region
           break;
-        }            
+        }
         if (ret == GenotypeExtractor::FAIL_FILTER) {
           continue;
         }
@@ -1469,14 +1484,16 @@ int main(int argc, char** argv){
         buf.updateValue(rangeMode, geneName);
         buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
-        const size_t numModel = model.size();
-
         // #pragma omp parallel for
         for (size_t m = 0; m != numModel; m++) {
           model[m]->reset();
           model[m]->fit(&dc);
           model[m]->writeOutput(fOuts[m], buf);
-        };
+        }
+      }
+      for (size_t m = 0; m != numModel; m++)
+      {
+        model[m]->writeFootnote(fOuts[m]);
       }
     }
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions", variantProcessed, (int)geneRange.size());
@@ -1487,7 +1504,7 @@ int main(int argc, char** argv){
     buf.addHeader("NumVar");
 
     // output headers
-    for (size_t m = 0; m < model.size(); m++) {
+    for (size_t m = 0; m < numModel; m++) {
       model[m]->writeHeader(fOuts[m], buf);
     };
     std::string geneName;
@@ -1518,7 +1535,6 @@ int main(int argc, char** argv){
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows) );
       buf.updateValue("NumVar", toString(genotype.cols));
 
-      const size_t numModel = model.size();
       // #ifdef _OPENMP
       // #pragma omp parallel for
       // #endif
@@ -1526,7 +1542,11 @@ int main(int argc, char** argv){
         model[m]->reset();
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
-      };
+      }
+    }
+    for (size_t m = 0; m != numModel; m++)
+    {
+      model[m]->writeFootnote(fOuts[m]);
     }
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions", variantProcessed, (int)geneRange.size());
   } else{
@@ -1534,11 +1554,11 @@ int main(int argc, char** argv){
     abort();
   }
 
-  // resource cleaning up
-  for (size_t m = 0; m < model.size() ; ++m ) {
+  // Resource cleaning up
+  for (size_t m = 0; m < numModel ; ++m ) {
     delete model[m];
   }
-  for (size_t m = 0; m < model.size() ; ++m ) {
+  for (size_t m = 0; m < numModel ; ++m ) {
     delete fOuts[m];
   }
   if (fOuts)

@@ -34,6 +34,9 @@ class LinearRegressionScoreTest{
 
   double GetStat() const {return this->stat;};
   double GetPvalue() const {return this->pvalue;};
+
+  // U and V matrix are square matrice with dimension equalling to Xcol
+  // e.g. when testing a single beta coefficient, U and V are 1 by 1 matrice.
   const Matrix& GetU() const {return this->Umatrix;};
   const Matrix& GetV() const {return this->Vmatrix;};
   const Matrix& GetBeta() const { return this->betaMatrix;}

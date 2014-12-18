@@ -303,6 +303,25 @@ void makeVariableThreshodlGenotype(Matrix& in,
   }
 }
 
+void appendHeritability(FileWriter* fp, const FastLMM& model) {
+  const double sigma2_g = model.GetSigmaG2();
+  const double sigma2_e = model.GetSigmaG2();
+  const double herit = (sigma2_g + sigma2_e == 0.) ? 0 : sigma2_g / (sigma2_g + sigma2_e);
+
+  fp->printf("#Sigma2_g\t%g\n", sigma2_g);
+  fp->printf("#Sigma2_e\t%g\n", sigma2_e);
+  fp->printf("#Heritability\t%g\n", herit);
+}
+
+void appendHeritability(FileWriter* fp, const GrammarGamma& model) {
+  const double sigma2_g = model.GetSigmaG2();
+  const double sigma2_e = model.GetSigmaG2();
+  const double herit = (sigma2_g + sigma2_e == 0.) ? 0 : sigma2_g / (sigma2_g + sigma2_e);
+
+  fp->printf("#Sigma2_g\t%g\n", sigma2_g);
+  fp->printf("#Sigma2_e\t%g\n", sigma2_e);
+  fp->printf("#Heritability\t%g\n", herit);
+}
 
 #if 0
 The code below does not consider frequency tie

@@ -2,20 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-
-// error message
-const static char errorMessage0[] = "Normal Completion";                           // inform = 0
-const static char errorMessage1[] = "Completion with error > abseps";              // inform = 1
-const static char errorMessage2[] = "N greater 1000 or N < 1";                     // inform = 2
-const static char errorMessage3[] ="Covariance matrix not positive semidefinite";  // inform = 3
-const static char* errorMessage[4] = {errorMessage0, errorMessage1, errorMessage2, errorMessage3};
-
-
-// infinity bounds
-const static int INFIN_BOUND_NORMAL_NORMAL = 2;        // (..., ...)
-const static int INFIN_BOUND_NORMAL_INFTY = 1;         // (..., inf)
-const static int INFIN_BOUND_LOWER_NORMAL = 0;         // (-inf, ..)
-const static int INFIN_BOUND_INFTY_INFTY = -1;  // (-inf, inf)
+#include <assert.h>
 
 extern "C"{
   extern void mvtdst_(int* n,
@@ -32,6 +19,7 @@ extern "C"{
                       double* value,
                       int* inform);
 }
+
 /**
  * @return <0 if anything goes wrong.
  */
@@ -142,29 +130,3 @@ double pmvnorm_Q(int n,
   return value_;
 }
 
-//////////////////////////////////////////////////
-// a C++ class for multivariate normal distribution
-int MultivariateNormal::getBandProbFromCov(int n,
-                                           double* lower,
-                                           double* upper,
-                                           double* cov,
-                                           double* result) {
-  infin.resize(n);
-  std::fill(infin.begin(), infin.end(), INFIN_BOUND_NORMAL_NORMAL);
-  delta.resize(n);
-  std::fill(delta.begin(), delta.end(), 0);
-
-  return pmvnorm(&n,
-                 &nu_,
-                 lower,
-                 upper,
-                 infin.data(),
-                 cov,
-                 delta.data(),
-                 &maxpts_,
-                 &abseps_,
-                 &releps_,
-                 &error_,
-                 result,
-                 &inform);
-};

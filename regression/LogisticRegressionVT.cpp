@@ -1,7 +1,7 @@
 #include "LogisticRegressionVT.h"
 #include "MatrixOperation.h"
 #include "LogisticRegression.h"
-#include "libMvtnorm/mvtnorm.h" 
+#include "MultivariateNormalDistribution.h" 
 #include <Eigen/Dense> // eigen definiation and LDLT
 
 #undef DEBUG
@@ -238,7 +238,7 @@ bool LogisticRegressionVT::LogisticVTImpl::TestCovariate(Matrix& Xnull, Vector& 
   rep(-tmp2(maxIndex), k, & lower);
   rep(tmp2(maxIndex), k, & upper);
   makeCov(Vkk);
-  if (mvnorm.getBandProbFromCov(k,
+  if (mvnorm.getBandProbFromCor(k,
                                 (double*) lower.data(),
                                 (double*) upper.data(),
                                 (double*) cor.data(),

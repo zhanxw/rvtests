@@ -6,10 +6,10 @@ class Vector;
 
 class Skat
 {
-private:
+ private:
   class SkatImpl;
   SkatImpl* skatImpl;
-public:
+ public:
   Skat();
   ~Skat();
   void Reset();
@@ -28,14 +28,14 @@ public:
           Matrix& X_G,      // covariance
           Matrix & G_G,     // genotype
           Vector &w_G);     // weight
-  
+
   double GetQFromNewResidual(Vector & res_G);   // e.g. permuted residual under NULL
 
   double GetPvalue() const; //  {return this->pValue;};
 
   double GetQ() const; // {return this->Q;};
-    
-private:
+
+ private:
   // don't copy
   Skat(const Skat& s);
   Skat& operator=(const Skat& s);

@@ -1,6 +1,7 @@
 //: src:kbac.cpp
 // kbac test
 // Copyright 2011 Gao Wang
+// Modified 2014 Xiaowei Zhan
 #include "kbac.h"
 //#include <stdio.h>
 #include "gsl/gsl_rng.h"

@@ -5,7 +5,7 @@ class EigenMatrix;
 class Matrix;
 
 class FastLMM{
-public:
+ public:
   enum Test {
     SCORE = 0,
     LRT
@@ -14,10 +14,10 @@ public:
     MLE = 0,
     REML
   };
-public: // Make this Impl public to make optimization function easy to write
+ public: // Make this Impl public to make optimization function easy to write
   class Impl;
   Impl* impl;
-public:
+ public:
   FastLMM(Test test, Model model);
   ~FastLMM();
 
@@ -26,24 +26,32 @@ public:
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
-  // NOTE: need to fit null model fit before calling this function  
+  int CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
+                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                     Matrix* uMat, Matrix* vMat);
+
+  // NOTE: need to fit null model fit before calling this function
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
-  // NOTE: need to fit null model fit before calling this function  
+  // NOTE: need to fit null model fit before calling this function
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol);
-  // NOTE: need to fit null model fit before calling this function  
+  // NOTE: need to fit null model fit before calling this function
   double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol);
+  double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol, int col);
   double GetPvalue();
   // for LRT Test
-  double GetNullLogLikelihood();
-  double GetAltLogLikelihood();
+  double GetNullLogLikelihood() const;
+  double GetAltLogLikelihood() const;
   // for Score Test
-  double GetUStat();
-  double GetVStat();
-  double GetEffect();   // U/V
-  double GetSE();       // 1/sqrt(V)
-  double GetSigmaG2();  // sigma_g^2
-  double GetSigmaE2();  // sigma_e^2
-  double GetDelta();    // delta = sigma2_e / sigma2_g
+  double GetUStat() const;
+  double GetVStat() const;
+  int GetUMatrix(Matrix* u) const;
+  int GetVMatrix(Matrix* v) const;
+  double GetEffect() const;   // U/V
+  double GetSE() const;       // 1/sqrt(V)
+  double GetSigmaG2() const;  // sigma_g^2
+  double GetSigmaE2() const;  // sigma_e^2
+  double GetDelta() const;    // delta = sigma2_e / sigma2_g
+  void GetBeta(EigenMatrix* beta) const;
 };
 
 

@@ -185,7 +185,17 @@ class GrammarGamma::Impl{
   double GetBetaVar() const {
     return this->betaGVar;
   }
- private:
+  double GetSigmaG2() {
+    return this->sigma2;
+  }
+  double GetSigmaE2() {
+    return this->sigma2 * this->delta;
+  }
+  double GetDelta()  {
+    return this->delta;
+  }    // delta = sigma2_e / sigma2_g
+  
+   private:
   // Eigen::MatrixXf S;
   float sigma2_g;     // sigma2_g
   float delta;      // delta =  sigma2_e / sigma2_g
@@ -223,6 +233,7 @@ int GrammarGamma::FitNullModel(Matrix& Xnull, Matrix& y,
                                const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
   return this->impl->FitNullModel(Xnull, y, kinshipU, kinshipS);
 }
+
 int GrammarGamma::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
                                 const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
   return this->impl->TestCovariate(Xnull, y, Xcol, kinshipU, kinshipS);
@@ -235,6 +246,9 @@ double GrammarGamma::GetPvalue(){
 }
 double GrammarGamma::GetBeta() { return this->impl->GetBeta();};
 double GrammarGamma::GetBetaVar() { return this->impl->GetBetaVar();};
+double GrammarGamma::GetSigmaE2() const { return this->impl->GetSigmaE2(); };
+double GrammarGamma::GetSigmaG2() const { return this->impl->GetSigmaG2(); };
+double GrammarGamma::GetDelta()  const { return this->impl->GetDelta(); };    // delta = sigma2_e / sigma2_g
 
 // need to negaive the MLE to minize it
 double goalFunction(double x, void* param) {

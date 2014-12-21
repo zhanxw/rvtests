@@ -614,7 +614,7 @@ int main(int argc, char** argv){
       ADD_PARAMETER_GROUP(pl, "Association Model")
       ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt, famGrammarGamma, firth")
       ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
-      ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, skat")
+      ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, price, fastVt, famFastVt")
       ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC, FamSKAT")
       ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov, dominant, recessive")
 
@@ -1072,6 +1072,11 @@ int main(int argc, char** argv){
         //model.push_back( new VariableThresholdFreqTest );
         // TODO
       } else if (modelName == "mb") {
+        //////////!!!
+        // model.push_back( new VariableThresholdFreqTest );
+      } else if (modelName == "fastvt") {
+        model.push_back( new VariableThresholdLiu );
+      } else if (modelName == "fastfamvt") {
         //////////!!!
         // model.push_back( new VariableThresholdFreqTest );
       } else if (modelName == "skat") {

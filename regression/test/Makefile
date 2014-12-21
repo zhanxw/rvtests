@@ -7,7 +7,7 @@ EXE = testLinearRegression \
       testFirthRegression \
       testLogisticVT \
       testLinearVT \
-
+      testMultivariateNormalDistribution
 
 all: $(EXE)
 debug: $(EXE)

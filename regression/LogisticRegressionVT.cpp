@@ -120,7 +120,7 @@ class LogisticRegressionVT::LogisticVTImpl{
   int maxIndex;         // such that abs(t[maxIndex]) is the maximum
   double pvalue;        // store p-values
   LogisticRegression null; // fit null model
-  MultivariateNormal mvnorm;
+  MultivariateNormalDistribution mvnorm;
 }; // class LogisticRegressionVT::LogisticVTImpl{
 
 //////////////////////////////////////////////////

@@ -22,8 +22,8 @@
 class FamSkat::FamSkatImpl{
  public:
   FamSkatImpl() :
-      beta1(1), beta2(25),
-      lmm(FastLMM::SCORE, FastLMM::MLE){
+      lmm(FastLMM::SCORE, FastLMM::MLE),
+      beta1(1), beta2(25) {
   }
   int FitNullModel(Matrix& Xnull, Matrix& y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {

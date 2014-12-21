@@ -33,7 +33,7 @@ class MultivariateVT{
   double stat;
   double pvalue;
 
-  MultivariateNormal mvn;
+  MultivariateNormalDistribution mvn;
 };
 
 #endif

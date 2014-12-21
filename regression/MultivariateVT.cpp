@@ -20,7 +20,7 @@ int MultivariateVT::compute(Vector& freq,
                             Matrix& V) {
   if (freq.Length() != U.rows ||
       freq.Length() != V.rows ||
-      U.rows != U.cols ||
+      U.cols != 1 ||
       V.rows != V.cols) {
     return -1;
   }
@@ -31,7 +31,7 @@ int MultivariateVT::compute(Vector& freq,
   for (int i = 0; i < n; ++i) {
     double f  = freq[i] < 0.5 ? freq[i] : 1.0 - freq[i];
     if (f < 1e-10) continue;
-    if (v[i][i] < 1e-10) continue;
+    if (V[i][i] < 1e-10) continue;
     freqTable[f].push_back(i);
     numKeep ++;
   }

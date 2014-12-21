@@ -119,7 +119,7 @@ class LinearRegressionVT::LinearVTImpl{
   int maxIndex;         // such that abs(t[maxIndex]) is the maximum
   double pvalue;        // store p-values
   LinearRegression null; // fit null model
-  MultivariateNormal mvnorm;
+  MultivariateNormalDistribution mvnorm;
 }; // class LinearRegressionVT::LinearVTImpl{
 
 //////////////////////////////////////////////////

@@ -56,7 +56,7 @@ Vector& LinearRegression::GetAsyPvalue(){
     pValue[i] = gsl_cdf_chisq_Q(Zstat, 1.0);
   }
   return(pValue);
-};
+}
 
 bool LinearRegression::calculateResidualMatrix(Matrix& X, Matrix* out) {
   if (!calculateHatMatrix(X, out)) return false;
@@ -70,6 +70,7 @@ bool LinearRegression::calculateResidualMatrix(Matrix& X, Matrix* out) {
       }
     }
   }
+  return true;
 }
 bool LinearRegression::calculateHatMatrix(Matrix& X, Matrix* out) {
   Matrix Xt;

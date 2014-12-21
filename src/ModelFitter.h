@@ -230,7 +230,7 @@ class SingleVariantFirthTest: public ModelFitter{
       return -1;
     }
     fitOK = firth.Fit(this->X, this->Y);
-    
+
     return (fitOK ? 0 : 1);
   };
   // write result header
@@ -2007,25 +2007,26 @@ class VTCMC: public ModelFitter{
  */
 class VariableThresholdLiu: public ModelFitter{
  public:
-  VariableThresholdLiu(int nPerm, double alpha):
+  VariableThresholdLiu():
       lmm(FastLMM::SCORE, FastLMM::MLE),
       fitOK(false),
       optimFreq(-1),
       needToFitNullModel(true) {
-    
+
     this->modelName = "VariableThresholdLiu";
     result.addHeader("MinFreq");
     result.addHeader("MaxFreq");
     result.addHeader("OptimFreq");
     result.addHeader("Stat");
-    result.addHeader("Pvalue");    
+    result.addHeader("Pvalue");
   };
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
-    
+    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -2035,7 +2036,7 @@ class VariableThresholdLiu: public ModelFitter{
       // does not support binary outcomes
       return -1;
     }
-    
+
     // obtain frequency, u and v per variant
     // const int nSample = genotype.rows;
     const int nVariant = genotype.cols;
@@ -2043,37 +2044,37 @@ class VariableThresholdLiu: public ModelFitter{
 
     this->useFamilyModel = dc->hasKinship();
     if (!this->useFamilyModel) {
-    // calculate af
-    for (int i = 0; i < nVariant; ++i) {
-      af[i] = getMarkerFrequency(genotype, i);
-    }
+      // calculate af
+      for (int i = 0; i < nVariant; ++i) {
+        af[i] = getMarkerFrequency(genotype, i);
+      }
 
-    // adjust covariates
-    if (needToFitNullModel ||
-        dc->isPhenotypeUpdated() ||
-        dc->isCovariateUpdated()) {
-      fitOK = linear.calculateResidualMatrix(covariate, &residualMat);
-      if (!fitOK) return -1;
-      y.Product(residualMat, phenotype);
-      needToFitNullModel = false;
-    }
-    x.Product(residualMat, genotype);
-    centerMatrix(&x);
-    
-    // obtain sigma2
-    sigma2 = getVariance(y, 0);
+      // adjust covariates
+      if (needToFitNullModel ||
+          dc->isPhenotypeUpdated() ||
+          dc->isCovariateUpdated()) {
+        fitOK = linear.calculateResidualMatrix(cov, &residualMat);
+        if (!fitOK) return -1;
+        y.Product(residualMat, phenotype);
+        needToFitNullModel = false;
+      }
+      x.Product(residualMat, genotype);
+      centerMatrix(&x);
 
-    // obtain U, V matrix
-    xt.Transpose(x);
-    u.Product(xt, y);
-    v.Product(xt, x);
-    v.Multiply(sigma2);
+      // obtain sigma2
+      sigma2 = getVariance(y, 0);
+
+      // obtain U, V matrix
+      xt.Transpose(x);
+      u.Product(xt, y);
+      v.Product(xt, x);
+      v.Multiply(sigma2);
     } else {
       // family model
       if (needToFitNullModel ||
           dc->isPhenotypeUpdated() ||
           dc->isCovariateUpdated()) {
-        fitOK = lmm.FitNullModel(covariate, phenotype,
+        fitOK = lmm.FitNullModel(cov, phenotype,
                                  *dc->getKinshipUForAuto(),
                                  *dc->getKinshipSForAuto());
         if (!fitOK) return -1;
@@ -2086,12 +2087,12 @@ class VariableThresholdLiu: public ModelFitter{
                               genotype,
                               i);
       }
-      lmm.CalculateUandV(covariate, phenotype, genotype,
+      lmm.CalculateUandV(cov, phenotype, genotype,
                          *dc->getKinshipUForAuto(),
                          *dc->getKinshipSForAuto(),
                          &u, &v);
     }
-    
+
     if (mvvt.compute(af, u, v)) {
       fitOK = false;
       return -1;
@@ -2102,11 +2103,11 @@ class VariableThresholdLiu: public ModelFitter{
     this->optimFreq = mvvt.getOptimalFreq();
     this->stat = mvvt.getStat();
     this->pvalue = mvvt.getPvalue();
-    
+
     fitOK = true;
     return 0;
   };
-  
+
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
@@ -2140,7 +2141,7 @@ class VariableThresholdLiu: public ModelFitter{
  private:
   double getVariance(Matrix& m, int idx) {
     if (m.rows == 0) return 0.;
-    
+
     double s = 0.;
     for (int i = 0; i < m.rows; ++i) {
       s += m[i][idx];
@@ -2155,6 +2156,7 @@ class VariableThresholdLiu: public ModelFitter{
   }
  private:
   Vector af;
+  Matrix cov;
   Matrix x;
   Matrix xt;
   Matrix y;
@@ -2647,9 +2649,6 @@ class FamSkatTest: public ModelFitter{
     this->beta2 = beta2;
     this->modelName = "Skat";
   }
-  void reset() {
-    this->skat.Reset();
-  }
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
@@ -3029,9 +3028,9 @@ class MetaScoreTest: public ModelFitter{
       appendHeritability(fp, linearFamScoreForAuto);
     }
     if (this->hasHeritabilityForX) {
-      fp->writeLine("#Region\tX\n");      
+      fp->writeLine("#Region\tX\n");
       appendHeritability(fp, linearFamScoreForX);
-    }    
+    }
   }
 
  private:
@@ -3067,7 +3066,7 @@ class MetaScoreTest: public ModelFitter{
   bool useFamilyModel;
   bool hasHeritabilityForAuto;
   bool hasHeritabilityForX;
-  
+
   bool isHemiRegion; // is the variant tested in hemi region?
 }; // MetaScoreTest
 

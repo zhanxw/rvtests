@@ -1,9 +1,15 @@
 FC=gfortran
 
-CXXFLAGS=-O2 -DNDEBUG
-FCFLAGS=-O2 -DNDEBUG
+release: CXXFLAGS=-O2 -DNDEBUG
+release: FCFLAGS=-O2 -DNDEBUG
+debug: CXXFLAGS= -O0 -ggdb
+debug: FCFLAGS=-O0 -ggdb
 
 .SUFFIXES:
+
+all: release
+release: libMvtnorm.a
+debug: libMvtnorm.a
 
 libMvtnorm.a: mvtnorm.o mvt.o randomF77.o 
 	ar rcs $@ $^ 

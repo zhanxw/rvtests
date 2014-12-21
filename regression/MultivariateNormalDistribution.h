@@ -1,20 +1,20 @@
-#ifndef _MULTIVARIATENORMAL_H_
-#define _MULTIVARIATENORMAL_H_
+#ifndef _MULTIVARIATENORMALDISTRIBUTION_H_
+#define _MULTIVARIATENORMALDISTRIBUTION_H_
 
 #include <vector>
 #include "MathMatrix.h"
+#include "libMvtnorm/mvtnorm.h"
 
 //////////////////////////////////////////////////
 // a C++ class for multivariate normal distribution
-class MultivariateNormal{
+class MultivariateNormalDistribution{
  public:
-  MultivariateNormal() {
-    nu_ = 0;            // should be 0 for multivarate normal (degree of freedom)
-    maxpts_ = 25000;    // default in mvtnorm: 25000
-    abseps_ = 1e-6;     // default in mvtnorm: 0.001, we make it more stringent
-    releps_ = 0;        // default in mvtnorm: 0
+  double getAbsEps() const {
+    return mvn.getAbsEps();
   }
-
+  //////////////////////////////////////////////////
+  // Get band probability
+  //////////////////////////////////////////////////  
   /**
    * @param n, number of variable
    * @param lower, lower limit
@@ -22,13 +22,28 @@ class MultivariateNormal{
    * @param cor, correlation coefficient in row I column J stored
    *             in CORREL( J + ((I-2)*(I-1))/2 ), for J < I.
    * @param result, store results
-   * @return 0 if succeed
+   * @return 0 if succeed, 1 if succeed with bigger error, otherwise means fail
    */
   int getBandProbFromCor(int n,
                          double* lower,
                          double* upper,
-                         double* cov,
+                         double* cor,
                          double* result);
+  int getBandProbFromCor(int n,
+                         double* lower,
+                         double* upper,
+                         Matrix& cor,
+                         double* result);
+  int getBandProbFromCov(int n,
+                         double* lower,
+                         double* upper,
+                         Vector& mean,
+                         Matrix& cov,
+                         double* result);
+
+  //////////////////////////////////////////////////
+  // Get upper probability
+  //////////////////////////////////////////////////    
   /**
    * @param n, number of variable
    * @param lower, lower limit
@@ -39,26 +54,44 @@ class MultivariateNormal{
    */
   int getUpperFromCov(int n,
                       double* lower,
+                      Vector& mean,
                       Matrix& cov,
                       double* result);
-
+  // similar to above, except assuming the means are zeros  
+  int getUpperFromCov(int n,
+                      double* lower,
+                      Matrix& cov,
+                      double* result);
+  // similar to above, except assuming the means are zeros  
   int getUpperFromCov(double lower,
                       Matrix& cov,
                       double* result);
 
+  //////////////////////////////////////////////////
+  // Get lower probability
+  //////////////////////////////////////////////////  
+  int getLowerFromCov(int n,
+                      double* upper,
+                      Vector& mean,
+                      Matrix& cov,
+                      double* result);
+  int getLowerFromCov(int n,
+                      double* upper,
+                      Matrix& cov,
+                      double* result);
+  int getLowerFromCov(double upper,
+                      Matrix& cov,
+                      double* result);
 
  private:
-  int nu_ ;
-  int maxpts_ ;         // default in mvtnorm: 25000
-  double abseps_ ;      // default in mvtnorm: 0.001, we make it more stringent
-  double releps_ ;      // default in mvtnorm: 0
-  double error_;        // estimated abs. error with 99% confidence interval
+  /**
+   * Convert a covariance matrix @param m to correlation matrix,
+   * and store it to a 1-d vector @param out.
+   */
+  void toCor(Matrix& m, std::vector<double>* out);
 
-  std::vector<double> lower;
-  std::vector<double> upper;
-  std::vector<int> infin;
-  std::vector<double> delta;
-  int inform;
+ private:
+  MvtNorm mvn;
 };
 
 #endif

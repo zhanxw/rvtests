@@ -11,8 +11,8 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-// #define DEBUG
 #undef DEBUG
+// #define DEBUG
 #ifdef DEBUG
 #include <fstream>
 #endif
@@ -34,7 +34,7 @@ class FamSkat::FamSkatImpl{
     this->nPeople = Xnull.rows;
     this->nMarker = Xcol.cols;
     this->nCovariate = Xnull.cols;
-    
+
     // set up weight
     G_to_Eigen(weight, &this->weight);
     setupWeight(kinshipU, kinshipS, Xcol);
@@ -43,42 +43,52 @@ class FamSkat::FamSkatImpl{
     G_to_Eigen(Xcol,  &this->G);
     G_to_Eigen(y,     &this->yMat);
 
+    const double sigma2 = lmm.GetSigmaG2();
     EigenMatrix tmp;
     lmm.GetBeta(&tmp);
     this->beta = tmp.mat;
     const double delta = lmm.GetDelta();
     const Eigen::MatrixXf& U =  kinshipU.mat;
     const Eigen::MatrixXf& lambda =  kinshipS.mat;
-    // Sigma = U * (S + delta) * U'
-    // Q = || w^{1/2} * G' * Sigma^{-1} * (y - X * beta)
-    //   = || w^{1/2} * G' * U * (S + delta)^{-1} * U' * (y - X * beta)
+    // Sigma = U * (S + delta) * U' * sigma2
+    // Q = || w^{1/2} * G' * Sigma^{-1} * (y - X * beta) ||
+    //   = || w^{1/2} * G' * U * (S + delta)^{-1} * U' * (y - X * beta) /sigma2 ||
     Q = (this->weight.asDiagonal() *
          G.transpose() *
          U *
-         (lambda.array() + delta).inverse().matrix() *
+         (lambda.array() + delta).inverse().matrix().asDiagonal()  *
          U.transpose() *
-         (yMat - X * beta)).col(0).squaredNorm();
+         (yMat - X * beta) /
+         sigma2
+         ).col(0).squaredNorm();
 
     // P0 = Sigma - X * (X' * Sigma^{-1} * X)^{-1} * X'
     Eigen::MatrixXf Sigma = U *
-                            (lambda.array() + delta).matrix() *
-                            U.transpose();
+                            (lambda.array() + delta).matrix().asDiagonal() *
+                            U.transpose() * sigma2;
     Eigen::MatrixXf SigmaInv = U *
-                               (lambda.array() + delta).inverse().matrix() *
-                               U.transpose();
+                               (lambda.array() + delta).inverse().matrix().asDiagonal() *
+                               U.transpose() / sigma2;
 
     Eigen::MatrixXf k = this->weight.asDiagonal() *
-                          G.transpose() *
-                          SigmaInv;
+                        G.transpose() *
+                        SigmaInv;
     Eigen::MatrixXf P0 = Sigma - X * (X.transpose() * SigmaInv * X).inverse() * X.transpose();
-    
+
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
     es.compute( k * P0 * k.transpose());
 
 #ifdef DEBUG
-    std::ofstream k("K");
-    k << K_sqrt;
-    k.close();
+    std::ofstream kin("kin");
+    kin << U * lambda.asDiagonal() * U.transpose();
+    kin << "\n";
+    kin <<       U *
+        (lambda.array() + delta).inverse().matrix().asDiagonal()  *
+        U.transpose();
+
+    kin.close();
+
+
 #endif
     // std::ofstream p("P0");
     // p << P0;

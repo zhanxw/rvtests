@@ -2630,7 +2630,7 @@ class FamSkatTest: public ModelFitter{
       stat(-1.) {
     this->beta1 = beta1;
     this->beta2 = beta2;
-    this->modelName = "Skat";
+    this->modelName = "FamSkat";
   }
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -2658,7 +2658,8 @@ class FamSkatTest: public ModelFitter{
     if (needToFitNullModel ||
         dc->isPhenotypeUpdated() ||
         dc->isCovariateUpdated()) {
-      fitOK = skat.FitNullModel(covariate, phenotype,
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+      fitOK = skat.FitNullModel(cov, phenotype,
                                 *dc->getKinshipUForAuto(),
                                 *dc->getKinshipSForAuto()) == 0;
       if (!fitOK) return -1;
@@ -2666,7 +2667,7 @@ class FamSkatTest: public ModelFitter{
     }
 
     // get Pvalue
-    fitOK = skat.TestCovariate(covariate, phenotype, genotype, weight,
+    fitOK = skat.TestCovariate(cov, phenotype, genotype, weight,
                                *dc->getKinshipUForAuto(),
                                *dc->getKinshipSForAuto()) == 0;
     if (!fitOK) {
@@ -2704,7 +2705,7 @@ class FamSkatTest: public ModelFitter{
   bool fitOK;
   double pValue;
   int nMarker;
-
+  Matrix cov; 
   double stat;
 }; // FamSkatTest
 

@@ -1111,6 +1111,7 @@ int main(int argc, char** argv){
         model.push_back( new FamSkatTest(beta1, beta2) );
         logger->info("SKAT test significance will be evaluated using weight = Beta(beta1 = %.2f, beta2 = %.2f)",
                      beta1, beta2);
+        hasFamilyModel = true;
       } else {
         logger->error("Unknown model name: %s .", argModelName[i].c_str());
         abort();
@@ -1318,7 +1319,7 @@ int main(int argc, char** argv){
     }
 
   } else if (!FLAG_kinship.empty() && FLAG_modelMeta.empty()){
-    logger->info("Family-based model not specified. Skip --kinship option and not load kinship file.");
+    logger->info("Family-based model not specified. \"--kinship\" option was specified but ignored here.");
   }
 
   // set imputation method

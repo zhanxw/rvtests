@@ -120,7 +120,6 @@ int MvtNorm::compute(int* n,
                      int* infin,
                      double* correl)
 {
-#define DEBUG
 #ifdef DEBUG
   const int N = *n;
   fprintf(stderr, "n = %d, ", N);

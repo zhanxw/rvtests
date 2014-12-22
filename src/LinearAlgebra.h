@@ -19,7 +19,7 @@ inline void permute(Vector* vec){
       v[j] = tmp;
     }
   }
-};
+}
 
 inline void permute(Vector* vec1, Vector* vec2){
   Vector& v1 = *vec1;
@@ -39,7 +39,7 @@ inline void permute(Vector* vec1, Vector* vec2){
       v2[j] = tmp;
     }
   }
-};
+}
 
 inline void centerVector(Vector* v){
   double avg = v->Average();
@@ -47,12 +47,12 @@ inline void centerVector(Vector* v){
   for (int i = 0; i < n; ++i) {
     (*v)[i] -= avg;
   };
-};
+}
 
 inline void centerMatrix(Matrix* v){
   Matrix& m = *v;
   if (m.rows == 0) return;
-  
+
   for (int i = 0; i < m.cols; ++i) {
     double s  = 0.;
     for (int j = 0; j < m.rows; ++j) {
@@ -63,10 +63,10 @@ inline void centerMatrix(Matrix* v){
       m[j][i] -= s;
     }
   }
-};
+}
 
 /*
- *@return -1: if error happen 
+ *@return -1: if error happen
  */
 inline int corr(Vector& v1, Vector& v2, double* ret){
   if (v1.Length() != v2.Length()) {
@@ -99,7 +99,7 @@ inline int corr(Vector& v1, Vector& v2, double* ret){
     *ret = 0.0;
   };
   return 0;
-};
+}
 
 /**
  * copy m[,col] to @param v
@@ -116,6 +116,26 @@ inline int extractColumn(Matrix& m, int col, Vector* v){
     (*v)[i] = m[i][col];
   };
   return 0;
-};
+}
+
+/**
+ * calculate variance of @param m and @param idx th column
+ */
+inline double getVariance(Matrix& m, int idx) {
+  if (m.rows == 0) return 0.;
+
+  double s = 0.;
+  for (int i = 0; i < m.rows; ++i) {
+    s += m[i][idx];
+  }
+  double avg = s / m.rows;
+  s = 0.;
+  for (int i = 0; i < m.rows; ++i) {
+    s += (m[i][idx] - avg) * (m[i][idx] - avg) ;
+  }
+  s /= m.rows;
+  return s;
+}
+
 
 #endif /* _LINEARALGEBRA_H_ */

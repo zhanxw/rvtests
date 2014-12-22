@@ -1074,11 +1074,11 @@ int main(int argc, char** argv){
       } else if (modelName == "mb") {
         //////////!!!
         // model.push_back( new VariableThresholdFreqTest );
-      } else if (modelName == "fastvt") {
-        model.push_back( new VariableThresholdLiu );
-      } else if (modelName == "fastfamvt") {
-        //////////!!!
-        // model.push_back( new VariableThresholdFreqTest );
+      } else if (modelName == "analyticvt") {
+        model.push_back( new AnalyticVT(AnalyticVT::UNRELATED) );
+      } else if (modelName == "famanalyticvt") {
+        model.push_back( new AnalyticVT(AnalyticVT::RELATED) );
+        hasFamilyModel = true;        
       } else if (modelName == "skat") {
         logger->error("Not yet implemented.");
         //model.push_back( new VariableThresholdFreqTest );

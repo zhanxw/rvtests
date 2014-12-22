@@ -196,7 +196,7 @@ class FastLMM::Impl{
   /**
    * calculate U and V matrix as in score test. It's useful when @param has multiple columns.
    * uMat = Xcol' * K^{-1} Y
-   * vMat = Xcol' * (K^{-1} - K^{-1} * Xnull' (Xnull' * K^{-1} * Xnull)^{-1} * Xnull * K^{-1}) * Xcol
+   * vMat = {Xcol' * (K^{-1} - K^{-1} * Xnull' (Xnull' * K^{-1} * Xnull)^{-1} * Xnull * K^{-1}) * Xcol} * sigma2
    */
   int CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
                      const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
@@ -207,10 +207,35 @@ class FastLMM::Impl{
     G_to_Eigen(Xcol, &g);
 
     u_g_center = (U.transpose() *  (g.rowwise() - g.colwise().mean())).eval();
-    Eigen::MatrixXf u = (u_g_center).transpose() * (lambda.array() + delta).matrix().asDiagonal() * (this->uResid) / this->sigma2;
-    Eigen::MatrixXf v = ((u_g_center).matrix().transpose() * this->scaledK * (u_g_center.matrix())) / this->sigma2;
+    Eigen::MatrixXf u = (u_g_center.transpose()) * (lambda.array() + delta).inverse().matrix().asDiagonal() * (this->uResid) / this->sigma2;
+    Eigen::MatrixXf v = (u_g_center.transpose() * this->scaledK * u_g_center) / this->sigma2;
+
     Eigen_to_G(u, uMat);
     Eigen_to_G(v, vMat);
+
+#if 0
+    dumpToFile(lambda, "lambda");
+    dumpToFile(scaledK, "scaledK");
+    dumpToFile(g, "g");
+    dumpToFile(u_g_center, "u_g_center");
+    dumpToFile(u, "u");
+    dumpToFile(v, "v");
+    
+    {
+      g = g.col(0);
+      Eigen::ArrayXf u_g_center;
+      u_g_center = (U.transpose() *  (g.rowwise() - g.colwise().mean())).eval().array();
+      this->Ustat = (  ( (u_g_center) *
+                         (this->uResid).array()) /
+                       (lambda.array() + delta)
+                       ).sum() / this->sigma2;
+      // this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
+      this->Vstat = ((u_g_center).matrix().transpose() * this->scaledK * (u_g_center.matrix()))(0, 0) / this->sigma2;
+      fprintf(stderr, "Ustat = %g, Vstat = %g\n", Ustat, Vstat);
+      fprintf(stderr, "U[0] = %g, V[0][0] = %g\n", u(0, 0), v(0, 0));
+    }
+#endif    
+    return 0;
   }
   double getSumResidual2(double delta) {
     return (( this->uy.array() - (this->ux * this->beta).array() ).square() / (this->lambda.array() + delta)).sum();
@@ -265,7 +290,7 @@ class FastLMM::Impl{
 
     const Eigen::MatrixXf& U = kinshipU.mat;
     Eigen::MatrixXf ug = U.transpose() * g;
-    return GetAFFromUg(kinshipU, kinshipS, this->ug);
+    return GetAFFromUg(kinshipU, kinshipS, ug);
   }
   // NOTE: need to fit null model before calling this function
   double GetAFFromUg(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, const Eigen::MatrixXf& ug) const{
@@ -310,6 +335,7 @@ class FastLMM::Impl{
       u1s = u1.array() / (this->lambda.array()).abs().array();
       // denom = 1' * K^{-1} * 1 = u1' * lambda^{-1} * u1
       // here, we only use lambda (the kinship part), but not delta
+      // aka. the genetic part (sigma_g), not the environment part (sigma_e)
       denom = (u1s * u1.array()).sum();
       // alpha = 1' * K^{-1}  = u1' * lambda^{-1} * u
       alpha = (u1.transpose() * this->lambda.array().abs().inverse().matrix().asDiagonal() * U.transpose()).row(0);

@@ -5,15 +5,9 @@
 #include <limits>
 #include <cmath>
 #include <vector>
-#include <map>
-// MultivariateVT::MultivariateVT(Vector& freq,
-//                                Matrix& U,
-//                                Matrix& V):
-//     freq(freq),
-//     U(U),
-//     V(V)
-// {
-// }
+#include <set>
+
+#include "MatrixOperation.h" // for dump vars
 
 int MultivariateVT::compute(Vector& freq,
                             Matrix& U,
@@ -25,73 +19,96 @@ int MultivariateVT::compute(Vector& freq,
     return -1;
   }
 
-  const int n = freq.Length();
+  const int numFreq = freq.Length();
   int numKeep = 0;
-  std::map<double, std::vector<int> > freqTable;
-  for (int i = 0; i < n; ++i) {
-    double f  = freq[i] < 0.5 ? freq[i] : 1.0 - freq[i];
-    if (f < 1e-10) continue;
-    if (V[i][i] < 1e-10) continue;
-    freqTable[f].push_back(i);
+  std::set<int> skip;
+  std::set<double> freqTable;
+  maf.Dimension(numFreq);
+  for (int i = 0; i < numFreq; ++i) {
+    maf[i] = freq[i] < 0.5 ? freq[i] : 1.0 - freq[i];
+    if (maf[i] < 1e-10) {
+      skip.insert(i);
+      continue;
+    }
+    if (V[i][i] < 1e-10) {
+      skip.insert(i);
+      continue;
+    }
+    freqTable.insert(maf[i]);
     numKeep ++;
   }
 
-  maf.Dimension(numKeep);
-  u.Dimension(numKeep, 1);
-  v.Dimension(numKeep, numKeep);
-  phi.Dimension(numKeep, numKeep);
+  if (numKeep == 0) {
+    return -1;
+  }
 
-  int i = 0;
-  for (std::map<double, std::vector<int> >::const_iterator it = freqTable.begin();
+  cutoff.Dimension(numKeep);
+  // phi[i][j] = 1 means at maf[i] < cutoff[j]
+  phi.Dimension(numFreq, numKeep);
+
+  int j = 0;
+  for (std::set<double>::const_iterator it = freqTable.begin();
        it != freqTable.end();
        ++it) {
-    double f = it->first;
-    const std::vector<int>& idx = it->second;
-
-    maf[i] = f;
-    for (int j = 0; j < (int) idx.size(); ++j) {
-      u[i][0] = U[idx[j]][0];
-
-      for (int k = 0; k < n; ++k ){
-        v[k][i] = V[k][idx[j]];
-      }
-    }
-    i ++;
+    cutoff[j++] = *it;
   }
-  for (int i = 0; i < numKeep; ++i) {
+
+  for (int i = 0; i < numFreq; ++i) {
     for (int j = 0; j < numKeep; ++j) {
-      if (maf[i] <= maf[j]) {
-        phi[i][j] = 1.0;
+      if (skip.count(i) > 0) {
+        phi[i][j] = 0.;
+        continue;
+      }
+      if (maf[i] <= cutoff[j]) {
+        phi[i][j] = 1.;
       } else {
-        phi[i][j] = 0.0;
+        phi[i][j] = 0. ;
       }
     }
   }
 
+  Matrix tmp;
+  tmp.Transpose(U);
+  this->u_phi.Product(tmp, phi);
+
+  Matrix phiT;
+  phiT.Transpose(phi);
+  tmp.Product(phiT, V);
+  this->v_phi.Product(tmp, phi);
+  
   int maxIdx = -1;
   double maxVal = -DBL_MAX;
   for (int i = 0; i < numKeep; ++i) {
-    double t = fabs(u[i][0] / v[i][i]);
+    double t = fabs(u_phi[0][i] / sqrt(v_phi[i][i]));
     if (t > maxVal) {
       maxIdx = i;
       maxVal = t;
     }
   }
 
-  Matrix phiT;
-  phiT.Transpose(phi);
-  Matrix tmp;
-  tmp.Product(phi, v);
-  Matrix cov;
-  cov.Product(tmp, phiT);
+  // dumpToFile(U, "U");
+  // dumpToFile(V, "V");
+  // dumpToFile(phi, "phi");
+  // dumpToFile(u_phi, "u.phi");
+  // dumpToFile(v_phi, "v.phi");
 
-  this->optimalFreq = maf[maxIdx];
+  this->minMAF = maf.Min();
+  this->maxMAF = maf.Max();
+  this->optimalMAF = cutoff[maxIdx];
+  this->optimalU = u_phi[0][maxIdx];
+  this->optimalV = v_phi[maxIdx][maxIdx];
   this->stat = maxVal;
-
-  if (this->mvn.getUpperFromCov(fabs(this->stat), cov, &this->pvalue)) {
+  
+  this->optimalNumVar = 0;
+  for (int i = 0 ; i < numFreq; ++i) {
+    if (phi[i][maxIdx] > 0)
+      ++ this->optimalNumVar;
+  }
+  
+  if (this->mvn.getLowerFromCov(maxVal, this->v_phi, &this->pvalue)) {
     this->pvalue = -1; //failed
     return -1;
   }
-
+  this->pvalue = 1.0 - this->pvalue;
   return 0;
 }

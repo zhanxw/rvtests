@@ -2005,18 +2005,31 @@ class VTCMC: public ModelFitter{
 /**
  * Implementation of variable threshold from Liu's meta-analysis paper
  */
-class VariableThresholdLiu: public ModelFitter{
+class AnalyticVT: public ModelFitter{
  public:
-  VariableThresholdLiu():
+  typedef enum {
+    UNRELATED = 0,
+    RELATED = 1
+  } Type;
+ public:
+  AnalyticVT(AnalyticVT::Type type):
       lmm(FastLMM::SCORE, FastLMM::MLE),
       fitOK(false),
-      optimFreq(-1),
       needToFitNullModel(true) {
 
-    this->modelName = "VariableThresholdLiu";
-    result.addHeader("MinFreq");
-    result.addHeader("MaxFreq");
-    result.addHeader("OptimFreq");
+    this->type = type;
+    if (type == UNRELATED) {
+      this->modelName = "AnalyticVT";
+    } else {
+      this->modelName = "FamAnalyticVT";      
+    }
+    
+    result.addHeader("MinMAF");
+    result.addHeader("MaxMAF");
+    result.addHeader("OptimMAF");
+    result.addHeader("OptimNumVar");
+    result.addHeader("U");
+    result.addHeader("V");        
     result.addHeader("Stat");
     result.addHeader("Pvalue");
   };
@@ -2043,6 +2056,11 @@ class VariableThresholdLiu: public ModelFitter{
     this->af.Dimension(nVariant);
 
     this->useFamilyModel = dc->hasKinship();
+    if (this->useFamilyModel ^ (this->type == RELATED) ) {
+      // model and data does not match
+      return -1;
+    }
+    
     if (!this->useFamilyModel) {
       // calculate af
       for (int i = 0; i < nVariant; ++i) {
@@ -2063,7 +2081,7 @@ class VariableThresholdLiu: public ModelFitter{
 
       // obtain sigma2
       sigma2 = getVariance(y, 0);
-
+      
       // obtain U, V matrix
       xt.Transpose(x);
       u.Product(xt, y);
@@ -2076,7 +2094,7 @@ class VariableThresholdLiu: public ModelFitter{
           dc->isCovariateUpdated()) {
         fitOK = lmm.FitNullModel(cov, phenotype,
                                  *dc->getKinshipUForAuto(),
-                                 *dc->getKinshipSForAuto());
+                                 *dc->getKinshipSForAuto()) == 0;
         if (!fitOK) return -1;
         needToFitNullModel = false;
       }
@@ -2086,75 +2104,45 @@ class VariableThresholdLiu: public ModelFitter{
                               *dc->getKinshipSForAuto(),
                               genotype,
                               i);
+        fprintf(stderr, "af[%d] = %g\n", i, af[i]);
       }
       lmm.CalculateUandV(cov, phenotype, genotype,
                          *dc->getKinshipUForAuto(),
                          *dc->getKinshipSForAuto(),
                          &u, &v);
     }
-
     if (mvvt.compute(af, u, v)) {
       fitOK = false;
       return -1;
     }
 
-    this->minFreq = af.Min();
-    this->maxFreq = af.Max();
-    this->optimFreq = mvvt.getOptimalFreq();
-    this->stat = mvvt.getStat();
-    this->pvalue = mvvt.getPvalue();
-
     fitOK = true;
     return 0;
-  };
+  }
 
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     result.writeHeaderLine(fp);
-    // fp->write("\tOptFreq");
-    // fp->write("\tOptFreq");
-    // fp->write("\tOptFreq");
-    // // fp->write("\t");
-    // // this->perm.writeHeader(fp);
-    // fp->write("\n");
-  };
+  }
+  
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (fitOK) {
-      result.updateValue("MinFreq", this->minFreq);
-      result.updateValue("MaxFreq", this->maxFreq);
-      result.updateValue("OptimFreq", this->optimFreq);
-      result.updateValue("Stat", this->stat);
-      result.updateValue("Pvalue", this->pvalue);
+      result.updateValue("MinMAF", mvvt.getMinMAF());
+      result.updateValue("MaxMAF", mvvt.getMaxMAF());
+      result.updateValue("OptimMAF", mvvt.getOptimalMAF());
+      result.updateValue("OptimNumVar", mvvt.getOptimalNumVar());
+      result.updateValue("U", mvvt.getOptimalU());
+      result.updateValue("V", mvvt.getOptimalV());        
+      result.updateValue("Stat", mvvt.getStat());
+      result.updateValue("Pvalue", mvvt.getPvalue());
     }
     result.writeValueLine(fp);
-    // fp->printf("\t%g\t", this->optimalFreq);
-    // this->perm.writeOutputLine(fp);
-    // fprintf(fp, "\n");
-  };
-  void reset() {
-    fitOK = true;
-    // this->perm.reset();
-  };
- private:
-  double getVariance(Matrix& m, int idx) {
-    if (m.rows == 0) return 0.;
-
-    double s = 0.;
-    for (int i = 0; i < m.rows; ++i) {
-      s += m[i][idx];
-    }
-    double avg = s / m.rows;
-    s = 0.;
-    for (int i = 0; i < m.rows; ++i) {
-      s += (m[i][idx] - avg) * (m[i][idx] - avg) ;
-    }
-    s /= m.rows;
-    return s;
   }
  private:
+  Type type;
   Vector af;
   Matrix cov;
   Matrix x;
@@ -2169,13 +2157,8 @@ class VariableThresholdLiu: public ModelFitter{
   FastLMM lmm;
   MultivariateVT mvvt;
   bool fitOK;
-  double minFreq;
-  double maxFreq;
-  double optimFreq; // the frequency cutoff in unpermutated data which give smallest pvalue
-  double stat;
-  double pvalue;
   bool needToFitNullModel;
-}; // VariableThresholdLiu
+}; // AnalyticVT
 
 class FamCMC: public ModelFitter{
  public:

@@ -305,7 +305,7 @@ void makeVariableThreshodlGenotype(Matrix& in,
 
 void appendHeritability(FileWriter* fp, const FastLMM& model) {
   const double sigma2_g = model.GetSigmaG2();
-  const double sigma2_e = model.GetSigmaG2();
+  const double sigma2_e = model.GetSigmaE2();
   const double herit = (sigma2_g + sigma2_e == 0.) ? 0 : sigma2_g / (sigma2_g + sigma2_e);
 
   fp->printf("#Sigma2_g\t%g\n", sigma2_g);
@@ -315,7 +315,7 @@ void appendHeritability(FileWriter* fp, const FastLMM& model) {
 
 void appendHeritability(FileWriter* fp, const GrammarGamma& model) {
   const double sigma2_g = model.GetSigmaG2();
-  const double sigma2_e = model.GetSigmaG2();
+  const double sigma2_e = model.GetSigmaE2();
   const double herit = (sigma2_g + sigma2_e == 0.) ? 0 : sigma2_g / (sigma2_g + sigma2_e);
 
   fp->printf("#Sigma2_g\t%g\n", sigma2_g);

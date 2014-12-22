@@ -128,7 +128,6 @@ class SingleVariantWaldTest: public ModelFitter{
     result.addHeader("Beta");
     result.addHeader("SE");
     result.addHeader("Pvalue");
-
   };
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -230,7 +229,8 @@ class SingleVariantFirthTest: public ModelFitter{
       return -1;
     }
     fitOK = firth.Fit(this->X, this->Y);
-
+    // dumpToFile(X, "X");
+    // dumpToFile(Y, "Y");
     return (fitOK ? 0 : 1);
   };
   // write result header
@@ -245,9 +245,9 @@ class SingleVariantFirthTest: public ModelFitter{
     for (int i = 1; i < this->X.cols; ++i) {
       siteInfo.writeValueTab(fp);
       result.clearValue();
+
+      result.updateValue("Test", this->X.GetColumnLabel(i));        
       if (fitOK) {
-      } else {
-        result.updateValue("Test", this->X.GetColumnLabel(i));
         result.updateValue("Beta", firth.GetCovEst()[i]);
         result.updateValue("SE", firth.GetCovB()[i][i]);
         result.updateValue("Pvalue", firth.GetAsyPvalue()[i]);

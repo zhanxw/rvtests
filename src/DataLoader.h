@@ -555,7 +555,7 @@ int removeByIndex(const std::vector<int>& index,
   std::set<int> idx(index.begin(), index.end());
 
   int nRemoved = 0;
-  int last = 0;
+  size_t last = 0;
   for (size_t i = 0; i < idx.size(); ++i) {
     if (idx.count(i)) {
       ++nRemoved;

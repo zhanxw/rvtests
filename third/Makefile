@@ -44,7 +44,11 @@ ifeq ($(UNAME_S),Linux)
 else
   DOWNLOAD = curl -L $(1) -O
   DOWNLOAD_RENAME = curl -L $(1) -o $(2)
-endif 
+endif
+
+pcre-8.36.tar.gz:
+	echo "obtain PCRE..."
+	$(call DOWNLOAD,ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.35.tar.gz)
 eigen-3.2.2.tar.bz2:
 	echo "obtain Eigen..."
 	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.2.2.tar.bz2,$@)

@@ -2,8 +2,9 @@
 
 	* Report heritability estimation in family-based models
 	* Add variable threshold test using analytical approach
-	* Add family SKAT
+	* Add family-based tests: famCMC, famZeggini and famSKAT
 	* Add Firth regression
+	* Fix bugs in famLRT
 
 2014-10-11  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

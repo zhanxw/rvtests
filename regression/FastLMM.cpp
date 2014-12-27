@@ -153,12 +153,13 @@ class FastLMM::Impl{
         altSigma2 = altSumResidual2 / (x.rows() - x.cols());
       }
       // 3. get new likelhood
+      // See 1.4 
       double ret = 0;
       if (this->model == FastLMM::MLE) {
         ret = 1.0 * altUx.rows() * log( 2.0 * PI);
-        ret += (altLambda.array() + delta).log().sum();
+        ret += (altLambda.array() + delta).abs().log().sum();
         ret += altUx.rows();
-        ret += 1.0 * altUx.rows() * log(altSumResidual2);
+        ret += 1.0 * altUx.rows() * log(altSigma2);
       }
       ret *= -0.5;
       if (this->model == FastLMM::REML) {
@@ -261,7 +262,7 @@ class FastLMM::Impl{
    */
   double getLogLikelihood(double delta) {
     double ret = 0;
-    double const n = this->ux.rows();
+    const double n = this->ux.rows();
     if (this->model == FastLMM::MLE) {
       ret = n * log( 2.0 * PI);
       ret += (this->lambda.array() + delta).abs().log().sum();

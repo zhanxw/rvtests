@@ -246,7 +246,7 @@ class SingleVariantFirthTest: public ModelFitter{
       siteInfo.writeValueTab(fp);
       result.clearValue();
 
-      result.updateValue("Test", this->X.GetColumnLabel(i));        
+      result.updateValue("Test", this->X.GetColumnLabel(i));
       if (fitOK) {
         result.updateValue("Beta", firth.GetCovEst()[i]);
         result.updateValue("SE", firth.GetCovB()[i][i]);
@@ -2021,15 +2021,15 @@ class AnalyticVT: public ModelFitter{
     if (type == UNRELATED) {
       this->modelName = "AnalyticVT";
     } else {
-      this->modelName = "FamAnalyticVT";      
+      this->modelName = "FamAnalyticVT";
     }
-    
+
     result.addHeader("MinMAF");
     result.addHeader("MaxMAF");
     result.addHeader("OptimMAF");
     result.addHeader("OptimNumVar");
     result.addHeader("U");
-    result.addHeader("V");        
+    result.addHeader("V");
     result.addHeader("Stat");
     result.addHeader("Pvalue");
   };
@@ -2060,7 +2060,7 @@ class AnalyticVT: public ModelFitter{
       // model and data does not match
       return -1;
     }
-    
+
     if (!this->useFamilyModel) {
       // calculate af
       for (int i = 0; i < nVariant; ++i) {
@@ -2081,7 +2081,7 @@ class AnalyticVT: public ModelFitter{
 
       // obtain sigma2
       sigma2 = getVariance(y, 0);
-      
+
       // obtain U, V matrix
       xt.Transpose(x);
       u.Product(xt, y);
@@ -2125,7 +2125,7 @@ class AnalyticVT: public ModelFitter{
     siteInfo.writeHeaderTab(fp);
     result.writeHeaderLine(fp);
   }
-  
+
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
@@ -2135,7 +2135,7 @@ class AnalyticVT: public ModelFitter{
       result.updateValue("OptimMAF", mvvt.getOptimalMAF());
       result.updateValue("OptimNumVar", mvvt.getOptimalNumVar());
       result.updateValue("U", mvvt.getOptimalU());
-      result.updateValue("V", mvvt.getOptimalV());        
+      result.updateValue("V", mvvt.getOptimalV());
       result.updateValue("Stat", mvvt.getStat());
       result.updateValue("Pvalue", mvvt.getPvalue());
     }
@@ -2195,7 +2195,7 @@ class FamCMC: public ModelFitter{
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK = (0 == lmm.FitNullModel(cov, phenotype,
-                                        *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+                                     *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
@@ -2204,7 +2204,7 @@ class FamCMC: public ModelFitter{
 
     dumpToFile(genotype, "genotype");
     dumpToFile(collapsedGenotype, "collapsedGenotype");
-    
+
     fitOK = (0 == lmm.TestCovariate(cov, phenotype, collapsedGenotype,
                                     *dc->getKinshipUForAuto(),
                                     *dc->getKinshipSForAuto()));
@@ -2212,7 +2212,7 @@ class FamCMC: public ModelFitter{
       return -1;
     }
     af = lmm.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
-                      collapsedGenotype);
+                   collapsedGenotype);
     u = lmm.GetUStat();
     v = lmm.GetVStat();
     if (v != 0) {
@@ -2291,7 +2291,7 @@ class FamZeggini: public ModelFitter{
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK = (0 == lmm.FitNullModel(cov, phenotype,
-                                        *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+                                     *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
@@ -2305,7 +2305,7 @@ class FamZeggini: public ModelFitter{
       return -1;
     }
     af = lmm.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
-                      collapsedGenotype);
+                   collapsedGenotype);
     u = lmm.GetUStat();
     v = lmm.GetVStat();
     if (v != 0) {
@@ -2708,7 +2708,7 @@ class FamSkatTest: public ModelFitter{
   bool fitOK;
   double pValue;
   int nMarker;
-  Matrix cov; 
+  Matrix cov;
   double stat;
 }; // FamSkatTest
 

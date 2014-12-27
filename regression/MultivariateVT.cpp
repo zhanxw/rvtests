@@ -9,6 +9,9 @@
 
 #include "MatrixOperation.h" // for dump vars
 
+// #define DEBUG
+#undef DEBUG
+
 int MultivariateVT::compute(Vector& freq,
                             Matrix& U,
                             Matrix& V) {
@@ -22,7 +25,7 @@ int MultivariateVT::compute(Vector& freq,
   const int numFreq = freq.Length();
   int numKeep = 0;
   std::set<int> skip;
-  std::set<double> freqTable;
+  std::set<int> freqTable; // to avoid float numeric comparison, store maf * 1e6
   maf.Dimension(numFreq);
   for (int i = 0; i < numFreq; ++i) {
     maf[i] = freq[i] < 0.5 ? freq[i] : 1.0 - freq[i];
@@ -34,10 +37,19 @@ int MultivariateVT::compute(Vector& freq,
       skip.insert(i);
       continue;
     }
-    freqTable.insert(maf[i]);
+    int mafInt = ceil(maf[i] * 1000000);
+    if (freqTable.count(mafInt)) {
+      continue;
+    }
+    freqTable.insert(mafInt);
     numKeep ++;
   }
 
+#ifdef DEBUG
+  fprintf(stderr, "numFreq = %d\n", numFreq);  
+  fprintf(stderr, "numKeep = %d\n", numKeep);
+#endif
+  
   if (numKeep == 0) {
     return -1;
   }
@@ -47,10 +59,10 @@ int MultivariateVT::compute(Vector& freq,
   phi.Dimension(numFreq, numKeep);
 
   int j = 0;
-  for (std::set<double>::const_iterator it = freqTable.begin();
+  for (std::set<int>::const_iterator it = freqTable.begin();
        it != freqTable.end();
        ++it) {
-    cutoff[j++] = *it;
+    cutoff[j++] = 1.0 * (*it) / 1000000;
   }
 
   for (int i = 0; i < numFreq; ++i) {
@@ -67,10 +79,12 @@ int MultivariateVT::compute(Vector& freq,
     }
   }
 
+  // u_phi = t(U) * phi
   Matrix tmp;
   tmp.Transpose(U);
   this->u_phi.Product(tmp, phi);
 
+  // v_phi = t(phi) * v * phi
   Matrix phiT;
   phiT.Transpose(phi);
   tmp.Product(phiT, V);
@@ -86,11 +100,13 @@ int MultivariateVT::compute(Vector& freq,
     }
   }
 
-  // dumpToFile(U, "U");
-  // dumpToFile(V, "V");
-  // dumpToFile(phi, "phi");
-  // dumpToFile(u_phi, "u.phi");
-  // dumpToFile(v_phi, "v.phi");
+  dumpToFile(freq, "freq");
+  dumpToFile(cutoff, "cutoff");    
+  dumpToFile(U, "U");
+  dumpToFile(V, "V");
+  dumpToFile(phi, "phi");
+  dumpToFile(u_phi, "u.phi");
+  dumpToFile(v_phi, "v.phi");
 
   this->minMAF = maf.Min();
   this->maxMAF = maf.Max();

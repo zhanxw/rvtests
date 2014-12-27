@@ -2104,7 +2104,7 @@ class AnalyticVT: public ModelFitter{
                               *dc->getKinshipSForAuto(),
                               genotype,
                               i);
-        fprintf(stderr, "af[%d] = %g\n", i, af[i]);
+        // fprintf(stderr, "af[%d] = %g\n", i, af[i]);
       }
       lmm.CalculateUandV(cov, phenotype, genotype,
                          *dc->getKinshipUForAuto(),

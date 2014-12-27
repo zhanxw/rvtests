@@ -48,7 +48,7 @@ endif
 
 pcre-8.36.tar.gz:
 	echo "obtain PCRE..."
-	$(call DOWNLOAD,ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.35.tar.gz)
+	$(call DOWNLOAD,ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.36.tar.gz)
 eigen-3.2.2.tar.bz2:
 	echo "obtain Eigen..."
 	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.2.2.tar.bz2,$@)

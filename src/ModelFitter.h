@@ -578,7 +578,7 @@ class SingleVariantFamilyLRT: public ModelFitter{
       needToFitNullModel = false;
     }
 
-    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+    fitOK = (0 == model.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()));
     af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
     nullLogLik = model.GetNullLogLikelihood();
     altLogLik = model.GetAltLogLikelihood();
@@ -2165,7 +2165,7 @@ class FamCMC: public ModelFitter{
   FamCMC(): needToFitNullModel(true),
             numVariant(0),
             u(-1.), v(-1.), af(-1.), effect(-1.), pvalue(-1.),
-            linear(FastLMM::SCORE, FastLMM::MLE),
+            lmm(FastLMM::SCORE, FastLMM::MLE),
             fitOK(false){
     this->modelName = "FamCMC";
     result.addHeader("NumSite");
@@ -2194,7 +2194,7 @@ class FamCMC: public ModelFitter{
 
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-      fitOK = (0 == linear.FitNullModel(cov, phenotype,
+      fitOK = (0 == lmm.FitNullModel(cov, phenotype,
                                         *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
@@ -2202,20 +2202,23 @@ class FamCMC: public ModelFitter{
 
     cmcCollapse(genotype, &collapsedGenotype);
 
-    fitOK = linear.TestCovariate(cov, phenotype, collapsedGenotype,
-                                 *dc->getKinshipUForAuto(),
-                                 *dc->getKinshipSForAuto());
+    dumpToFile(genotype, "genotype");
+    dumpToFile(collapsedGenotype, "collapsedGenotype");
+    
+    fitOK = (0 == lmm.TestCovariate(cov, phenotype, collapsedGenotype,
+                                    *dc->getKinshipUForAuto(),
+                                    *dc->getKinshipSForAuto()));
     if (!fitOK) {
       return -1;
     }
-    af = linear.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
+    af = lmm.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
                       collapsedGenotype);
-    u = linear.GetUStat();
-    v = linear.GetVStat();
+    u = lmm.GetUStat();
+    v = lmm.GetVStat();
     if (v != 0) {
       effect = u / v;
     }
-    pvalue = linear.GetPvalue();
+    pvalue = lmm.GetPvalue();
     return 0;
   }
   // write result header
@@ -2237,7 +2240,7 @@ class FamCMC: public ModelFitter{
     result.writeValueLine(fp);
   }
   void writeFootnote(FileWriter* fp) {
-    appendHeritability(fp, linear);
+    appendHeritability(fp, lmm);
   }
  private:
   Matrix cov;
@@ -2249,7 +2252,7 @@ class FamCMC: public ModelFitter{
   double af;
   double effect;
   double pvalue;
-  FastLMM linear;
+  FastLMM lmm;
   bool fitOK;
 };
 
@@ -2258,7 +2261,7 @@ class FamZeggini: public ModelFitter{
   FamZeggini(): needToFitNullModel(true),
                 numVariant(-1),
                 u(-1.), v(-1.), af(-1.), effect(-1.), pvalue(-1.),
-                linear(FastLMM::SCORE, FastLMM::MLE),
+                lmm(FastLMM::SCORE, FastLMM::MLE),
                 fitOK(false) {
     this->modelName = "FamZeggini";
     result.addHeader("NumSite");
@@ -2287,7 +2290,7 @@ class FamZeggini: public ModelFitter{
 
     if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-      fitOK = (0 == linear.FitNullModel(cov, phenotype,
+      fitOK = (0 == lmm.FitNullModel(cov, phenotype,
                                         *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
@@ -2295,20 +2298,20 @@ class FamZeggini: public ModelFitter{
 
     zegginiCollapse(genotype, &collapsedGenotype);
 
-    fitOK = linear.TestCovariate(cov, phenotype, collapsedGenotype,
-                                 *dc->getKinshipUForAuto(),
-                                 *dc->getKinshipSForAuto());
+    fitOK = (0 == lmm.TestCovariate(cov, phenotype, collapsedGenotype,
+                                    *dc->getKinshipUForAuto(),
+                                    *dc->getKinshipSForAuto()));
     if (!fitOK) {
       return -1;
     }
-    af = linear.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
+    af = lmm.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
                       collapsedGenotype);
-    u = linear.GetUStat();
-    v = linear.GetVStat();
+    u = lmm.GetUStat();
+    v = lmm.GetVStat();
     if (v != 0) {
       effect = u / v;
     }
-    pvalue = linear.GetPvalue();
+    pvalue = lmm.GetPvalue();
     return 0;
   }
   // write result header
@@ -2330,7 +2333,7 @@ class FamZeggini: public ModelFitter{
     result.writeValueLine(fp);
   }
   void writeFootnote(FileWriter* fp) {
-    appendHeritability(fp, linear);
+    appendHeritability(fp, lmm);
   }
  private:
   Matrix cov;
@@ -2342,7 +2345,7 @@ class FamZeggini: public ModelFitter{
   double af;
   double effect;
   double pvalue;
-  FastLMM linear;
+  FastLMM lmm;
   bool fitOK;
 };
 

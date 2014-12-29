@@ -274,7 +274,7 @@ void rearrangeGenotypeByFrequency(Matrix& in,
   for(freqGroupIter = freqGroup.begin();
       freqGroupIter != freqGroup.end();
       freqGroupIter ++) {
-    (*freqOut)[idx] = freqGroupIter->first;
+    freqOut->push_back(freqGroupIter->first);
     const std::vector<int>& cols = freqGroupIter->second;
     for (size_t j = 0; j != cols.size(); ++j) {
       for (int i = 0; i < in.rows; ++i) {

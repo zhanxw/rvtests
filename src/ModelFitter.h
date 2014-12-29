@@ -1758,7 +1758,7 @@ class VariableThresholdPrice: public ModelFitter{
   Matrix geno;
   Matrix sortedGenotype;
   std::vector<double> freq;
-  std::map <double, std::vector<int> > freqGroup;
+  // std::map <double, std::vector<int> > freqGroup;
 
   bool fitOK;
   Vector phenotype;

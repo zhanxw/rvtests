@@ -209,15 +209,25 @@ void convertToMinorAlleleCount(Matrix& in, Matrix* g){
  * Convert genotype back to reference allele count
  * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
  */
-void convertToReferenceAlleleCount(Matrix& in, Matrix* g){
+/**
+ * Convert genotype back to reference allele count
+ * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
+ */
+void convertToReferenceAlleleCount(Matrix* g){
   Matrix& m = *g;
-  m.Dimension(in.rows, in.cols);
   for (int i = 0; i < m.rows; ++i) {
     for (int j = 0; j < m.cols; ++j) {
-      m[i][j] = 2 - in[i][j];
+      m[i][j] = 2 - m[i][j];
     }
   }
 };
+
+void convertToReferenceAlleleCount(Matrix& in, Matrix* g){
+  Matrix& m = *g;
+  m = in;
+  convertToReferenceAlleleCount(&m);
+};
+
 
 
 
@@ -227,11 +237,13 @@ void convertToReferenceAlleleCount(Matrix& in, Matrix* g){
  * @param out: key: frequency value:0-based index for freq
  * e.g. freq = [0.1, 0.2, 0.1, 0.3]  =>
  *      *group = {0.1: [0, 2], 0.2: 1, 0.3 : 3}
+ * NOTE: due to rounding errors, we only keep 6 digits
  */
 void groupFrequency(const std::vector<double>& freq, std::map<double, std::vector<int> >* group) {
   group->clear();
   for (size_t i = 0; i != freq.size(); ++i) {
-    (*group)[freq[i]].push_back(i);
+    double f = ceil(1000000. * freq[i]) / 1000000;
+    (*group)[f].push_back(i);
   }
 };
 

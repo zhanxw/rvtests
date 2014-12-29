@@ -1608,7 +1608,7 @@ class VariableThresholdPrice: public ModelFitter{
                                                    optimalFreq(-1),
                                                    perm(nPerm, alpha) {
     this->modelName = "VariableThresholdPrice";
-  };
+  }
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
@@ -1627,26 +1627,7 @@ class VariableThresholdPrice: public ModelFitter{
     // rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     this->freq.clear();
     makeVariableThreshodlGenotype(genotype, this->freq, &geno, &this->freq, cmcCollapse);
-    convertToReferenceAlleleCount(genotype, &geno);
-    // freq.clear();
-    // for (int i = 0; i < genotype.rows; ++i){
-    //   freq.push_back(getMarkerFrequency(geno, i));
-    // }
-    // groupFrequency(freq, &freqGroup);
-
-    // sortedGenotype.Dimension(geno.rows, freqGroup.size());
-    // int i = 0;
-    // freq.clear();
-    // std::map <double, std::vector<int> >::const_iterator freqGroupIter;
-    // for(freqGroupIter = freqGroup.begin();
-    //     freqGroupIter != freqGroup.end();
-    //     freqGroupIter ++) {
-    //   cmcCollapse(geno, freqGroupIter->second, &sortedGenotype, i);
-    //   freq.push_back(freqGroupIter->first);
-    //   ++i;
-    // }
-    // the above step already collapsed. not need to call collapseGenotype(&sortedGenotype);
-
+    convertToReferenceAlleleCount(geno, &sortedGenotype);
     transpose(&sortedGenotype); // now each row is a collapsed genoype at certain frequency cutoff
     copyPhenotype(phenotype, &this->phenotype);
 
@@ -1660,7 +1641,6 @@ class VariableThresholdPrice: public ModelFitter{
           this->optimalFreq = freq[i];
         }
       }
-
       this->perm.init(zmax);
 
       // begin permutation
@@ -1671,12 +1651,12 @@ class VariableThresholdPrice: public ModelFitter{
           z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[j], weight);
           if (z > zp) {
             zp =z;
-          };
+          }
           if (zp > this->zmax)  // early stop
             break;
         }
         this->perm.add(zp);
-      };
+      }
 
     } else {
       centerVector(&this->phenotype);
@@ -1697,36 +1677,36 @@ class VariableThresholdPrice: public ModelFitter{
           z = calculateZForContinuousTrait(this->phenotype, this->sortedGenotype[j], weight);
           if (z > zp) {
             zp = z;
-          };
+          }
           if (zp > this->zmax) {
             break;
           }
         }
         this->perm.add(zp);
-      };
-    };
+      }
+    }
 
     fitOK = true;
     return 0;
-  };
+  }
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     fp->write("\tOptFreq\t");
     this->perm.writeHeader(fp);
     fp->write("\n");
-  };
+  }
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     fp->printf("\t%g\t", this->optimalFreq);
     this->perm.writeOutputLine(fp);
     // fprintf(fp, "\n");
-  };
+  }
   void reset() {
     fitOK = true;
     this->perm.reset();
-  };
+  }
  private:
   /**
    * @param g is people by marker matrix
@@ -1744,7 +1724,7 @@ class VariableThresholdPrice: public ModelFitter{
   void transpose(Matrix* g) {
     Matrix tmp = *g;
     g->Transpose(tmp);
-  };
+  }
   double calculateZForBinaryTrait(Vector& y, Vector& x, Vector& weight){
     double ret = 0;
     int n = y.Length();
@@ -1759,7 +1739,7 @@ class VariableThresholdPrice: public ModelFitter{
       }
     }
     return ret;
-  };
+  }
   double calculateZForContinuousTrait(Vector& y, Vector& x, Vector& weight){
     double ret = 0;
     int n = y.Length();
@@ -1773,7 +1753,7 @@ class VariableThresholdPrice: public ModelFitter{
       }
     }
     return ret;
-  };
+  }
  private:
   Matrix geno;
   Matrix sortedGenotype;

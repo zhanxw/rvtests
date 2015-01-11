@@ -49,6 +49,9 @@ deepclean: clean libclean
 	rm -rf *~
 	$(MAKE) -C $(ROOT)/third deepclean
 	$(MAKE) -C $(ROOT)/libsrc clean
+	$(MAKE) -C $(ROOT)/base clean
+	$(MAKE) -C $(ROOT)/regression deepclean
+	$(MAKE) -C $(ROOT)/libVcf clean
 
 # archive 
 DATE=$(shell date '+%m%d')

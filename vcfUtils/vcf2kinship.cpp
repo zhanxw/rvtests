@@ -26,8 +26,7 @@
 
 #ifdef _OPENMP
 #include <omp.h>
-// #pragma message "Enable multithread using OpenMP"
-int g_NumThread = 1;
+#pragma message "Enable multithread using OpenMP"
 #endif
 
 class EmpiricalKinship{
@@ -496,9 +495,8 @@ int main(int argc, char** argv){
   } else if (FLAG_thread > 1){
     fprintf(stderr, "Multiple ( %d ) threads will be used.\n", FLAG_thread);
   }
-  g_NumThread = FLAG_thread;
 #ifdef _OPENMP
-  omp_set_num_threads(g_NumThread);
+  omp_set_num_threads(FLAG_thread);
 #endif
 
   // REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");

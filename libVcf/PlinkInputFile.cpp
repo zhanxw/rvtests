@@ -1,7 +1,9 @@
 #include "PlinkInputFile.h"
 #include "SimpleMatrix.h"
 
+#ifndef UNUSED
 #define UNUSED(x) (void)(x)
+#endif
 
 // @param m: people by marker matrix
 int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) {

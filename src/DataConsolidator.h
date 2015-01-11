@@ -22,6 +22,7 @@ class WarningOnce{
   bool warningGiven;
   std::string msg;
 };
+
 class EigenMatrix;
 
 /**

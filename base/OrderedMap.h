@@ -91,12 +91,13 @@ public:
    */
   void compareKey(const OrderedMap<KEY, TYPE>& other, int* overlap, int* thisUniqueKeys, int* otherUniqueKeys) const{
     assert(overlap && thisUniqueKeys && otherUniqueKeys);
+    *overlap = *thisUniqueKeys = *otherUniqueKeys = 0;
     for (unsigned int i = 0; i != this->size(); i ++ ){
       KEY& k = this->keyAt(i);
       if (other.find(k))
-        *overlap++;
+        (*overlap)++;
       else
-        *thisUniqueKeys++;
+        (*thisUniqueKeys)++;
     }
     *otherUniqueKeys = other.size() - *overlap;
   }

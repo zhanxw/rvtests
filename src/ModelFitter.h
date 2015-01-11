@@ -2334,7 +2334,6 @@ class SkatTest: public ModelFitter{
   /* SkatTest(const std::vector<std::string>& param) { */
   SkatTest(int nPerm, double alpha, double beta1, double beta2):fitOK(false),
                                                                 pValue(-1.),
-                                                                nMarker(0),
                                                                 stat(-1.),
                                                                 perm(nPerm, alpha) {
     this->usePermutation = nPerm > 0;
@@ -2463,7 +2462,6 @@ class SkatTest: public ModelFitter{
   Skat skat;
   bool fitOK;
   double pValue;
-  int nMarker;
 
   bool usePermutation;
   double stat;
@@ -2609,7 +2607,6 @@ class FamSkatTest: public ModelFitter{
       needToFitNullModel(true),
       fitOK(false),
       pValue(-1.),
-      nMarker(0),
       stat(-1.) {
     this->beta1 = beta1;
     this->beta2 = beta2;
@@ -2687,7 +2684,6 @@ class FamSkatTest: public ModelFitter{
   FamSkat skat;
   bool fitOK;
   double pValue;
-  int nMarker;
   Matrix cov;
   double stat;
 }; // FamSkatTest

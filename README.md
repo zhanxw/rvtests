@@ -265,8 +265,8 @@ Recessive model      |  recessive  | Q  |     Y      |         R, U           | 
 Covariance          |  cov      | Q  |     Y      |         R, U           | covariance matrix
 
 (#) Model columns list the regconized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
-(##) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
 
+(##) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
 
 ## Utility models
 

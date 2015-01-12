@@ -61,7 +61,8 @@ tar:
             *.h *.cpp \
             src third base libVcf regression libsrc
 
-README.md: doc
-doc: README.wiki
+wiki2md: README.wiki
 	java -jar third/wiki2html.jar README.wiki > README.html 
 	pandoc -f html -t markdown README.html > README.md 
+md2wiki: README.md
+	pandoc -f markdown_github+pipe_tables -t mediawiki README.md > README.wiki

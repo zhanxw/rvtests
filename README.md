@@ -193,7 +193,7 @@ Rvtests support various association models.
 
 ## Single variant tests
 
-Single variant | Model(*)    |Traits(#) | Covariates | Related / unrelated | Description
+Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 Score test     |  score    |B, Q  |     Y      |         U           | Only null model is used to performed the test
 Wald  test     |  wald     |B, Q  |     Y      |         U           | Only fit alternative model, and effect size will be estimated
@@ -203,14 +203,14 @@ Fam Score      |  famScore |Q     |     Y      |         R, U        | Fast-LMM 
 Grammar-gamma  |famGrammarGamma| Q     |     Y      |         R, U        | Grammar-gamma method
 
 
-(*) Model columns list the regconized names in rvtests. For example, use `--single score` will apply score test.
+(#) Model columns list the regconized names in rvtests. For example, use `--single score` will apply score test.
 
-(#) In trait column, B and Q stand for binary, quantitiave trait.
+(##) In trait column, B and Q stand for binary, quantitiave trait.
 
 
 ## Burden tests
 
-Burden tests | Model(*)    |Traits(#) | Covariates | Related / unrelated | Description
+Burden tests | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 CMC             |  cmc       |B, Q  |     N      |         U           | Collapsing and combine rare variants by Bingshan Li.
 Zeggini         |  zeggini   |B, Q  |     N      |         U           | Aggregate counts of rare variants by Morris Zeggini.
@@ -222,50 +222,50 @@ RareCover       |  rarecover |B     |     N      |         U           | Find op
 CMAT            |  cmat      |B     |     N      |         U           | Test non-coding variants by Matt Z.
 
 
-(*) Model columns list the regconized names in rvtests. For example, use `--burden cmc` will apply CMC test.
+(#) Model columns list the regconized names in rvtests. For example, use `--burden cmc` will apply CMC test.
 
-(#) In trait column, B and Q stand for binary, quantitiave trait.
+(##) In trait column, B and Q stand for binary, quantitiave trait.
 
 
 ## Variable threshold models
 
-Single variant | Model(*)    |Traits(#) | Covariates | Related / unrelated | Description
+Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 Variable threshold model     |  vt    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.  
 Variable threshold CMC     |  cmc     |B, Q  |     N      |         U           | This models is natiive so that it output CMC test statistics under all possible frequency cutoffs.
 
-(*) Model columns list the regconized names in rvtests. For example, use `--vt price` will apply score test.
+(#) Model columns list the regconized names in rvtests. For example, use `--vt price` will apply score test.
 
-(#) In trait column, B and Q stand for binary, quantitiave trait.
+(##) In trait column, B and Q stand for binary, quantitiave trait.
 
 
 
 ## Kernel models
 
-Kernel | Model(*)    |Traits(#) | Covariates | Related / unrelated | Description
+Kernel | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 SKAT     |  skat    |B, Q  |     Y      |         U           | Sequencing kernel association test by Shawn Lee.
 KBAC     |  kbac     |B  |     N      |         U           | Kernel-based adaptive clustering model by Dajiang Liu.
 
-(*) Model columns list the regconized names in rvtests. For example, use `--kernel skat` will apply SKAT test.
+(#) Model columns list the regconized names in rvtests. For example, use `--kernel skat` will apply SKAT test.
 To further customize SKAT test, you can use *--kernel skat[nPerm=100:alpha=0.001:beta1=1:beta2=20]* to specify permutation counts, type-1 error, 
 beta distribution parameters for upweighting rare variants. Rvtests will output a message showing: 
 
     [INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)
 
-(#) In trait column, B and Q stand for binary, quantitiave trait.
+(##) In trait column, B and Q stand for binary, quantitiave trait.
 
 ## Meta-analysis models
 
-Type | Model(*)    |Traits(#) | Covariates | Related / unrelated | Description
+Type | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 Score test          |  score      | Q  |     Y      |         R, U           | standard score tests
 Dominant model       |  dominant   | Q  |     Y      |         R, U           | score tests and covariance matrix under dominant disease model
 Recessive model      |  recessive  | Q  |     Y      |         R, U           | score tests and covariance matrix under recessive disease model
 Covariance          |  cov      | Q  |     Y      |         R, U           | covariance matrix
 
-(*) Model columns list the regconized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
-(#) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
+(#) Model columns list the regconized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
+(##) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
 
 
 ## Utility models

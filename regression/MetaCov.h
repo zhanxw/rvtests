@@ -24,6 +24,7 @@ public:
   // U * ( x - center(x) )
   int TransformCentered(std::vector<double>* x,
                         const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  // @param out = sigma2_g * (lambda + delta) ;
   int GetWeight(Vector* out);
 };
 

@@ -1033,9 +1033,6 @@ class CMCFisherExactTest: public ModelFitter{
       result.updateValue("PvalueGreater", model.getPExactOneSidedGreater());
 
     }
-    /*  else { */
-    /*   fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n"); */
-    /* } */
     result.writeValueLine(fp);
   };
   void reset() {
@@ -1105,16 +1102,6 @@ class ZegginiTest: public ModelFitter{
       }
     }
     result.writeValueLine(fp);
-
-    /* if (!fitOK) { */
-    /*   fprintf(fp, "NA\n"); */
-    /* } else { */
-    /*   if (isBinaryOutcome()) { */
-    /*     fprintf(fp, "%f\n", logistic.GetPvalue()); */
-    /*   } else { */
-    /*     fprintf(fp, "%f\n", linear.GetPvalue()); */
-    /*   } */
-    /* }; */
   };
  private:
   Matrix collapsedGenotype;
@@ -1358,13 +1345,6 @@ class RareCoverTest: public ModelFitter{
     siteInfo.writeHeaderTab(fp);
     result.writeHeaderTab(fp);
     this->perm.writeHeaderLine(fp);
-
-    /* if (isBinaryOutcome()){ */
-    /*   fprintf(fp, "NumIncMarker\t"); */
-    /*   this->perm.writeHeader(fp); */
-    /*   fprintf(fp, "\n"); */
-    /* } else */
-    /*   fprintf(fp, "NA\n"); */
   };
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
@@ -3278,8 +3258,6 @@ class MetaCovTest: public ModelFitter{
       g_SummaryHeader->outputHeader(fp);
     }
 
-    /* siteInfo.writeHeaderTab(fp); */
-    // fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
     result.writeHeaderLine(fp);
   };
   // write model output
@@ -3307,24 +3285,15 @@ class MetaCovTest: public ModelFitter{
    *        (U %*% (g1 - \bar(g1)*))' %*% weight %*% (U %*% (g2 - \bar(g2)))
    */
   double getCovariance(const Genotype& g1, const Genotype& g2) {
-    // double sum_i = 0.0 ; // sum of genotype[,i]
     double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]
-    // double sum_j = 0.0 ; // sum of genotype[,j]
     int n = g1.size();
     if (n == 0) return 0.0;
     for (int c = 0; c < n; ++c) { //iterator each people
-      // if (g1[c] < 0 || g2[c] < 0) continue;
-      // ++n;
-      // sum_i += g1[c];
       // fprintf(stderr, "weight[%d] = %g\n", (int)c, weight[int(c)]);
       sum_ij += g1[c]*g2[c] / this->weight[(int)c];
-      // sum_j += g2[c];
-    };
-    // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij, sum_i, sum_j);
-    //double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
+    }
     double cov_ij = sum_ij / n;
-    // fprintf(stderr, "cov_ij = %g\n", cov_ij);
-    // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+    
     return cov_ij;
   };
 

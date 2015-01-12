@@ -102,11 +102,6 @@ class MetaCov::Impl{
     fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
     fprintf(stderr, "beta[0][0] = %g\t sigma2_g = %g\tsigma2_e = %g\n", beta(0,0), this->sigma2, delta * sigma2);
 #endif
-    // if (this->test == MetaCov::LRT) {
-    // this->nullLikelihood = getLogLikelihood(this->delta);
-    // } else if (this->test == MetaCov::SCORE) {
-    //   this->uResid = this->uy - this->ux * this->beta;
-    // }
     return 0;
   }
   double getSumResidual2(double delta) {
@@ -120,6 +115,7 @@ class MetaCov::Impl{
                  .ldlt().solve(ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * uy);
     
     double sumResidual2 = getSumResidual2(delta);
+    // use MLE estimates
     // if ( model == MetaCov::MLE) {
       this->sigma2 = sumResidual2 / ux.rows();
     // } else {
@@ -132,6 +128,7 @@ class MetaCov::Impl{
    * to calculate the likelihood of given delta
    */
   double getLogLikelihood(double delta) {
+    // use MLE likelihood
     double ret = 0;
     // if (this->model == MetaCov::MLE) {
       ret = 1.0 * this->ux.rows() * log( 2.0 * PI);
@@ -149,19 +146,6 @@ class MetaCov::Impl{
     // this->nullLikelihood = ret;
     return ret;
   }
-  // // NOTE: need to fit null model fit before calling this function
-  // double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) const{
-  //   const Eigen::MatrixXf& U = kinshipU.mat;
-  //   Eigen::MatrixXf u1 = Eigen::MatrixXf::Ones(U.rows(), 1);
-  //   u1 = U.transpose() *  u1;
-  //   Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * u1;
-  //   Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ug;
-  //   Eigen::MatrixXf beta = (x.transpose() * x).inverse() * x.transpose() * y;
-  //   // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
-  //   // multiply by 0.5 to get AF
-  //   double af = 0.5 * beta(0, 0);
-  //   return af;
-  // }
   // U * ( x - center(x) )
   int TransformCentered(std::vector<double>* geno,
                         const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
@@ -173,7 +157,7 @@ class MetaCov::Impl{
     }
     Eigen::RowVectorXf g_mean = g.colwise().mean();
     const Eigen::MatrixXf& U = kinshipU.mat;
-    this->g = U * (g.rowwise() - g_mean);
+    this->g = U.transpose() * (g.rowwise() - g_mean);
     for(int i = 0; i < n; ++i){
       (*geno)[i] = this->g(i);
     }
@@ -200,17 +184,6 @@ class MetaCov::Impl{
   Eigen::MatrixXf ux; // U' * x
   // Eigen::MatrixXf ug; // U' * g
   Eigen::MatrixXf lambda;
-  // // for LRT test
-  // double nullLikelihood;
-  // double altLikelihood;
-  // // for score test
-  // Eigen::MatrixXf uResid; // U' * (y - mean(y))
-  // double Ustat;
-  // double Vstat;
-  // double stat;
-  // // for both tests
-  // double pvalue;
-  //
   double sumResidual2; // sum (  (Uy - Ux *beta)^2/(lambda + delta) )
 
 };

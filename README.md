@@ -1,35 +1,42 @@
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc/generate-toc again -->
+**Table of Contents**
+
 - [Introduction](#introduction)
 - [Download](#download)
 - [Quick Tutorial](#quick-tutorial)
-	- [Single variant tests](#single-variant-tests)
-	- [Groupwise tests](#groupwise-tests)
-	- [Related individual tests](#related-individual-tests)
-	- [Meta-analysis tests](#meta-analysis-tests)
-		- [Dominant models and recessive models](#dominant-models-and-recessive-models)
+    - [Single variant tests](#single-variant-tests)
+    - [Groupwise tests](#groupwise-tests)
+    - [Related individual tests](#related-individual-tests)
+    - [Meta-analysis tests](#meta-analysis-tests)
+        - [Dominant models and recessive models](#dominant-models-and-recessive-models)
 - [Input files](#input-files)
-	- [Genotype file (VCF)](#genotype-file-vcf)
-	- [Phenotype file](#phenotype-file)
-	- [Covariate file](#covariate-file)
-	- [Trait transformation](#trait-transformation)
+    - [Genotype file (VCF)](#genotype-file-vcf)
+    - [Phenotype file](#phenotype-file)
+    - [Covariate file](#covariate-file)
+    - [Trait transformation](#trait-transformation)
 - [Models](#models)
-	- [Single variant tests](#single-variant-tests-1)
-	- [Burden tests](#burden-tests)
-	- [Variable threshold models](#variable-threshold-models)
-	- [Kernel models](#kernel-models)
-	- [Meta-analysis models](#meta-analysis-models)
-	- [Utility models](#utility-models)
+    - [Single variant tests](#single-variant-tests)
+    - [Burden tests](#burden-tests)
+    - [Variable threshold models](#variable-threshold-models)
+    - [Kernel models](#kernel-models)
+    - [Meta-analysis models](#meta-analysis-models)
+    - [Utility models](#utility-models)
 - [Association test options](#association-test-options)
-	- [Sample inclusion/exclusion](#sample-inclusionexclusion)
-	- [Variant site filters](#variant-site-filters)
-	- [Genotype filters](#genotype-filters)
-	- [Handle missing genotypes and phenotypes](#handle-missing-genotypes-and-phenotypes)
-	- [Specify groups (e.g burden unit)](#specify-groups-eg-burden-unit)
+    - [Sample inclusion/exclusion](#sample-inclusionexclusion)
+    - [Variant site filters](#variant-site-filters)
+    - [Genotype filters](#genotype-filters)
+    - [Handle missing genotypes and phenotypes](#handle-missing-genotypes-and-phenotypes)
+    - [Specify groups (e.g burden unit)](#specify-groups-eg-burden-unit)
 - [Sex chromosome analysis](#sex-chromosome-analysis)
+- [Kinship generation](#kinship-generation)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Feedback/Contact](#feedbackcontact)
 
+<!-- markdown-toc end -->
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
+
+(Updated: Janurary 2015)
 
 # Introduction
 
@@ -40,7 +47,7 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 # Download
 
 Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
-Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.8.4/rvtests-20141006.tar.gz).
+Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.8.6/rvtests-20150104.tar.gz).
 
 
 # Quick Tutorial
@@ -406,10 +413,37 @@ In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1
 *MetaScore results*. If specify `--meta score`, the output file `prefix.MetaScore.assoc` includes PAR-region and non-PAR region analysis. 
 But in the non-PAR region, the difference is that Hardy-Weinberg P-value are calculated using female samples.
 
-*Related individuals*. Just append `--xHemi` to the `vcf2kinship` and `rvtest` command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.
+*Related individuals*. Just append `--xHemi` to the `vcf2kinship` (more details in [Kinship generation](#kinship-generation)) and `rvtest` command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.
 
 *PAR region*. PAR region is defined as two regions X:60001-2699520 and X:154931044-155270560. Use `--xLabel` can speicify which chromosome has PAR region (default: 23|X)
 and use `--xParRegion` to specify PAR region (default: hg19, meaning '60001-2699520,154931044-155260560' in the UCSC build hg19, specify "hg18" will use PAR region definition in the UCSC build hg18).
+
+# Kinship generation
+
+Analysis of related individual usually requires estimation of kinship. You can a separate tool, `vcf2kinship`.
+`vcf2kinship` is usually included in rvtests binary distribution or can be built from software source codes.
+
+`vcf2kinship` can calcualte pedigree kinship using a pedigree input file (PED format, see [Phenotype file](#phenotype-file), use option `--ped`).
+The output file name is specified by `--prefix` option. If you use `--prefix output` then the output files will include `output.kinship`.
+
+It can also calculate empirical kinship using genotyp input file (VCF format, see [Genotype file (VCF)](#genotype-file-vcf), use option `--inVcf`).
+For empiricial kinship, you also need to specify the kinship model, either Balding-Nicols model (ue option `--bn`) or Identity-by-state model (use option `--ibs`).
+
+In sex chromosome analysis, it is often required to generate kinship on X chromsoome regions, then you need to speicfy `--xHemi`. If your input VCF file has different X chromosome label (e.g. chromosome name is '23' instead of 'X'), you can use `--xLabel 23`.
+
+If principal component decomposition (PCA) results are needed, you can use option `--pca`. Then output files with suffix '.pca' include PCA results.
+
+When dealing with large input files, it is often preferred to use multiple CPU to speed up calculation using the option `--thread N` in which N is the number of CPUs.
+
+For example, to generate pedigree-based kinship (`--ped`) on both autosomal region and X chromosome (`--xHemi`) region, the command line is:
+
+    vcf2kinship --ped input.ped --xHemi --out output
+
+To generate empirical kinship (`--inVcf`) on both autosomal region and X chromosome (`--xHemi`) region using Balding-Nicols model, the command line is:
+
+    vcf2kinship --inVcf input.vcf.gz --ped input.ped --bn --xHemi --out output
+
+NOTE: you need to provide a pedigree file (PED) in the above case, as `vcf2kinship` need the sex information of samples.
 
 # Frequently Asked Questions (FAQ)
 

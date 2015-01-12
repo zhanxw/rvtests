@@ -29,7 +29,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20141211";
+const char* VERSION = "20150104";
 
 void banner(FILE* fp) {
   const char* string =
@@ -39,7 +39,7 @@ void banner(FILE* fp) {
       "   ...      Bingshan Li, Dajiang Liu          ...      \n"
       "    ...      Goncalo Abecasis                  ...     \n"
       "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      December 2014                     ...   \n"
+      "      ...      January 2015                      ...   \n"
       "       ...      zhanxw.github.io/rvtests          ...  \n"
       "        .............................................. \n"
       "                                                       \n"

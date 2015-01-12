@@ -1,3 +1,10 @@
+2015-01-04  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Improve speed and outputs of family-based models
+	* Fix bug when generating covariance matrix
+	* Support compiling on OSX Yosemite
+	* Plan to handle multi-allelic variants better
+
 2014-12-11  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Report heritability estimation in family-based models

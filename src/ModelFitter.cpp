@@ -316,7 +316,9 @@ void makeVariableThreshodlGenotype(Matrix& in,
 }
 
 void appendHeritability(FileWriter* fp, const FastLMM& model) {
-  const double sigma2_g = model.GetSigmaG2();
+  // we estimate sigma2_g * K, but a formal defiinte is 2 * sigma2_g *K,
+  // so multiply 0.5 to scale it.
+  const double sigma2_g = model.GetSigmaG2() * 0.5;
   const double sigma2_e = model.GetSigmaE2();
   const double herit = (sigma2_g + sigma2_e == 0.) ? 0 : sigma2_g / (sigma2_g + sigma2_e);
 
@@ -326,7 +328,9 @@ void appendHeritability(FileWriter* fp, const FastLMM& model) {
 }
 
 void appendHeritability(FileWriter* fp, const GrammarGamma& model) {
-  const double sigma2_g = model.GetSigmaG2();
+  // we estimate sigma2_g * K, but a formal defiinte is 2 * sigma2_g *K,
+  // so multiply 0.5 to scale it.
+  const double sigma2_g = model.GetSigmaG2() * 0.5;
   const double sigma2_e = model.GetSigmaE2();
   const double herit = (sigma2_g + sigma2_e == 0.) ? 0 : sigma2_g / (sigma2_g + sigma2_e);
 

@@ -1049,6 +1049,9 @@ int main(int argc, char** argv){
       } else if (modelName == "famzeggini") {
         model.push_back( new FamZeggini );
         hasFamilyModel = true;
+      } else if (modelName == "famfp") {
+        model.push_back( new FamFp );
+        hasFamilyModel = true;
       } else {
         logger->error("Unknown model name: [ %s ].", argModelName[i].c_str());
         abort();

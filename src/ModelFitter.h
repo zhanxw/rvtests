@@ -1194,16 +1194,6 @@ class MadsonBrowningTest: public ModelFitter{
     } else {
       fp->write("NA\n");
     }
-    /* if (isBinaryOutcome()) { */
-    /*   if (fitOK){ */
-    /*     perm.writeOutput(fp); */
-    /*     fprintf(fp, "\n"); */
-    /*   } else { */
-    /*     fprintf(fp, "NA\tNA\tNA\tNA\tNA\tNA\n"); */
-    /*   } */
-    /* } else { */
-    /*   fprintf(fp, "NA\n"); */
-    /* } */
   };
  private:
   Matrix collapsedGenotype;
@@ -2162,8 +2152,8 @@ class FamCMC: public ModelFitter{
 
     cmcCollapse(genotype, &collapsedGenotype);
 
-    dumpToFile(genotype, "genotype");
-    dumpToFile(collapsedGenotype, "collapsedGenotype");
+    // dumpToFile(genotype, "genotype");
+    // dumpToFile(collapsedGenotype, "collapsedGenotype");
 
     fitOK = (0 == lmm.TestCovariate(cov, phenotype, collapsedGenotype,
                                     *dc->getKinshipUForAuto(),
@@ -2285,6 +2275,102 @@ class FamZeggini: public ModelFitter{
     if (fitOK && !isBinaryOutcome()) {
       result.updateValue("NumSite", numVariant);
       result.updateValue("MeanBurden", af);
+      result.updateValue("U", u);
+      result.updateValue("V", v);
+      result.updateValue("Effect", effect);
+      result.updateValue("Pvalue", pvalue);
+    }
+    result.writeValueLine(fp);
+  }
+  void writeFootnote(FileWriter* fp) {
+    appendHeritability(fp, lmm);
+  }
+ private:
+  Matrix cov;
+  Matrix collapsedGenotype;
+  bool needToFitNullModel;
+  int numVariant;
+  double u;
+  double v;
+  double af;
+  double effect;
+  double pvalue;
+  FastLMM lmm;
+  bool fitOK;
+};
+
+class FamFp: public ModelFitter{
+ public:
+  FamFp(): needToFitNullModel(true),
+            numVariant(0),
+            u(-1.), v(-1.), af(-1.), effect(-1.), pvalue(-1.),
+            lmm(FastLMM::SCORE, FastLMM::MLE),
+            fitOK(false){
+    this->modelName = "FamFp";
+    result.addHeader("NumSite");
+    result.addHeader("AF");
+    result.addHeader("U");
+    result.addHeader("V");
+    result.addHeader("Effect");
+    result.addHeader("Pvalue");
+  };
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    if (isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
+
+    Matrix& phenotype = dc-> getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+
+    this->numVariant = genotype.cols;
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
+
+    if (needToFitNullModel || dc->isPhenotypeUpdated() || dc->isCovariateUpdated()) {
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+      fitOK = (0 == lmm.FitNullModel(cov, phenotype,
+                                     *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+    }
+
+    fpCollapse(genotype, &collapsedGenotype);
+
+    // dumpToFile(genotype, "genotype");
+    // dumpToFile(collapsedGenotype, "collapsedGenotype");
+
+    fitOK = (0 == lmm.TestCovariate(cov, phenotype, collapsedGenotype,
+                                    *dc->getKinshipUForAuto(),
+                                    *dc->getKinshipSForAuto()));
+    if (!fitOK) {
+      return -1;
+    }
+    af = lmm.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
+                   collapsedGenotype);
+    u = lmm.GetUStat();
+    v = lmm.GetVStat();
+    if (v != 0) {
+      effect = u / v;
+    }
+    pvalue = lmm.GetPvalue();
+    return 0;
+  }
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    result.writeHeaderLine(fp);
+  }
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
+    if (fitOK && !isBinaryOutcome()) {
+      result.updateValue("NumSite", numVariant);
+      result.updateValue("AF", af);
       result.updateValue("U", u);
       result.updateValue("V", v);
       result.updateValue("Effect", effect);

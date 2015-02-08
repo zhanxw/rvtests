@@ -1,6 +1,7 @@
 #include "FastLMM.h"
 #include "EigenMatrix.h"
 #include "EigenMatrixInterface.h"
+
 #include "Eigen/Dense"
 #include "GSLMinimizer.h"
 #include "gsl/gsl_cdf.h" // use gsl_cdf_chisq_Q
@@ -38,6 +39,12 @@ class FastLMM::Impl{
     G_to_Eigen(mat_Xnull, &this->ux);
     G_to_Eigen(mat_y, &this->uy);
     this->lambda = kinshipS.mat;
+    // take absoluate value
+    // otherwise, small negative lambda may be instable
+    // e.g. lambd[i] = -0.00013, and delta = 8e-5, then (1/(lambda[i] + delta))
+    //      becomes extremely large negative values, and it affects results
+    this->lambda = this->lambda.cwiseAbs();
+    
     const Eigen::MatrixXf& U = kinshipU.mat;
 
     // rotate
@@ -153,7 +160,7 @@ class FastLMM::Impl{
         altSigma2 = altSumResidual2 / (x.rows() - x.cols());
       }
       // 3. get new likelhood
-      // See 1.4 
+      // See 1.4
       double ret = 0;
       if (this->model == FastLMM::MLE) {
         ret = 1.0 * altUx.rows() * log( 2.0 * PI);
@@ -177,11 +184,19 @@ class FastLMM::Impl{
       // just return score test statistics
       Eigen::ArrayXf u_g_center;
       u_g_center = (U.transpose() *  (g.rowwise() - g.colwise().mean())).eval().array();
+#ifdef DEBUG
+      dumpToFile(U, "U");
+      dumpToFile(lambda, "lambda");
+      dumpToFile(g, "g");
+      dumpToFile(uResid, "uResid");
+      dumpToFile(u_g_center, "u_g_center");
+#endif
+
       this->Ustat = (  ( (u_g_center) *
                          (this->uResid).array()) /
                        (lambda.array() + delta)
                        ).sum() / this->sigma2;
-      // this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
+      // when there is no covariate: this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
       this->Vstat = ((u_g_center).matrix().transpose() * this->scaledK * (u_g_center.matrix()))(0, 0) / this->sigma2;
       if (this->Vstat > 0.0) {
         this->stat = this->Ustat * this->Ustat / this->Vstat;
@@ -221,7 +236,7 @@ class FastLMM::Impl{
     dumpToFile(u_g_center, "u_g_center");
     dumpToFile(u, "u");
     dumpToFile(v, "v");
-    
+
     {
       g = g.col(0);
       Eigen::ArrayXf u_g_center;
@@ -235,7 +250,7 @@ class FastLMM::Impl{
       fprintf(stderr, "Ustat = %g, Vstat = %g\n", Ustat, Vstat);
       fprintf(stderr, "U[0] = %g, V[0][0] = %g\n", u(0, 0), v(0, 0));
     }
-#endif    
+#endif
     return 0;
   }
   double getSumResidual2(double delta) {
@@ -245,8 +260,12 @@ class FastLMM::Impl{
     // Eigen::MatrixXf x = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ux;
     // Eigen::MatrixXf y = (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->uy;
     // this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
-    this->beta = (ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * ux)
-                 .ldlt().solve(ux.transpose() * (this->lambda.array() + delta).inverse().matrix().asDiagonal() * uy);
+#ifdef DEBUG
+    dumpToFile(ux, "ux");
+    dumpToFile(uy, "uy");
+#endif
+    this->beta = (ux.transpose() * (this->lambda.array() + delta).abs().inverse().matrix().asDiagonal() * ux)
+                 .ldlt().solve(ux.transpose() * (this->lambda.array() + delta).abs().inverse().matrix().asDiagonal() * uy);
 
     double sumResidual2 = getSumResidual2(delta);
     if ( model == FastLMM::MLE) {
@@ -400,6 +419,17 @@ class FastLMM::Impl{
     EigenMatrix& b = *beta;
     b.mat = this->beta;
   }
+ private:
+  // define function to be applied coefficient-wise
+  template<typename Scalar>
+  struct  Ramp{
+    const Scalar operator()(const Scalar& x) const{
+      if (x > 0.)
+        return x;
+      else
+        return 0.;
+    }
+  };
  private:
   // Eigen::MatrixXf S;
   float sigma2;     // sigma2_g

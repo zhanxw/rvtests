@@ -87,8 +87,6 @@ class FamSkat::FamSkatImpl{
         U.transpose();
 
     kin.close();
-
-
 #endif
     // std::ofstream p("P0");
     // p << P0;

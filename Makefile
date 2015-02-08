@@ -20,8 +20,10 @@ release: lib
 	$(MAKE) -C $(ROOT)/src release
 	$(MAKE) -C $(ROOT)/vcfUtils release
 
-debug: lib-dbg
+debug: debug.rvt debug.vcfUtil
+debug.rvt: lib-dbg
 	$(MAKE) -C $(ROOT)/src debug
+debug.vcfUtil: lib-dbg
 	$(MAKE) -C $(ROOT)/vcfUtils debug
 
 profile: lib-dbg

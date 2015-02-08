@@ -896,7 +896,7 @@ int main(int argc, char** argv){
     fprintf(stdout, "Total [ %d ] variants are used to calculate chromosome X kinship matrix.\n",
             variantXUsed);
     if (numMaleHemiWrongCoding > 0.5 * numMaleHemiMissing ) {
-      fprintf(stdout, "NOTE: In hemizygous region, males have [ %d ] missing genotypes and [ %d ] of them are due to wrong coding. Please confirm male genotypes are coded corrected, in particular, do not code as as 0/1.\n", numMaleHemiMissing, numMaleHemiWrongCoding);
+      fprintf(stdout, "NOTE: In hemizygous region, males have [ %d ] missing genotypes and [ %d ] of them are due to wrong coding. Please confirm male genotypes are coded correctly, in particular, do not code them as '0/1'.\n", numMaleHemiMissing, numMaleHemiWrongCoding);
     }
   }
 

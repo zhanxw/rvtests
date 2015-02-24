@@ -1,5 +1,8 @@
 #include "ModelFitter.h"
 
+#include "ModelParser.h"
+#include "TabixUtil.h"
+
 //////////////////////////////////////////////////////////////////////
 // Implementation of various collpasing methods
 /**
@@ -19,7 +22,7 @@ double getMarkerFrequency(Matrix& in, int col){
   //double freq = 1.0 * (ac + 1) / (an + 1);
   double freq = ac / an;
   return freq;
-};
+}
 
 void getMarkerFrequency(Matrix& in, std::vector<double>* freq) {
   freq->resize(in.cols);
@@ -43,7 +46,7 @@ double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col){
   // 1. Madsen BE, Browning SR. A Groupwise Association Test for Rare Mutations Using a Weighted Sum Statistic. PLoS Genet. 2009;5(2):e1000384. Available at: http://dx.doi.org/10.1371/journal.pgen.1000384 [Accessed November 24, 2010].
   double freq = 1.0 * (ac + 1) / (an + 2);
   return freq;
-};
+}
 
 /**
  * Collapsing and combine method (indicator of existence of alternative allele)
@@ -64,8 +67,8 @@ void cmcCollapse(Matrix& in, Matrix* out){
         (*out)[p][0] = 1.0;
         break;
       }
-    };
-  };
+    }
+  }
 }
 
 void cmcCollapse(Matrix& in, const std::vector<int>& index,
@@ -104,9 +107,9 @@ void zegginiCollapse(Matrix& in, Matrix* out){
       if (g > 0) { // genotype is non-reference
         (*out)[p][0] += 1.0;
       }
-    };
-  };
-};
+    }
+  }
+}
 
 /**
  * @param genotype : people by marker matrix
@@ -152,8 +155,8 @@ void fpCollapse(Matrix& in, Matrix* out){
     for (int p = 0; p < numPeople; p++) {
       (*out)[p][0] += in[p][m] * weight;
     }
-  };
-};
+  }
+}
 
 void madsonBrowningCollapse(Matrix* d, Matrix* out){
   assert(out);
@@ -176,7 +179,7 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out){
       (*out)[p][0] += in[p][m] * weight;
     }
   };
-};
+}
 
 /**
  * Convert genotype back to reference allele count
@@ -203,7 +206,7 @@ void convertToMinorAlleleCount(Matrix& in, Matrix* g){
 
     }
   }
-};
+}
 
 /**
  * Convert genotype back to reference allele count
@@ -220,16 +223,13 @@ void convertToReferenceAlleleCount(Matrix* g){
       m[i][j] = 2 - m[i][j];
     }
   }
-};
+}
 
 void convertToReferenceAlleleCount(Matrix& in, Matrix* g){
   Matrix& m = *g;
   m = in;
   convertToReferenceAlleleCount(&m);
-};
-
-
-
+}
 
 /**
  * group genotype by its frequency
@@ -261,7 +261,7 @@ void rearrangeGenotypeByFrequency(Matrix& in,
   std::map <double, std::vector<int> >::const_iterator freqGroupIter;
   if (freqIn.empty()) {
     getMarkerFrequency(in, freqOut);
-    groupFrequency(*freqOut, &freqGroup);    
+    groupFrequency(*freqOut, &freqGroup);
   } else {
     groupFrequency(freqIn, &freqGroup);
   }
@@ -295,7 +295,7 @@ void makeVariableThreshodlGenotype(Matrix& in,
   std::map <double, std::vector<int> >::const_iterator freqGroupIter;
   if (freqIn.empty()) {
     getMarkerFrequency(in, freqOut);
-    groupFrequency(*freqOut, &freqGroup);    
+    groupFrequency(*freqOut, &freqGroup);
   } else {
     groupFrequency(freqIn, &freqGroup);
   }
@@ -316,6 +316,9 @@ void makeVariableThreshodlGenotype(Matrix& in,
 }
 
 void appendHeritability(FileWriter* fp, const FastLMM& model) {
+  return;
+
+  // TODO: handle empiricalkinship and pedigree kinship better
   // we estimate sigma2_g * K, but a formal defiinte is 2 * sigma2_g *K,
   // so multiply 0.5 to scale it.
   const double sigma2_g = model.GetSigmaG2() * 0.5;
@@ -328,6 +331,9 @@ void appendHeritability(FileWriter* fp, const FastLMM& model) {
 }
 
 void appendHeritability(FileWriter* fp, const GrammarGamma& model) {
+  return;
+
+  // TODO: handle empiricalkinship and pedigree kinship better
   // we estimate sigma2_g * K, but a formal defiinte is 2 * sigma2_g *K,
   // so multiply 0.5 to scale it.
   const double sigma2_g = model.GetSigmaG2() * 0.5;
@@ -339,133 +345,218 @@ void appendHeritability(FileWriter* fp, const GrammarGamma& model) {
   fp->printf("#Heritability\t%g\n", herit);
 }
 
+//////////////////////////////////////////////////
+bool ModelManager::hasFamilyModel() const{
+  for (size_t m = 0; m < model.size() ; ++m ) {
+    if (model[m]->isFamilyModel())
+      return true;
+  }
+  return false;
+}
+
+int ModelManager::create(const std::string& type,
+                         const std::string& modelList){
+  std::string modelName;
+  std::vector< std::string> modelParams;
+  std::vector< std::string> argModelName;
+  ModelParser parser;
+  
+  stringTokenize(modelList, ",", &argModelName);
+  for (size_t i = 0; i < argModelName.size(); i++ ){
+    // TODO: check parse results
+    parser.parse(argModelName[i]);
+    create(type, parser);
+  }
+  return 0;
+}
+
+int ModelManager::create(const std::string& modelType,
+                         const ModelParser& parser){
+
+  const size_t previousModelNumber = model.size();
+  std::string modelName = parser.getName();  
+  int nPerm = 10000;
+  double alpha = 0.05;
+  int windowSize = 1000000;
+  
+  if (modelType == "single") {
+    if (modelName == "wald") {
+      model.push_back( new SingleVariantWaldTest);
+    } else if (modelName == "score") {
+      model.push_back( new SingleVariantScoreTest);
+    } else if (modelName == "exact") {
+      model.push_back( new SingleVariantFisherExactTest);
+    } else if (modelName == "famscore") {
+      model.push_back( new SingleVariantFamilyScore);
+    } else if (modelName == "famlrt") {
+      model.push_back( new SingleVariantFamilyLRT);
+    } else if (modelName == "famgrammargamma") {
+      model.push_back( new SingleVariantFamilyGrammarGamma);
+    } else if (modelName == "firth") {
+      model.push_back( new SingleVariantFirthTest);
+    } else {
+      logger->error("Unknown model name: %s .", modelName.c_str());
+      abort();
+    }
+  } else if (modelType == "buren") {
+    if (modelName == "cmc") {
+      model.push_back( new CMCTest );
+    } else if (modelName == "zeggini") {
+      model.push_back( new ZegginiTest );
+    } else if (modelName == "mb") {
+      parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+      model.push_back( new MadsonBrowningTest(nPerm, alpha) );
+      logger->info("MadsonBrowning test significance will be evaluated using %d permutations", nPerm);
+    } else if (modelName == "exactcmc") {
+      model.push_back( new CMCFisherExactTest );
+    } else if (modelName == "fp") {
+      model.push_back( new FpTest );
+    } else if (modelName == "rarecover") {
+      parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+      model.push_back( new RareCoverTest(nPerm, alpha) );
+      logger->info("Rare cover test significance will be evaluated using %d permutations", nPerm);
+    } else if (modelName == "cmat") {
+      parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+      model.push_back( new CMATTest(nPerm, alpha) );
+      logger->info("cmat test significance will be evaluated using %d permutations", nPerm);
+    } else if (modelName == "cmcwald") {
+      model.push_back( new CMCWaldTest );
+    } else if (modelName == "zegginiwald") {
+      model.push_back( new ZegginiWaldTest );
+    } else if (modelName == "famcmc") {
+      model.push_back( new FamCMC );
+    } else if (modelName == "famzeggini") {
+      model.push_back( new FamZeggini );
+    } else if (modelName == "famfp") {
+      model.push_back( new FamFp );
+    } else {
+      logger->error("Unknown model name: [ %s ].", modelName.c_str());
+      abort();
+    }
+  } else if (modelType == "vt") {
+    if (modelName ==  "cmc") {
+      model.push_back( new VTCMC );
+    } else if (modelName ==  "price") {
+      parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+      model.push_back( new VariableThresholdPrice(nPerm, alpha) );
+      logger->info("Price's VT test significance will be evaluated using %d permutations", nPerm);
+    } else if (modelName ==  "zeggini") {
+      // TODO
+      logger->error("Not yet implemented.");
+    } else if (modelName ==  "mb") {
+      logger->error("Not yet implemented.");
+    } else if (modelName ==  "analyticvt") {
+      model.push_back( new AnalyticVT(AnalyticVT::UNRELATED) );
+    } else if (modelName ==  "famanalyticvt") {
+      model.push_back( new AnalyticVT(AnalyticVT::RELATED) );
+    } else if (modelName ==  "skat") {
+      logger->error("Not yet implemented.");
+    } else {
+      logger->error("Unknown model name: %s .", modelName.c_str());
+      abort();
+    }
+  } else if (modelType == "kernel") {
+    if (modelName == "skat") {
+      double beta1, beta2;
+      parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
+      model.push_back( new SkatTest(nPerm, alpha, beta1, beta2) );
+      logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g weight = Beta(beta1 = %.2f, beta2 = %.2f)",
+                   nPerm, alpha, beta1, beta2);
+    } else if (modelName == "kbac") {
+      parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
+      model.push_back( new KBACTest(nPerm, alpha) );
+      logger->info("KBAC test significance will be evaluated using %d permutations", nPerm);
+    } else if (modelName == "famskat") {
+      double beta1, beta2;
+      parser.assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
+      model.push_back( new FamSkatTest(beta1, beta2) );
+      logger->info("SKAT test significance will be evaluated using weight = Beta(beta1 = %.2f, beta2 = %.2f)",
+                   beta1, beta2);
+    } else {
+      logger->error("Unknown model name: %s .", modelName.c_str());
+      abort();
+    };
+  } else if (modelType == "meta") {
+    if (modelName == "score") {
+      model.push_back( new MetaScoreTest() );
+    } else if (modelName == "dominant") {
+      model.push_back( new MetaDominantTest() );
+      parser.assign("windowSize", &windowSize, 1000000);
+      logger->info("Meta analysis uses window size %s to produce covariance statistics under dominant model", toStringWithComma(windowSize).c_str());
+      model.push_back( new MetaDominantCovTest(windowSize) );
+    } else if (modelName == "recessive") {
+      model.push_back( new MetaRecessiveTest() );
+      parser.assign("windowSize", &windowSize, 1000000);
+      logger->info("Meta analysis uses window size %s to produce covariance statistics under recessive model", toStringWithComma(windowSize).c_str());
+      model.push_back( new MetaRecessiveCovTest(windowSize) );
+    } else if (modelName == "cov") {
+      parser.assign("windowSize", &windowSize, 1000000);
+      logger->info("Meta analysis uses window size %s to produce covariance statistics under additive model", toStringWithComma(windowSize).c_str());
+      model.push_back( new MetaCovTest(windowSize) );
+    }
 #if 0
-The code below does not consider frequency tie
-/**
- * Collapsing @param d to @param out, the order of columns in @param out is the same as @param freq
- * which is the frequency upper bounds, and @param freq will be increase frequency.
- * e.g.
- * @param in P by 3 matrix, then @param out will be 3 columns too
- * if @param freq = (0.1, 0.2, 0.3) meaning
- * @param out column 0 using 0.1 frequency upper bound, and the smallest frequency of marker is 0.1 (@param freq[0])
- * @param out column 1 using 0.2 frequency upper bound, and the second largest frequency of marker is 0.2 (@param freq[1])
- * @param out column 2 using 0.3 frequency upper bound, and the largest frequency of marker is 0.3 (@param freq[2])
- */
-void rearrangeGenotypeByFrequency(Matrix& in, Matrix* out, std::vector<double>* freq) {
-  assert(out && freq);
-  out->Dimension(in.rows, in.cols);
-
-  const int& numPeople = in.rows;
-  const int& numMarker = in.cols;
-  freq->resize(numMarker);
-
-  /* out->Dimension(numPeople, numMarker); */
-  /* if (col < 0) { */
-  /*   out->Zero(); */
-  /*   return; */
-  /* } */
-
-  for (int m = 0; m < numMarker; ++m){
-    (*freq)[m] = getMarkerFrequency(in, m);
-  }
-
-  std::vector<int> ord;
-  order(*freq, &ord);
-  std::sort(freq->begin(), freq->end());
-
-  for (int m = 0; m < numMarker; ++m){
-    const int& col = ord[m];
-    for (int p = 0; p < numPeople; ++p) {
-      (*out)[p][m] = in[p][col];
+    else if (modelName == "skew") {
+      int windowSize;
+      parser.assign("windowSize", &windowSize, 1000000);
+      logger->info("Meta analysis uses window size %d to produce skewnewss statistics", windowSize);
+      model.push_back( new MetaSkewTest(windowSize) );
+    } else if (modelName == "kurt") {
+      int windowSize;
+      parser.assign("windowSize", &windowSize, 1000000);
+      logger->info("Meta analysis uses window size %d to produce kurtosis statistics", windowSize);
+      model.push_back( new MetaKurtTest(windowSize) );
     }
-  }
-};
-
-void progressiveCMCCollapse(Matrix* d, Matrix* out, std::vector<double>* freq) {
-  assert(out && freq);
-  Matrix& in = (*d);
-  out->Dimension(in.rows, in.cols);
-
-  const int& numPeople = in.rows;
-  const int& numMarker = in.cols;
-  freq->resize(numMarker);
-
-  /* out->Dimension(numPeople, numMarker); */
-  /* if (col < 0) { */
-  /*   out->Zero(); */
-  /*   return; */
-  /* } */
-
-  for (int m = 0; m < numMarker; ++m){
-    (*freq)[m] = getMarkerFrequency(in, m);
-  }
-
-  std::vector<int> ord;
-  order(*freq, &ord);
-  std::sort(freq->begin(), freq->end());
-
-  for (int m = 0; m < numMarker; ++m){
-    const int& col = ord[m];
-    if (m == 0) {
-      for (int p = 0; p < numPeople; ++p) {
-        if (in[p][col] > 0) {
-          (*out)[p][m] = 1;
-        }
-      }
-    } else { //
-      for (int p = 0; p < numPeople; ++p) {
-        if ((*out)[p][m-1] > 0) {
-          (*out)[p][m] = 1;
-          continue;
-        };
-        if (in[p][col] > 0) {
-          (*out)[p][m] = 1;
-          continue;
-        }
-      }
-    }
-  }
-
-};
-
-void progressiveMadsonBrowningCollapse(Matrix* d, Matrix* out, std::vector<double>* freq) {
-  assert(out);
-  Matrix& in = (*d);
-  out->Dimension(in.rows, in.cols);
-
-  int numPeople = in.rows;
-  int numMarker = in.cols;
-  freq->resize(numMarker);
-
-  /* out->Dimension(numPeople, 1); */
-  /* if (col < 0) { */
-  /*   out->Zero(); */
-  /*   return; */
-  /* } */
-
-  for (int m = 0; m < numMarker; ++m){
-    (*freq)[m] = getMarkerFrequency(in, m);
-  }
-
-  std::vector<int> ord;
-  order(*freq, &ord);
-  std::sort(freq->begin(), freq->end());
-
-  double weight;
-  for (int m = 0; m < numMarker; ++m){
-    const int& col = ord[m];
-    weight = 1.0 / sqrt (  (*freq)[m] * (1.0 - (*freq)[m])) ;
-
-    if (m == 0) {
-      for (int p = 0; p < numPeople; ++p) {
-        (*out)[p][m] = weight * in[p][col];
-      }
-    } else { //
-      for (int p = 0; p < numPeople; ++p) {
-        (*out)[p][m] = (*out)[p][m-1] + weight * in[p][col];
-      }
-    }
-  }
-};
-
 #endif
+    else {
+      logger->error("Unknown model name: %s .", modelName.c_str());
+      abort();
+    }
+  } else if (modelType == "outputRaw") {
+    model.push_back( new DumpModel(prefix.c_str()));
+  } else {
+    logger->error("Unrecognized model type [ %s ]", modelType.c_str());
+    return -1;
+  }
+      
+  // create output files
+  for (size_t i = previousModelNumber;
+       i < model.size(); ++i) {
+    std::string s = this->prefix;
+    s += ".";
+    s += model[i]->getModelName();
+    if (model[i]->needToIndexResult()) {
+      s += ".assoc.gz";
+      fOuts.push_back(new FileWriter(s.c_str(), BGZIP));
+      fileToIndex.push_back(s);
+    } else {
+      s += ".assoc";
+      fOuts.push_back(new FileWriter(s.c_str()));
+    }
+  }
+  assert(fOuts.size() == model.size());
+  
+  return 0;
+}
+
+void ModelManager::close() {
+  for (size_t m = 0; m < model.size() ; ++m ) {
+    model[m]->writeFootnote(fOuts[m]);
+    delete model[m];
+  }
+
+  for (size_t m = 0; m < fOuts.size(); ++m ) {
+    delete fOuts[m];
+  }
+
+  createIndex();
+}
+
+void ModelManager::createIndex() {
+  // index bgzipped meta-analysis outputs
+  for (size_t i = 0; i < fileToIndex.size(); ++i) {
+    if (tabixIndexFile(fileToIndex[i])) {
+      logger->error("Tabix index failed on file [ %s ]",
+                    fileToIndex[i].c_str());
+    }
+  }
+}

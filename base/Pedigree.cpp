@@ -65,6 +65,8 @@ int Pedigree::add(const std::string& family,
   } else { // both known
     bool OK = this->family[fid].containPerson(pid)  && this->people[pid].getFamily() == fid;
     if (!OK) {
+      // TODO: when different family have the same person id, then this line will have problem
+      // see: ~/rvtests.dev/test.meta/in.ped
       fprintf(stderr, "Duplicated person [ %s ] in the duplicated family [ %s ], but not consistent to previous entries\n", person.c_str(), family.c_str());
       return -1;
     }

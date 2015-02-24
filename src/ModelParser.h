@@ -7,7 +7,7 @@ extern Logger* logger;
 
 /**
  * Parse "mb" to {"mb"}
- * Parse "mb(nperm=10000, alpha=0.1)" then later use assign("nperm", &p) to set value for p 
+ * Parse "mb[nperm=10000, alpha=0.1]" then later use assign("nperm", &p) to set value for p 
  */
 class ModelParser{
  public:
@@ -61,7 +61,7 @@ class ModelParser{
   /**
    * assign @param tag to @param value
    */
-  ModelParser& assign(const std::string& tag, bool* value){
+  const ModelParser& assign(const std::string& tag, bool* value) const{
     if (this->hasTag(tag)) {
       (*value) = true;
     } else {
@@ -69,7 +69,7 @@ class ModelParser{
     }
     return (*this);
   };
-  ModelParser& assign(const std::string& tag, double* value){
+  const ModelParser& assign(const std::string& tag, double* value) const{
     if (this->hasTag(tag)) {
       (*value) = atof(this->value(tag));
     } else {
@@ -77,7 +77,7 @@ class ModelParser{
     }
     return (*this);
   };
-  ModelParser& assign(const std::string& tag, int* value){
+  const ModelParser& assign(const std::string& tag, int* value) const{
     if (this->hasTag(tag)) {
       double d = atof(this->value(tag));
       *value = (int) d;
@@ -90,7 +90,7 @@ class ModelParser{
     }
     return (*this);
   };
-  ModelParser& assign(const std::string& tag, std::string* value){
+  const ModelParser& assign(const std::string& tag, std::string* value) const{
     if (this->hasTag(tag)) {
       (*value) = (this->value(tag));
     } else {
@@ -102,7 +102,7 @@ class ModelParser{
    * if @param tag is provided, assign @param tag to @param value
    * otherwise, set @param value to @param def
    */
-  ModelParser& assign(const std::string& tag, bool* value, const bool def){
+  const ModelParser& assign(const std::string& tag, bool* value, const bool def) const{
     if (this->hasTag(tag)) {
       (*value) = true;
     } else {
@@ -110,7 +110,7 @@ class ModelParser{
     }
     return (*this);
   };
-  ModelParser& assign(const std::string& tag, double* value, const double def){
+  const ModelParser& assign(const std::string& tag, double* value, const double def) const{
     if (this->hasTag(tag)) {
       (*value) = atof(this->value(tag));
     } else {
@@ -118,7 +118,7 @@ class ModelParser{
     }
     return (*this);
   };
-  ModelParser& assign(const std::string& tag, int* value, const int def){
+  const ModelParser& assign(const std::string& tag, int* value, const int def) const{
     if (this->hasTag(tag)) {
       // convert double then to integer
       // so that scientific notation of float numbers are supported
@@ -133,7 +133,7 @@ class ModelParser{
     }
     return (*this);
   };
-  ModelParser& assign(const std::string& tag, std::string* value, const std::string& def){
+  const ModelParser& assign(const std::string& tag, std::string* value, const std::string& def) const{
     if (this->hasTag(tag)) {
       (*value) = (this->value(tag));
     } else {

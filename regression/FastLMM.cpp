@@ -450,7 +450,7 @@ class FastLMM::Impl{
   double stat;
   // for both tests
   double pvalue;
-  //
+
   FastLMM::Test test;
   FastLMM::Model model;
   double sumResidual2; // sum (  (Uy - Ux *beta)^2/(lambda + delta) )

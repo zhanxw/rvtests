@@ -20,11 +20,9 @@
 #include "CommonFunction.h"
 #include "DataLoader.h"
 #include "DataConsolidator.h"
-#include "ModelParser.h"
 #include "ModelFitter.h"
 #include "GitVersion.h"
 #include "Result.h"
-#include "TabixUtil.h"
 #include "base/Indexer.h"
 
 Logger* logger = NULL;
@@ -147,7 +145,7 @@ class GenotypeExtractor{
       g->SetColumnLabel(i, colNames[i].c_str());
     }
     return 0;
-  };
+  }
   /**
    * @return 0 for success
    * @return -2 for reach end.
@@ -974,239 +972,20 @@ int main(int argc, char** argv){
     abort();
   }
 
-  std::vector< ModelFitter* > model;
-  bool hasFamilyModel = false;
-  std::string modelName;
-  std::vector< std::string> modelParams;
-  std::vector< std::string> argModelName;
-  ModelParser parser;
-  int nPerm = 10000;
-  double alpha = 0.05;
+  ModelManager modelManager(FLAG_outPrefix);
+  modelManager.create("single", FLAG_modelSingle);
+  modelManager.create("burden", FLAG_modelSingle);
+  modelManager.create("vt",     FLAG_modelSingle);
+  modelManager.create("kernel", FLAG_modelSingle);
+  modelManager.create("meta",   FLAG_modelSingle);
+  modelManager.create("outputRaw",   "");
 
-  //if (parseModel(FLAG_modelSingle, &modelName, &modelParams)
-  if (FLAG_modelSingle != "") {
-    stringTokenize(FLAG_modelSingle, ",", &argModelName);
-    for (size_t i = 0; i < argModelName.size(); i++ ){
-      parser.parse(argModelName[i]);
-      modelName = parser.getName();
-      if (modelName == "wald") {
-        model.push_back( new SingleVariantWaldTest);
-      } else if (modelName == "score") {
-        model.push_back( new SingleVariantScoreTest);
-      } else if (modelName == "exact") {
-        model.push_back( new SingleVariantFisherExactTest);
-      } else if (modelName == "famscore") {
-        model.push_back( new SingleVariantFamilyScore);
-        hasFamilyModel = true;
-      } else if (modelName == "famlrt") {
-        model.push_back( new SingleVariantFamilyLRT);
-        hasFamilyModel = true;
-      } else if (modelName == "famgrammargamma") {
-        model.push_back( new SingleVariantFamilyGrammarGamma);
-        hasFamilyModel = true;
-      } else if (modelName == "firth") {
-        model.push_back( new SingleVariantFirthTest);
-      } else {
-        logger->error("Unknown model name: %s .", argModelName[i].c_str());
-        abort();
-      };
-    }
-  }
-
-  if (FLAG_modelBurden != "") {
-    stringTokenize(FLAG_modelBurden, ",", &argModelName);
-    for (size_t i = 0; i < argModelName.size(); i++ ){
-      parser.parse(argModelName[i]);
-      modelName = parser.getName();
-
-      if (modelName == "cmc") {
-        model.push_back( new CMCTest );
-      } else if (modelName == "zeggini") {
-        model.push_back( new ZegginiTest );
-      } else if (modelName == "mb") {
-        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
-        model.push_back( new MadsonBrowningTest(nPerm, alpha) );
-        logger->info("MadsonBrowning test significance will be evaluated using %d permutations", nPerm);
-      } else if (modelName == "exactcmc") {
-        model.push_back( new CMCFisherExactTest );
-      } else if (modelName == "fp") {
-        model.push_back( new FpTest );
-      } else if (modelName == "rarecover") {
-        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
-        model.push_back( new RareCoverTest(nPerm, alpha) );
-        logger->info("Rare cover test significance will be evaluated using %d permutations", nPerm);
-      } else if (modelName == "cmat") {
-        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
-        model.push_back( new CMATTest(nPerm, alpha) );
-        logger->info("cmat test significance will be evaluated using %d permutations", nPerm);
-      } else if (modelName == "cmcwald") {
-        model.push_back( new CMCWaldTest );
-      } else if (modelName == "zegginiwald") {
-        model.push_back( new ZegginiWaldTest );
-      } else if (modelName == "famcmc") {
-        model.push_back( new FamCMC );
-        hasFamilyModel = true;
-      } else if (modelName == "famzeggini") {
-        model.push_back( new FamZeggini );
-        hasFamilyModel = true;
-      } else if (modelName == "famfp") {
-        model.push_back( new FamFp );
-        hasFamilyModel = true;
-      } else {
-        logger->error("Unknown model name: [ %s ].", argModelName[i].c_str());
-        abort();
-      }
-    }
-  }
-
-  if (FLAG_modelVT != "") {
-    stringTokenize(FLAG_modelVT, ",", &argModelName);
-    for (size_t i = 0; i < argModelName.size(); i++ ){
-      parser.parse(argModelName[i]);
-      modelName = parser.getName();
-
-      if (modelName == "cmc") {
-        model.push_back( new VTCMC );
-      } else if (modelName == "price") {
-        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
-        model.push_back( new VariableThresholdPrice(nPerm, alpha) );
-        logger->info("Price's VT test significance will be evaluated using %d permutations", nPerm);
-      } else if (modelName == "zeggini") {
-        //model.push_back( new VariableThresholdFreqTest );
-        // TODO
-      } else if (modelName == "mb") {
-        //////////!!!
-        // model.push_back( new VariableThresholdFreqTest );
-      } else if (modelName == "analyticvt") {
-        model.push_back( new AnalyticVT(AnalyticVT::UNRELATED) );
-      } else if (modelName == "famanalyticvt") {
-        model.push_back( new AnalyticVT(AnalyticVT::RELATED) );
-        hasFamilyModel = true;        
-      } else if (modelName == "skat") {
-        logger->error("Not yet implemented.");
-        //model.push_back( new VariableThresholdFreqTest );
-      } else {
-        logger->error("Unknown model name: %s .", modelName.c_str());
-        abort();
-      }
-    }
-  }
-
-  if (FLAG_modelKernel != "") {
-    stringTokenize(FLAG_modelKernel, ",", &argModelName);
-    for (size_t i = 0; i < argModelName.size(); i++ ){
-      parser.parse(argModelName[i]);
-      modelName = parser.getName();
-
-      if (modelName == "skat") {
-        double beta1, beta2;
-        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05).assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
-        model.push_back( new SkatTest(nPerm, alpha, beta1, beta2) );
-        logger->info("SKAT test significance will be evaluated using %d permutations at alpha = %g weight = Beta(beta1 = %.2f, beta2 = %.2f)",
-                     nPerm, alpha, beta1, beta2);
-      } else if (modelName == "kbac") {
-        parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
-        model.push_back( new KBACTest(nPerm, alpha) );
-        logger->info("KBAC test significance will be evaluated using %d permutations", nPerm);
-      } else if (modelName == "famskat") {
-        double beta1, beta2;
-        parser.assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
-        model.push_back( new FamSkatTest(beta1, beta2) );
-        logger->info("SKAT test significance will be evaluated using weight = Beta(beta1 = %.2f, beta2 = %.2f)",
-                     beta1, beta2);
-        hasFamilyModel = true;
-      } else {
-        logger->error("Unknown model name: %s .", argModelName[i].c_str());
-        abort();
-      };
-    }
-  }
-
-  if (FLAG_modelMeta != "") {
-    stringTokenize(FLAG_modelMeta, ",", &argModelName);
-    for (size_t i = 0; i < argModelName.size(); i++ ){
-      parser.parse(argModelName[i]);
-      modelName = parser.getName();
-      int windowSize;
-
-      if (modelName == "score") {
-        model.push_back( new MetaScoreTest() );
-      } else if (modelName == "dominant") {
-        model.push_back( new MetaDominantTest() );
-        parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %s to produce covariance statistics under dominant model", toStringWithComma(windowSize).c_str());
-        model.push_back( new MetaDominantCovTest(windowSize) );
-      } else if (modelName == "recessive") {
-        model.push_back( new MetaRecessiveTest() );
-        parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %s to produce covariance statistics under recessive model", toStringWithComma(windowSize).c_str());
-        model.push_back( new MetaRecessiveCovTest(windowSize) );
-      } else if (modelName == "cov") {
-        parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %s to produce covariance statistics under additive model", toStringWithComma(windowSize).c_str());
-        model.push_back( new MetaCovTest(windowSize) );
-      }
-#if 0
-      else if (modelName == "skew") {
-        int windowSize;
-        parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %d to produce skewnewss statistics", windowSize);
-        model.push_back( new MetaSkewTest(windowSize) );
-      } else if (modelName == "kurt") {
-        int windowSize;
-        parser.assign("windowSize", &windowSize, 1000000);
-        logger->info("Meta analysis uses window size %d to produce kurtosis statistics", windowSize);
-        model.push_back( new MetaKurtTest(windowSize) );
-      }
-#endif
-      else {
-        logger->error("Unknown model name: %s .", argModelName[i].c_str());
-        abort();
-      };
-    }
-  }
-
-  if (FLAG_outputRaw) {
-    model.push_back( new DumpModel(FLAG_outPrefix.c_str()));
-  }
-
-  if (binaryPhenotype) {
-    for (size_t i = 0; i < model.size(); i++){
-      model[i]->setBinaryOutcome();
-    }
-  }
+  const std::vector< ModelFitter*>& model = modelManager.getModel();
+  const std::vector< FileWriter*>& fOuts  = modelManager.getResultFile();
+  const size_t numModel = model.size();
 
   Matrix phenotypeMatrix;
   toMatrix(phenotypeInOrder, &phenotypeMatrix);
-
-  std::vector<std::string> metaFileToIndex;
-  FileWriter** fOuts = new FileWriter*[model.size()];
-  for (size_t i = 0; i < model.size(); ++i) {
-    std::string s = FLAG_outPrefix;
-    s += ".";
-    s += model[i]->getModelName();
-    if (model[i]->getModelName() == "MetaCov" ||
-        model[i]->getModelName() == "MetaSkew" ||
-        model[i]->getModelName() == "MetaKurt") {
-      s += ".assoc.gz";
-      fOuts[i] = new FileWriter(s.c_str(), BGZIP);
-      metaFileToIndex.push_back(s);
-    } else if (model[i]->getModelName() == "MetaDominant" ||
-               model[i]->getModelName() == "MetaRecessive")  {
-      s += ".assoc";
-      fOuts[i] = new FileWriter(s.c_str());
-
-      ++i;
-      s.resize(s.size() - strlen(".assoc"));
-      s += "Cov.assoc.gz";
-      fOuts[i] = new FileWriter(s.c_str(), BGZIP);
-      metaFileToIndex.push_back(s);
-    } else {
-      s += ".assoc";
-      fOuts[i] = new FileWriter(s.c_str());
-    }
-  }
-  const size_t numModel = model.size();
 
   // determine VCF file reading pattern
   // current support:
@@ -1255,14 +1034,15 @@ int main(int argc, char** argv){
     if (ret < 0) {
       logger->error("Error loading set list or set list is empty!");
       return -1;
-    };
+    }
   }
 
   DataConsolidator dc;
   dc.setSex(&sex);
 
   // load kinshp if needed
-  if (hasFamilyModel || (!FLAG_modelMeta.empty() && !FLAG_kinship.empty())) {
+  if (modelManager.hasFamilyModel() ||
+      (!FLAG_modelMeta.empty() && !FLAG_kinship.empty())) {
     logger->info("Family-based model specified. Loading kinship file...");
     if (FLAG_kinship.empty()) {
       logger->error("To use family based method, you need to use --kinship to specify a kinship file (you use vcf2kinship to generate one).");
@@ -1414,7 +1194,6 @@ int main(int argc, char** argv){
     int variantProcessed = 0;
     while (true) {
       buf.clearValue();
-      //int ret = extractSiteGenotype(&vin, &genotype, &buf);
       int ret = ge.extractSingleGenotype(&genotype, &buf);
 
       if (ret == GenotypeExtractor::FILE_END) { // reach file end
@@ -1444,10 +1223,6 @@ int main(int argc, char** argv){
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
       };
-    }
-    for (size_t m = 0; m != numModel; m++)
-    {
-      model[m]->writeFootnote(fOuts[m]);
     }
     logger->info("Analyzed [ %d ] variants", variantProcessed);
   } else if (rangeMode != "Single" && singleVariantMode) { // read by gene/range model, single variant test
@@ -1500,10 +1275,6 @@ int main(int argc, char** argv){
           model[m]->writeOutput(fOuts[m], buf);
         }
       }
-      for (size_t m = 0; m != numModel; m++)
-      {
-        model[m]->writeFootnote(fOuts[m]);
-      }
     }
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions", variantProcessed, (int)geneRange.size());
   } else if (rangeMode != "Single" && groupVariantMode) { // read by gene/range mode, group variant test
@@ -1525,7 +1296,6 @@ int main(int argc, char** argv){
       vin.setRange(rangeList);
 
       buf.clearValue();
-      // int ret = extractGenotype(&vin, &genotype);
       int ret = ge.extractMultipleGenotype(&genotype);
       if (ret != GenotypeExtractor::SUCCEED) {
         logger->error("Extract genotype failed for gene %s!", geneName.c_str());
@@ -1553,10 +1323,6 @@ int main(int argc, char** argv){
         model[m]->writeOutput(fOuts[m], buf);
       }
     }
-    for (size_t m = 0; m != numModel; m++)
-    {
-      model[m]->writeFootnote(fOuts[m]);
-    }
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions", variantProcessed, (int)geneRange.size());
   } else{
     logger->error("Unsupported reading mode and test modes!");
@@ -1564,29 +1330,15 @@ int main(int argc, char** argv){
   }
 
   // Resource cleaning up
-  for (size_t m = 0; m < numModel ; ++m ) {
-    delete model[m];
-  }
-  for (size_t m = 0; m < numModel ; ++m ) {
-    delete fOuts[m];
-  }
-  if (fOuts)
-    delete[] fOuts;
+  modelManager.close();
   if (pVin)
     delete pVin;
-  // index bgzipped meta-analysis outputs
-  for (size_t i = 0; i < metaFileToIndex.size(); ++i) {
-    if (tabixIndexFile(metaFileToIndex[i])) {
-      logger->error("Tabix index failed on file [ %s ]",
-                    metaFileToIndex[i].c_str());
-    }
-  }
-
+  delete g_SummaryHeader;
+  
   time_t endTime = time(0);
   logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);
   logger->info("Analysis took %d seconds", elapsedSecond);
 
-  delete g_SummaryHeader;
   return 0;
 }

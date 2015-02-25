@@ -3,6 +3,7 @@
 
 class EigenMatrix;
 class Matrix;
+class Vector;
 
 class FastLMM{
  public:
@@ -52,6 +53,9 @@ class FastLMM{
   double GetSigmaE2() const;  // sigma_e^2
   double GetDelta() const;    // delta = sigma2_e / sigma2_g
   void GetBeta(EigenMatrix* beta) const;
+  // get estimates from null
+  void GetNullCovEst(Vector* beta);
+  void GetNullCovB(Matrix* betaCov);
 };
 
 

@@ -938,7 +938,6 @@ int main(int argc, char** argv){
   }
 
   // phenotype transformation
-  // g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
   if (FLAG_inverseNormal) {
     if (binaryPhenotype){
       logger->warn("WARNING: Skip transforming binary phenotype, although you required inverse normalization!");
@@ -959,7 +958,7 @@ int main(int argc, char** argv){
     abort();
   }
 
-  g_SummaryHeader->fitModel(phenotypeInOrder, binaryPhenotype, covariate);
+  // g_SummaryHeader->fitModel(phenotypeInOrder, binaryPhenotype, covariate);
 
   logger->info("Analysis begin with [ %zu ] samples...", phenotypeInOrder.size());
 
@@ -974,11 +973,13 @@ int main(int argc, char** argv){
 
   ModelManager modelManager(FLAG_outPrefix);
   modelManager.create("single", FLAG_modelSingle);
-  modelManager.create("burden", FLAG_modelSingle);
-  modelManager.create("vt",     FLAG_modelSingle);
-  modelManager.create("kernel", FLAG_modelSingle);
-  modelManager.create("meta",   FLAG_modelSingle);
-  modelManager.create("outputRaw",   "");
+  modelManager.create("burden", FLAG_modelBurden);
+  modelManager.create("vt",     FLAG_modelVT);
+  modelManager.create("kernel", FLAG_modelKernel);
+  modelManager.create("meta",   FLAG_modelMeta);
+  if (FLAG_outputRaw) {
+    modelManager.create("outputRaw",   "dump");
+  }
 
   const std::vector< ModelFitter*>& model = modelManager.getModel();
   const std::vector< FileWriter*>& fOuts  = modelManager.getResultFile();

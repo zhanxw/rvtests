@@ -39,10 +39,13 @@ public:
 
   double GetPvalue() const {return this->pvalue;};
   double GetStat() const {return this->stat;};
-  Vector& GetNullCovEst()  {return lr.GetCovEst();}
   const Matrix& GetU() const {return this->Umatrix;};
   const Matrix& GetV() const {return this->Vmatrix;};
   Vector & GetNullPredicted() {return this->lr.GetPredicted();}; // predicted probability \hat{p}
+
+  // get estimates from null model
+  Vector& GetNullCovEst()    {return this->lr.GetCovEst();}; // coef estimation of the model
+  Matrix& GetNullCovB()      {return this->lr.GetCovB();} ;
 private:
   void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
   double stat;

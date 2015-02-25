@@ -91,6 +91,7 @@ class SummaryHeader{
       this->recordCovariateColumn(m, i );
     }
   }
+#if 0  
   void fitModel(const std::vector<double>& pheno, bool binaryPhenotype, Matrix& cov) {
     this->isBinaryPhenotype = binaryPhenotype;
     Vector p;
@@ -103,6 +104,7 @@ class SummaryHeader{
       fitOK = this->linear.Fit(c, p);
     }
   }
+#endif
   void outputHeader(FileWriter* fp) {
     // write summaries
     int nSample = pheno.size()? pheno[0].n: 0;
@@ -130,9 +132,8 @@ class SummaryHeader{
                  pheno[i].sd * pheno[i].sd );
     }
 
+    // write covariate
     if (!cov.empty()) {
-
-      // write covariate
       fp->write("##Covariates=");
       for (size_t i = 0; i < cov.size(); ++i ) {
         if (i)
@@ -154,7 +155,7 @@ class SummaryHeader{
                    cov[i].sd * cov[i].sd);
       }
     }
-
+#if 0
     //write null model
     fp->write("##NullModelEstimates\n");
     if (!fitOK) {
@@ -172,7 +173,9 @@ class SummaryHeader{
                                1.0);
       }
     }
+#endif
   }
+#if 0
   void printNullModelEstimate(FileWriter* fp,
                               const Vector& beta,
                               const Matrix& betaSd,
@@ -198,6 +201,10 @@ class SummaryHeader{
     // sigma
     fp->printf("## - Sigma\t%g\tNA\n", sigma);
   }
+#endif
+  const std::vector<std::string>& getCovLabel() const {
+    return this->covLabel;
+  }
  private:
   std::vector<std::string> phenoLabel;
   std::vector<Summary> pheno;
@@ -209,8 +216,8 @@ class SummaryHeader{
   std::vector<Summary> cov;
 
   bool isBinaryPhenotype;
-  LinearRegression linear;
-  LogisticRegression logistic;
+  // LinearRegression linear;
+  // LogisticRegression logistic;
   bool fitOK;
 };
 

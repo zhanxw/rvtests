@@ -34,6 +34,15 @@ void Eigen_to_G(const Eigen::VectorXf& EigenV, Vector* _GV)
     GV[i] = EigenV(i);
 }
 
+void Eigen_Column_to_G(const Eigen::MatrixXf &EigenM, int colIdx, Vector* _GV)
+{
+  if (colIdx < 0 || colIdx >= EigenM.cols()) return;
+  Vector& GV = *_GV;
+  GV.Dimension(EigenM.rows());
+  for(int i=0; i<EigenM.rows(); i++)
+    GV[i] = EigenM(i, colIdx);
+}
+
 void cbind_G_to_Eigen(Matrix& GM1, Matrix& GM2, Eigen::MatrixXf* EigenM) {
   if (GM1.rows != GM2.rows)
     return;

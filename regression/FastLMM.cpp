@@ -419,6 +419,18 @@ class FastLMM::Impl{
     EigenMatrix& b = *beta;
     b.mat = this->beta;
   }
+  void GetNullCovEst(Vector* beta) {
+    if (!beta) return;
+    Eigen_Column_to_G(this->beta, 0, beta);
+  }
+  void GetNullCovB(Matrix* betaCov) {
+    if (!betaCov) return;
+    //TODO: calculate (X' \Sigma^{-1} X)^{-1}
+    int n = this->beta.rows();
+    Eigen::MatrixXf Sigma = Eigen::MatrixXf::Zero(n, n);
+    Eigen_to_G(Sigma, betaCov);
+  }
+
  private:
   // define function to be applied coefficient-wise
   template<typename Scalar>
@@ -512,6 +524,8 @@ double FastLMM::GetAltLogLikelihood() const { return this->impl->GetAltLogLikeli
 void FastLMM::GetBeta(EigenMatrix* beta) const {
   return this->impl->GetBeta(beta);
 }
+void FastLMM::GetNullCovEst(Vector* beta) {return this->impl->GetNullCovEst(beta);}
+void FastLMM::GetNullCovB(Matrix* betaCov) {return this->impl->GetNullCovB(betaCov);}
 
 // need to negaive the MLE to minize it
 double goalFunction(double x, void* param) {

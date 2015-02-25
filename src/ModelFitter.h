@@ -94,7 +94,7 @@ class ModelFitter{
   ModelFitter(){
     this->modelName = "UninitializedModel";
     this->binaryOutcome = false; // default: using continuous outcome
-    this->familyModel = false;
+    this->familyModel = false;   // is this case for for family only?
     this->indexResult = false;
   }
   virtual ~ModelFitter() {}
@@ -652,8 +652,8 @@ class SingleVariantFamilyGrammarGamma: public ModelFitter{
                                     betaVar(-1.),
                                     pvalue(-1.) {
     this->modelName = "FamGrammarGamma";
-     this->familyModel = true;
-     result.addHeader("AF");
+    this->familyModel = true;
+    result.addHeader("AF");
     result.addHeader("Beta");
     result.addHeader("BetaVar");
     result.addHeader("Pvalue");
@@ -2143,8 +2143,8 @@ class FamCMC: public ModelFitter{
             lmm(FastLMM::SCORE, FastLMM::MLE),
             fitOK(false){
     this->modelName = "FamCMC";
-        this->familyModel = true;
-        result.addHeader("NumSite");
+    this->familyModel = true;
+    result.addHeader("NumSite");
     result.addHeader("AF");
     result.addHeader("U");
     result.addHeader("V");
@@ -2240,8 +2240,8 @@ class FamZeggini: public ModelFitter{
                 lmm(FastLMM::SCORE, FastLMM::MLE),
                 fitOK(false) {
     this->modelName = "FamZeggini";
-            this->familyModel = true;
-            result.addHeader("NumSite");
+    this->familyModel = true;
+    result.addHeader("NumSite");
     result.addHeader("MeanBurden");
     result.addHeader("U");
     result.addHeader("V");
@@ -2329,13 +2329,13 @@ class FamZeggini: public ModelFitter{
 class FamFp: public ModelFitter{
  public:
   FamFp(): needToFitNullModel(true),
-            numVariant(0),
-            u(-1.), v(-1.), af(-1.), effect(-1.), pvalue(-1.),
-            lmm(FastLMM::SCORE, FastLMM::MLE),
-            fitOK(false){
+           numVariant(0),
+           u(-1.), v(-1.), af(-1.), effect(-1.), pvalue(-1.),
+           lmm(FastLMM::SCORE, FastLMM::MLE),
+           fitOK(false){
     this->modelName = "FamFp";
-        this->familyModel = true;
-        result.addHeader("NumSite");
+    this->familyModel = true;
+    result.addHeader("NumSite");
     result.addHeader("AF");
     result.addHeader("U");
     result.addHeader("V");
@@ -2788,15 +2788,22 @@ class FamSkatTest: public ModelFitter{
 //////////////////////////////////////////////////////////////////////
 
 // output files for meta-analysis
+// this class handle 8 cases:
+// binary/qtl * unrelated/family * autosomal/X-chromosomal variants
+// need careful tests before any change
 class MetaScoreTest: public ModelFitter{
  public:
   MetaScoreTest():
+      model(NULL), modelAuto(NULL), modelX(NULL)
+#if 0
       linearFamScoreForAuto(FastLMM::SCORE, FastLMM::MLE),
       linearFamScoreForX(FastLMM::SCORE, FastLMM::MLE),
       needToFitNullModelForAuto(true),
       needToFitNullModelForX(true),
       hasHeritabilityForAuto(false),
-      hasHeritabilityForX(false) {
+      hasHeritabilityForX(false)
+#endif
+  {
     this->modelName = "MetaScore";
     af = afFromCase = afFromControl = -1.;
     fitOK = false;
@@ -2805,8 +2812,19 @@ class MetaScoreTest: public ModelFitter{
     callRate = -1.;
     useFamilyModel = false;
     isHemiRegion = false;
-    // TODO: maybe use familyModel
+    headerOutputted = false;
+    // TODO: maybe separate this class depending on familyModel
     //         this->familyModel = true;
+  }
+  virtual ~MetaScoreTest() {
+    if (modelAuto) {
+      delete modelAuto;
+      modelAuto = NULL;
+    }
+    if (modelX) {
+      delete modelX;
+      modelX = NULL;
+    }
   }
   // fitting model
   virtual int fit(DataConsolidator* dc) {
@@ -2814,12 +2832,39 @@ class MetaScoreTest: public ModelFitter{
     return this->fitWithGivenGenotype(genotype, dc);
   }
   int fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& covariate = dc->getCovariate();
+    // Matrix& phenotype = dc->getPhenotype();
+    // Matrix& covariate = dc->getCovariate();
+    this->useFamilyModel = dc->hasKinship();
 
     // check column name for hemi region
     this->isHemiRegion = dc->isHemiRegion(0);
 
+    // fit null model for the header
+    if (isHemiRegion) {
+      model = modelX;
+      if (!model) {
+        model = modelX = createModel(this->useFamilyModel, isBinaryOutcome());
+        model->hemiRegion = true;
+      }
+    } else {
+      model = modelAuto;
+      if (!model) {
+        model = modelX = createModel(this->useFamilyModel, isBinaryOutcome());
+        model->hemiRegion = false;
+      }
+    }
+    if (!model) return -1;
+
+    if (model->needToFitNullModel ||
+        dc->isPhenotypeUpdated() ||
+        dc->isCovariateUpdated()) {
+      // copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+      fitOK = (0 == model->FitNullModel(genotype, dc));
+      if (!fitOK) return -1;
+      model->needToFitNullModel = false;
+    }
+
+    // calculate site-based statistics
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
@@ -2898,15 +2943,22 @@ class MetaScoreTest: public ModelFitter{
     }
 
     // perform assocation tests
-    this->useFamilyModel = dc->hasKinship();
+    fitOK = (0 == model->TestCovariate(genotype, dc));
+
+    if (useFamilyModel) {
+      this->af = model->GetAF(dc->getGenotype(), dc);
+    }
+
+#if 0
     if (this->useFamilyModel) {
       if (!isBinaryOutcome()) { // quant trait
+        // fit null model
         if (!isHemiRegion) {
           if (needToFitNullModelForAuto ||
               dc->isPhenotypeUpdated() ||
               dc->isCovariateUpdated()) {
             copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-            fitOK = (0 == linearFamScoreForAuto.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
+            fitOK = (0 == linearFamScoreForAuto.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()));
             if (!fitOK) return -1;
             hasHeritabilityForAuto = true;
             needToFitNullModelForAuto = false;
@@ -2926,7 +2978,7 @@ class MetaScoreTest: public ModelFitter{
             needToFitNullModelForX = false;
           }
         }
-
+        // perform score test
         if (!isHemiRegion) {
           fitOK = (0 == linearFamScoreForAuto.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()) ? true: false);
           this->af = linearFamScoreForAuto.FastGetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(), dc->getGenotype());
@@ -2987,16 +3039,14 @@ class MetaScoreTest: public ModelFitter{
         if (!fitOK) return -1;
       }
     }
+#endif
     return (fitOK ? 0 : -1);
   }
 
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
-    if (g_SummaryHeader) {
-      g_SummaryHeader->outputHeader(fp);
-    }
-
-    siteInfo.writeHeaderTab(fp);
+    //  In the header part, successfully estimated null model will be
+    //  printed. So we have to defer printing header in the fit() function.
     result.addHeader("AF");
     result.addHeader("INFORMATIVE_ALT_AC");
     result.addHeader("CALL_RATE");
@@ -3008,10 +3058,27 @@ class MetaScoreTest: public ModelFitter{
     result.addHeader("SQRT_V_STAT");
     result.addHeader("ALT_EFFSIZE");
     result.addHeader("PVALUE");
+    return;
+  }
+
+  void writeSummaryAndHeader(FileWriter* fp, const Result& siteInfo) {
+    if (g_SummaryHeader) {
+      g_SummaryHeader->outputHeader(fp);
+    }
+    if (model) {
+      model->PrintNullModel(fp, g_SummaryHeader->getCovLabel());
+    }
+
+    siteInfo.writeHeaderTab(fp);
     result.writeHeaderLine(fp);
   }
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    if (!headerOutputted) {
+      writeSummaryAndHeader(fp, siteInfo);
+      headerOutputted = true;
+    }
+    
     siteInfo.writeValueTab(fp);
     int informativeAC = het + 2* homAlt;
 
@@ -3038,7 +3105,13 @@ class MetaScoreTest: public ModelFitter{
     result.updateValue("N_REF", homRef);
     result.updateValue("N_HET", het);
     result.updateValue("N_ALT", homAlt);
+
     if (fitOK) {
+      result.updateValue("U_STAT", model->GetU());
+      result.updateValue("SQRT_V_STAT", sqrt(model->GetV()));
+      result.updateValue("ALT_EFFSIZE", model->GetEffect());
+      result.updateValue("PVALUE", model->GetPvalue());
+#if 0
       if (this->useFamilyModel) {
         if (!isBinaryOutcome()) {
           if (!isHemiRegion) {
@@ -3078,25 +3151,234 @@ class MetaScoreTest: public ModelFitter{
           result.updateValue("PVALUE", logistic.GetPvalue());
         }
       }
+#endif
     }
     result.writeValueLine(fp);
   }
 
-  void writeFootnote(FileWriter* fp) {
-    if (this->hasHeritabilityForAuto) {
-      fp->writeLine("#Region\tautosomal\n");
-      appendHeritability(fp, linearFamScoreForAuto);
-    }
-    if (this->hasHeritabilityForX) {
-      fp->writeLine("#Region\tX\n");
-      appendHeritability(fp, linearFamScoreForX);
-    }
-  }
-
  private:
+  class MetaBase{
+   public:
+    MetaBase() :needToFitNullModel(true) {}
+    virtual ~MetaBase() {}
+    virtual int FitNullModel(Matrix& genotype, DataConsolidator* dc) = 0;
+    virtual int TestCovariate(Matrix& genotype, DataConsolidator* dc) = 0;
+    virtual double GetAF(Matrix& geno, DataConsolidator* dc) = 0;
+    virtual void PrintNullModel(FileWriter* fp,
+                                const std::vector<std::string>& covLabel) = 0;
+    virtual double GetU() = 0;
+    virtual double GetV() = 0;
+    virtual double GetEffect() = 0;
+    virtual double GetPvalue() = 0;
+
+    bool needToFitNullModel;
+    bool hemiRegion;
+   protected:
+    Matrix cov;
+  };
+  class MetaFamQtl:public MetaBase{
+   public:
+    MetaFamQtl(): lmm(FastLMM::SCORE, FastLMM::MLE) {}
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
+      bool fitOK;
+      if (!hemiRegion){
+        fitOK = (0 == lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto()));
+      } else {
+        fitOK = (0 == lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForX(), *dc->getKinshipSForX()));
+      }
+      if (fitOK) {
+        needToFitNullModel = false;
+        return 0;
+      }
+      return -1;
+    }
+    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& cov = dc->getCovariate();
+      if (!hemiRegion) {
+        //TODO test covariate include 1s?
+        return lmm.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
+      } else {
+        return lmm.TestCovariate(cov, phenotype, genotype, *dc->getKinshipUForX(), *dc->getKinshipSForX());
+      }
+    }
+    double GetAF(Matrix& geno, DataConsolidator* dc) {
+      if (!hemiRegion) {
+        return lmm.FastGetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(), dc->getGenotype());
+      } else {
+        return lmm.FastGetAF(*dc->getKinshipUForX(), *dc->getKinshipSForX(), dc->getGenotype());
+      }
+    }
+    void PrintNullModel(FileWriter* fp, const std::vector<std::string>& covLabel) {
+      Vector beta;
+      lmm.GetNullCovEst(&beta);
+      Matrix betaSd;
+      lmm.GetNullCovB(&betaSd);
+      double sigmaG2 = lmm.GetSigmaG2();
+      double sigmaE2 = lmm.GetSigmaE2();      
+      
+      fp->printf("## - Name\tBeta\tSD\n");
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      const int n = covLabel.size();
+      for (int i = 0; i < n; ++i) {
+        if  (i + 1 >= beta.Length() ) break;
+        fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
+      }
+      // sigma
+      fp->printf("## - SigmaG2\t%g\tNA\n", sigmaG2);
+      fp->printf("## - SigmaE2\t%g\tNA\n", sigmaE2);
+    }
+    double GetU(){return lmm.GetUStat();}
+    double GetV(){return lmm.GetVStat();}
+    double GetEffect() {return lmm.GetVStat() != 0.0 ?
+          lmm.GetUStat() / lmm.GetVStat() : 0.0;}
+    double GetPvalue() {return lmm.GetPvalue();}
+   private:
+    FastLMM lmm;
+  };
+  class MetaUnrelatedQtl:public MetaBase{
+   public:
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+
+      copyCovariateAndIntercept(genotype.rows, covariate, &this->cov);
+      copyPhenotype(phenotype, &this->pheno);
+
+      bool fitOK = linear.FitNullModel(cov, pheno);
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+      sigma2 = linear.GetSigma2();
+      return 0;
+    }
+    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
+      bool fitOK = linear.TestCovariate(cov, pheno, genotype);
+      if (!fitOK) return -1;
+      return 0;
+    }
+    double GetAF(Matrix& geno, DataConsolidator* dc) {
+      assert(false);; // should not reach here
+      return 0.0;
+    }
+    void PrintNullModel(FileWriter* fp, const std::vector<std::string>& covLabel) {
+      Vector& beta   = linear.GetNullCovEst();
+      Matrix& betaSd = linear.GetNullCovB();
+      double sigma = linear.GetSigma2();
+      
+      fp->printf("## - Name\tBeta\tSD\n");
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      const int n = covLabel.size();
+      for (int i = 0; i < n; ++i) {
+        if  (i + 1 >= beta.Length() ) break;
+        fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
+      }
+      // sigma
+      fp->printf("## - Sigma2\t%g\tNA\n", sigma);
+    }
+    double GetU(){return linear.GetU()[0][0] / sigma2;}
+    double GetV(){return linear.GetV()[0][0] / sigma2;}
+    double GetEffect() {return linear.GetV()[0][0] != 0.0 ? linear.GetBeta()[0][0] : 0.0;}
+    double GetPvalue() {return linear.GetPvalue();}
+   private:
+    LinearRegressionScoreTest linear;
+    double sigma2;
+    Vector pheno;
+  };
+  class MetaUnrelatedBinary:public MetaBase{
+   public:
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+
+      copyCovariateAndIntercept(genotype.rows, covariate, &this->cov);
+      copyPhenotype(phenotype, &this->pheno);
+      bool fitOK = logistic.FitNullModel(cov, pheno, 100);
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+      return 0;
+    }
+    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
+      // Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+
+      bool fitOK = logistic.TestCovariate(cov, pheno, genotype);
+      if (!fitOK) return -1;
+      // fit alternative model
+      if (covariate.cols) {
+        copyGenotypeWithCovariateAndIntercept(genotype, covariate, &this->X);
+      } else {
+        copyGenotypeWithIntercept(genotype, &this->X);
+      }
+      Vector& b_null = logistic.GetNullCovEst();
+      Vector b(b_null.Length() + 1);
+      for (int i = 0; i < b_null.Length(); ++i) {
+        b[i] = b_null[i];
+      }
+      b[b_null.Length()] = 0.0;
+
+      logisticAlt.SetInitialCovEst(b);
+      fitOK = logisticAlt.FitLogisticModel(this->X, this->pheno, 100);
+      if (!fitOK) return -1;
+      return 0;
+    }
+    double GetAF(Matrix& geno, DataConsolidator* dc) {
+      assert(false);; // should not reach here
+      return 0.0;
+    }
+    void PrintNullModel(FileWriter* fp, const std::vector<std::string>& covLabel) {
+      Vector& beta   = logistic.GetNullCovEst();
+      Matrix& betaSd = logistic.GetNullCovB();
+      
+      fp->printf("## - Name\tBeta\tSD\n");
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      const int n = covLabel.size();
+      for (int i = 0; i < n; ++i) {
+        if  (i + 1 >= beta.Length() ) break;
+        fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
+      }
+      // sigma
+      fp->printf("## - Sigma2\tNA\tNA\n");
+    }
+    double GetU(){return logistic.GetU()[0][0];}
+    double GetV(){return logistic.GetV()[0][0];}
+    double GetEffect() {return logisticAlt.GetCovEst()[1];}
+    double GetPvalue() {return logistic.GetPvalue();}
+   private:
+    LogisticRegressionScoreTest logistic;
+    LogisticRegression logisticAlt;
+    Vector pheno;
+    Matrix X; // intercept, cov(optional) and genotype
+  };
+
+  MetaBase* createModel(bool familyModel,
+                        bool binaryOutcome) {
+    if (familyModel && binaryOutcome) {
+      return NULL;
+    }
+    if (familyModel && !binaryOutcome) {
+      return new MetaFamQtl;
+    }
+    if (!familyModel && binaryOutcome) {
+      return new MetaUnrelatedBinary;
+    }
+    if (!familyModel && !binaryOutcome) {
+      return new MetaUnrelatedQtl;
+    }
+    return NULL;
+  }
+ private:
+  MetaBase* model;
+  MetaBase* modelAuto;
+  MetaBase* modelX;
+
   double af;
   double afFromCase;
   double afFromControl;
+#if 0
   Vector pheno;
 
   // QT linear model for unrelated
@@ -3107,10 +3389,12 @@ class MetaScoreTest: public ModelFitter{
   // QT linear model for related
   FastLMM linearFamScoreForAuto;
   FastLMM linearFamScoreForX;
-
-  bool fitOK;
   Matrix cov;
   Matrix X; // intercept, cov(optional) and genotype
+
+#endif
+
+  bool fitOK;
 
   int homRef;
   int het;
@@ -3120,14 +3404,16 @@ class MetaScoreTest: public ModelFitter{
   double hwePvalueFromCase;
   double hwePvalueFromControl;
   double callRate;
-
+#if 0
   bool needToFitNullModelForAuto;
   bool needToFitNullModelForX;
-  bool useFamilyModel;
   bool hasHeritabilityForAuto;
   bool hasHeritabilityForX;
+#endif
+  bool useFamilyModel;
 
   bool isHemiRegion; // is the variant tested in hemi region?
+  bool headerOutputted;
 }; // MetaScoreTest
 
 class MetaDominantTest: public MetaScoreTest{
@@ -3216,7 +3502,7 @@ class MetaCovTest: public ModelFitter{
       fitOK = false;
       return -1;
     }
-    if (genotype.rows == 0){
+    if (genotype.rows == 0) {
       fitOK = false;
       return -1;
     }
@@ -3411,7 +3697,7 @@ class MetaCovTest: public ModelFitter{
       sum_ij += g1[c]*g2[c] / this->weight[(int)c];
     }
     double cov_ij = sum_ij / n;
-    
+
     return cov_ij;
   }
 
@@ -3605,10 +3891,10 @@ class MetaSkewTest: public ModelFitter{
     std::string chrom;
     int pos;
   }
-  struct Loci{
-    Pos pos;
-    Genotype geno;
-  }
+    struct Loci{
+      Pos pos;
+      Genotype geno;
+    }
 
  public:
   MetaSkewTest(int windowSize){
@@ -3923,10 +4209,10 @@ class MetaKurtTest: public ModelFitter{
     std::string chrom;
     int pos;
   }
-  struct Loci{
-    Pos pos;
-    Genotype geno;
-  }
+    struct Loci{
+      Pos pos;
+      Genotype geno;
+    }
 
  public:
   MetaKurtTest(int windowSize){

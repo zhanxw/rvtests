@@ -356,6 +356,10 @@ bool ModelManager::hasFamilyModel() const{
 
 int ModelManager::create(const std::string& type,
                          const std::string& modelList){
+  if (modelList.empty()) {
+    return 0;
+  }
+  
   std::string modelName;
   std::vector< std::string> modelParams;
   std::vector< std::string> argModelName;
@@ -512,7 +516,12 @@ int ModelManager::create(const std::string& modelType,
       abort();
     }
   } else if (modelType == "outputRaw") {
-    model.push_back( new DumpModel(prefix.c_str()));
+    if (modelName == "dump") {
+      model.push_back( new DumpModel(prefix.c_str()));
+    } else {
+      logger->error("Unknown model name: %s .", modelName.c_str());
+      abort();
+    }
   } else {
     logger->error("Unrecognized model type [ %s ]", modelType.c_str());
     return -1;

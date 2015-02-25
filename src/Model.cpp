@@ -1,9 +1,8 @@
 #include "ModelFitter.h"
 
+#include "Model.h"
 #include "ModelParser.h"
-#include "TabixUtil.h"
 
-#if 0
 //////////////////////////////////////////////////////////////////////
 // Implementation of various collpasing methods
 /**
@@ -346,4 +345,3 @@ void appendHeritability(FileWriter* fp, const GrammarGamma& model) {
   fp->printf("#Heritability\t%g\n", herit);
 }
 
-#endif 

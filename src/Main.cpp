@@ -21,9 +21,11 @@
 #include "DataLoader.h"
 #include "DataConsolidator.h"
 #include "ModelFitter.h"
+#include "ModelManager.h"
 #include "GitVersion.h"
 #include "Result.h"
 #include "base/Indexer.h"
+#include "regression/LinearRegression.h"
 
 Logger* logger = NULL;
 

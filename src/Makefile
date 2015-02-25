@@ -18,32 +18,33 @@ $(DIR_EXEC_DBG):
 .PHONY: all release debug lib lib-dbg
 
 release: CXX_FLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS) $(STATIC_FLAG)
-release: $(DIR_EXEC)/$(EXEC) 
+release: $(DIR_EXEC)/$(EXEC)
+OBJ = Main.o \
+      DataConsolidator.o \
+      ModelFitter.o \
+      TabixUtil.o \
+      ModelManager.o \
+      Model.o \
+
 $(DIR_EXEC)/$(EXEC):  $(LIBS) \
-                      Main.o \
-                      DataConsolidator.o \
-                      ModelFitter.o \
-                      TabixUtil.o \
+                      $(OBJ) \
                       |$(DIR_EXEC)
-	$(CXX) -o $@ Main.o DataConsolidator.o ModelFitter.o TabixUtil.o $(CXX_FLAGS) $(CXX_LIB)
+	$(CXX) -o $@ $(OBJ) $(CXX_FLAGS) $(CXX_LIB)
 
 debug: CXX_FLAGS = -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(DIR_EXEC_DBG)/$(EXEC) 
 profile: CXX_FLAGS = -pg -O0 $(DEFAULT_CXXFLAGS)
 profile: $(DIR_EXEC_DBG)/$(EXEC) 
 $(DIR_EXEC_DBG)/$(EXEC): $(LIBS_DBG) \
-                         Main.o \
-                         DataConsolidator.o \
-                         Collapsor.h \
-                         ModelFitter.o \
-                         TabixUtil.o \
+                         $(OBJ) \
                          | $(DIR_EXEC_DBG)
-	$(CXX) -o $@ Main.o DataConsolidator.o ModelFitter.o TabixUtil.o $(CXX_FLAGS) $(CXX_LIB_DBG) 
+	$(CXX) -o $@ $(OBJ) $(CXX_FLAGS) $(CXX_LIB_DBG) 
 
 
 ##################################################
 ../GitVersion.h:
 	(cd $(ROOT); $(MAKE)  GitVersion.h)
+
 -include Main.d
 Main.o: Main.cpp ../GitVersion.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
@@ -58,6 +59,14 @@ ModelFitter.o: ModelFitter.cpp ModelFitter.h
 
 -include TabixUtil.d
 TabixUtil.o: TabixUtil.cpp TabixUtil.h
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+
+-include ModelManager.d
+ModelManager.o: ModelManager.cpp ModelManager.h
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+
+-include Model.d
+Model.o: Model.cpp Model.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 ##################################################

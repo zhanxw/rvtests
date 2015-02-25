@@ -1,88 +1,12 @@
 #ifndef _MODELFITTER_H_
 #define _MODELFITTER_H_
 
-/* #include <gsl/gsl_rng.h> */
-/* #include <gsl/gsl_randist.h> */
-
-/* #include <deque> */
-
 #include <string>
 #include <vector>
 
 #include "libsrc/MathMatrix.h"
 #include "Result.h"
 #include "Summary.h"
-
-#if 0
-#include "base/ParRegion.h"
-#include "regression/LogisticRegression.h"
-#include "regression/LogisticRegressionScoreTest.h"
-#include "regression/LogisticRegressionVT.h"
-#include "regression/LinearRegression.h"
-#include "regression/LinearRegressionScoreTest.h"
-#include "regression/LinearRegressionVT.h"
-#include "regression/Skat.h"
-#include "regression/Table2by2.h"
-#include "regression/kbac_interface.h"
-#include "regression/FastLMM.h"
-#include "regression/GrammarGamma.h"
-#include "regression/MetaCov.h"
-#include "regression/MatrixOperation.h"
-#include "regression/MultivariateVT.h"
-#include "regression/FamSkat.h"
-#include "regression/FirthRegression.h"
-
-#include "DataConsolidator.h"
-#include "LinearAlgebra.h"
-#include "ModelUtil.h"
-#include "snp_hwe.c"
-#include "Result.h"
-#include "Summary.h"
-#endif
-
-#if 0
-// may decrease speed.
-#ifdef _OPENMP
-#include <omp.h>
-#pragma message "Enable multithread using OpenMP"
-#endif
-#endif
-
-#if 0
-extern SummaryHeader* g_SummaryHeader;
-
-typedef void (*CollapsingFunction)(Matrix& in, const std::vector<int>& idx, Matrix* out, int index);
-
-// various collapsing method
-// they all take people by marker matrix
-// and they won't take special care of missing genotypes
-double getMarkerFrequency(Matrix& in, int col);
-void getMarkerFrequency(Matrix& in, std::vector<double>* freq);
-double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col);
-
-void cmcCollapse(Matrix& in, Matrix* out);
-void cmcCollapse(Matrix& in, const std::vector<int>& idx, Matrix* out, int index);
-
-void zegginiCollapse(Matrix& in, Matrix* out);
-void zegginiCollapse(Matrix& in, const std::vector<int>& idx, Matrix* out, int index);
-
-void fpCollapse(Matrix& in, Matrix* out);
-
-void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out);
-
-void groupFrequency(const std::vector<double>& freq, std::map<double, std::vector<int> >* group);
-void convertToMinorAlleleCount(Matrix& in, Matrix* g);
-void convertToReferenceAlleleCount(Matrix& in, Matrix* g);
-
-void makeVariableThreshodlGenotype(Matrix& in,
-                                   const std::vector<double>& freqIn,
-                                   Matrix* out,
-                                   std::vector<double>* freqOut,
-                                   void (*collapseFunc)(Matrix& , const std::vector<int>& , Matrix*, int)
-                                   );
-void appendHeritability(FileWriter* fp, const FastLMM& model);
-void appendHeritability(FileWriter* fp, const GrammarGamma& model);
-#endif
 
 class DataConsolidator;
 // take X, Y, Cov and fit model

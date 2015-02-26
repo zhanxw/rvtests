@@ -28,6 +28,7 @@ public:
   // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
   int GetWeight(Vector* out);
 
+  // get Z' \Sigma^{-1} Z
   void GetCovZZ(Matrix* zz);
 };
 

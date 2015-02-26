@@ -424,12 +424,18 @@ class FastLMM::Impl{
     if (!beta) return;
     Eigen_Column_to_G(this->beta, 0, beta);
   }
+  // Calculate (X' \Sigma^{-1} X)^{-1}
+  // = (X'U (\simga_g2*\lambda + sigma_e2*I)U'X)^{-1}
+  // = (X'U (\lambda + delta*I)U'X)^{-1} / \sigma_g2
   void GetNullCovB(Matrix* betaCov) {
     if (!betaCov) return;
-    //TODO: calculate (X' \Sigma^{-1} X)^{-1}
-    int n = this->beta.rows();
-    Eigen::MatrixXf Sigma = Eigen::MatrixXf::Zero(n, n);
-    Eigen_to_G(Sigma, betaCov);
+
+    const int n = ux.cols();
+    Eigen::MatrixXf m = (ux.transpose() *
+                         (lambda.array() + delta).matrix() *
+                         ux).ldlt().solve(Eigen::MatrixXf::Identity(n,n));
+    fprintf(stderr, "m[0][0] = %g\n", m(0,0));
+    Eigen_to_G(m, betaCov);
   }
   void CalculateFactors(const Eigen::MatrixXf& U) {
     const double sigmaE2 = sigma2 * delta;

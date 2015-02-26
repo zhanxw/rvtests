@@ -3103,7 +3103,8 @@ class MetaScoreTest: public ModelFitter{
       double sigmaG2 = lmm.GetSigmaG2();
       double sigmaE2 = lmm.GetSigmaE2();
 
-      fp->printf("## - Name\tBeta\tSD\n");
+      fp->write("##NullModelEstimates\n");
+      fp->write("## - Name\tBeta\tSD\n");
       fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
@@ -3172,9 +3173,9 @@ class MetaScoreTest: public ModelFitter{
     void PrintNullModel(FileWriter* fp, const std::vector<std::string>& covLabel) {
       Vector& beta   = linear.GetNullCovEst();
       Matrix& betaSd = linear.GetNullCovB();
-      double sigma = linear.GetSigma2();
 
-      fp->printf("## - Name\tBeta\tSD\n");
+      fp->write("##NullModelEstimates\n");
+      fp->write("## - Name\tBeta\tSD\n");
       fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
@@ -3182,10 +3183,10 @@ class MetaScoreTest: public ModelFitter{
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
       }
       // sigma
-      fp->printf("## - Sigma2\t%g\tNA\n", sigma);
+      fp->printf("## - Sigma2\t%g\tNA\n", sigma2);
     }
     double GetU(){return linear.GetU()[0][0] / sigma2;}
-    double GetV(){return linear.GetV()[0][0] / sigma2;}
+    double GetV(){return linear.GetV()[0][0] / sigma2 / sigma2;}
     double GetEffect() {return linear.GetV()[0][0] != 0.0 ? linear.GetBeta()[0][0] : 0.0;}
     double GetPvalue() {return linear.GetPvalue();}
    private:
@@ -3238,7 +3239,8 @@ class MetaScoreTest: public ModelFitter{
       Vector& beta   = logistic.GetNullCovEst();
       Matrix& betaSd = logistic.GetNullCovB();
 
-      fp->printf("## - Name\tBeta\tSD\n");
+      fp->write("##NullModelEstimates\n");
+      fp->write("## - Name\tBeta\tSD\n");
       fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {

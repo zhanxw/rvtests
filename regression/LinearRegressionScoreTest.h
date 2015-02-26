@@ -37,6 +37,9 @@ class LinearRegressionScoreTest{
 
   // U and V matrix are square matrice with dimension equalling to Xcol
   // e.g. when testing a single beta coefficient, U and V are 1 by 1 matrice.
+  // e.g. when there is no covariates or intercept
+  // U = x' * (y - y_hat)
+  // V = x' * x * sigma2
   const Matrix& GetU() const {return this->Umatrix;};
   const Matrix& GetV() const {return this->Vmatrix;};
   const Matrix& GetBeta() const { return this->betaMatrix;}

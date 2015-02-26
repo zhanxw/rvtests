@@ -9,6 +9,8 @@
 #include "Summary.h"
 
 class DataConsolidator;
+class ModelParser;
+
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
@@ -30,6 +32,12 @@ class ModelFitter{
     this->indexResult = false;
   }
   virtual ~ModelFitter() {}
+  // each model may have its own set of params, use this to set it up
+  virtual int setParameter(const ModelParser& parser) {
+    // maybe check whether user provides duplicated/non-existing parameters
+    return 0;
+  }
+
   const std::string& getModelName() const { return this->modelName; };
   // for particular class to call when fitting repeatedly
   // e.g. clear permutation counter
@@ -60,16 +68,22 @@ class ModelFitter{
   void setPrefix(const std::string& p) {
     this->outputPrefix = p;
   }
+  std::string getPrefix() const {
+    return this->outputPrefix;
+  }
  protected:
+  // specify this for sub-classes
   std::string modelName;
+  
+  // these are set up when creating classes
   bool binaryOutcome;
   bool familyModel;
   bool indexResult;
   Result result;
-  FileWriter* fp;
+  std::string outputPrefix;
+  // FileWriter* fp;
 
   // optionally used
-  std::string outputPrefix;
   std::vector<SummaryHeader*> header;
 }; // end ModelFitter
 #endif /* _MODELFITTER_H_ */

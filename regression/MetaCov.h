@@ -21,11 +21,14 @@ public:
   // @return 0 when success
   int FitNullModel(Matrix& Xnull, Matrix& y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
-  // U * ( x - center(x) )
+  // U' * ( x - center(x) )
   int TransformCentered(std::vector<double>* x,
-                        const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
-  // @param out = sigma2_g * (lambda + delta) ;
+                        const EigenMatrix& kinshipU,
+                        const EigenMatrix& kinshipS);
+  // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
   int GetWeight(Vector* out);
+
+  void GetCovZZ(Matrix* zz);
 };
 
 

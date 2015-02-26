@@ -7,7 +7,7 @@ extern Logger* logger;
 
 /**
  * Parse "mb" to {"mb"}
- * Parse "mb[nperm=10000, alpha=0.1]" then later use assign("nperm", &p) to set value for p 
+ * Parse "mb[nperm=10000, alpha=0.1]" then later use assign("nperm", &p) to set value for p
  */
 class ModelParser{
  public:
@@ -41,14 +41,14 @@ class ModelParser{
         std::string key = params[i].substr(0, l);
         std::string value = params[i].substr(l + 1, params[i].size() - l - 1);
         this->param[key] = value;
-      };
-    };
+      }
+    }
     logger->info("load %zu parameters.", this->size());
     return 0;
   }
   const std::string& getName() const {
     return this->name;
-  };
+  }
   bool hasTag(const std::string& tag) const {
     return (this->param.find(tolower(tag)) != this->param.end());
   }
@@ -57,6 +57,9 @@ class ModelParser{
       return this->param.find(tolower(tag))->second.c_str();
     }
     return NULL;
+  }
+  size_t size() const {
+    return this->param.size();
   }
   /**
    * assign @param tag to @param value
@@ -68,7 +71,7 @@ class ModelParser{
       (*value) = false;
     }
     return (*this);
-  };
+  }
   const ModelParser& assign(const std::string& tag, double* value) const{
     if (this->hasTag(tag)) {
       (*value) = atof(this->value(tag));
@@ -76,7 +79,7 @@ class ModelParser{
       logger->error("Cannot find parameter [ %s ]", tag.c_str());
     }
     return (*this);
-  };
+  }
   const ModelParser& assign(const std::string& tag, int* value) const{
     if (this->hasTag(tag)) {
       double d = atof(this->value(tag));
@@ -89,7 +92,7 @@ class ModelParser{
       logger->error("Cannot find parameter [ %s ]", tag.c_str());
     }
     return (*this);
-  };
+  }
   const ModelParser& assign(const std::string& tag, std::string* value) const{
     if (this->hasTag(tag)) {
       (*value) = (this->value(tag));
@@ -97,7 +100,7 @@ class ModelParser{
       logger->error("Cannot find parameter [ %s ]", tag.c_str());
     }
     return (*this);
-  };
+  }
   /**
    * if @param tag is provided, assign @param tag to @param value
    * otherwise, set @param value to @param def
@@ -109,7 +112,7 @@ class ModelParser{
       (*value) = def;
     }
     return (*this);
-  };
+  }
   const ModelParser& assign(const std::string& tag, double* value, const double def) const{
     if (this->hasTag(tag)) {
       (*value) = atof(this->value(tag));
@@ -117,7 +120,7 @@ class ModelParser{
       (*value) = def;
     }
     return (*this);
-  };
+  }
   const ModelParser& assign(const std::string& tag, int* value, const int def) const{
     if (this->hasTag(tag)) {
       // convert double then to integer
@@ -132,7 +135,7 @@ class ModelParser{
       (*value) = def;
     }
     return (*this);
-  };
+  }
   const ModelParser& assign(const std::string& tag, std::string* value, const std::string& def) const{
     if (this->hasTag(tag)) {
       (*value) = (this->value(tag));
@@ -140,10 +143,7 @@ class ModelParser{
       (*value) = def;
     }
     return (*this);
-  };
-  const size_t size() const {
-    return this->param.size();
-  };
+  }
   static const char LEFT_DELIM = '[';
   static const char RIGHT_DELIM = ']';
   static const char PARAM_DELIM = ':';
@@ -151,9 +151,7 @@ class ModelParser{
   std::string name;
   // Store parsed parameters
   // use this->value() and this->hasTag() to access this.
-  std::map<std::string, std::string> param; 
+  std::map<std::string, std::string> param;
 };
-
-
 
 #endif /* _MODELPARSER_H_ */

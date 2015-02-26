@@ -1,6 +1,8 @@
 #ifndef _FASTLMM_H_
 #define _FASTLMM_H_
 
+#include <vector>
+
 class EigenMatrix;
 class Matrix;
 class Vector;
@@ -56,6 +58,20 @@ class FastLMM{
   // get estimates from null
   void GetNullCovEst(Vector* beta);
   void GetNullCovB(Matrix* betaCov);
+  // get scaled factors
+  double GetSigmaK();
+  double GetSigma1();
+  // get covariance
+  void GetCovZY(Matrix* zy);  // Cov(YZ) = Y' Simga^{-1} Z
+  void GetCovZZ(Matrix* zz);  // Cov(ZZ) = Z' Simga^{-1} Z
+  // transform genotype (e.g. in MetaCov)
+  // x <- U' * ( x - center(x) )
+  int TransformCentered(std::vector<double>* x,
+                        const EigenMatrix& kinshipU,
+                        const EigenMatrix& kinshipS);
+  // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
+  int GetWeight(Vector* out) const;
+  
 };
 
 

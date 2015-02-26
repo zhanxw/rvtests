@@ -44,7 +44,7 @@ class FastLMM::Impl{
     // e.g. lambd[i] = -0.00013, and delta = 8e-5, then (1/(lambda[i] + delta))
     //      becomes extremely large negative values, and it affects results
     this->lambda = this->lambda.cwiseAbs();
-    
+
     const Eigen::MatrixXf& U = kinshipU.mat;
 
     // rotate
@@ -126,6 +126,7 @@ class FastLMM::Impl{
     const Eigen::MatrixXf Sinv = (this->lambda.array() + delta).inverse().matrix().asDiagonal();
     this->scaledK = Sinv - Sinv * ux * (ux.transpose() * Sinv * ux).inverse() * ux.transpose() * Sinv;
 
+    CalculateFactors(U);
     return 0;
   }
   int TestCovariate(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
@@ -314,14 +315,14 @@ class FastLMM::Impl{
   }
   // NOTE: need to fit null model before calling this function
   double GetAFFromUg(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, const Eigen::MatrixXf& ug) const{
-    // K = U S U^t = U * (lambda + delta) * U^t
+    // K = U S U^t = U * (lambda) * U^t
     // 1 = (n by 1)  matrix
     // G = (n by 1) genotype matrix
     // AF = (1^t K^(-1) 1)^(-1) * (1^t K^(-1) G)
-    //    = (1^t U (lambda + delta)^(-1) * U^t * 1)^(-1) *
-    //      (1^t U (lambda + delta)^(-1) * U^t * G)
-    //    = ((U^t*1)^t * (lambda + delta)^(-1) * (U^t*1))^(-1)
-    //      ((U^t*1)^t * (lambda + delta)^(-1) * (U^t * G))
+    //    = (1^t U (lambda)^(-1) * U^t * 1)^(-1) *
+    //      (1^t U (lambda)^(-1) * U^t * G)
+    //    = ((U^t*1)^t * (lambda)^(-1) * (U^t*1))^(-1)
+    //      ((U^t*1)^t * (lambda)^(-1) * (U^t * G))
     //    = (u1s * u1)^(-1) * (u1s * ug)
     const Eigen::MatrixXf& U = kinshipU.mat;
     Eigen::MatrixXf u1 = U.transpose().rowwise().sum();
@@ -430,18 +431,68 @@ class FastLMM::Impl{
     Eigen::MatrixXf Sigma = Eigen::MatrixXf::Zero(n, n);
     Eigen_to_G(Sigma, betaCov);
   }
+  void CalculateFactors(const Eigen::MatrixXf& U) {
+    const double sigmaE2 = sigma2 * delta;
+    const double sigmaG2 = sigma2;
 
- private:
-  // define function to be applied coefficient-wise
-  template<typename Scalar>
-  struct  Ramp{
-    const Scalar operator()(const Scalar& x) const{
-      if (x > 0.)
-        return x;
-      else
-        return 0.;
+    sigmaK =  sigmaG2 * lambda.array().square().sum() +
+              sigmaE2 * lambda.sum();
+
+    sigma1 = sigmaG2 * (U.colwise().sum().array().square().matrix() * lambda).sum() +
+             sigmaE2 * U.rows();
+  }
+  double GetSigmaK(){
+    return this->sigmaK;
+  }
+  double GetSigma1(){
+    return this->sigma1;
+  }
+  // Z: covariate (U'Z stored in this->ux)
+  // Y: phenotype/response (U'Y stored in this->uy)
+  // Cov(ZY) = Z' Simga^{-1} Y
+  //  = Z' (K*sigma_G2 + I*sigma_E2)^{-1} Y
+  //  = Z' U (lambda*sigma_G2 + I*sigma_E2)^{-1} U' Y
+  //  = (U'Z)' (lambda + I*delta)^{-1} (U' Y) / sigma_G2
+  void GetCovZY(Matrix* zy) {
+    Eigen::MatrixXf m;
+    m = (ux.transpose() *
+         (this->lambda.array() + delta).inverse().matrix().asDiagonal() *
+         uy) / sigma2;
+    Eigen_to_G(m, zy);
+  }
+  // similar to GetCovZY
+  void GetCovZZ(Matrix* zz) {
+    Eigen::MatrixXf m;
+    m = (ux.transpose() *
+         (this->lambda.array() + delta).inverse().matrix().asDiagonal() *
+         ux) / sigma2;
+    Eigen_to_G(m, zz);
+  }
+  int TransformCentered(std::vector<double>* geno,
+                        const EigenMatrix& kinshipU,
+                        const EigenMatrix& kinshipS) {
+    // type conversion
+    int n = geno->size();
+    Eigen::Map<Eigen::MatrixXd> gD(geno->data(), n, 1);
+    Eigen::MatrixXf g = gD.cast<float>();
+    Eigen::RowVectorXf g_mean = g.colwise().mean();
+    const Eigen::MatrixXf& U = kinshipU.mat;
+    g = U.transpose() * (g.rowwise() - g_mean);
+    for(int i = 0; i < n; ++i){
+      (*geno)[i] = (double) g(i, 0);
     }
-  };
+    return 0;
+  }
+  int GetWeight(Vector* out) const {
+    const int n = lambda.rows();
+    out->Dimension(n);
+    for (int i = 0; i < n ; ++i){
+      (*out)[i] = sigma2 * (lambda(i) + delta) ;
+    }
+    // fprintf(stderr, "sigma2 = %g, lambda(0) = %g, lambda(99) = %g, delta = %g\n", sigma2, lambda(0), lambda(99), delta);
+    return 0;
+  }
+
  private:
   // Eigen::MatrixXf S;
   float sigma2;     // sigma2_g
@@ -469,6 +520,8 @@ class FastLMM::Impl{
 
  private:
   Eigen::MatrixXf scaledK;
+  double sigmaK;
+  double sigma1;
 };
 
 //////////////////////////////////////////////////
@@ -526,6 +579,16 @@ void FastLMM::GetBeta(EigenMatrix* beta) const {
 }
 void FastLMM::GetNullCovEst(Vector* beta) {return this->impl->GetNullCovEst(beta);}
 void FastLMM::GetNullCovB(Matrix* betaCov) {return this->impl->GetNullCovB(betaCov);}
+double FastLMM::GetSigmaK() {return this->impl->GetSigmaK();}
+double FastLMM::GetSigma1() {return this->impl->GetSigma1();}
+void FastLMM::GetCovZY(Matrix* zy) {return this->impl->GetCovZY(zy);}
+void FastLMM::GetCovZZ(Matrix* zz) {return this->impl->GetCovZZ(zz);}
+int FastLMM::TransformCentered(std::vector<double>* x,
+                               const EigenMatrix& kinshipU,
+                               const EigenMatrix& kinshipS) {
+  return this->impl->TransformCentered(x, kinshipU, kinshipS);
+}
+int FastLMM::GetWeight(Vector* out) const {return this->impl->GetWeight(out);}
 
 // need to negaive the MLE to minize it
 double goalFunction(double x, void* param) {

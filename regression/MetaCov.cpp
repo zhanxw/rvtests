@@ -1,8 +1,10 @@
 #include "MetaCov.h"
-#include "EigenMatrix.h"
-#include "EigenMatrixInterface.h"
-#include "Eigen/Dense"
-#include "GSLMinimizer.h"
+#include "FastLMM.h"
+
+// #include "EigenMatrix.h"
+// #include "EigenMatrixInterface.h"
+// #include "Eigen/Dense"
+// #include "GSLMinimizer.h"
 
 #if 0
 #include <fstream>
@@ -24,10 +26,13 @@ static double goalFunction(double x, void* param);
 
 class MetaCov::Impl{
  public:
-  Impl(){
-  }
+  Impl(): lmm(FastLMM::SCORE, FastLMM::MLE) {}
   int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS){
+    return lmm.FitNullModel(mat_Xnull, mat_y, kinshipU, kinshipS);
+  }
+  
+#if 0    
     // sanity check
     if (mat_Xnull.rows != mat_y.rows) return -1;
     if (mat_Xnull.rows != kinshipU.mat.rows()) return -1;
@@ -146,9 +151,14 @@ class MetaCov::Impl{
     // this->nullLikelihood = ret;
     return ret;
   }
-  // U * ( x - center(x) )
+#endif
+  
+  // U' * ( x - center(x) )
   int TransformCentered(std::vector<double>* geno,
                         const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
+    return lmm.TransformCentered(geno, kinshipU, kinshipS);
+  }
+#if 0
     // type conversion
     int n = geno->size();
     this->g.resize(n, 1);
@@ -163,7 +173,12 @@ class MetaCov::Impl{
     }
     return 0;
   }
+#endif
+
   int GetWeight(Vector* out) const {
+    return lmm.GetWeight(out);
+  }
+#if 0
     const int n = lambda.rows();
     out->Dimension(n);
     for (int i = 0; i < n ; ++i){
@@ -172,8 +187,14 @@ class MetaCov::Impl{
     // fprintf(stderr, "sigma2 = %g, lambda(0) = %g, lambda(99) = %g, delta = %g\n", sigma2, lambda(0), lambda(99), delta);
     return 0;
   }
-
+#endif
+  void GetCovZZ(Matrix* zz) {
+    return lmm.GetCovZZ(zz);
+  }
  private:
+  FastLMM lmm;
+
+#if 0
   // Eigen::MatrixXf S;
   float sigma2;     // sigma2_g
   float delta;      // delta =  sigma2_e / sigma2_g
@@ -185,7 +206,7 @@ class MetaCov::Impl{
   // Eigen::MatrixXf ug; // U' * g
   Eigen::MatrixXf lambda;
   double sumResidual2; // sum (  (Uy - Ux *beta)^2/(lambda + delta) )
-
+#endif
 };
 
 //////////////////////////////////////////////////
@@ -214,9 +235,6 @@ int  MetaCov::GetWeight(Vector* out){
   return this->impl->GetWeight(out);
 }
 
-// need to negaive the MLE to minize it
-double goalFunction(double x, void* param) {
-  MetaCov::Impl* p = (MetaCov::Impl*) param;
-  p->getBetaSigma2(x);
-  return (- p->getLogLikelihood(x) );
+void MetaCov::GetCovZZ(Matrix* zz) {
+  this->impl->GetCovZZ(zz);
 }

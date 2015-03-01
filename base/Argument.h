@@ -380,8 +380,7 @@ class ParameterParser{
         continue;
       }
 
-      bool isLongParam = false; // I did not make use of this variable.
-      UNUSED(isLongParam);
+      bool isLongParam = false; 
       unsigned int choppedLeadingDash = 0;
       // user may input ---flag, ----flag, ..., and we will chop all leading -
       // user may also input ---, ----, but I don't understand what that means, so report error
@@ -393,15 +392,16 @@ class ParameterParser{
           break;
         }
       }
-      if (flag.size() > 0) {
-        if (choppedLeadingDash > 1) {
-          isLongParam = true;
-        } else {
-          isLongParam = false;
-        }
-      } else { // (flag.size() == 0
+      if (flag.empty()) {
         fprintf(stderr, "ERROR: we don't understand the argument \"%s\"\n", argv[i]);
-        return;
+        return;        
+      }
+      if (choppedLeadingDash > 2) {
+        fprintf(stderr, "WARNING: you typed too many dash in \"%s\"?\n", argv[i]);
+      } else if (choppedLeadingDash == 1 && flag.size() > 1) {
+        fprintf(stderr, "WARNING: long parameter should have two lead dashes: \"%s\"?\n", argv[i]);
+      } else if (choppedLeadingDash > 1 && flag.size() == 1) {
+        fprintf(stderr, "WARNING: long parameter should have two lead dashes: \"%s\"?\n", argv[i]);
       }
 
       // check if variable flag is a predefined flag or not

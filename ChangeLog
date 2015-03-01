@@ -1,3 +1,7 @@
+2015-02-26  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Restructure classes and reduce duplicated codes
+
 2015-02-08  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve numeric stability for linear mixed models

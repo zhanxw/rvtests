@@ -207,6 +207,11 @@ bool LogisticRegression::FitLogisticModel(Matrix & X, Matrix & y, int rnrounds) 
 };
 
 bool LogisticRegression::FitLogisticModel(Matrix & X, Vector & succ, Vector& total, int nrrounds) {
+  // make sure nrrounds >= 1
+  if (nrrounds <= 0) {
+    return false;
+  }
+  
   this-> Reset(X);
 
   G_to_Eigen(X, &this->w->X);

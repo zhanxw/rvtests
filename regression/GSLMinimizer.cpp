@@ -23,7 +23,11 @@ int Minimizer::minimize(gsl_function F, double startValue, double lowerBound, do
   do {
     iter++;
     status = gsl_min_fminimizer_iterate (s);
-
+    if (status == GSL_EBADFUNC ||
+        status == GSL_FAILURE) {
+      return -1;
+    }
+    
     finalX = gsl_min_fminimizer_x_minimum (s);
     a = gsl_min_fminimizer_x_lower (s);
     b = gsl_min_fminimizer_x_upper (s);

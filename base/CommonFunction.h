@@ -180,13 +180,12 @@ inline void zero(std::vector<double>* y) {
 
 inline void standardize(std::vector<double>* y) {
   // center
-  size_t n = y->size();
   double m = calculateMean(*y);
   double sd = calculateSD(*y);
   if (sd == 0.0) {
     zero(y);
+    return;
   }
-  return;
   
   for (size_t i = 0; i < n ; i++) {
     (*y)[i] -= m;

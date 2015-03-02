@@ -10,7 +10,7 @@
 class SimpleMatrix;
 
 class PlinkInputFile{
-public:
+ public:
   PlinkInputFile(const char* fnPrefix) {
     this->prefix = fnPrefix;
     this->fpBed = fopen( (prefix + ".bed").c_str(), "rb");
@@ -27,6 +27,9 @@ public:
     int ret;
     UNUSED(ret);
     ret = fread(&c, sizeof(char), 1, this->fpBed);
+    if (ret != 1) {
+      fprintf(stderr, "Encounter error when reading plink BED files.\n");
+    }
     assert(ret == 1);
     if (c != magic1) {
       fprintf(stderr, "Magic number of binary PLINK file does not match!\n");
@@ -34,6 +37,9 @@ public:
     }
     int magic2 = 0x1b; // 0b00011011;
     ret = fread(&c, sizeof(char), 1, this->fpBed);
+    if (ret != 1) {
+      fprintf(stderr, "Encounter error when reading plink magic number.\n");
+    }
     assert(ret == 1);
     if (c != magic2) {
       fprintf(stderr, "Magic number of binary PLINK file does not match!\n");
@@ -44,6 +50,9 @@ public:
     const int SNP_MAJOR_MODE = 0x01; //0b00000001;
     const int INDV_MAJOR_MODE = 0x00;
     ret = fread(&c, sizeof(char), 1, this->fpBed);
+    if (ret != 1) {
+      fprintf(stderr, "Encounter error when determining plink files modes.\n");
+    }
     assert(ret == 1);
     if ( c == SNP_MAJOR_MODE) {
       this->snpMajorMode = true;
@@ -124,7 +133,7 @@ public:
     return this->snp2Idx.size();
   };
 
-public:
+ public:
   std::vector<std::string> chrom;
   std::vector<std::string> snp;
   std::vector<double> mapDist;
@@ -136,7 +145,7 @@ public:
   std::vector<int> sex;
   std::vector<double> pheno;
 
-private:
+ private:
   std::map<std::string, int> snp2Idx;
   std::map<std::string, int> pid2Idx;
   // we reverse the two bits as defined in PLINK format,

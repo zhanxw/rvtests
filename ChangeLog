@@ -1,3 +1,8 @@
+2015-03-02  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Clean code
+	* Support log for vcf2kinship
+
 2015-02-26  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Restructure classes and reduce duplicated codes

@@ -434,7 +434,7 @@ class FastLMM::Impl{
     Eigen::MatrixXf m = (ux.transpose() *
                          (lambda.array() + delta).matrix() *
                          ux).ldlt().solve(Eigen::MatrixXf::Identity(n,n));
-    fprintf(stderr, "m[0][0] = %g\n", m(0,0));
+    // fprintf(stderr, "m[0][0] = %g\n", m(0,0));
     Eigen_to_G(m, betaCov);
   }
   void CalculateFactors(const Eigen::MatrixXf& U) {

@@ -9,20 +9,23 @@
 #include <vector>
 #include <algorithm>
 
-#include "Utils.h"
-#include "VCFUtil.h"
-
-#include "base/SimpleMatrix.h"
-#include "base/Indexer.h"
-#include "base/Kinship.h"
-#include "base/Pedigree.h"
+#include "GitVersion.h"
 
 #include "third/eigen/Eigen/Core"
 #include "third/eigen/Eigen/Eigenvalues"
 
-#include "IO.h"
-#include "Regex.h"
-#include "ParRegion.h"
+#include "base/Indexer.h"
+#include "base/IO.h"
+#include "base/Kinship.h"
+#include "base/Logger.h"
+#include "base/ParRegion.h"
+#include "base/Pedigree.h"
+#include "base/Regex.h"
+#include "base/SimpleMatrix.h"
+#include "base/TimeUtil.h"
+#include "base/Utils.h"
+
+#include "libVcf/VCFUtil.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -36,7 +39,7 @@ class EmpiricalKinship{
   virtual const SimpleMatrix& getKinship() const = 0;
   // number of sites used in this calculation
   virtual int getSiteNumber() const = 0;
-  virtual ~EmpiricalKinship() {};
+  virtual ~EmpiricalKinship() {}
  public:
   int setSex(std::vector<int>* sex) {
     this->sex = sex;
@@ -62,7 +65,7 @@ class EmpiricalKinship{
  */
 class IBSKinshipImpute: public EmpiricalKinship {
  public:
-  IBSKinshipImpute(): n(0) {};
+  IBSKinshipImpute(): n(0) {}
   // missing genotype is less than 0.0
   int addGenotype(const std::vector<double>& g) {
     if (n == 0) {
@@ -140,7 +143,7 @@ class IBSKinshipImpute: public EmpiricalKinship {
  */
 class IBSKinship: public EmpiricalKinship {
  public:
-  IBSKinship(): n(0) {};
+  IBSKinship(): n(0) {}
   // missing genotype is less than 0.0
   int addGenotype(const std::vector<double>& g) {
     if (n == 0) {
@@ -192,7 +195,7 @@ class IBSKinship: public EmpiricalKinship {
  */
 class BaldingNicolsKinship: public EmpiricalKinship {
  public:
-  BaldingNicolsKinship(): n(0) {};
+  BaldingNicolsKinship(): n(0) {}
   // missing genotype is less than 0.0
   int addGenotype(const std::vector<double>& g) {
     if (n == 0) {
@@ -214,7 +217,6 @@ class BaldingNicolsKinship: public EmpiricalKinship {
       } else {
         geno[i] = g[i];
         sum+= g[i];
-        // sumSquare += g[i] * g[i];
         ++nonMiss;
       }
     }
@@ -222,12 +224,8 @@ class BaldingNicolsKinship: public EmpiricalKinship {
 
     double mean = 0.0;
     double scale = 0.0;
-    // double var = 0.0;
     if (nonMiss > 0) {
       mean = sum / nonMiss;
-      // var =  sumSquare / n  - mean * mean;
-      // mean = 2*p, var = 2*p*(1-p)
-      // var = mean * (1 - mean / 2)
       scale = sqrt(1.0 / (1.0 - mean/2.0) / mean);
       // fprintf(stderr, "mean = %g, scale = %g\n", mean, scale);
     }
@@ -247,13 +245,9 @@ class BaldingNicolsKinship: public EmpiricalKinship {
     for (size_t i = 0; i < numG; ++i) {
       if (geno[i] == 0.0) continue; // skip missing marker
       for (size_t j = 0; j <= i; ++j) {
-        // if (i == 0 && j == 0) {
-        //   fprintf(stderr, "k[0][0] = %g\n", k[0][0]);
-        // }
         k[i][j] += (geno[i] * geno[j]);
       }
     }
-    // fprintf(stderr, "mean = %g, scale = %g, k[0][0] = %g\n", mean, scale, k[0][0]);
 
     ++n;
     return 0;
@@ -288,7 +282,7 @@ class BaldingNicolsKinship: public EmpiricalKinship {
  */
 class BaldingNicolsKinshipForX: public EmpiricalKinship {
  public:
-  BaldingNicolsKinshipForX(): n(0) {};
+  BaldingNicolsKinshipForX(): n(0) {}
 
   // male genotypes should be coded as 0, 1, -9
   // female gentoypes should be coded as 0, 1, 2, -9
@@ -306,7 +300,6 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
 
     geno.resize(g.size());
     double sum = 0.0;
-    // double sumSquare = 0.0;
     int alleleCount = 0; // male has 1 X chrom; female has 2
     for (size_t i = 0; i < g.size(); ++i) {
       // check validity
@@ -318,7 +311,6 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
       } else {
         geno[i] = g[i];
         sum+= g[i];
-        // sumSquare += g[i] * g[i];
         if ((*sex)[i] == PLINK_MALE) {
           alleleCount += 1;
         } else {
@@ -365,7 +357,6 @@ class BaldingNicolsKinshipForX: public EmpiricalKinship {
         k[i][j] += geno[i] * geno[j];
       }
     }
-    // fprintf(stderr, "mean = %g, scale = %g, k[0][0] = %g\n", mean, scale, k[0][0]);
     ++n;
     return 0;
   }
@@ -410,7 +401,7 @@ void usage(int argc, char** argv) {
 }
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20140623"
+#define VERSION "20150302"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s)\n", PROGRAM, VERSION);
@@ -422,10 +413,8 @@ void welcome() {
   fprintf(stdout, "\n");
 }
 
+Logger* logger = NULL;
 int main(int argc, char** argv){
-  time_t startTime = time(0);
-  fprintf(stderr, "Analysis started at: %s", ctime(&startTime));
-
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
       ADD_PARAMETER_GROUP(pl, "Input/Output")
@@ -462,7 +451,6 @@ int main(int argc, char** argv){
       ADD_DOUBLE_PARAMETER(pl, minGD, "--minGD", "Specify the minimum genotype depth, otherwise marked as missing genotype")
 
       ADD_PARAMETER_GROUP(pl, "Other Function")
-      // ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")
       ADD_STRING_PARAMETER(pl, updateId, "--update-id", "Update VCF sample id using given file (column 1 and 2 are old and new id).")
       ADD_DEFAULT_INT_PARAMETER(pl, thread, 1, "--thread", "Specify number of parallel threads to speed up")
       ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
@@ -486,14 +474,29 @@ int main(int argc, char** argv){
     fprintf(stderr, "\n");
     abort();
   }
+
+  Logger _logger( (FLAG_outPrefix + ".vcf2kinship.log").c_str());
+  logger = &_logger;
+  logger->info("Program version: %s", VERSION);
+  logger->infoToFile("Git Version");
+  logger->infoToFile("%s", gitVersion);
+  logger->infoToFile("Parameters BEGIN");
+  pl.WriteToFile(logger->getHandle());
+  logger->infoToFile("Parameters END");
+  logger->sync();
+  
+  
+  time_t startTime = time(0);
+  logger->info("Analysis started at: %s", currentTime().c_str());
+
   // PAR region setting
   ParRegion parRegion(FLAG_xLabel, FLAG_xParRegion);
   // Set threads
   if (FLAG_thread < 1) {
-    fprintf(stderr, "Invalid thread number: %d\n", FLAG_thread);
+    logger->error("Invalid thread number: %d", FLAG_thread);
     abort();
   } else if (FLAG_thread > 1){
-    fprintf(stderr, "Multiple ( %d ) threads will be used.\n", FLAG_thread);
+    logger->info("Multiple ( %d ) threads will be used.", FLAG_thread);
   }
 #ifdef _OPENMP
   omp_set_num_threads(FLAG_thread);
@@ -501,7 +504,7 @@ int main(int argc, char** argv){
 
   // REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
   if (FLAG_inVcf.empty() && FLAG_ped.empty()) {
-    fprintf(stderr, "Please provide input file using: --inVcf or --ped");
+    logger->error("Please provide input file using: --inVcf or --ped");
     abort();
   }
   REQUIRE_STRING_PARAMETER(FLAG_outPrefix, "Please provide output prefix using: --out");
@@ -510,27 +513,27 @@ int main(int argc, char** argv){
   bool useEmpKinship;
   if (!FLAG_ped.empty() && FLAG_inVcf.empty()) {
     useEmpKinship = false;
-    fprintf(stderr, "Kinship will be calculated from pedigree.\n");
+    logger->info("Kinship will be calculated from pedigree.");
   } else if (!FLAG_inVcf.empty()) {
     useEmpKinship = true;
-    fprintf(stderr, "Empiricial kinship will be calculated.\n");
+    logger->info("Empiricial kinship will be calculated.");
 
     if (!FLAG_xHemi && !FLAG_ped.empty()) {
-      fprintf(stderr, "Warning: Specified parameter --ped has no effect.\n");
+      logger->warn("Warning: Specified parameter --ped has no effect.");
     }
 
     if (FLAG_xHemi) {
       if (FLAG_ped.empty()) {
-        fprintf(stderr, "Failed to calculate kinship from X chromosome as PED file is missing! Please specify --ped input.ped and --xHemi together.\n");
+        logger->error("Failed to calculate kinship from X chromosome as PED file is missing! Please specify --ped input.ped and --xHemi together.");
         abort();
       }
       if (FLAG_ibs) {
-        fprintf(stderr, "Calculate kinship from X chromosome using IBS method is not supported!\n");
+        logger->error("Calculate kinship from X chromosome using IBS method is not supported!");
         abort();
       }
     }
   } else {
-    fprintf(stderr, "Parameter errors!\n");
+    logger->error("Parameter errors!");
     abort();
   }
 
@@ -538,14 +541,14 @@ int main(int argc, char** argv){
   zhanxw::Pedigree ped;
   if (!FLAG_ped.empty()) {
     if (loadPedigree(FLAG_ped, &ped)) {
-      fprintf(stderr, "Failed to load pedigree file [ %s ]!\n", FLAG_ped.c_str());
+      logger->error("Failed to load pedigree file [ %s ]!", FLAG_ped.c_str());
       exit(1);
     }
   }
 
   if (!useEmpKinship) {
     // create kinship using pedigree
-    fprintf(stderr, "Create kinship from pedigree file.\n");
+    logger->info("Create kinship from pedigree file.");
 
     int nPeople = ped.getPeopleNumber();
     // printf("Total %d people loaded: \n", nPeople);
@@ -563,7 +566,7 @@ int main(int argc, char** argv){
     kin.constructFromPedigree(ped);
     const SimpleMatrix& m = kin.getKinship();
     if (output(famName, indvName, m, FLAG_pca, FLAG_outPrefix)) {
-      fprintf(stderr, "Failed to create autosomal kinship file [ %s.kinship ].\n",
+      logger->error("Failed to create autosomal kinship file [ %s.kinship ].",
               FLAG_outPrefix.c_str());
     }
     if (FLAG_xHemi) {
@@ -571,20 +574,20 @@ int main(int argc, char** argv){
       kin.constructFromPedigree(ped);
       const SimpleMatrix& m = kin.getKinship();
       if (output(famName, indvName, m, FLAG_pca, FLAG_outPrefix + ".xHemi")) {
-        fprintf(stderr, "Failed to create hemizygous-region kinship file [ %s.xHemi.kinship ].\n",
+        logger->error("Failed to create hemizygous-region kinship file [ %s.xHemi.kinship ].",
                 FLAG_outPrefix.c_str());
       }
     }
     return 0;
   }
 
-  fprintf(stderr, "Start creating empirical kinship from VCF file.\n");
+  logger->info("Start creating empirical kinship from VCF file.");
   if (FLAG_maxMissing == 0.0) {
-    fprintf(stderr, "Using default maximum missing rate = 0.05\n");
+    logger->info("Using default maximum missing rate = 0.05");
     FLAG_maxMissing = 0.05;
   }
   if (FLAG_minMAF == 0.0) {
-    fprintf(stderr, "Using default minimum MAF = 0.05\n");
+    logger->info("Using default minimum MAF = 0.05");
     FLAG_minMAF = 0.05;
   }
 
@@ -628,7 +631,7 @@ int main(int argc, char** argv){
       }
     }
     if (nExclude) {
-      fprintf(stderr, "Exclude [ %d ] samples from VCF files because they do not exist in pedigree file or do not have sex: ", nExclude);
+      logger->info("Exclude [ %d ] samples from VCF files because they do not exist in pedigree file or do not have sex: ", nExclude);
       size_t n = peopleExclude.size();
       for (size_t i = 0; i < n; ++i) {
         fprintf(stderr, "%s ", peopleExclude[i].c_str());
@@ -640,7 +643,7 @@ int main(int argc, char** argv){
       fprintf(stderr, "\n");
 
       if (vcfName.size() == (size_t) nExclude) {
-        fprintf(stderr, "No samples left for analysis, aborting...\n");
+        logger->error("No samples left for analysis, aborting...");
         abort();
       }
     }
@@ -675,7 +678,7 @@ int main(int argc, char** argv){
 
   // set up kinship calculate method
   if ( (int)FLAG_ibs + (int)FLAG_bn != 1) {
-    fprintf(stderr, "More than one or none of the empirical kinsip calculation methods specified.\n");
+    logger->error("More than one or none of the empirical kinsip calculation methods specified.");
     abort();
   }
   EmpiricalKinship* kinship = NULL;
@@ -694,9 +697,9 @@ int main(int argc, char** argv){
   vin.getVCFHeader()->getPeopleName(&names);
   std::vector<double> genotype;
   genotype.resize(names.size());
-  fprintf(stderr, "Total [ %zu ] individuals from VCF are used.\n", names.size());
+  logger->info("Total [ %zu ] individuals from VCF are used.", names.size());
   if (names.empty()) {
-    fprintf(stderr, "No sample in the VCF will be used, quitting...\n");
+    logger->error("No sample in the VCF will be used, quitting...");
     exit(1);
   }
   if (FLAG_xHemi) {
@@ -832,8 +835,6 @@ int main(int argc, char** argv){
       continue;
     }
 
-    // fprintf(stderr, "chrom = %s, pos %d\n", r.getChrom(), r.getPos());
-
     if (!hemiRegion) {
       // process autosomal
       int ch = atoi(chopChr(chrom));
@@ -847,7 +848,7 @@ int main(int argc, char** argv){
       ++variantX;
     }
   }
-  fprintf(stdout, "\rTotal [ %d ] VCF records have been processed.\n",
+  logger->info("Total [ %d ] VCF records have been processed.",
           lineNo);
 
   // output
@@ -855,7 +856,7 @@ int main(int argc, char** argv){
   variantAutoUsed = kinship->getSiteNumber();
   const SimpleMatrix& ret = kinship->getKinship();
   if (output(names, names, ret, FLAG_pca, FLAG_outPrefix)) {
-    fprintf(stderr, "Failed to create autosomal kinship file [ %s.kinship ].\n",
+    logger->error("Failed to create autosomal kinship file [ %s.kinship ].",
             FLAG_outPrefix.c_str());
   }
   if (!kinship) {
@@ -868,7 +869,7 @@ int main(int argc, char** argv){
     const SimpleMatrix& ret = kinshipForX->getKinship();
     std::string fn = FLAG_outPrefix + ".xHemi";
     if (output(names, names, ret, FLAG_pca, fn.c_str())) {
-      fprintf(stderr, "Failed to create hemizygous-region kinship file [ %s.xHemi.kinship ].\n",
+      logger->error("Failed to create hemizygous-region kinship file [ %s.xHemi.kinship ].",
               FLAG_outPrefix.c_str());
     }
     delete kinshipForX;
@@ -880,30 +881,30 @@ int main(int argc, char** argv){
   //   fprintf(stdout, "Skipped %d variants non autosomal variants\n", skipSexChrom);
   // }
   if (nonVariantSite) {
-    fprintf(stdout, "Skipped [ %d ] non-variant VCF records\n", nonVariantSite);
+    logger->info("Skipped [ %d ] non-variant VCF records", nonVariantSite);
   }
   if (lowSiteFreq) {
-    fprintf(stdout, "Skipped [ %d ] low sites due to site quality lower than %f\n", lowSiteFreq, FLAG_minSiteQual);
-  };
+    logger->info("Skipped [ %d ] low sites due to site quality lower than %f", lowSiteFreq, FLAG_minSiteQual);
+  }
   if (filterSite) {
-    fprintf(stdout, "Skipped [ %d ] sites due to MAF or high misssingness\n", filterSite);
+    logger->info("Skipped [ %d ] sites due to MAF or high misssingness", filterSite);
   }
   // report count of variant used from autosomal/X-PAR region
-  fprintf(stdout, "Total [ %d ] variants are used to calculate autosomal kinship matrix.\n",
+  logger->info("Total [ %d ] variants are used to calculate autosomal kinship matrix.",
           variantAutoUsed);
   if (FLAG_xHemi) {
     // report count of varaint used in X-hemizygote region
-    fprintf(stdout, "Total [ %d ] variants are used to calculate chromosome X kinship matrix.\n",
+    logger->info("Total [ %d ] variants are used to calculate chromosome X kinship matrix.",
             variantXUsed);
     if (numMaleHemiWrongCoding > 0.5 * numMaleHemiMissing ) {
-      fprintf(stdout, "NOTE: In hemizygous region, males have [ %d ] missing genotypes and [ %d ] of them are due to wrong coding. Please confirm male genotypes are coded correctly, in particular, do not code them as '0/1'.\n", numMaleHemiMissing, numMaleHemiWrongCoding);
+      logger->warn("NOTE: In hemizygous region, males have [ %d ] missing genotypes and [ %d ] of them are due to wrong coding. Please confirm male genotypes are coded correctly, in particular, do not code them as '0/1'.", numMaleHemiMissing, numMaleHemiWrongCoding);
     }
   }
 
   time_t endTime = time(0);
-  fprintf(stderr, "Analysis ends at: %s", ctime(&endTime));
+  logger->info("Analysis ends at: %s", ctime(&endTime));
   int elapsedSecond = (int) (endTime - startTime);
-  fprintf(stderr, "Analysis took %d seconds.\n", elapsedSecond);
+  logger->info("Analysis took %d seconds.", elapsedSecond);
 
   return 0;
 };
@@ -938,7 +939,7 @@ int output( const std::vector<std::string>& famName,
     }
     fprintf(out, "\n");
   }
-  fprintf(stdout, "Kinship [ %s ] has been generated.\n", fn.c_str());
+  logger->info("Kinship [ %s ] has been generated.", fn.c_str());
 
   fclose(out);
 
@@ -975,9 +976,9 @@ int output( const std::vector<std::string>& famName,
         fprintf(out, "\n");
       }
       fclose(out);
-      fprintf(stderr, "PCA decomposition results are stored in [ %s ].\n", fn.c_str());
+      logger->info("PCA decomposition results are stored in [ %s ].", fn.c_str());
     } else{
-      fprintf(stderr, "Kinship decomposition failed!\n");
+      logger->error("Kinship decomposition failed!");
     }
   }
 

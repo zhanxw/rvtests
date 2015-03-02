@@ -4,7 +4,6 @@
 #include "base/TimeUtil.h"
 
 #include <cassert>
-#include <ctime>
 #include <string>
 #include <set>
 #include <map>

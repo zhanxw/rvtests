@@ -401,7 +401,7 @@ void usage(int argc, char** argv) {
 }
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20150302"
+#define VERSION "20150318"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s)\n", PROGRAM, VERSION);
@@ -418,26 +418,29 @@ int main(int argc, char** argv){
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
       ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
+      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "Input VCF File")
 
-      ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix for autosomal kinship calculation")
+      ADD_STRING_PARAMETER(pl, outPrefix, "--out", "Output prefix for autosomal kinship calculation")
 
       ADD_PARAMETER_GROUP(pl, "Chromsome X Analysis Options")
-      ADD_BOOL_PARAMETER(pl, xHemi, "--xHemi", "Calculating kinship using non-PAR region X chromosome markers.")
+      ADD_BOOL_PARAMETER(pl, xHemi, "--xHemi", "Calculate kinship using non-PAR region X chromosome markers.")
       ADD_STRING_PARAMETER(pl, xLabel, "--xLabel", "Specify X chromosome label (default: 23,X")
       ADD_STRING_PARAMETER(pl, xParRegion, "--xRegion", "Specify PAR region (default: hg19), can be build number e.g. hg38, b37; or specify region, e.g. '60001-2699520,154931044-155260560'")
 
       ADD_PARAMETER_GROUP(pl, "Algorithm")
-      ADD_STRING_PARAMETER(pl, ped, "--ped", "using pedigree method.")
-      ADD_BOOL_PARAMETER(pl, ibs, "--ibs", "using IBS method.")
-      ADD_BOOL_PARAMETER(pl, bn, "--bn", "using Balding-Nicols method.")
-      ADD_BOOL_PARAMETER(pl, pca, "--pca", "decomoposite calculated kinship matrix.")
+      ADD_STRING_PARAMETER(pl, ped, "--ped", "Use pedigree method or specify ped file for X chromosome analysis.")
+      ADD_BOOL_PARAMETER(pl, ibs, "--ibs", "Use IBS method.")
+      ADD_BOOL_PARAMETER(pl, bn, "--bn", "Use Balding-Nicols method.")
+      ADD_BOOL_PARAMETER(pl, pca, "--pca", "Decomoposite calculated kinship matrix.")
+
+      ADD_PARAMETER_GROUP(pl, "Specify Genotype")
+      ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC or DS)")
 
       ADD_PARAMETER_GROUP(pl, "People Filter")
-      ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
+      ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "List IDs of people that will be included in study")
+      ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "From given file, set IDs of people that will be included in study")
+      ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "List IDs of people that will be included in study")
+      ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "From given file, set IDs of people that will be included in study")
       ADD_PARAMETER_GROUP(pl, "Range Filter")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
       ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
@@ -484,8 +487,8 @@ int main(int argc, char** argv){
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
   logger->sync();
-  
-  
+
+
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 
@@ -567,7 +570,7 @@ int main(int argc, char** argv){
     const SimpleMatrix& m = kin.getKinship();
     if (output(famName, indvName, m, FLAG_pca, FLAG_outPrefix)) {
       logger->error("Failed to create autosomal kinship file [ %s.kinship ].",
-              FLAG_outPrefix.c_str());
+                    FLAG_outPrefix.c_str());
     }
     if (FLAG_xHemi) {
       zhanxw::KinshipForX kin;
@@ -575,7 +578,7 @@ int main(int argc, char** argv){
       const SimpleMatrix& m = kin.getKinship();
       if (output(famName, indvName, m, FLAG_pca, FLAG_outPrefix + ".xHemi")) {
         logger->error("Failed to create hemizygous-region kinship file [ %s.xHemi.kinship ].",
-                FLAG_outPrefix.c_str());
+                      FLAG_outPrefix.c_str());
       }
     }
     return 0;
@@ -718,8 +721,11 @@ int main(int argc, char** argv){
   int numMaleHemiWrongCoding = 0;
   int lineNo = 0;
   int nonVariantSite = 0;
-  int GTidx, GDidx, GQidx;
-  bool missing;
+  int GTidx = -1;
+  int GDidx = -1;
+  int GQidx = -1;
+  int DosageIdx = -1;
+  bool missing = false;
   while (vin.readRecord()){
     lineNo ++;
     if (lineNo % 10000 == 0) {
@@ -757,7 +763,8 @@ int main(int argc, char** argv){
     GTidx = r.getFormatIndex("GT");
     GDidx = (FLAG_minGD > 0) ? r.getFormatIndex("GD") : -1;
     GQidx = (FLAG_minGQ > 0) ? r.getFormatIndex("GQ") : -1;
-
+    DosageIdx = (!FLAG_dosageTag.empty()) ? r.getFormatIndex(FLAG_dosageTag.c_str()) : -1;
+    
     int ac = 0;
     double af = 0;
     int nMiss = 0;
@@ -769,22 +776,37 @@ int main(int argc, char** argv){
     // extract data
     for (size_t i = 0; i < people.size() ;i ++) {
       indv = people[i];
-      if (!hemiRegion) {
-        geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists
-      } else { // hemi region
-        if (sex[i] == 1) {
-          geno = indv->get(GTidx, &missing).getMaleNonParGenotype01();
-          if (geno < 0 && indv->get(GTidx, &missing).getGenotype() >= 0) {
-            numMaleHemiWrongCoding ++;
-          }
-          if (geno < 0) numMaleHemiMissing ++;
-        } else if (sex[i] == 2) {
+      if (FLAG_dosageTag.empty()) {
+        if (!hemiRegion) {
           geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists
-        } else {
+        } else { // hemi region
+          if (sex[i] == 1) {
+            geno = indv->get(GTidx, &missing).getMaleNonParGenotype01();
+            if (geno < 0 && indv->get(GTidx, &missing).getGenotype() >= 0) {
+              numMaleHemiWrongCoding ++;
+            }
+            if (geno < 0) numMaleHemiMissing ++;
+          } else if (sex[i] == 2) {
+            geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists
+          } else {
+            geno = MISSING_GENOTYPE;
+            missing = true;
+          }
+        }
+      } else { // get dosage
+        geno = indv->justGet(DosageIdx).toDouble();
+        if (geno < 0.) {
           geno = MISSING_GENOTYPE;
           missing = true;
         }
+        // male dosage should between 0 and 1
+        if (hemiRegion && sex[i] == 1 && geno > 1.0) {
+          geno = MISSING_GENOTYPE;
+          missing = true;
+          numMaleHemiWrongCoding ++;
+        }
       }
+      // check GD, GQ
       if (!missing && geno >= 0 && GDidx >= 0) {
         int gd = indv->get(GDidx, &missing).toInt();
         if (gd < FLAG_minGD) {
@@ -849,7 +871,7 @@ int main(int argc, char** argv){
     }
   }
   logger->info("Total [ %d ] VCF records have been processed.",
-          lineNo);
+               lineNo);
 
   // output
   kinship->calculate();
@@ -857,7 +879,7 @@ int main(int argc, char** argv){
   const SimpleMatrix& ret = kinship->getKinship();
   if (output(names, names, ret, FLAG_pca, FLAG_outPrefix)) {
     logger->error("Failed to create autosomal kinship file [ %s.kinship ].",
-            FLAG_outPrefix.c_str());
+                  FLAG_outPrefix.c_str());
   }
   if (!kinship) {
     delete kinship;
@@ -870,7 +892,7 @@ int main(int argc, char** argv){
     std::string fn = FLAG_outPrefix + ".xHemi";
     if (output(names, names, ret, FLAG_pca, fn.c_str())) {
       logger->error("Failed to create hemizygous-region kinship file [ %s.xHemi.kinship ].",
-              FLAG_outPrefix.c_str());
+                    FLAG_outPrefix.c_str());
     }
     delete kinshipForX;
   }
@@ -891,13 +913,13 @@ int main(int argc, char** argv){
   }
   // report count of variant used from autosomal/X-PAR region
   logger->info("Total [ %d ] variants are used to calculate autosomal kinship matrix.",
-          variantAutoUsed);
+               variantAutoUsed);
   if (FLAG_xHemi) {
     // report count of varaint used in X-hemizygote region
     logger->info("Total [ %d ] variants are used to calculate chromosome X kinship matrix.",
-            variantXUsed);
+                 variantXUsed);
     if (numMaleHemiWrongCoding > 0.5 * numMaleHemiMissing ) {
-      logger->warn("NOTE: In hemizygous region, males have [ %d ] missing genotypes and [ %d ] of them are due to wrong coding. Please confirm male genotypes are coded correctly, in particular, do not code them as '0/1'.", numMaleHemiMissing, numMaleHemiWrongCoding);
+      logger->warn("NOTE: In hemizygous region, males have [ %d ] missing genotypes and [ %d ] of them are due to wrong coding. Please confirm male genotypes are coded correctly, in particular, do not code them as '0/1'. If dosage tag is used, male genotype dosage should between 0 and 1.", numMaleHemiMissing, numMaleHemiWrongCoding);
     }
   }
 

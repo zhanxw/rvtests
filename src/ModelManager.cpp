@@ -225,10 +225,12 @@ void ModelManager::close() {
     model[m]->writeFootnote(fOuts[m]);
     delete model[m];
   }
-
+  model.clear();
+  
   for (size_t m = 0; m < fOuts.size(); ++m ) {
     delete fOuts[m];
   }
+  fOuts.clear();
 
   createIndex();
 }

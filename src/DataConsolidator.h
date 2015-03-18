@@ -191,7 +191,7 @@ class DataConsolidator{
 
  public:
   DataConsolidator();
-  ~DataConsolidator();
+  virtual ~DataConsolidator();
   void setStrategy(const int s){
     this->strategy = s;
   };

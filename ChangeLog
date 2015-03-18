@@ -1,3 +1,9 @@
+2015-03-18  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Support dosage (vcf2kinship)
+	* Fix memory leaks (rvtests)
+	* Improve prompt messages
+
 2015-03-02  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Clean code

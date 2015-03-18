@@ -10,7 +10,11 @@ class ModelFitter;
 class ModelManager{
  public:
   ModelManager(const std::string& prefix):
-      prefix(prefix) {};
+      prefix(prefix) {
+  }
+  ~ModelManager() {
+    this->close();
+  }
   const std::vector<ModelFitter*>& getModel() {
     return this->model;
   }

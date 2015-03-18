@@ -22,5 +22,14 @@ int main(int argc, char *argv[])
     re.readPattern("abc");
     assert(re.match("abc___", 2, 4) == false);
     
+    re.readPattern("abc|def");
+    assert(re.match("abc") == true);
+
+    re.readPattern("abc|def");
+    assert(re.match("__def__") == true);
+
+    re.readPattern("abc|def");
+    assert(re.match("abef") == false);
+
     return 0;
 }

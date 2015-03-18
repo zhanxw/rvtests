@@ -28,7 +28,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150302";
+const char* VERSION = "20150318";
 
 void banner(FILE* fp) {
   const char* string =
@@ -564,25 +564,25 @@ int main(int argc, char** argv){
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
       ADD_PARAMETER_GROUP(pl, "Basic Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
+      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "Input VCF File")
+      ADD_STRING_PARAMETER(pl, outPrefix, "--out", "Output prefix")
       ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
 
       ADD_PARAMETER_GROUP(pl, "Specify Covariate")
-      ADD_STRING_PARAMETER(pl, cov, "--covar", "specify covariate file")
-      ADD_STRING_PARAMETER(pl, covName, "--covar-name", "specify the column name in coavriate file to be included in analysis")
+      ADD_STRING_PARAMETER(pl, cov, "--covar", "Specify covariate file")
+      ADD_STRING_PARAMETER(pl, covName, "--covar-name", "Specify the column name in coavriate file to be included in analysis")
       ADD_BOOL_PARAMETER(pl, sex, "--sex", "Include sex (5th) as covaraite from PED file")
 
       ADD_PARAMETER_GROUP(pl, "Specify Phenotype")
-      ADD_STRING_PARAMETER(pl, pheno, "--pheno", "specify phenotype file")
-      ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "transform phenotype like normal distribution")
-      ADD_BOOL_PARAMETER(pl, useResidualAsPhenotype, "--useResidualAsPhenotype", "fit covariate ~ phenotype, use residual to replace phenotype")
-      ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "specify which phenotype column to read (default: 1)")
-      ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name", "specify which phenotype column to read by header")
-      ADD_BOOL_PARAMETER(pl, qtl, "--qtl", "treat phenotype as quantitative trait")
+      ADD_STRING_PARAMETER(pl, pheno, "--pheno", "Specify phenotype file")
+      ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal", "Transform phenotype like normal distribution")
+      ADD_BOOL_PARAMETER(pl, useResidualAsPhenotype, "--useResidualAsPhenotype", "Fit covariate ~ phenotype, use residual to replace phenotype")
+      ADD_STRING_PARAMETER(pl, mpheno, "--mpheno", "Specify which phenotype column to read (default: 1)")
+      ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name", "Specify which phenotype column to read by header")
+      ADD_BOOL_PARAMETER(pl, qtl, "--qtl", "Treat phenotype as quantitative trait")
 
       ADD_PARAMETER_GROUP(pl, "Specify Genotype")
-      ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC)")
+      ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC or DS)")
       // ADD_STRING_PARAMETER(pl, glTag, "--gl", "Specify which genotype likelihood tag to use. (e.g. GL)")
 
       ADD_PARAMETER_GROUP(pl, "Chromsome X Options")
@@ -590,10 +590,10 @@ int main(int argc, char** argv){
       ADD_STRING_PARAMETER(pl, xParRegion, "--xParRegion", "Specify PAR region (default: hg19), can be build number e.g. hg38, b37; or specify region, e.g. '60001-2699520,154931044-155260560'")
 
       ADD_PARAMETER_GROUP(pl, "People Filter")
-      ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
+      ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "List IDs of people that will be included in study")
+      ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "From given file, set IDs of people that will be included in study")
+      ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "List IDs of people that will be included in study")
+      ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "From given file, set IDs of people that will be included in study")
 
       ADD_PARAMETER_GROUP(pl, "Site Filter")
       ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
@@ -611,22 +611,22 @@ int main(int argc, char** argv){
       ADD_INT_PARAMETER(pl, indvQualMin,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be included in analysis")
 
       ADD_PARAMETER_GROUP(pl, "Association Model")
-      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "score, wald, exact, famScore, famLrt, famGrammarGamma, firth")
-      ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
-      ADD_STRING_PARAMETER(pl, modelVT, "--vt", "cmc, zeggini, mb, price, fastVt, famFastVt")
-      ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "SKAT, KBAC, FamSKAT")
-      ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "score, cov, dominant, recessive")
+      ADD_STRING_PARAMETER(pl, modelSingle, "--single", "Single variant tests, choose from: score, wald, exact, famScore, famLrt, famGrammarGamma, firth")
+      ADD_STRING_PARAMETER(pl, modelBurden, "--burden", "Burden tests, choose from: cmc, zeggini, mb, exactCMC, rarecover, cmat, cmcWald")
+      ADD_STRING_PARAMETER(pl, modelVT, "--vt", "Variable threshold tests, choose from: cmc, zeggini, mb, price, fastVt, famFastVt")
+      ADD_STRING_PARAMETER(pl, modelKernel, "--kernel", "Kernal-based tests, choose from: SKAT, KBAC, FamSKAT")
+      ADD_STRING_PARAMETER(pl, modelMeta, "--meta", "Meta-analysis related functions to generate summary statistics, choose from: score, cov, dominant, recessive")
 
       ADD_PARAMETER_GROUP(pl, "Family-based Models")
       ADD_STRING_PARAMETER(pl, kinship, "--kinship", "Specify a kinship file for autosomal analysis, use vcf2kinship to generate")
       ADD_STRING_PARAMETER(pl, xHemiKinship, "--xHemiKinship", "Provide kinship for the chromosome X hemizygote region")
 
       ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
-      ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
-      ADD_STRING_PARAMETER(pl, gene, "--gene", "specify which genes to test")
-      ADD_STRING_PARAMETER(pl, setList, "--setList", "specify a list to test (for burden tests)")
-      ADD_STRING_PARAMETER(pl, setFile, "--setFile", "specify a list file (for burden tests, first 2 columns: setName chr:beg-end)")
-      ADD_STRING_PARAMETER(pl, set, "--set", "specify which set to test (1st column)")
+      ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "Specify a gene file (for burden tests)")
+      ADD_STRING_PARAMETER(pl, gene, "--gene", "Specify which genes to test")
+      ADD_STRING_PARAMETER(pl, setList, "--setList", "Specify a list to test (for burden tests)")
+      ADD_STRING_PARAMETER(pl, setFile, "--setFile", "Specify a list file (for burden tests, first 2 columns: setName chr:beg-end)")
+      ADD_STRING_PARAMETER(pl, set, "--set", "Specify which set to test (1st column)")
 
       ADD_PARAMETER_GROUP(pl, "Frequency Cutoff")
       /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/

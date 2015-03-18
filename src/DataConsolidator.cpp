@@ -25,14 +25,15 @@ DataConsolidator::DataConsolidator()
   kinshipSForX(NULL), kinshipLoadedForX(false),
   sex(NULL),
   parRegion(NULL) {
-};
+}
+
 DataConsolidator::~DataConsolidator(){
-  if (!kinshipForAuto) delete kinshipForAuto;
-  if (!kinshipUForAuto) delete kinshipUForAuto;
-  if (!kinshipSForAuto) delete kinshipSForAuto;
-  if (!kinshipForX) delete kinshipForX;
-  if (!kinshipUForX) delete kinshipUForX;
-  if (!kinshipSForX) delete kinshipSForX;
+  if (kinshipForAuto) delete kinshipForAuto;
+  if (kinshipUForAuto) delete kinshipUForAuto;
+  if (kinshipSForAuto) delete kinshipSForAuto;
+  if (kinshipForX) delete kinshipForX;
+  if (kinshipUForX) delete kinshipUForX;
+  if (kinshipSForX) delete kinshipSForX;
 }
 
 /**

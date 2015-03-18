@@ -2856,7 +2856,7 @@ class MetaScoreTest: public ModelFitter{
     } else {
       model = modelAuto;
       if (!model) {
-        model = modelX = createModel(this->useFamilyModel, isBinaryOutcome());
+        model = modelAuto = createModel(this->useFamilyModel, isBinaryOutcome());
         model->hemiRegion = false;
       }
     }

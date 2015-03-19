@@ -434,7 +434,7 @@ int main(int argc, char** argv){
       ADD_BOOL_PARAMETER(pl, pca, "--pca", "Decomoposite calculated kinship matrix.")
 
       ADD_PARAMETER_GROUP(pl, "Specify Genotype")
-      ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use. (e.g. EC or DS)")
+      ADD_STRING_PARAMETER(pl, dosageTag, "--dosage", "Specify which dosage tag to use (e.g. EC/DS). Typical dosage are between 0.0 and 2.0.")
 
       ADD_PARAMETER_GROUP(pl, "People Filter")
       ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "List IDs of people that will be included in study")
@@ -776,7 +776,7 @@ int main(int argc, char** argv){
     // extract data
     for (size_t i = 0; i < people.size() ;i ++) {
       indv = people[i];
-      if (FLAG_dosageTag.empty()) {
+      if (FLAG_dosageTag.empty()) { // use genotypes
         if (!hemiRegion) {
           geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists
         } else { // hemi region
@@ -793,17 +793,15 @@ int main(int argc, char** argv){
             missing = true;
           }
         }
-      } else { // get dosage
+      } else { // use dosage
         geno = indv->justGet(DosageIdx).toDouble();
+        // male dosage should between 0 and 1 in hemi region
+        if (hemiRegion && sex[i] == 1) {
+          geno = 0.5 * geno;
+        }
         if (geno < 0.) {
           geno = MISSING_GENOTYPE;
           missing = true;
-        }
-        // male dosage should between 0 and 1
-        if (hemiRegion && sex[i] == 1 && geno > 1.0) {
-          geno = MISSING_GENOTYPE;
-          missing = true;
-          numMaleHemiWrongCoding ++;
         }
       }
       // check GD, GQ
@@ -919,12 +917,12 @@ int main(int argc, char** argv){
     logger->info("Total [ %d ] variants are used to calculate chromosome X kinship matrix.",
                  variantXUsed);
     if (numMaleHemiWrongCoding > 0.5 * numMaleHemiMissing ) {
-      logger->warn("NOTE: In hemizygous region, males have [ %d ] missing genotypes and [ %d ] of them are due to wrong coding. Please confirm male genotypes are coded correctly, in particular, do not code them as '0/1'. If dosage tag is used, male genotype dosage should between 0 and 1.", numMaleHemiMissing, numMaleHemiWrongCoding);
+      logger->warn("NOTE: In hemizygous region, males have [ %d ] missing genotypes and [ %d ] of them are due to wrong coding. Please confirm male genotypes are coded correctly, in particular, do not code them as '0/1'. ", numMaleHemiMissing, numMaleHemiWrongCoding);
     }
   }
 
   time_t endTime = time(0);
-  logger->info("Analysis ends at: %s", ctime(&endTime));
+  logger->info("Analysis ends at: %s", currentTime().c_str());
   int elapsedSecond = (int) (endTime - startTime);
   logger->info("Analysis took %d seconds.", elapsedSecond);
 

@@ -54,7 +54,7 @@ class GenotypeExtractor{
                                       GQmin(-1), GQmax(-1), needGQ(false),
                                       parRegion(NULL), sex(NULL),
                                       claytonCoding(true) {
-  };
+  }
   /**
    * @param g, store people by marker matrix
    * @return 0 for success

@@ -472,11 +472,5 @@ Questions and requests can be sent to Xiaowei Zhan
 or Goncalo Abecasis
 ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
 
-Rvtests is a collaborative effort by Youna Hu, Bingshan Li, Dajiang Liu.
-
-
-
-
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/zhanxw/rvtests/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+Rvtests is a collaborative effort by Youna Hu, Bingshan Li and Dajiang Liu.
 

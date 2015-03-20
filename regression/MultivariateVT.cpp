@@ -7,10 +7,12 @@
 #include <vector>
 #include <set>
 
-#include "MatrixOperation.h" // for dump vars
-
 // #define DEBUG
 #undef DEBUG
+
+#ifdef DEBUG
+#include "MatrixOperation.h" // for dump vars
+#endif
 
 int MultivariateVT::compute(Vector& freq,
                             Matrix& U,
@@ -100,6 +102,7 @@ int MultivariateVT::compute(Vector& freq,
     }
   }
 
+#ifdef DEBUG
   dumpToFile(freq, "freq");
   dumpToFile(cutoff, "cutoff");    
   dumpToFile(U, "U");
@@ -107,7 +110,8 @@ int MultivariateVT::compute(Vector& freq,
   dumpToFile(phi, "phi");
   dumpToFile(u_phi, "u.phi");
   dumpToFile(v_phi, "v.phi");
-
+#endif
+  
   this->minMAF = maf.Min();
   this->maxMAF = maf.Max();
   this->optimalMAF = cutoff[maxIdx];

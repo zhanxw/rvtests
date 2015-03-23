@@ -14,8 +14,8 @@
  * NOTE: KEY will be stored twice.
  */
 template <class KEY, class TYPE>
-    class OrderedMap{
-public:
+class OrderedMap{
+ public:
   bool find(const KEY& key) const {
     if (this->keyTypeMap.find(key) == this->keyTypeMap.end()){
       return false;
@@ -101,12 +101,12 @@ public:
     }
     *otherUniqueKeys = other.size() - *overlap;
   }
-  unsigned int size() const { return this->keyVec.size();} ;
+  size_t size() const { return this->keyVec.size();} ;
   void clear() {
     this->keyVec.clear();
     this->keyTypeMap.clear();
   };
-private:
+ private:
   std::vector < KEY > keyVec;
   std::map < KEY, TYPE > keyTypeMap;
 };

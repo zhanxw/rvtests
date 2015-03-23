@@ -1,7 +1,9 @@
-2015-03-23  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2015-03-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve FamSkat speed
 	* Fix outputs for FpTest
+	* Add auto-indexing function for "--meta score" model
+	* Fix bug when outputting zero frequency
 
 2015-03-18  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

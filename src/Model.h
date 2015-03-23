@@ -2817,6 +2817,7 @@ class MetaScoreTest: public ModelFitter{
     useFamilyModel = false;
     isHemiRegion = false;
     headerOutputted = false;
+    this->indexResult = true;    
     // TODO: maybe separate this class depending on familyModel
     //         this->familyModel = true;
   }
@@ -3003,7 +3004,7 @@ class MetaScoreTest: public ModelFitter{
     int informativeAC = het + 2* homAlt;
 
     result.clearValue();
-    if (af > 0) {
+    if (af >= 0.0) {
       if (!isBinaryOutcome()) {
         result.updateValue("AF", af);
       } else {

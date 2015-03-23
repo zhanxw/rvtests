@@ -102,7 +102,7 @@ public:
     int beg = this->format.end + 1;
     while(  (ret = indv.parseTill(this->parsed, beg, '\t')) == 0) {
       if (idx >= this->allIndv.size()) {
-        fprintf(stderr, "Expected %d individual but already have %d individual\n", this->allIndv.size(), idx);
+        fprintf(stderr, "Expected %d individual but already have %d individual\n", (int)this->allIndv.size(), idx);
         fprintf(stderr, "VCF header have LESS people than VCF content!\n");
         return -1;
       }
@@ -127,10 +127,10 @@ public:
     }
 
     if (idx > this->allIndv.size()) {
-      fprintf(stderr, "Expected %d individual but already have %d individual\n", this->allIndv.size(), idx);
+      fprintf(stderr, "Expected %d individual but already have %d individual\n", (int)this->allIndv.size(), idx);
       REPORT("VCF header have MORE people than VCF content!");
     } else if (idx < this->allIndv.size()) {
-      fprintf(stderr, "Expected %d individual but only have %d individual\n", this->allIndv.size(), idx);
+      fprintf(stderr, "Expected %d individual but only have %d individual\n", (int)this->allIndv.size(), idx);
       REPORT("VCF header have LESS people than VCF content!");
       return -1;
     };

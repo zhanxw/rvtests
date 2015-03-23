@@ -1239,6 +1239,7 @@ class FpTest: public ModelFitter{
     this->modelName = "Fp";
     fitOK = false;
     numVariant = -1;
+    result.addHeader("Pvalue");
   }
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -1278,7 +1279,7 @@ class FpTest: public ModelFitter{
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
     //fprintf(fp, "Pvalue\n");
-    result.addHeader("Pvalue");
+    result.writeHeaderLine(fp);
   }
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {

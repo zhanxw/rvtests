@@ -28,7 +28,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150318";
+const char* VERSION = "20150323";
 
 void banner(FILE* fp) {
   const char* string =
@@ -1012,7 +1012,7 @@ int main(int argc, char** argv){
       logger->error("Error loading gene file or gene list is empty!");
       return -1;
     } else {
-      logger->info("Loaded %u genes!", geneRange.size());
+      logger->info("Loaded [ %zu ] genes.", geneRange.size());
     }
   }
 
@@ -1027,7 +1027,7 @@ int main(int argc, char** argv){
       logger->error("Error loading set file or set list is empty!");
       return -1;
     } else {
-      logger->info("Loaded %u set to tests!", geneRange.size());
+      logger->info("Loaded [ %zu ] set to tests.", geneRange.size());
     }
   }
   if (FLAG_setList.size()) {

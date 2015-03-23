@@ -392,14 +392,6 @@ int output( const std::vector<std::string>& famName,
             bool performPCA,
             const std::string& outPrefix);
 
-void usage(int argc, char** argv) {
-  fprintf(stderr, "Use pedigree to infer kinship: ");
-  fprintf(stderr, "  %s --ped input.ped --output outputPrefix [--xHemi]\n", argv[0]);
-  fprintf(stderr, "Use VCF to infer empiricial kinship: ");
-  fprintf(stderr, "  %s --inVcf input.vcf[.gz] --output outputPrefix [--bn [--ped input.ped --xHemi] | --ibs]\n", argv[0]);
-  fprintf(stderr, "\n");
-}
-
 #define PROGRAM "vcf2kinship"
 #define VERSION "20150318"
 void welcome() {

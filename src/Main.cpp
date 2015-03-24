@@ -1258,11 +1258,11 @@ int main(int argc, char** argv){
         if (ret != GenotypeExtractor::SUCCEED) {
           logger->error("Extract genotype failed for gene %s!", geneName.c_str());
           continue;
-        };
+        }
         if (genotype.rows == 0) {
           logger->warn("Gene %s has 0 variants, skipping", geneName.c_str());
           continue;
-        };
+        }
 
         ++ variantProcessed;
         dc.consolidate(phenotypeMatrix, covariate, genotype);
@@ -1302,13 +1302,13 @@ int main(int argc, char** argv){
       if (ret != GenotypeExtractor::SUCCEED) {
         logger->error("Extract genotype failed for gene %s!", geneName.c_str());
         continue;
-      };
+      }
       if (genotype.rows == 0) {
         logger->info("Gene %s has 0 variants, skipping", geneName.c_str());
         continue;
-      };
+      }
 
-      variantProcessed += genotype.rows;
+      variantProcessed += genotype.cols; // genotype is people by marker
       dc.consolidate(phenotypeMatrix, covariate, genotype);
 
       buf.updateValue(rangeMode, geneName);
@@ -1324,6 +1324,13 @@ int main(int argc, char** argv){
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
       }
+
+#ifdef DEBUG
+      // DEBUG
+      logger->info("%s", currentTime().c_str());
+      rangeList.dump();
+      logger->info("Variant processed = %d", variantProcessed);
+#endif
     }
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions", variantProcessed, (int)geneRange.size());
   } else{

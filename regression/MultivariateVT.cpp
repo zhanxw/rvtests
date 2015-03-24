@@ -12,6 +12,7 @@
 
 #ifdef DEBUG
 #include "MatrixOperation.h" // for dump vars
+#pragma message "Enable debug for MultivariateVT"
 #endif
 
 int MultivariateVT::compute(Vector& freq,

@@ -2817,7 +2817,7 @@ class MetaScoreTest: public ModelFitter{
     useFamilyModel = false;
     isHemiRegion = false;
     headerOutputted = false;
-    this->indexResult = true;    
+    indexResult = true;    
     // TODO: maybe separate this class depending on familyModel
     //         this->familyModel = true;
   }

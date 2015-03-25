@@ -3,7 +3,7 @@
 
 - [Introduction](#introduction)
 - [Download](#download)
-- [Quick Tutorial](#quick-tutorial)
+- [Quick tutorial](#quick-tutorial)
     - [Single variant tests](#single-variant-tests)
     - [Groupwise tests](#groupwise-tests)
     - [Related individual tests](#related-individual-tests)
@@ -36,7 +36,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: Janurary 2015)
+(Updated: March 2015)
 
 # Introduction
 
@@ -50,7 +50,7 @@ Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/a
 Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.8.8/rvtests-20150318.tar.gz).
 
 
-# Quick Tutorial
+# Quick tutorial
 
 Here is a quick example of how to use *rvtests* software in typical use cases.
 
@@ -201,7 +201,7 @@ Exact test     |  exact    |B     |     N      |         U           | Fisher's 
 Fam LRT        |  famLRT   |Q     |     Y      |         R, U        | Fast-LMM model
 Fam Score      |  famScore |Q     |     Y      |         R, U        | Fast-LMM model style likelihood ratio test
 Grammar-gamma  |famGrammarGamma| Q     |     Y      |         R, U        | Grammar-gamma method
-
+Firth regresion  |firth| B     |     Y      |         U        | Logistic regression with Firth correction by David Firth, disucssed by Clement Ma.
 
 (#) Model columns list the regconized names in rvtests. For example, use `--single score` will apply score test.
 
@@ -212,14 +212,16 @@ Grammar-gamma  |famGrammarGamma| Q     |     Y      |         R, U        | Gram
 
 Burden tests | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
-CMC             |  cmc       |B, Q  |     N      |         U           | Collapsing and combine rare variants by Bingshan Li.
-Zeggini         |  zeggini   |B, Q  |     N      |         U           | Aggregate counts of rare variants by Morris Zeggini.
+CMC             |  cmc       |B, Q  |     Y      |         U           | Collapsing and combine rare variants by Bingshan Li.
+Zeggini         |  zeggini   |B, Q  |     Y      |         U           | Aggregate counts of rare variants by Morris Zeggini.
 Madsen-Browning |  mb        |B     |     N      |         U           | Up-weight rare variant using inverse frequency from controls by Madsen.
 Fp              |  fp        |B     |     N      |         U           | Up-weight rare variant using inverse frequency from controls by Danyu Lin.
 Exact CMC       |  exactCMC  |B     |     N      |         U           | Collapsing and combine rare variants, then pefore Fisher's exact test.
-CMC Wald        |  cmcWald   |B, Q  |     N      |         U           | Collapsing and combine rare variants, then pefore Wald test.
+CMC Wald        |  cmcWald   |B, Q  |     Y      |         U           | Collapsing and combine rare variants, then pefore Wald test.
 RareCover       |  rarecover |B     |     N      |         U           | Find optimal grouping unit for rare variant tests by Thomas Hoffman.
-CMAT            |  cmat      |B     |     N      |         U           | Test non-coding variants by Matt Z.
+CMAT            |  cmat      |B     |     N      |         U           | Test non-coding variants by Matt Zawistowski.
+FamCMC          |  famcmc       |B, Q  |     Y      |         R           | Collapsing and combine rare variants extended to related samples.
+FamZeggini      |  famzeggini   |B, Q  |     Y      |         R           | Aggregate counts of rare variants extended to related samples.
 
 
 (#) Model columns list the regconized names in rvtests. For example, use `--burden cmc` will apply CMC test.
@@ -231,8 +233,8 @@ CMAT            |  cmat      |B     |     N      |         U           | Test no
 
 Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
-Variable threshold model     |  vt    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.  
-Variable threshold CMC     |  cmc     |B, Q  |     N      |         U           | This models is natiive so that it output CMC test statistics under all possible frequency cutoffs.
+Variable threshold model by permutation     |  vt    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.
+Variable threshold model by analytic form   |  analyticVt    |B, Q  |     Y      |         U   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
 
 (#) Model columns list the regconized names in rvtests. For example, use `--vt price` will apply score test.
 
@@ -246,6 +248,7 @@ Kernel | Model(#)    |Traits(##) | Covariates | Related / unrelated | Descriptio
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 SKAT     |  skat    |B, Q  |     Y      |         U           | Sequencing kernel association test by Shawn Lee.
 KBAC     |  kbac     |B  |     N      |         U           | Kernel-based adaptive clustering model by Dajiang Liu.
+FamSKAT     |  famSkat    |Q  |     Y      |         R           | Sequencing kernel association test extended to related individuals by Han Chen.
 
 (#) Model columns list the regconized names in rvtests. For example, use `--kernel skat` will apply SKAT test.
 To further customize SKAT test, you can use *--kernel skat[nPerm=100:alpha=0.001:beta1=1:beta2=20]* to specify permutation counts, type-1 error, 
@@ -259,14 +262,18 @@ beta distribution parameters for upweighting rare variants. Rvtests will output 
 
 Type | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
-Score test          |  score      | Q  |     Y      |         R, U           | standard score tests
+Score test           |  score      | Q  |     Y      |         R, U           | standard score tests
 Dominant model       |  dominant   | Q  |     Y      |         R, U           | score tests and covariance matrix under dominant disease model
 Recessive model      |  recessive  | Q  |     Y      |         R, U           | score tests and covariance matrix under recessive disease model
-Covariance          |  cov      | Q  |     Y      |         R, U           | covariance matrix
+Covariance           |  cov        | Q  |     Y      |         R, U           | covariance matrix
 
 (#) Model columns list the regconized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
 
 (##) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
+
+The above models are suitable to generate summary statistics which can be later meta-analyzed (see Djiang Liu (2014) Nature Genetics).
+Rvtests implemented the above method and the results can be further analyzed in RareMetals [link][http://genome.sph.umich.edu/wiki/RareMETALS].
+It also worth to mention that our group offered another toolsets for meta-analysis [link][http://genome.sph.umich.edu/wiki/Rare-Metal].
 
 ## Utility models
 

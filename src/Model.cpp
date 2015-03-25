@@ -134,7 +134,7 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out){
     for (int p = 0; p < numPeople; p++) {
       (*out)[p][0] += genotype[p][m] * weight;
     }
-  };
+  }
 };
 
 void fpCollapse(Matrix& in, Matrix* out){
@@ -181,32 +181,6 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out){
   };
 }
 
-/**
- * Convert genotype back to reference allele count
- * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
- */
-void convertToMinorAlleleCount(Matrix& in, Matrix* g){
-  Matrix& m = *g;
-  m.Dimension(in.rows, in.cols);
-  double s = 0;
-  for (int j = 0; j < m.cols; ++j) {
-    s = 0;
-    for (int i = 0; i < m.rows; ++i) {
-      s += in[i][j];
-    }
-    if (2.0 * s < m.rows) {
-      for (int i = 0; i < m.rows; ++i) {
-        m[i][j] = in[i][j];
-      }
-    } else {
-      // flip to minor
-      for (int i = 0; i < m.rows; ++i) {
-        m[i][j] = 2 - in[i][j];
-      }
-
-    }
-  }
-}
 
 /**
  * Convert genotype back to reference allele count
@@ -315,6 +289,7 @@ void makeVariableThreshodlGenotype(Matrix& in,
   }
 }
 
+#if 0
 void appendHeritability(FileWriter* fp, const FastLMM& model) {
   return;
 
@@ -345,3 +320,4 @@ void appendHeritability(FileWriter* fp, const GrammarGamma& model) {
   fp->printf("#Heritability\t%g\n", herit);
 }
 
+#endif

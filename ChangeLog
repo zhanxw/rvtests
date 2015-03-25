@@ -1,6 +1,8 @@
 2015-03-24  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Revise documentation
+	* Fix conservative p-values in analyticVT models
+	* Fix statistics in many rare variant tests
 
 2015-03-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

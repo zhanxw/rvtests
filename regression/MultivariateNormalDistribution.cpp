@@ -30,10 +30,8 @@ int MultivariateNormalDistribution::getBandProbFromCor(int n,
                                                        Matrix& cor,
                                                        double* result) {
   // skip checking diagnol elements equaling to one.
-
-  std::vector<double> tmp;
-  toCor(cor, &tmp);
-  return getBandProbFromCor(n, lower, upper, tmp.data(), result);
+  toCor(cor, &corVec);
+  return getBandProbFromCor(n, lower, upper, corVec.data(), result);
 }
 
 int MultivariateNormalDistribution::getBandProbFromCov(int n,
@@ -44,12 +42,35 @@ int MultivariateNormalDistribution::getBandProbFromCov(int n,
                                                        double* result) {
   // FIX here and other place, divide diag(v)
   for (int i = 0; i < n; ++i) {
-    (lower)[i] -= mean[i]/sqrt(cov[i][i]);
-    (upper)[i] -= mean[i]/sqrt(cov[i][i]);
+    (lower)[i] -= mean[i];
+    (lower)[i] /= sqrt(cov[i][i]);
+    (upper)[i] -= mean[i];
+    (upper)[i] /=sqrt(cov[i][i]);
   }
-  std::vector<double> cor;
-  toCor(cov, &cor);
-  return getBandProbFromCor(n, lower, upper, cor.data(), result);
+
+  toCor(cov, &corVec);
+  return getBandProbFromCor(n, lower, upper, corVec.data(), result);
+}
+
+int MultivariateNormalDistribution::getBandProbFromCov(double lower,
+                                                       double upper,
+                                                       Matrix& cov,
+                                                       double* result) {
+  if (cov.rows != cov.cols) {
+    return -1;
+  }
+
+  Matrix& m = cov;
+  int n = m.rows;
+
+  std::vector<double> lb(n, lower);
+  std::vector<double> ub(n, upper);
+  toCor(cov, &corVec);
+  return this->getBandProbFromCor(n,
+                                  lb.data(),
+                                  ub.data(),
+                                  corVec.data(),
+                                  result);
 }
 
 //////////////////////////////////////////////////
@@ -67,10 +88,9 @@ int MultivariateNormalDistribution::getUpperFromCov(int n,
   for (int i = 0; i < n; ++i) {
     lower[i] /= sqrt(cov[i][i]);
   }
-  std::vector<double> cor;
-  toCor(cov, &cor);
+  toCor(cov, &corVec);
 
-  *result = mvn.compute_Q(n, lower, cor.data());
+  *result = mvn.compute_Q(n, lower, corVec.data());
   return (*result >= 0. ? 0 : -1);
 }
 

@@ -126,7 +126,7 @@ int MultivariateVT::compute(Vector& freq,
       ++ this->optimalNumVar;
   }
   
-  if (this->mvn.getLowerFromCov(maxVal, this->v_phi, &this->pvalue)) {
+  if (this->mvn.getBandProbFromCov(-maxVal, maxVal, this->v_phi, &this->pvalue)) {
     this->pvalue = -1; //failed
     return -1;
   }

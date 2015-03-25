@@ -166,10 +166,16 @@ inline void removeMonomorphicSite(Matrix* genotype) {
       }
       g.Dimension(g.rows, lastCol);
       continue;
-    };
+    }
     ++ col;
-  };
+  }
 };
+
+/**
+ * Convert genotype back to reference allele count
+ * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
+ */
+void convertToMinorAlleleCount(Matrix& in, Matrix* g);
 
 /**
  * This class is in charge of cleanning data before fitting in model
@@ -292,6 +298,10 @@ class DataConsolidator{
   }
   Matrix& getGenotype(){
     return this->genotype;
+  }
+  Matrix& getFlippedToMinorGenotype(){
+    convertToMinorAlleleCount(this->genotype, &this->flippedToMinorGenotype);
+    return this->flippedToMinorGenotype;
   }
   Matrix& getPhenotype() {
     return this->phenotype;
@@ -607,6 +617,7 @@ class DataConsolidator{
   int strategy;
   Random random;
   Matrix genotype;
+  Matrix flippedToMinorGenotype;
   Matrix phenotype;
   Matrix covariate;
   Vector weight;

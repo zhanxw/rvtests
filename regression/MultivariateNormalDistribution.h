@@ -8,13 +8,13 @@
 //////////////////////////////////////////////////
 // a C++ class for multivariate normal distribution
 class MultivariateNormalDistribution{
- public:
+public:
   double getAbsEps() const {
     return mvn.getAbsEps();
   }
   //////////////////////////////////////////////////
   // Get band probability
-  //////////////////////////////////////////////////  
+  //////////////////////////////////////////////////
   /**
    * @param n, number of variable
    * @param lower, lower limit
@@ -40,10 +40,14 @@ class MultivariateNormalDistribution{
                          Vector& mean,
                          Matrix& cov,
                          double* result);
+  int getBandProbFromCov(double lower,
+                         double upper,
+                         Matrix& cov,
+                         double* result);
 
   //////////////////////////////////////////////////
   // Get upper probability
-  //////////////////////////////////////////////////    
+  //////////////////////////////////////////////////
   /**
    * @param n, number of variable
    * @param lower, lower limit
@@ -57,19 +61,19 @@ class MultivariateNormalDistribution{
                       Vector& mean,
                       Matrix& cov,
                       double* result);
-  // similar to above, except assuming the means are zeros  
+  // similar to above, except assuming the means are zeros
   int getUpperFromCov(int n,
                       double* lower,
                       Matrix& cov,
                       double* result);
-  // similar to above, except assuming the means are zeros  
+  // similar to above, except assuming the means are zeros
   int getUpperFromCov(double lower,
                       Matrix& cov,
                       double* result);
 
   //////////////////////////////////////////////////
   // Get lower probability
-  //////////////////////////////////////////////////  
+  //////////////////////////////////////////////////
   int getLowerFromCov(int n,
                       double* upper,
                       Vector& mean,
@@ -83,15 +87,16 @@ class MultivariateNormalDistribution{
                       Matrix& cov,
                       double* result);
 
- private:
+private:
   /**
    * Convert a covariance matrix @param m to correlation matrix,
    * and store it to a 1-d vector @param out.
    */
   void toCor(Matrix& m, std::vector<double>* out);
 
- private:
+private:
   MvtNorm mvn;
+  std::vector<double> corVec; // store corr mat in vec
 };
 
 #endif

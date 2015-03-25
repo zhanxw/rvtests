@@ -28,7 +28,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150323";
+const char* VERSION = "20150325";
 
 void banner(FILE* fp) {
   const char* string =
@@ -126,7 +126,7 @@ class GenotypeExtractor{
       }
       if (this->freqMin > 0. && this->freqMin > maf) continue;
       if (this->freqMax > 0. && this->freqMax < maf) continue;
-
+      
       name  = r.getChrom();
       name += ":";
       name += r.getPosStr();
@@ -140,6 +140,10 @@ class GenotypeExtractor{
         this->hemiRegion.push_back(false);
       }
     }
+
+    // delete rows (ugly code here, as we may allocate extra row in previous loop)
+    m.Dimension(row, m.cols);
+
     // now transpose (marker by people -> people by marker)
     g->Transpose(m);
     for (int i = 0; i < row; ++i) {
@@ -231,7 +235,7 @@ class GenotypeExtractor{
     }
     if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
     if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
-
+    
     std::string label = r.getChrom();
     label += ':';
     label += r.getPosStr();
@@ -251,14 +255,14 @@ class GenotypeExtractor{
     if (f < 0.0 || f > 1.0) {
       return false;
     }
-    this->freqMin = f;
+    this->freqMin = f - 1e-10; // allow rounding error
     return true;
   }
   bool setSiteFreqMax(const double f) {
     if (f < 0.0 || f > 1.0) {
       return false;
     }
-    this->freqMax = f;
+    this->freqMax = f + 1e-10; // allow rounding error
     return true;
   }
   // @return true if GD is valid

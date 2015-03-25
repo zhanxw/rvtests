@@ -14,6 +14,29 @@
 #include <fstream>
 #endif
 
+void convertToMinorAlleleCount(Matrix& in, Matrix* g){
+  Matrix& m = *g;
+  m.Dimension(in.rows, in.cols);
+  double s = 0;
+  for (int j = 0; j < m.cols; ++j) {
+    s = 0;
+    for (int i = 0; i < m.rows; ++i) {
+      s += in[i][j];
+    }
+    if (2.0 * s < m.rows) {
+      for (int i = 0; i < m.rows; ++i) {
+        m[i][j] = in[i][j];
+      }
+    } else {
+      // flip to minor
+      for (int i = 0; i < m.rows; ++i) {
+        m[i][j] = 2 - in[i][j];
+      }
+
+    }
+  }
+}
+
 DataConsolidator::DataConsolidator()
   :
   strategy(DataConsolidator::UNINITIALIZED),

@@ -47,7 +47,7 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 # Download
 
 Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
-Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.8.8/rvtests-20150318.tar.gz).
+Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.8.9/rvtests-20150325.tar.gz).
 
 
 # Quick tutorial
@@ -62,7 +62,7 @@ This specifies single variant Wald and score test for association
 tests for every variant in the `input.vcf` file. The 6th column of the phenotype file, `phenotype.ped`, which is in PLINK format, is used. Rvtests will automatically check whether the phenotype is binary trait or quantitative trait.
 For binary trait, the recommended way of coding is to code controls as 1, cases as 2, missing phenotypes as -9 or 0.
 
-For other types of association tests, you can refer to [Models](#models)
+For other types of association tests, you can refer to [Models](#models).
 
 ## Groupwise tests
 Groupwise tests includes three major kinds of tests.
@@ -273,7 +273,7 @@ Covariance           |  cov        | Q  |     Y      |         R, U           | 
 
 The above models are suitable to generate summary statistics which can be later meta-analyzed (see Djiang Liu (2014) Nature Genetics).
 Rvtests implemented the above method and the results can be further analyzed in RareMetals [link](http: //genome. sph. umich. edu/wiki/RareMETALS).
-It also worth to mention that our group offered another toolsets for meta-analysis [link](http://genome.sph.umich.edu/wiki/Rare-Metal).
+It also worth to mention that our group offered another toolset for meta-analysis [link](http://genome.sph.umich.edu/wiki/Rare-Metal).
 
 ## Utility models
 

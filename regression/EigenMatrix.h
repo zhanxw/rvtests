@@ -5,7 +5,7 @@
 /**
  * This class is just a wrapper to Eigen::MatrixXf to speed compling up
  */
-class EigenMatrix{
+class EigenMatrix {
  public:
   Eigen::MatrixXf mat;
 };

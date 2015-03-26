@@ -9,15 +9,16 @@
 
 extern Logger* logger;
 
-class WarningOnce{
+class WarningOnce {
  public:
-  WarningOnce(const std::string& msg):warningGiven(false), msg(msg) {};
+  WarningOnce(const std::string& msg) : warningGiven(false), msg(msg){};
   void warningIf(bool cond) {
     if (cond && !warningGiven) {
       warningGiven = true;
       fprintf(stderr, "%s", msg.c_str());
     }
   }
+
  private:
   bool warningGiven;
   std::string msg;
@@ -26,11 +27,12 @@ class WarningOnce{
 class EigenMatrix;
 
 /**
- * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
+ * Impute missing genotype (<0) according to population frequency (p^2, 2pq,
+ * q^2)
  */
 inline void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
   Matrix& m = *genotype;
-  for (int i = 0; i < m.cols; i++ ) {
+  for (int i = 0; i < m.cols; i++) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.rows; j++) {
@@ -41,8 +43,8 @@ inline void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
     }
     double p = an == 0 ? 0 : 1.0 * ac / an;
     double pRef = p * p;
-    double pHet = pRef + 2.0*p * (1.0 - p);
-    for (int j = 0; j < m.rows; j++){
+    double pHet = pRef + 2.0 * p * (1.0 - p);
+    for (int j = 0; j < m.rows; j++) {
       if (m[j][i] < 0) {
         double v = r->Next();
         if (v < pRef) {
@@ -63,7 +65,7 @@ inline void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
  */
 inline void imputeGenotypeToMean(Matrix* genotype) {
   Matrix& m = *genotype;
-  for (int i = 0; i < m.cols; i++ ) {
+  for (int i = 0; i < m.cols; i++) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.rows; j++) {
@@ -79,7 +81,7 @@ inline void imputeGenotypeToMean(Matrix* genotype) {
       p = 1.0 * ac / an;
     }
     double g = 2.0 * p;
-    for (int j = 0; j < m.rows; j++){
+    for (int j = 0; j < m.rows; j++) {
       if (m[j][i] < 0) {
         m[j][i] = g;
       }
@@ -89,7 +91,8 @@ inline void imputeGenotypeToMean(Matrix* genotype) {
 };
 
 /**
- * @return true if any of the markers (@param col) of @param genotype (people by marker) is missing
+ * @return true if any of the markers (@param col) of @param genotype (people by
+ * marker) is missing
  */
 inline bool hasMissingMarker(Matrix& genotype, int col) {
   if (col >= genotype.cols || col < 0) {
@@ -98,14 +101,14 @@ inline bool hasMissingMarker(Matrix& genotype, int col) {
   }
 
   for (int r = 0; r < genotype.rows; ++r) {
-    if (genotype[r][col] < 0)
-      return true;
+    if (genotype[r][col] < 0) return true;
   }
   return false;
 };
 
 /**
- * Remove columns of markers in @param genotype (people by marker) where there are missing genotypes
+ * Remove columns of markers in @param genotype (people by marker) where there
+ * are missing genotypes
  */
 inline void removeMissingMarker(Matrix* genotype) {
   Matrix& g = *genotype;
@@ -113,19 +116,20 @@ inline void removeMissingMarker(Matrix* genotype) {
   while (col < g.cols) {
     if (hasMissingMarker(g, col)) {
       // move last column to this column
-      const int lastCol = g.cols - 1 ;
-      for (int r = 0; r < g.rows; ++r){
+      const int lastCol = g.cols - 1;
+      for (int r = 0; r < g.rows; ++r) {
         g[r][col] = g[r][lastCol];
       }
       g.SetColumnLabel(col, g.GetColumnLabel(lastCol));
       g.Dimension(g.rows, lastCol);
       continue;
     };
-    ++ col;
+    ++col;
   };
 };
 /**
- * @return true if markers on @param col of @param genotype (people by marker) is monomorphic (genotypes are all the same)
+ * @return true if markers on @param col of @param genotype (people by marker)
+ * is monomorphic (genotypes are all the same)
  */
 inline bool isMonomorphicMarker(Matrix& genotype, int col) {
   if (col >= genotype.cols || col < 0) {
@@ -143,10 +147,9 @@ inline bool isMonomorphicMarker(Matrix& genotype, int col) {
   }
 
   for (int r = nonMissingRow + 1; r < genotype.rows; ++r) {
-    if (genotype[r][col] < 0) // missing
+    if (genotype[r][col] < 0)  // missing
       continue;
-    if (genotype[r][col] != genotype[nonMissingRow][col])
-      return false;
+    if (genotype[r][col] != genotype[nonMissingRow][col]) return false;
   }
   return true;
 };
@@ -160,14 +163,14 @@ inline void removeMonomorphicSite(Matrix* genotype) {
   while (col < g.cols) {
     if (isMonomorphicMarker(g, col)) {
       // move last column to this column
-      const int lastCol = g.cols - 1 ;
-      for (int r = 0; r < g.rows; ++r){
+      const int lastCol = g.cols - 1;
+      for (int r = 0; r < g.rows; ++r) {
         g[r][col] = g[r][lastCol];
       }
       g.Dimension(g.rows, lastCol);
       continue;
     }
-    ++ col;
+    ++col;
   }
 };
 
@@ -186,25 +189,25 @@ void convertToMinorAlleleCount(Matrix& in, Matrix* g);
  *  (future todo) include weights (GERP, Sift)
  *  (future todo) re-weight genotype (dominate model, recessive model)
  */
-class DataConsolidator{
+class DataConsolidator {
  public:
   const static int UNINITIALIZED = 0;
   const static int IMPUTE_MEAN = 1;
   const static int IMPUTE_HWE = 2;
   const static int DROP = 3;
-  typedef enum {ANY_SEX = -1, MALE = 1, FEMALE = 2} PLINK_SEX;
-  typedef enum {ANY_PHENO = -1, CTRL = 1, CASE = 2} PLINK_PHENOTYPE;
+  typedef enum { ANY_SEX = -1, MALE = 1, FEMALE = 2 } PLINK_SEX;
+  typedef enum { ANY_PHENO = -1, CTRL = 1, CASE = 2 } PLINK_PHENOTYPE;
 
  public:
   DataConsolidator();
   virtual ~DataConsolidator();
-  void setStrategy(const int s){
-    this->strategy = s;
-  };
+  void setStrategy(const int s) { this->strategy = s; };
   /**
-   * @param pheno, @param cov @param genotype are all ordered and sorted by the same people
+   * @param pheno, @param cov @param genotype are all ordered and sorted by the
+   * same people
    * @param phenoOut, @param covOut and @param genotype are outputted
-   * NOTE: @param covOut may be filled as column vector of 1 if @param cov is empty
+   * NOTE: @param covOut may be filled as column vector of 1 if @param cov is
+   * empty
    */
   void consolidate(Matrix& pheno, Matrix& cov, Matrix& geno) {
     this->originalGenotype = geno;
@@ -214,21 +217,21 @@ class DataConsolidator{
     removeMonomorphicSite(&this->genotype);
 
     copyColName(pheno, &this->phenotype);
-    copyColName(cov,   &this->covariate);
-    copyColName(geno,  &this->genotype);
+    copyColName(cov, &this->covariate);
+    copyColName(geno, &this->genotype);
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(&this->genotype);
-      if (this->phenotype != pheno ) {
+      if (this->phenotype != pheno) {
         this->phenotype = pheno;
         this->phenotypeUpdated = true;
-      } else{
+      } else {
         this->phenotypeUpdated = false;
       }
       if (this->covariate != cov) {
         this->covariate = cov;
         this->covariateUpdated = true;
-      } else{
+      } else {
         this->covariateUpdated = false;
       }
     } else if (this->strategy == IMPUTE_HWE) {
@@ -258,19 +261,19 @@ class DataConsolidator{
       covariate.Dimension(idxToCopy, cov.cols);
       phenotype.Dimension(idxToCopy, pheno.cols);
     } else {
-      logger->error("Uninitialized consolidation methods to handle missing data!");
+      logger->error(
+          "Uninitialized consolidation methods to handle missing data!");
       // return -1;
     }
   }
   bool hasNoMissingGenotype(Matrix& g, int r) {
     const int n = g.cols;
-    for (int i = 0; i < n; ++i){
+    for (int i = 0; i < n; ++i) {
       if (g[r][i] < 0) return false;
     }
     return true;
   }
-  void copyRow(Matrix& src, const int srcRow,
-               Matrix* dest, const int destRow) {
+  void copyRow(Matrix& src, const int srcRow, Matrix* dest, const int destRow) {
     Matrix& m = *dest;
     if (m.cols < src.cols) {
       m.Dimension(m.rows, src.cols);
@@ -279,13 +282,13 @@ class DataConsolidator{
       m.Dimension(destRow + 1, m.cols);
     }
     const int n = m.cols;
-    for (int i = 0; i < n; ++i){
+    for (int i = 0; i < n; ++i) {
       m[destRow][i] = src[srcRow][i];
     }
   }
-  void copyColName(Matrix& src, Matrix* dest){
+  void copyColName(Matrix& src, Matrix* dest) {
     dest->Dimension(dest->rows, src.cols);
-    for (int i = 0; i < src.cols; ++i){
+    for (int i = 0; i < src.cols; ++i) {
       dest->SetColumnLabel(i, src.GetColumnLabel(i));
     }
   }
@@ -293,52 +296,37 @@ class DataConsolidator{
     this->originalRowLabel = name;
     this->rowLabel = name;
   }
-  const std::vector<std::string>& getRowLabel() const {
-    return this->rowLabel;
-  }
-  Matrix& getGenotype(){
-    return this->genotype;
-  }
-  Matrix& getFlippedToMinorGenotype(){
+  const std::vector<std::string>& getRowLabel() const { return this->rowLabel; }
+  Matrix& getGenotype() { return this->genotype; }
+  Matrix& getFlippedToMinorGenotype() {
     convertToMinorAlleleCount(this->genotype, &this->flippedToMinorGenotype);
     return this->flippedToMinorGenotype;
   }
-  Matrix& getPhenotype() {
-    return this->phenotype;
-  }
-  Matrix& getCovariate() {
-    return this->covariate;
-  }
-  Vector& getWeight() {
-    return this->weight;
-  }
-  Result& getResult() {
-    return this->result;
-  }
+  Matrix& getPhenotype() { return this->phenotype; }
+  Matrix& getCovariate() { return this->covariate; }
+  Vector& getWeight() { return this->weight; }
+  Result& getResult() { return this->result; }
 
   /**
    * Count @param homRef, @param het, @param homAlt and @param missing
    * from the genotype column specified by @param columnIndex
    * @param sex : only process specified sex (1, male; 2, female; <0, any)
-   * @param phenotype: only process specified phenotype (1, control; 2, case; <0 any)
+   * @param phenotype: only process specified phenotype (1, control; 2, case; <0
+   * any)
    * @return 0 if succeed
    */
-  int countRawGenotype(int columnIndex,
-                       int* homRef,
-                       int* het,
-                       int* homAlt,
-                       int* missing,
-                       const PLINK_SEX sex,
-                       const PLINK_PHENOTYPE phenotype) const{
+  int countRawGenotype(int columnIndex, int* homRef, int* het, int* homAlt,
+                       int* missing, const PLINK_SEX sex,
+                       const PLINK_PHENOTYPE phenotype) const {
     if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
       return -1;
     }
-    if (sex >0 && sex != MALE && sex != FEMALE) return -2;
-    if (sex >0 && (int)this->sex->size() != originalGenotype.rows) return -3;
-    if (phenotype >0 && phenotype != CTRL && phenotype != CASE) return -2;
+    if (sex > 0 && sex != MALE && sex != FEMALE) return -2;
+    if (sex > 0 && (int)this->sex->size() != originalGenotype.rows) return -3;
+    if (phenotype > 0 && phenotype != CTRL && phenotype != CASE) return -2;
 
     (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
-    for (int i = 0; i < originalGenotype.rows; ++i){
+    for (int i = 0; i < originalGenotype.rows; ++i) {
       if (sex > 0 && (*this->sex)[i] != sex) {
         continue;
       }
@@ -364,82 +352,46 @@ class DataConsolidator{
           break;
       }
     }
-    return 0; //success
+    return 0;  // success
   }
-  int countRawGenotypeFromCase(int columnIndex,
-                               int* homRef,
-                               int* het,
-                               int* homAlt,
-                               int* missing) const {
-    return countRawGenotype(columnIndex,
-                            homRef, het, homAlt, missing,
+  int countRawGenotypeFromCase(int columnIndex, int* homRef, int* het,
+                               int* homAlt, int* missing) const {
+    return countRawGenotype(columnIndex, homRef, het, homAlt, missing,
                             ANY_SEX,  // PLINK male
-                            CASE
-                            );
+                            CASE);
   }
 
-  int countRawGenotypeFromControl(int columnIndex,
-                                  int* homRef,
-                                  int* het,
-                                  int* homAlt,
-                                  int* missing) const {
-    return countRawGenotype(columnIndex,
-                            homRef, het, homAlt, missing,
-                            ANY_SEX,
+  int countRawGenotypeFromControl(int columnIndex, int* homRef, int* het,
+                                  int* homAlt, int* missing) const {
+    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, ANY_SEX,
                             CTRL  // any phenotype
                             );
   }
 
-  int countRawGenotype(int columnIndex,
-                       int* homRef,
-                       int* het,
-                       int* homAlt,
+  int countRawGenotype(int columnIndex, int* homRef, int* het, int* homAlt,
                        int* missing) const {
-    return countRawGenotype(columnIndex,
-                            homRef, het, homAlt, missing,
-                            ANY_SEX,
+    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, ANY_SEX,
                             ANY_PHENO  // any phenotype
                             );
   }
-  int countRawGenotypeFromFemale(int columnIndex,
-                                 int* homRef,
-                                 int* het,
-                                 int* homAlt,
-                                 int* missing) const {
-    return countRawGenotype(columnIndex,
-                            homRef, het, homAlt, missing,
-                            FEMALE,
+  int countRawGenotypeFromFemale(int columnIndex, int* homRef, int* het,
+                                 int* homAlt, int* missing) const {
+    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, FEMALE,
                             ANY_PHENO  // any phenotype
                             );
   }
-  int countRawGenotypeFromFemaleCase(int columnIndex,
-                                     int* homRef,
-                                     int* het,
-                                     int* homAlt,
-                                     int* missing) const {
-    return countRawGenotype(columnIndex,
-                            homRef, het, homAlt, missing,
-                            FEMALE,
-                            CASE
-                            );
+  int countRawGenotypeFromFemaleCase(int columnIndex, int* homRef, int* het,
+                                     int* homAlt, int* missing) const {
+    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, FEMALE,
+                            CASE);
   }
-  int countRawGenotypeFromFemaleControl(int columnIndex,
-                                        int* homRef,
-                                        int* het,
-                                        int* homAlt,
-                                        int* missing) const {
-    return countRawGenotype(columnIndex,
-                            homRef, het, homAlt, missing,
-                            FEMALE,
-                            CTRL
-                            );
+  int countRawGenotypeFromFemaleControl(int columnIndex, int* homRef, int* het,
+                                        int* homAlt, int* missing) const {
+    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, FEMALE,
+                            CTRL);
   }
-  bool isPhenotypeUpdated() const {
-    return this->phenotypeUpdated;
-  }
-  bool isCovariateUpdated() const {
-    return this->covariateUpdated;
-  }
+  bool isPhenotypeUpdated() const { return this->phenotypeUpdated; }
+  bool isCovariateUpdated() const { return this->covariateUpdated; }
   bool needToUpdateKinship() const;
 
   /**
@@ -448,59 +400,44 @@ class DataConsolidator{
    */
   int loadKinshipFile(const std::string& fn,
                       const std::vector<std::string>& names,
-                      EigenMatrix** pKinship,
-                      EigenMatrix** pKinshipU,
-                      EigenMatrix** pKinshipS,
-                      bool* pKinshipLoaded);
+                      EigenMatrix** pKinship, EigenMatrix** pKinshipU,
+                      EigenMatrix** pKinshipS, bool* pKinshipLoaded);
 
   int loadKinshipFileForAuto(const std::string& fn,
                              const std::vector<std::string>& names) {
-    return loadKinshipFile(fn, names,
-                           &kinshipForAuto,
-                           &kinshipUForAuto,
-                           &kinshipSForAuto,
-                           &kinshipLoadedForAuto);
+    return loadKinshipFile(fn, names, &kinshipForAuto, &kinshipUForAuto,
+                           &kinshipSForAuto, &kinshipLoadedForAuto);
   }
   int loadKinshipFileForX(const std::string& fn,
                           const std::vector<std::string>& names) {
-    return loadKinshipFile(fn, names,
-                           &kinshipForX,
-                           &kinshipUForX,
-                           &kinshipSForX,
-                           &kinshipLoadedForX);
+    return loadKinshipFile(fn, names, &kinshipForX, &kinshipUForX,
+                           &kinshipSForX, &kinshipLoadedForX);
   }
   /**
-   * will decompose original kinship matrix and release the memory of original kinship upon successful decomposition
+   * will decompose original kinship matrix and release the memory of original
+   * kinship upon successful decomposition
    * Kinship = U * S * U'  where S is diagonal matrix from smallest to largest
    */
   int decomposeKinshipForAuto();
   const EigenMatrix* getKinshipForAuto() const;
   const EigenMatrix* getKinshipUForAuto() const;
   const EigenMatrix* getKinshipSForAuto() const;
-  bool hasKinshipForAuto() const {
-    return this->kinshipLoadedForAuto;
-  };
+  bool hasKinshipForAuto() const { return this->kinshipLoadedForAuto; };
 
   int decomposeKinshipForX();
   const EigenMatrix* getKinshipForX() const;
   const EigenMatrix* getKinshipUForX() const;
   const EigenMatrix* getKinshipSForX() const;
-  bool hasKinshipForX() const {
-    return this->kinshipLoadedForX;
-  };
+  bool hasKinshipForX() const { return this->kinshipLoadedForX; };
 
   bool hasKinship() const {
     return this->hasKinshipForAuto() || this->hasKinshipForX();
   }
 
-  void setParRegion(ParRegion* p) {
-    this->parRegion = p;
-  }
+  void setParRegion(ParRegion* p) { this->parRegion = p; }
 
   //      Sex (1=male; 2=female; other=unknown)
-  void setSex(const std::vector<int>* sex) {
-    this->sex = sex;
-  };
+  void setSex(const std::vector<int>* sex) { this->sex = sex; };
   /**
    * Check if genotype matrix column @param columnIndex is a chromosome X.
    */
@@ -510,7 +447,7 @@ class DataConsolidator{
     size_t posColon = chromPos.find(":");
     if (posColon == std::string::npos) return false;
     std::string chrom = chromPos.substr(0, posColon);
-    int pos = atoi(chromPos.substr(posColon+1));
+    int pos = atoi(chromPos.substr(posColon + 1));
     return this->parRegion->isHemiRegion(chrom, pos);
 #if 0
     bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
@@ -532,21 +469,19 @@ class DataConsolidator{
     }
 
     geno->Dimension(m, 1);
-    double s = 0; // sum of genotypes
+    double s = 0;  // sum of genotypes
     int numGeno = 0;
-    if (this->strategy == IMPUTE_MEAN ||
-        this->strategy == IMPUTE_HWE) {
+    if (this->strategy == IMPUTE_MEAN || this->strategy == IMPUTE_HWE) {
       for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype[i][0] < 0 )
-          continue;
+        if (this->originalGenotype[i][0] < 0) continue;
 
-        if (this->originalGenotype[i][0] > 0.5 ) {
+        if (this->originalGenotype[i][0] > 0.5) {
           (*geno)[i][0] = 1.0;
           s += 1.;
-          numGeno ++;
+          numGeno++;
         } else {
           (*geno)[i][0] = 0.0;
-          numGeno ++;
+          numGeno++;
         }
       }
       double avg = 0.0;
@@ -554,8 +489,7 @@ class DataConsolidator{
         avg = s / numGeno;
       }
       for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype[i][0] < 0 )
-          (*geno)[i][0] = avg;
+        if (this->originalGenotype[i][0] < 0) (*geno)[i][0] = avg;
       }
     } else if (this->strategy == DROP) {
       for (int i = 0; i < m; ++i) {
@@ -574,21 +508,19 @@ class DataConsolidator{
 
     int m = genotype.rows;
     geno->Dimension(m, 1);
-    double s = 0; // sum of genotypes
+    double s = 0;  // sum of genotypes
     int numGeno = 0;
-    if (this->strategy == IMPUTE_MEAN ||
-        this->strategy == IMPUTE_HWE) {
+    if (this->strategy == IMPUTE_MEAN || this->strategy == IMPUTE_HWE) {
       for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype[i][0] < 0 )
-          continue;
+        if (this->originalGenotype[i][0] < 0) continue;
 
-        if (this->originalGenotype[i][0] > 1.5 ) {
+        if (this->originalGenotype[i][0] > 1.5) {
           (*geno)[i][0] = 1.0;
           s += 1.;
-          numGeno ++;
+          numGeno++;
         } else {
           (*geno)[i][0] = 0.0;
-          numGeno ++;
+          numGeno++;
         }
       }
       double avg = 0.0;
@@ -596,8 +528,7 @@ class DataConsolidator{
         avg = s / numGeno;
       }
       for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype[i][0] < 0 )
-          (*geno)[i][0] = avg;
+        if (this->originalGenotype[i][0] < 0) (*geno)[i][0] = avg;
       }
     } else if (this->strategy == DROP) {
       for (int i = 0; i < m; ++i) {
@@ -609,10 +540,12 @@ class DataConsolidator{
       }
     }
   }
+
  private:
-  //don't copy
+  // don't copy
   DataConsolidator(const DataConsolidator&);
   DataConsolidator& operator=(const DataConsolidator&);
+
  private:
   int strategy;
   Random random;
@@ -632,18 +565,18 @@ class DataConsolidator{
   // K = U %*% S %*%* t(U)
   EigenMatrix* kinshipForAuto;
   EigenMatrix* kinshipUForAuto;
-  EigenMatrix* kinshipSForAuto; // n by 1 column matrix
+  EigenMatrix* kinshipSForAuto;  // n by 1 column matrix
   bool kinshipLoadedForAuto;
-  //Kinship for related indvidual for chrom X hemi region
+  // Kinship for related indvidual for chrom X hemi region
   EigenMatrix* kinshipForX;
   EigenMatrix* kinshipUForX;
-  EigenMatrix* kinshipSForX; // n by 1 column matrix
+  EigenMatrix* kinshipSForX;  // n by 1 column matrix
   bool kinshipLoadedForX;
 
   // sex chromosome adjustment
   const std::vector<int>* sex;
 
   ParRegion* parRegion;
-}; // end DataConsolidator
+};  // end DataConsolidator
 
 #endif /* _DATACONSOLIDATOR_H_ */

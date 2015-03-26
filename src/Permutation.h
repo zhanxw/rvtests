@@ -45,11 +45,17 @@ class AdaptivePermutationCheck{
 };
 #endif
 
-class Permutation{
+class Permutation {
  public:
-  Permutation():numPerm(10000), alpha(0.05) {};
-  Permutation(int nPerm, double alpha):numPerm(nPerm), alpha(alpha),
-                                       obs(-1.), actualPerm(-1), threshold(-1.), numX(-1), numEqual(-1){
+  Permutation() : numPerm(10000), alpha(0.05){};
+  Permutation(int nPerm, double alpha)
+      : numPerm(nPerm),
+        alpha(alpha),
+        obs(-1.),
+        actualPerm(-1),
+        threshold(-1.),
+        numX(-1),
+        numEqual(-1) {
     result.addHeader("NumPerm");
     result.addHeader("ActualPerm");
     result.addHeader("Stat");
@@ -66,30 +72,29 @@ class Permutation{
     this->threshold = 1.0 * this->numPerm * this->alpha * 2;
     this->numX = 0;
     this->numEqual = 0;
-
   };
   /**
    * @return true if need more permutations
    */
   bool next() {
     if (this->actualPerm >= this->numPerm) return false;
-    if (numX + numEqual > threshold){
+    if (numX + numEqual > threshold) {
       return false;
     }
     return true;
   };
   void add(double s) {
     this->actualPerm++;
-    if ( s > this->obs) {
-      numX ++;
+    if (s > this->obs) {
+      numX++;
     }
-    if ( s == this->obs) {
-      numEqual ++;
+    if (s == this->obs) {
+      numEqual++;
     }
   };
   double getPvalue() const {
     if (this->actualPerm == 0) return 1.0;
-    return  1.0 * (this->numX + 0.5 * this->numEqual) / this->actualPerm;
+    return 1.0 * (this->numX + 0.5 * this->numEqual) / this->actualPerm;
   };
   void reset() {
     obs = 0.0;
@@ -98,19 +103,22 @@ class Permutation{
     numX = 0;
     numEqual = 0;
   };
-  void writeHeader(FileWriter* fp){
+  void writeHeader(FileWriter* fp) {
     /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
-    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
+    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual",
+     * "PermPvalue"); */
     result.writeHeader(fp);
   }
-  void writeHeaderTab(FileWriter* fp){
+  void writeHeaderTab(FileWriter* fp) {
     /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
-    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
+    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual",
+     * "PermPvalue"); */
     result.writeHeaderTab(fp);
   }
-  void writeHeaderLine(FileWriter* fp){
+  void writeHeaderLine(FileWriter* fp) {
     /* fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", */
-    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual", "PermPvalue"); */
+    /*         "NumPerm", "ActualPerm", "Stat", "NumGreater", "NumEqual",
+     * "PermPvalue"); */
     result.writeHeaderLine(fp);
   }
   void updateValue() {
@@ -138,7 +146,6 @@ class Permutation{
     result.writeValueLine(fp);
   }
 
-
  private:
   int numPerm;
   double alpha;
@@ -148,8 +155,6 @@ class Permutation{
   int numX;
   int numEqual;
   Result result;
-}; // class Permutation
-
-
+};  // class Permutation
 
 #endif /* _PERMUTATION_H_ */

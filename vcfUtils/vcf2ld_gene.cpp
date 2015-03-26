@@ -52,72 +52,6 @@
 #include "CommonFunction.h"
 #include "GitVersion.h"
 
-// #include "Analysis.h"
-
-void banner(FILE* fp) {
-  const char* string =
-      "..............................................         \n"
-      " ...      R(are) V(ariant) Tests            ...        \n"
-      "  ...      Xiaowei Zhan, Youna Hu            ...       \n"
-      "   ...      Bingshan Li, Dajiang Liu          ...      \n"
-      "    ...      Goncalo Abecasis                  ...     \n"
-      "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      Feburary 2012                     ...   \n"
-      "       ..............................................  \n"
-      "                                                       \n"
-      ;
-  fputs(string, fp);
-};
-
-/**
- * @return number of phenotypes read. -1 if errors
- *
- */
-int loadPedPhenotype(const char* fn, std::map<std::string, double>* p) {
-  std::map<std::string, double>& pheno = *p;
-
-  std::vector<std::string> fd;
-  LineReader lr(fn);
-  int lineNo = 0;
-  double v;
-  while (lr.readLineBySep(&fd, "\t ")){
-    ++ lineNo;
-    if (fd.size() < 6) {
-      fprintf(stderr, "skip line %d (short of columns)\n", lineNo);
-      continue;
-    }
-    std::string& pid = fd[1];
-    v = atof(fd[5]);
-    if (pheno.count(pid) == 0) {
-      pheno[pid] = v;
-    } else {
-      fprintf(stderr, "line %s have duplicated id, skipping\n", pid.c_str());
-      continue;
-    }
-  }
-  return pheno.size();
-};
-
-/**
- * according to the order of @param vcfSampleNames, put phenotypes to @param phenotypeInOrder
- */
-void rearrange(const std::map< std::string, double>& phenotype, const std::vector<std::string>& vcfSampleNames,
-               std::vector<std::string>* vcfSampleToDrop, std::vector<double>* phenotypeInOrder) {
-  vcfSampleToDrop->clear();
-  phenotypeInOrder->clear();
-  if (!isUnique(vcfSampleNames)) {
-    fprintf(stderr, "VCF file have duplicated sample id. Quitting!\n");
-    abort();
-  }
-  for (size_t i = 0; i < vcfSampleNames.size(); i++) {
-    if (phenotype.count(vcfSampleNames[i]) == 0) {
-      vcfSampleToDrop->push_back(vcfSampleNames[i]);
-    } else {
-      phenotypeInOrder->push_back( phenotype.find(vcfSampleNames[i])->second);
-    }
-  }
-};
-
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
  * genotype is marker by people matrix
@@ -474,7 +408,7 @@ int main(int argc, char** argv){
       fprintf(stderr, "Error loading gene file!\n");
       return -1;
     } else {
-      fprintf(stderr, "Loaded %u genes!\n", geneRange.size());
+      fprintf(stderr, "Loaded %zu genes!\n", geneRange.size());
     }
   } else {
     fprintf(stderr, "--geneFile is required to calculate R^2 per gene!\n");

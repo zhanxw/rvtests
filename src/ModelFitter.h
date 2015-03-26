@@ -14,7 +14,7 @@ class ModelParser;
 // take X, Y, Cov and fit model
 // note, ModelFitter will use VCFData as READ-ONLY data structure,
 // and collapsing results are stored internally.
-class ModelFitter{
+class ModelFitter {
  public:
   virtual int fit(DataConsolidator* dc) = 0;
 
@@ -23,12 +23,12 @@ class ModelFitter{
   // write model output
   virtual void writeOutput(FileWriter* fp, const Result& siteInfo) = 0;
   // write footnotes in model output
-  virtual void writeFootnote(FileWriter* fp) {};
+  virtual void writeFootnote(FileWriter* fp){};
 
-  ModelFitter(){
+  ModelFitter() {
     this->modelName = "UninitializedModel";
-    this->binaryOutcome = false; // default: using continuous outcome
-    this->familyModel = false;   // is this case for for family only?
+    this->binaryOutcome = false;  // default: using continuous outcome
+    this->familyModel = false;    // is this case for for family only?
     this->indexResult = false;
   }
   virtual ~ModelFitter() {}
@@ -42,39 +42,22 @@ class ModelFitter{
   // for particular class to call when fitting repeatedly
   // e.g. clear permutation counter
   // e.g. clear internal cache
-  virtual void reset() { this->result.clearValue();};
+  virtual void reset() { this->result.clearValue(); };
   // virtual void needFittingCovariate();
-  bool isBinaryOutcome() const{
-    return this->binaryOutcome;
-  }
-  void setBinaryOutcome() {
-    this->binaryOutcome = true;
-  }
-  bool isFamilyModel() const {
-    return this->familyModel;
-  }
-  bool needToIndexResult() const {
-    return this->indexResult;
-  }
-  void setContinuousOutcome() {
-    this->binaryOutcome = false;
-  }
-  const Result& getResult() const {
-    return this->result;
-  }
-  void appendHeader(SummaryHeader* h) {
-    header.push_back(h);
-  }
-  void setPrefix(const std::string& p) {
-    this->outputPrefix = p;
-  }
-  std::string getPrefix() const {
-    return this->outputPrefix;
-  }
+  bool isBinaryOutcome() const { return this->binaryOutcome; }
+  void setBinaryOutcome() { this->binaryOutcome = true; }
+  bool isFamilyModel() const { return this->familyModel; }
+  bool needToIndexResult() const { return this->indexResult; }
+  void setContinuousOutcome() { this->binaryOutcome = false; }
+  const Result& getResult() const { return this->result; }
+  void appendHeader(SummaryHeader* h) { header.push_back(h); }
+  void setPrefix(const std::string& p) { this->outputPrefix = p; }
+  std::string getPrefix() const { return this->outputPrefix; }
+
  protected:
   // specify this for sub-classes
   std::string modelName;
-  
+
   // these are set up when creating classes
   bool binaryOutcome;
   bool familyModel;
@@ -85,5 +68,5 @@ class ModelFitter{
 
   // optionally used
   std::vector<SummaryHeader*> header;
-}; // end ModelFitter
+};     // end ModelFitter
 #endif /* _MODELFITTER_H_ */

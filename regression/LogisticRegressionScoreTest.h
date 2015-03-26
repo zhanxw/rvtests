@@ -11,14 +11,14 @@
 
 #include "LogisticRegression.h"
 
-class LogisticRegressionScoreTest{
-public:
+class LogisticRegressionScoreTest {
+ public:
   LogisticRegressionScoreTest();
 
   /**
    * @param colToTest: 0-based
    */
-  bool FitLogisticModel(Matrix &X, Vector &y, int colToTest, int nRound);
+  bool FitLogisticModel(Matrix& X, Vector& y, int colToTest, int nRound);
 
   bool FitNullModel(Matrix& Xnull, Vector& y, int nRound);
   bool TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol);
@@ -29,7 +29,6 @@ public:
    */
   bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
 
-
   // fit y~1+ beta*x  (no covariate)
   bool TestCovariate(Vector& x, Vector& y);
   /**
@@ -37,16 +36,21 @@ public:
    */
   bool TestCovariate(Matrix& x, Vector& y);
 
-  double GetPvalue() const {return this->pvalue;};
-  double GetStat() const {return this->stat;};
-  const Matrix& GetU() const {return this->Umatrix;};
-  const Matrix& GetV() const {return this->Vmatrix;};
-  Vector & GetNullPredicted() {return this->lr.GetPredicted();}; // predicted probability \hat{p}
+  double GetPvalue() const { return this->pvalue; };
+  double GetStat() const { return this->stat; };
+  const Matrix& GetU() const { return this->Umatrix; };
+  const Matrix& GetV() const { return this->Vmatrix; };
+  Vector& GetNullPredicted() {
+    return this->lr.GetPredicted();
+  };  // predicted probability \hat{p}
 
   // get estimates from null model
-  Vector& GetNullCovEst()    {return this->lr.GetCovEst();}; // coef estimation of the model
-  Matrix& GetNullCovB()      {return this->lr.GetCovB();} ;
-private:
+  Vector& GetNullCovEst() {
+    return this->lr.GetCovEst();
+  };  // coef estimation of the model
+  Matrix& GetNullCovB() { return this->lr.GetCovB(); };
+
+ private:
   void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
   double stat;
   double pvalue;
@@ -54,6 +58,5 @@ private:
   Matrix Vmatrix;
   LogisticRegression lr;
 };
-
 
 #endif /* _LOGISTICREGRESSIONSCORETEST_H_ */

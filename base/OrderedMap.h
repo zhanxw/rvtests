@@ -14,22 +14,22 @@
  * NOTE: KEY will be stored twice.
  */
 template <class KEY, class TYPE>
-class OrderedMap{
+class OrderedMap {
  public:
   bool find(const KEY& key) const {
-    if (this->keyTypeMap.find(key) == this->keyTypeMap.end()){
+    if (this->keyTypeMap.find(key) == this->keyTypeMap.end()) {
       return false;
     }
     return true;
   }
-  TYPE& operator[] (const KEY& key) {
-    if (!this->find(key)){
+  TYPE& operator[](const KEY& key) {
+    if (!this->find(key)) {
       this->keyVec.push_back(key);
     }
     return this->keyTypeMap[key];
   }
-  const TYPE& operator[] (const KEY& key) const{
-    if (!this->find(key)){
+  const TYPE& operator[](const KEY& key) const {
+    if (!this->find(key)) {
       throw "key not found in OrderedMap";
     }
     return this->keyTypeMap.find(key)->second;
@@ -47,8 +47,8 @@ class OrderedMap{
   bool at(unsigned int idx, KEY* k, TYPE* v) const {
     if (idx >= this->size()) return false;
     *k = this->keyVec[idx];
-    if (this->keyTypeMap.find(*k) == this->keyTypeMap.end()){
-      v =NULL;
+    if (this->keyTypeMap.find(*k) == this->keyTypeMap.end()) {
+      v = NULL;
     } else {
       *v = this->keyTypeMap.find(*k)->second;
     }
@@ -66,7 +66,7 @@ class OrderedMap{
       abort();
     }
     const KEY& k = this->keyVec[idx];
-    if (this->keyTypeMap.find(k) == this->keyTypeMap.end()){
+    if (this->keyTypeMap.find(k) == this->keyTypeMap.end()) {
       fprintf(stderr, "Cannot find KEY in valueAt()\n");
       abort();
     } else {
@@ -79,20 +79,20 @@ class OrderedMap{
       abort();
     }
     const KEY& k = this->keyVec[idx];
-    if (this->keyTypeMap.find(k) == this->keyTypeMap.end()){
+    if (this->keyTypeMap.find(k) == this->keyTypeMap.end()) {
       fprintf(stderr, "Cannot find KEY in valueAt()\n");
       abort();
     }
     return this->keyTypeMap.find(k)->second;
-
   }
   /**
    * compare
    */
-  void compareKey(const OrderedMap<KEY, TYPE>& other, int* overlap, int* thisUniqueKeys, int* otherUniqueKeys) const{
+  void compareKey(const OrderedMap<KEY, TYPE>& other, int* overlap,
+                  int* thisUniqueKeys, int* otherUniqueKeys) const {
     assert(overlap && thisUniqueKeys && otherUniqueKeys);
     *overlap = *thisUniqueKeys = *otherUniqueKeys = 0;
-    for (unsigned int i = 0; i != this->size(); i ++ ){
+    for (unsigned int i = 0; i != this->size(); i++) {
       KEY& k = this->keyAt(i);
       if (other.find(k))
         (*overlap)++;
@@ -101,14 +101,15 @@ class OrderedMap{
     }
     *otherUniqueKeys = other.size() - *overlap;
   }
-  size_t size() const { return this->keyVec.size();} ;
+  size_t size() const { return this->keyVec.size(); };
   void clear() {
     this->keyVec.clear();
     this->keyTypeMap.clear();
   };
+
  private:
-  std::vector < KEY > keyVec;
-  std::map < KEY, TYPE > keyTypeMap;
+  std::vector<KEY> keyVec;
+  std::map<KEY, TYPE> keyTypeMap;
 };
 
 #endif /* _ORDEREDMAP_H_ */

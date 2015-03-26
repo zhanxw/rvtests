@@ -12,12 +12,14 @@
 #include "Random.h"
 #include "LogisticRegression.h"
 
-class LogisticRegressionPermutationTest{
+class LogisticRegressionPermutationTest {
  public:
   // permutation up to @param nPerm times
-  // however, if threshold > 0, then use adaptive permuatation: early quiting when we cannot reach threshold
+  // however, if threshold > 0, then use adaptive permuatation: early quiting
+  // when we cannot reach threshold
   // internally: use wald method to check the distribution of beta
-  bool FitLogisticModel(Matrix& X, int Xcol, Vector& Y, int nPerm, double threshold){
+  bool FitLogisticModel(Matrix& X, int Xcol, Vector& Y, int nPerm,
+                        double threshold) {
     this->numPermutation = nPerm;
 
     LogisticRegression lr;
@@ -28,7 +30,7 @@ class LogisticRegressionPermutationTest{
     this->observeT = lr.GetCovEst()[Xcol];
     this->absObserveT = fabs(this->observeT);
 
-    //fprintf(stderr, "obs = %.2f\n", this->observeT);
+    // fprintf(stderr, "obs = %.2f\n", this->observeT);
 
     // permuatation part
     Vector yPerm = Y;
@@ -37,30 +39,30 @@ class LogisticRegressionPermutationTest{
     this->numLess = 0;
     int t = 0;
     if (threshold >= 0) {
-      t = (int) ( 1.0 * nPerm * threshold) ;
+      t = (int)(1.0 * nPerm * threshold);
     }
 
     double z;
-    while (actualPerm < nPerm){
-      actualPerm ++;
+    while (actualPerm < nPerm) {
+      actualPerm++;
       permutateVector(yPerm);
 
       if (lr.FitLogisticModel(X, yPerm, 100) == false) {
-        actualPerm --;
+        actualPerm--;
         continue;
       }
 
       z = lr.GetCovEst()[Xcol];
-      //fprintf(stdout, "actualPerm = %d, z = %.2f\n", actualPerm, z);
+      // fprintf(stdout, "actualPerm = %d, z = %.2f\n", actualPerm, z);
 
-      if (z > this->absObserveT){
+      if (z > this->absObserveT) {
         this->numLarge++;
-      } else if (z < - this->absObserveT) {
+      } else if (z < -this->absObserveT) {
         this->numLess++;
       }
 
       // check early stop
-      if (t && (this->numLarge +this->numLess) > t){
+      if (t && (this->numLarge + this->numLess) > t) {
         this->earlyStop = true;
         break;
       }
@@ -69,8 +71,10 @@ class LogisticRegressionPermutationTest{
     return true;
   };
   // permutation up to @param nPerm times
-  // however, if threshold > 0, then use adaptive permuatation: early quiting when we cannot reach threshold
-  bool FitLogisticModelCov(Matrix& X, int Xcol, Vector& Y, int nPerm, double threshold){
+  // however, if threshold > 0, then use adaptive permuatation: early quiting
+  // when we cannot reach threshold
+  bool FitLogisticModelCov(Matrix& X, int Xcol, Vector& Y, int nPerm,
+                           double threshold) {
     this->numPermutation = nPerm;
 
     LogisticRegression lr;
@@ -81,7 +85,7 @@ class LogisticRegressionPermutationTest{
     this->observeT = lr.GetCovEst()[Xcol];
     this->absObserveT = fabs(this->observeT);
 
-    //fprintf(stderr, "obs = %.2f\n", this->observeT);
+    // fprintf(stderr, "obs = %.2f\n", this->observeT);
 
     Matrix cov;
     Vector x;
@@ -93,10 +97,9 @@ class LogisticRegressionPermutationTest{
     }
     Vector beta_null = lr.GetCovEst();
 
-
     Vector prob_null;
     prob_null.Product(cov, beta_null);
-    for (int i = 0; i < prob_null.Length() ; i++) {
+    for (int i = 0; i < prob_null.Length(); i++) {
       prob_null[i] = 1.0 / (1.0 + exp(-prob_null[i]));
     }
 
@@ -107,37 +110,37 @@ class LogisticRegressionPermutationTest{
     this->numLess = 0;
     int t = 0;
     if (threshold >= 0) {
-      t = (int) ( 1.0 * nPerm * threshold) ;
+      t = (int)(1.0 * nPerm * threshold);
     }
 
     Random r;
     double z;
-    while (actualPerm < nPerm){
-      actualPerm ++;
+    while (actualPerm < nPerm) {
+      actualPerm++;
       // bootstrap sample
-      for (int i = 0; i < yPerm.Length() ; i ++) {
-        if ( r.Next() < prob_null[i])
+      for (int i = 0; i < yPerm.Length(); i++) {
+        if (r.Next() < prob_null[i])
           yPerm[i] = 0.0;
         else
           yPerm[i] = 1.0;
       }
 
       if (lr.FitLogisticModel(X, yPerm, 100) == false) {
-        actualPerm --;
+        actualPerm--;
         continue;
       }
 
       z = lr.GetCovEst()[Xcol];
-      //fprintf(stdout, "actualPerm = %d, z = %.2f\n", actualPerm, z);
+      // fprintf(stdout, "actualPerm = %d, z = %.2f\n", actualPerm, z);
 
-      if (z > this->absObserveT){
+      if (z > this->absObserveT) {
         this->numLarge++;
-      } else if (z < - this->absObserveT) {
+      } else if (z < -this->absObserveT) {
         this->numLess++;
       }
 
       // check early stop
-      if (t && (this->numLarge +this->numLess) > t){
+      if (t && (this->numLarge + this->numLess) > t) {
         this->earlyStop = true;
         break;
       }
@@ -146,18 +149,23 @@ class LogisticRegressionPermutationTest{
     return true;
   };
 
-  double getPvalue() const {return this->permPvalue;};
-  double getTwoSidedPvalue() const { return this->permPvalue;};
-  double getOneSidePvalueLarge() const { return (1.0 * this->numLarge / this->actualPerm);};
-  double getOneSidePvalueLess() const { return (1.0 * this->numLess / this->actualPerm);};
-  bool isEarlyStop() const { return this->earlyStop;};
-  int getActualPerm() const {return this->actualPerm;};
+  double getPvalue() const { return this->permPvalue; };
+  double getTwoSidedPvalue() const { return this->permPvalue; };
+  double getOneSidePvalueLarge() const {
+    return (1.0 * this->numLarge / this->actualPerm);
+  };
+  double getOneSidePvalueLess() const {
+    return (1.0 * this->numLess / this->actualPerm);
+  };
+  bool isEarlyStop() const { return this->earlyStop; };
+  int getActualPerm() const { return this->actualPerm; };
+
  private:
   // Fish-Yates shuffle
   void permutateVector(Vector& v) {
     int l = v.Length();
-    for (int i = l - 1; i >= 0; i--){
-      int j = rand() % (i+1); //  0 <= j < = i
+    for (int i = l - 1; i >= 0; i--) {
+      int j = rand() % (i + 1);  //  0 <= j < = i
       if (i != j) {
         double tmp = v[i];
         v[i] = v[j];
@@ -170,10 +178,10 @@ class LogisticRegressionPermutationTest{
   bool earlyStop;
   double observeT;
   double absObserveT;
-  double numLarge;       // where     T(permutate)  < - absObserve|T|
-  double numLess;        // where     T(permutate)  < - absObserve|T|
-  double permPvalue;     // two-sided p-value, unless stated otherwise.
-  int numPermutation;    // how many permutation persued.
+  double numLarge;     // where     T(permutate)  < - absObserve|T|
+  double numLess;      // where     T(permutate)  < - absObserve|T|
+  double permPvalue;   // two-sided p-value, unless stated otherwise.
+  int numPermutation;  // how many permutation persued.
   int actualPerm;
 };
 

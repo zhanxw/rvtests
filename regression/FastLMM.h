@@ -7,26 +7,22 @@ class EigenMatrix;
 class Matrix;
 class Vector;
 
-class FastLMM{
+class FastLMM {
  public:
-  enum Test {
-    SCORE = 0,
-    LRT
-  };
-  enum Model {
-    MLE = 0,
-    REML
-  };
- public: // Make this Impl public to make optimization function easy to write
+  enum Test { SCORE = 0, LRT };
+  enum Model { MLE = 0, REML };
+
+ public:  // Make this Impl public to make optimization function easy to write
   class Impl;
   Impl* impl;
+
  public:
   FastLMM(Test test, Model model);
   ~FastLMM();
 
   // @return 0 when success
-  int FitNullModel(Matrix& Xnull, Matrix& y,
-                   const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
+                   const EigenMatrix& kinshipS);
   int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   int CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
@@ -36,10 +32,13 @@ class FastLMM{
   // NOTE: need to fit null model fit before calling this function
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   // NOTE: need to fit null model fit before calling this function
-  double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol);
+  double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+               Matrix& Xcol);
   // NOTE: need to fit null model fit before calling this function
-  double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol);
-  double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS, Matrix& Xcol, int col);
+  double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                   Matrix& Xcol);
+  double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                   Matrix& Xcol, int col);
   double GetPvalue();
   // for LRT Test
   double GetNullLogLikelihood() const;
@@ -66,13 +65,10 @@ class FastLMM{
   void GetCovZZ(Matrix* zz);  // Cov(ZZ) = Z' Simga^{-1} Z
   // transform genotype (e.g. in MetaCov)
   // x <- U' * ( x - center(x) )
-  int TransformCentered(std::vector<double>* x,
-                        const EigenMatrix& kinshipU,
+  int TransformCentered(std::vector<double>* x, const EigenMatrix& kinshipU,
                         const EigenMatrix& kinshipS);
   // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
   int GetWeight(Vector* out) const;
-  
 };
-
 
 #endif /* _FASTLMM_H_ */

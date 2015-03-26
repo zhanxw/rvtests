@@ -10,20 +10,20 @@ class Vector;
 /**
  * This class is to help calculate covariance in family strucutre
  */
-class MetaCov{
-public: // Make this Impl public to make optimization function easy to write
+class MetaCov {
+ public:  // Make this Impl public to make optimization function easy to write
   class Impl;
   Impl* impl;
-public:
+
+ public:
   MetaCov();
   ~MetaCov();
 
   // @return 0 when success
-  int FitNullModel(Matrix& Xnull, Matrix& y,
-                   const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
+                   const EigenMatrix& kinshipS);
   // U' * ( x - center(x) )
-  int TransformCentered(std::vector<double>* x,
-                        const EigenMatrix& kinshipU,
+  int TransformCentered(std::vector<double>* x, const EigenMatrix& kinshipU,
                         const EigenMatrix& kinshipS);
   // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
   int GetWeight(Vector* out);
@@ -31,6 +31,5 @@ public:
   // get Z' \Sigma^{-1} Z
   void GetCovZZ(Matrix* zz);
 };
-
 
 #endif /* _METACOV_H_ */

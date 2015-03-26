@@ -6,7 +6,7 @@
 class Matrix;
 class Vector;
 
-class LogisticRegressionVT{
+class LogisticRegressionVT {
  private:
   class LogisticVTImpl;
   LogisticVTImpl* impl;
@@ -24,11 +24,11 @@ class LogisticRegressionVT{
    */
   bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
 
-  int GetIndexMax() ;           // return index to the maximum t
-  Matrix& GetU() ;
-  Matrix& GetV() ;
-  Matrix& GetT() ;
-  Matrix& GetCov() ;            // return cov(U)
+  int GetIndexMax();  // return index to the maximum t
+  Matrix& GetU();
+  Matrix& GetV();
+  Matrix& GetT();
+  Matrix& GetCov();  // return cov(U)
   double GetPvalue() const;
   double GetEffect(int index) const;
 
@@ -37,6 +37,5 @@ class LogisticRegressionVT{
   LogisticRegressionVT(const LogisticRegressionVT& s);
   LogisticRegressionVT& operator=(const LogisticRegressionVT& s);
 };
-
 
 #endif /* _LOGISTICREGRESSIONVT_H_ */

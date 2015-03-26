@@ -4,7 +4,7 @@
 class Matrix;
 class Vector;
 
-class LinearRegressionVT{
+class LinearRegressionVT {
  private:
   class LinearVTImpl;
   LinearVTImpl* impl;
@@ -22,11 +22,11 @@ class LinearRegressionVT{
    */
   bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
 
-  int GetIndexMax() ;           // return index to the maximum t
-  Matrix& GetU() ;
-  Matrix& GetV() ;
-  Matrix& GetT() ;
-  Matrix& GetCov() ;            // return cov(U)
+  int GetIndexMax();  // return index to the maximum t
+  Matrix& GetU();
+  Matrix& GetV();
+  Matrix& GetT();
+  Matrix& GetCov();  // return cov(U)
   double GetPvalue() const;
   double GetEffect(int index) const;
 
@@ -35,6 +35,5 @@ class LinearRegressionVT{
   LinearRegressionVT(const LinearRegressionVT& s);
   LinearRegressionVT& operator=(const LinearRegressionVT& s);
 };
-
 
 #endif /* _LINEARREGRESSIONVT_H_ */

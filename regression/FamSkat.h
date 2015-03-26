@@ -5,11 +5,11 @@ class Matrix;
 class Vector;
 class EigenMatrix;
 
-class FamSkat
-{
+class FamSkat {
  private:
   class FamSkatImpl;
   FamSkatImpl* skatImpl;
+
  public:
   FamSkat();
   ~FamSkat();
@@ -24,8 +24,8 @@ class FamSkat
    * w weight for G
    * @return 0 when success
    */
-  int FitNullModel(Matrix& Xnull, Matrix& y,
-                   const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
+                   const EigenMatrix& kinshipS);
   int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol, Vector& weight,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
 
@@ -33,9 +33,9 @@ class FamSkat
   // but doable using parametric bootstrap method
   // double FamSkat::GetQFromPermutation();
 
-  double GetPvalue() const; //  {return this->pValue;};
+  double GetPvalue() const;  //  {return this->pValue;};
 
-  double GetQ() const; // {return this->Q;};
+  double GetQ() const;  // {return this->Q;};
 
  private:
   // don't copy

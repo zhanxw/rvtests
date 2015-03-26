@@ -8,11 +8,10 @@
 #include <vector>
 
 // we assume format are always  GT:DP:GQ:GL
-class VCFIndividual{
-public:
-
+class VCFIndividual {
+ public:
   // FUNC parseFunction[4];
-  VCFIndividual(){
+  VCFIndividual() {
     this->include();  // by default, enable everyone
   };
   /**
@@ -38,7 +37,7 @@ public:
     VCFValue v;
     int beg = 0;
     int ret;
-    while( (ret = v.parseTill(this->parsed, beg, ':')) == 0){
+    while ((ret = v.parseTill(this->parsed, beg, ':')) == 0) {
       this->parsed[v.end] = '\0';
       beg = v.end + 1;
       fd.push_back(v);
@@ -53,26 +52,28 @@ public:
     }
   };
 
-  const std::string& getName() const {return this->name;};
-  void setName(std::string& s) {this->name = s;};
-  void include() {this->inUse = true;};
-  void exclude() {this->inUse = false;};
-  bool isInUse() {return this->inUse;};
+  const std::string& getName() const { return this->name; };
+  void setName(std::string& s) { this->name = s; };
+  void include() { this->inUse = true; };
+  void exclude() { this->inUse = false; };
+  bool isInUse() { return this->inUse; };
 
-  const VCFValue& operator [] (const unsigned int i) const __attribute__ ((deprecated)) {
-    if (i >= fd.size()){
+  const VCFValue& operator[](const unsigned int i) const
+      __attribute__((deprecated)) {
+    if (i >= fd.size()) {
       FATAL("index out of bound!");
     }
     return (this->fd[i]);
   };
-  VCFValue& operator [] (const unsigned int i) __attribute__ ((deprecated)) {
-    if (i >= fd.size()){
+  VCFValue& operator[](const unsigned int i) __attribute__((deprecated)) {
+    if (i >= fd.size()) {
       FATAL("index out of bound!");
     }
     return (this->fd[i]);
   };
   /**
-   * @param isMissing: index @param i does not exists. Not testing if the value in ith field is missing
+   * @param isMissing: index @param i does not exists. Not testing if the value
+   * in ith field is missing
    */
   const VCFValue& get(unsigned int i, bool* isMissing) const {
     if (i >= fd.size()) {
@@ -91,30 +92,28 @@ public:
     }
     return (this->fd[i]);
   };
-  
-  VCFValue& getSelf() {return this->self;};
-  const VCFValue& getSelf() const{
-    return this->self;
-  };
 
-  size_t size() const {return this->fd.size();}
+  VCFValue& getSelf() { return this->self; };
+  const VCFValue& getSelf() const { return this->self; };
+
+  size_t size() const { return this->fd.size(); }
   /**
    * dump the content of VCFIndividual column
    */
-  void output(FILE* fp) const{
-    for (unsigned int i = 0; i < fd.size(); ++i){
-      if (i)
-        fputc(':', fp);
+  void output(FILE* fp) const {
+    for (unsigned int i = 0; i < fd.size(); ++i) {
+      if (i) fputc(':', fp);
       this->fd[i].output(fp);
     }
   };
-private:
+
+ private:
   bool inUse;
-  std::string name;         // id name
-  VCFValue self;            // whole field for the individual (unparsed)
-  VCFBuffer parsed;       // store parsed string (where \0 added)
-  std::vector<VCFValue> fd; // each field separated by ':'
+  std::string name;          // id name
+  VCFValue self;             // whole field for the individual (unparsed)
+  VCFBuffer parsed;          // store parsed string (where \0 added)
+  std::vector<VCFValue> fd;  // each field separated by ':'
   static VCFValue defaultVCFValue;
-}; // end VCFIndividual
+};  // end VCFIndividual
 
 #endif /* _VCFINDIVIDUAL_H_ */

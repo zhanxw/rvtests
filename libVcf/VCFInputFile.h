@@ -9,18 +9,19 @@ class TabixReader;
 class BCFReader;
 
 /**
- * parse is equivalent to copy, meaning we will copy the content to speed up later reference using const char*
+ * parse is equivalent to copy, meaning we will copy the content to speed up
+ * later reference using const char*
  * three modes to read a VCF files
  *  (1) BCF file mode, read by region or by line
  *  (2) VCF file, read by line
  *  (3) VCF file, read by region
  */
-class VCFInputFile{
+class VCFInputFile {
  public:
   typedef enum {
     BCF_MODE,
-    VCF_LINE_MODE,          // read by line
-    VCF_RANGE_MODE          // read by range
+    VCF_LINE_MODE,  // read by line
+    VCF_RANGE_MODE  // read by range
   } Mode;
 
  private:
@@ -29,20 +30,14 @@ class VCFInputFile{
   VCFInputFile& operator=(const VCFInputFile&);
 
  public:
-  VCFInputFile (const std::string& fn) {
-    init(fn.c_str());
-  }
-  
-  VCFInputFile (const char* fn) {
-    init(fn);
-  }
+  VCFInputFile(const std::string& fn) { init(fn.c_str()); }
+
+  VCFInputFile(const char* fn) { init(fn); }
   void init(const char* fn);
-  
-  virtual ~VCFInputFile(){
-    this->close();
-  }
+
+  virtual ~VCFInputFile() { this->close(); }
   void close();
-  
+
   VCFHeader* getVCFHeader() {
     this->rewriteVCFHeader();
     return &this->header;
@@ -66,13 +61,11 @@ class VCFInputFile{
   /**
    * Check with VCFFilter to see if the current read line passed
    */
-  virtual bool passFilter() {
-    return true;
-  };
+  virtual bool passFilter() { return true; };
   /**
    * Check if the current read VCF site is allowed
    */
-  bool isAllowedSite() const{
+  bool isAllowedSite() const {
     // no restriction on allowed sites
     if (this->allowedSite.empty()) return true;
 
@@ -89,42 +82,29 @@ class VCFInputFile{
 
   //////////////////////////////////////////////////
   // Sample inclusion/exclusion
-  void includePeople(const char* s) {
-    this->record.includePeople(s);
-  }
-  void includePeople(const std::vector<std::string>& v){
+  void includePeople(const char* s) { this->record.includePeople(s); }
+  void includePeople(const std::vector<std::string>& v) {
     this->record.includePeople(v);
   }
   void includePeopleFromFile(const char* fn) {
     this->record.includePeopleFromFile(fn);
   }
-  void includeAllPeople(){
-    this->record.includeAllPeople();
-  }
-  void excludePeople(const char* s) {
-    this->record.excludePeople(s);
-  }
-  void excludePeople(const std::vector<std::string>& v){
+  void includeAllPeople() { this->record.includeAllPeople(); }
+  void excludePeople(const char* s) { this->record.excludePeople(s); }
+  void excludePeople(const std::vector<std::string>& v) {
     this->record.excludePeople(v);
   }
   void excludePeopleFromFile(const char* fn) {
     this->record.excludePeopleFromFile(fn);
   }
-  void excludeAllPeople(){
-    this->record.excludeAllPeople();
-  }
+  void excludeAllPeople() { this->record.excludeAllPeople(); }
   //////////////////////////////////////////////////
   // Adjust range collections
-  void enableAutoMerge() {
-    this->autoMergeRange = true;
-  }
-  void disableAutoMerge() {
-    this->autoMergeRange = false;
-  }
+  void enableAutoMerge() { this->autoMergeRange = true; }
+  void disableAutoMerge() { this->autoMergeRange = false; }
   // void clearRange();
   void setRangeFile(const char* fn) {
-    if (!fn || strlen(fn) == 0)
-      return;
+    if (!fn || strlen(fn) == 0) return;
     RangeList r;
     r.addRangeFile(fn);
     this->setRange(r);
@@ -135,12 +115,9 @@ class VCFInputFile{
     r.addRange(chrom, begin, end);
     this->setRange(r);
   }
-  void setRange(const RangeList& rl) {
-    this->setRangeList(rl);
-  }
-  void setRangeList(const std::string& l){
-    if (l.empty())
-      return;
+  void setRange(const RangeList& rl) { this->setRangeList(rl); }
+  void setRangeList(const std::string& l) {
+    if (l.empty()) return;
 
     RangeList r;
     r.addRangeList(l);
@@ -149,20 +126,20 @@ class VCFInputFile{
   void setRangeList(const RangeList& rl);
   // which chromosomal sites are allowed to read
   int setSiteFile(const std::string& fn);
-  
+
   /**
    * @param fn load file and use first column as old id, second column as new id
    * @return number of ids have been changed.
    */
   int updateId(const char* fn);
 
-  VCFRecord& getVCFRecord() {return this->record;};
-  const char* getLine() const {return this->line.c_str();};
-  const char* getFileName() const {return this->fileName.c_str();};
+  VCFRecord& getVCFRecord() { return this->record; };
+  const char* getLine() const { return this->line.c_str(); };
+  const char* getFileName() const { return this->fileName.c_str(); };
 
  private:
   void setRangeMode();
-  
+
  private:
   VCFHeader header;
   VCFRecord record;
@@ -183,7 +160,7 @@ class VCFInputFile{
 
   Mode mode;
   std::string line;
-  bool isBCF; // read a bcf file?
+  bool isBCF;  // read a bcf file?
 
   // readers
   LineReader* fp;

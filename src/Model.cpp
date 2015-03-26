@@ -8,18 +8,18 @@
 /**
  * @return Madson-Browning definition of alleleFrequency
  */
-double getMarkerFrequency(Matrix& in, int col){
+double getMarkerFrequency(Matrix& in, int col) {
   int& numPeople = in.rows;
-  double ac = 0; // NOTE: here genotype may be imputed, thus not integer
+  double ac = 0;  // NOTE: here genotype may be imputed, thus not integer
   int an = 0;
   for (int p = 0; p < numPeople; p++) {
-    if ( (int) in[p][col] >= 0) {
+    if ((int)in[p][col] >= 0) {
       ac += in[p][col];
       an += 2;
     }
   }
-  if ( an == 0 ) return 0.0;
-  //double freq = 1.0 * (ac + 1) / (an + 1);
+  if (an == 0) return 0.0;
+  // double freq = 1.0 * (ac + 1) / (an + 1);
   double freq = ac / an;
   return freq;
 }
@@ -31,9 +31,9 @@ void getMarkerFrequency(Matrix& in, std::vector<double>* freq) {
   }
 }
 
-double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col){
+double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col) {
   int& numPeople = in.rows;
-  double ac = 0; // NOTE: here genotype may be imputed, thus not integer
+  double ac = 0;  // NOTE: here genotype may be imputed, thus not integer
   int an = 0;
   for (int p = 0; p < numPeople; p++) {
     if (pheno[p] == 1) continue;
@@ -43,7 +43,10 @@ double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col){
     }
   }
   // Refer:
-  // 1. Madsen BE, Browning SR. A Groupwise Association Test for Rare Mutations Using a Weighted Sum Statistic. PLoS Genet. 2009;5(2):e1000384. Available at: http://dx.doi.org/10.1371/journal.pgen.1000384 [Accessed November 24, 2010].
+  // 1. Madsen BE, Browning SR. A Groupwise Association Test for Rare Mutations
+  // Using a Weighted Sum Statistic. PLoS Genet. 2009;5(2):e1000384. Available
+  // at: http://dx.doi.org/10.1371/journal.pgen.1000384 [Accessed November 24,
+  // 2010].
   double freq = 1.0 * (ac + 1) / (an + 2);
   return freq;
 }
@@ -53,14 +56,14 @@ double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col){
  * @param in : sample by marker matrix
  * @param out: sample by 1 matrix
  */
-void cmcCollapse(Matrix& in, Matrix* out){
+void cmcCollapse(Matrix& in, Matrix* out) {
   assert(out);
   int numPeople = in.rows;
   int numMarker = in.cols;
 
   out->Dimension(numPeople, 1);
   out->Zero();
-  for (int p = 0; p < numPeople; p++){
+  for (int p = 0; p < numPeople; p++) {
     for (int m = 0; m < numMarker; m++) {
       int g = (int)(in[p][m]);
       if (g > 0) {
@@ -71,14 +74,14 @@ void cmcCollapse(Matrix& in, Matrix* out){
   }
 }
 
-void cmcCollapse(Matrix& in, const std::vector<int>& index,
-                 Matrix* out, int outIndex){
+void cmcCollapse(Matrix& in, const std::vector<int>& index, Matrix* out,
+                 int outIndex) {
   assert(out);
   int numPeople = in.rows;
   assert(out->rows == numPeople);
   assert(out->cols > outIndex);
 
-  for (int p = 0; p < numPeople; p++){
+  for (int p = 0; p < numPeople; p++) {
     for (size_t m = 0; m < index.size(); m++) {
       int g = (int)(in[p][index[m]]);
       if (g > 0) {
@@ -94,17 +97,17 @@ void cmcCollapse(Matrix& in, const std::vector<int>& index,
  * @param in : sample by marker matrix
  * @param out: sample by 1 matrix
  */
-void zegginiCollapse(Matrix& in, Matrix* out){
+void zegginiCollapse(Matrix& in, Matrix* out) {
   assert(out);
   int numPeople = in.rows;
   int numMarker = in.cols;
 
   out->Dimension(numPeople, 1);
   out->Zero();
-  for (int p = 0; p < numPeople; p++){
+  for (int p = 0; p < numPeople; p++) {
     for (int m = 0; m < numMarker; m++) {
       int g = (int)(in[p][m]);
-      if (g > 0) { // genotype is non-reference
+      if (g > 0) {  // genotype is non-reference
         (*out)[p][0] += 1.0;
       }
     }
@@ -116,7 +119,7 @@ void zegginiCollapse(Matrix& in, Matrix* out){
  * @param phenotype: binary trait (0 or 1)
  * @param out: collapsed genotype
  */
-void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out){
+void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out) {
   assert(out);
   int& numPeople = genotype.rows;
   int numMarker = genotype.cols;
@@ -127,8 +130,8 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out){
   for (int m = 0; m < numMarker; m++) {
     // calculate weight
     double freq = getMarkerFrequencyFromControl(genotype, phenotype, m);
-    if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
-    double weight = 1.0 / sqrt(freq * (1.0-freq)*genotype.rows);
+    if (freq <= 0.0 || freq >= 1.0) continue;  // avoid freq == 1.0
+    double weight = 1.0 / sqrt(freq * (1.0 - freq) * genotype.rows);
     // fprintf(stderr, "freq = %f\n", freq);
 
     for (int p = 0; p < numPeople; p++) {
@@ -137,7 +140,7 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out){
   }
 };
 
-void fpCollapse(Matrix& in, Matrix* out){
+void fpCollapse(Matrix& in, Matrix* out) {
   assert(out);
   int& numPeople = in.rows;
   int numMarker = in.cols;
@@ -148,8 +151,8 @@ void fpCollapse(Matrix& in, Matrix* out){
   for (int m = 0; m < numMarker; m++) {
     // calculate weight
     double freq = getMarkerFrequency(in, m);
-    if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
-    double weight = 1.0 / sqrt(freq * (1.0-freq));
+    if (freq <= 0.0 || freq >= 1.0) continue;  // avoid freq == 1.0
+    double weight = 1.0 / sqrt(freq * (1.0 - freq));
     // fprintf(stderr, "freq = %f\n", freq);
 
     for (int p = 0; p < numPeople; p++) {
@@ -158,7 +161,7 @@ void fpCollapse(Matrix& in, Matrix* out){
   }
 }
 
-void madsonBrowningCollapse(Matrix* d, Matrix* out){
+void madsonBrowningCollapse(Matrix* d, Matrix* out) {
   assert(out);
   Matrix& in = (*d);
   int& numPeople = in.rows;
@@ -167,12 +170,11 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out){
   out->Dimension(numPeople, 1);
   out->Zero();
 
-
   for (int m = 0; m < numMarker; m++) {
     // calculate weight
     double freq = getMarkerFrequency(in, m);
-    if (freq <= 0.0 || freq >= 1.0) continue; // avoid freq == 1.0
-    double weight = 1.0 / sqrt(freq * (1.0-freq));
+    if (freq <= 0.0 || freq >= 1.0) continue;  // avoid freq == 1.0
+    double weight = 1.0 / sqrt(freq * (1.0 - freq));
     // fprintf(stderr, "freq = %f\n", freq);
 
     for (int p = 0; p < numPeople; p++) {
@@ -181,7 +183,6 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out){
   };
 }
 
-
 /**
  * Convert genotype back to reference allele count
  * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
@@ -190,7 +191,7 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out){
  * Convert genotype back to reference allele count
  * e.g. genotype 2 means homAlt/homAlt, so it has reference allele count 0
  */
-void convertToReferenceAlleleCount(Matrix* g){
+void convertToReferenceAlleleCount(Matrix* g) {
   Matrix& m = *g;
   for (int i = 0; i < m.rows; ++i) {
     for (int j = 0; j < m.cols; ++j) {
@@ -199,7 +200,7 @@ void convertToReferenceAlleleCount(Matrix* g){
   }
 }
 
-void convertToReferenceAlleleCount(Matrix& in, Matrix* g){
+void convertToReferenceAlleleCount(Matrix& in, Matrix* g) {
   Matrix& m = *g;
   m = in;
   convertToReferenceAlleleCount(&m);
@@ -213,7 +214,8 @@ void convertToReferenceAlleleCount(Matrix& in, Matrix* g){
  *      *group = {0.1: [0, 2], 0.2: 1, 0.3 : 3}
  * NOTE: due to rounding errors, we only keep 6 digits
  */
-void groupFrequency(const std::vector<double>& freq, std::map<double, std::vector<int> >* group) {
+void groupFrequency(const std::vector<double>& freq,
+                    std::map<double, std::vector<int> >* group) {
   group->clear();
   for (size_t i = 0; i != freq.size(); ++i) {
     double f = ceil(1000000. * freq[i]) / 1000000;
@@ -227,12 +229,10 @@ void groupFrequency(const std::vector<double>& freq, std::map<double, std::vecto
  * or according to @param freqIn to rearrange columns of @param in.
  * Reordered frequency are stored in @param freqOut, in ascending order
  */
-void rearrangeGenotypeByFrequency(Matrix& in,
-                                  const std::vector<double>& freqIn,
-                                  Matrix* out,
-                                  std::vector<double>* freqOut) {
-  std::map <double, std::vector<int> > freqGroup;
-  std::map <double, std::vector<int> >::const_iterator freqGroupIter;
+void rearrangeGenotypeByFrequency(Matrix& in, const std::vector<double>& freqIn,
+                                  Matrix* out, std::vector<double>* freqOut) {
+  std::map<double, std::vector<int> > freqGroup;
+  std::map<double, std::vector<int> >::const_iterator freqGroupIter;
   if (freqIn.empty()) {
     getMarkerFrequency(in, freqOut);
     groupFrequency(*freqOut, &freqGroup);
@@ -245,9 +245,8 @@ void rearrangeGenotypeByFrequency(Matrix& in,
   sortedGenotype.Zero();
   freqOut->clear();
   int idx = 0;
-  for(freqGroupIter = freqGroup.begin();
-      freqGroupIter != freqGroup.end();
-      freqGroupIter ++) {
+  for (freqGroupIter = freqGroup.begin(); freqGroupIter != freqGroup.end();
+       freqGroupIter++) {
     freqOut->push_back(freqGroupIter->first);
     const std::vector<int>& cols = freqGroupIter->second;
     for (size_t j = 0; j != cols.size(); ++j) {
@@ -259,14 +258,12 @@ void rearrangeGenotypeByFrequency(Matrix& in,
   }
 }
 
-void makeVariableThreshodlGenotype(Matrix& in,
-                                   const std::vector<double>& freqIn,
-                                   Matrix* out,
-                                   std::vector<double>* freqOut,
-                                   void (*collapseFunc)(Matrix& , const std::vector<int>& , Matrix*, int)
-                                   ) {
-  std::map <double, std::vector<int> > freqGroup;
-  std::map <double, std::vector<int> >::const_iterator freqGroupIter;
+void makeVariableThreshodlGenotype(
+    Matrix& in, const std::vector<double>& freqIn, Matrix* out,
+    std::vector<double>* freqOut,
+    void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int)) {
+  std::map<double, std::vector<int> > freqGroup;
+  std::map<double, std::vector<int> >::const_iterator freqGroupIter;
   if (freqIn.empty()) {
     getMarkerFrequency(in, freqOut);
     groupFrequency(*freqOut, &freqGroup);
@@ -279,9 +276,8 @@ void makeVariableThreshodlGenotype(Matrix& in,
   sortedGenotype.Zero();
   freqOut->clear();
   int idx = 0;
-  for(freqGroupIter = freqGroup.begin();
-      freqGroupIter != freqGroup.end();
-      freqGroupIter ++) {
+  for (freqGroupIter = freqGroup.begin(); freqGroupIter != freqGroup.end();
+       freqGroupIter++) {
     (*freqOut)[idx] = freqGroupIter->first;
     const std::vector<int>& cols = freqGroupIter->second;
     (*collapseFunc)(in, cols, out, idx);

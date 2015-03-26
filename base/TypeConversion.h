@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
-#include <math.h> // for HUGE_VALH, HUGE_VALL
+#include <math.h>  // for HUGE_VALH, HUGE_VALL
 #include <sstream>
 #include <vector>
 
@@ -13,37 +13,37 @@
 // define HUGE_VALF, HUGE_VALL for Solaris 10
 /* HUGE_VALF is a 'float' Infinity.  */
 #ifndef HUGE_VALF
-# if defined _MSC_VER
+#if defined _MSC_VER
 /* The Microsoft MSVC 9 compiler chokes on the expression 1.0f / 0.0f.  */
-#  define HUGE_VALF (1e25f * 1e25f)
-# else
-#  define HUGE_VALF (1.0f / 0.0f)
-# endif
+#define HUGE_VALF (1e25f * 1e25f)
+#else
+#define HUGE_VALF (1.0f / 0.0f)
+#endif
 #endif
 
 /* HUGE_VAL is a 'double' Infinity.  */
 #ifndef HUGE_VAL
-# if defined _MSC_VER
+#if defined _MSC_VER
 /* The Microsoft MSVC 9 compiler chokes on the expression 1.0 / 0.0.  */
-#  define HUGE_VAL (1e250 * 1e250)
-# else
-#  define HUGE_VAL (1.0 / 0.0)
-# endif
+#define HUGE_VAL (1e250 * 1e250)
+#else
+#define HUGE_VAL (1.0 / 0.0)
+#endif
 #endif
 
 /* HUGE_VALL is a 'long double' Infinity.  */
 #ifndef HUGE_VALL
-# if defined _MSC_VER
+#if defined _MSC_VER
 /* The Microsoft MSVC 9 compiler chokes on the expression 1.0L / 0.0L.  */
-#  define HUGE_VALL (1e250L * 1e250L)
-# else
-#  define HUGE_VALL (1.0L / 0.0L)
-# endif
+#define HUGE_VALL (1e250L * 1e250L)
+#else
+#define HUGE_VALL (1.0L / 0.0L)
+#endif
 #endif
 
 // convert double/int/byte to string type
-template<class T>
-inline std::string toString(T i){
+template <class T>
+inline std::string toString(T i) {
   std::stringstream ss;
   ss << i;
   return ss.str();
@@ -51,16 +51,16 @@ inline std::string toString(T i){
 
 // convert double/float to string type
 // we try to mimic the '%g' in printf
-template<class T>
-inline std::string floatToString(T i){
+template <class T>
+inline std::string floatToString(T i) {
   std::stringstream ss;
   ss.precision(6);
   ss << std::noshowpoint << i;
   return ss.str();
 }
 
-template<class T>
-inline std::string floatToString(std::vector<T>& i){
+template <class T>
+inline std::string floatToString(std::vector<T>& i) {
   std::stringstream ss;
   if (i.empty()) {
     return ss.str();
@@ -87,8 +87,8 @@ inline bool str2int(const char* input, int* output) {
   errno = 0;
   val = strtol(input, &endptr, 10);
 
-  if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
-      || (errno != 0 && val == 0)) {
+  if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) ||
+      (errno != 0 && val == 0)) {
     perror("strtol");
     return false;
   }
@@ -117,8 +117,8 @@ inline bool str2double(const char* input, double* output) {
   errno = 0;
   val = strtod(input, &endptr);
 
-  if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL))
-      || (errno != 0 && val == 0.)) {
+  if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL)) ||
+      (errno != 0 && val == 0.)) {
     perror("strtod");
     return false;
   }
@@ -136,7 +136,7 @@ inline bool str2double(std::string& input, double* output) {
 
 inline int atoi(const std::string& s) {
   int result;
-  bool ret = str2int(s.c_str(), & result);
+  bool ret = str2int(s.c_str(), &result);
   if (!ret) {
     return 0;
   }
@@ -145,7 +145,7 @@ inline int atoi(const std::string& s) {
 
 inline double atof(const std::string& s) {
   double result;
-  bool ret = str2double(s.c_str(), & result);
+  bool ret = str2double(s.c_str(), &result);
   if (!ret) {
     return 0.0;
   }
@@ -156,8 +156,7 @@ inline double atof(const std::string& s) {
 // @return true if conversion succeed
 inline bool isdigit(const std::string& s) {
   for (size_t i = 0; i < s.size(); ++i) {
-    if (!isdigit(s[i]))
-      return false;
+    if (!isdigit(s[i])) return false;
   }
   return true;
 }

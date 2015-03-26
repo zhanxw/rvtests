@@ -12,19 +12,18 @@
 // for debug usage
 void printToFile(Vector& v, String fn, int index) {
   String n;
-  n.printf("%s%d",fn.c_str(), index);
+  n.printf("%s%d", fn.c_str(), index);
   FILE* fp = fopen(n.c_str(), "wt");
-  for (int i = 0; i< v.Length(); i++)
-    fprintf(fp, "%lf\n", v[i]);
+  for (int i = 0; i < v.Length(); i++) fprintf(fp, "%lf\n", v[i]);
   fclose(fp);
 }
 // for debug usage
 void printToFile(Matrix& m, String fn, int index) {
   String n;
-  n.printf("%s%d",fn.c_str(), index);
+  n.printf("%s%d", fn.c_str(), index);
   FILE* fp = fopen(n.c_str(), "wt");
-  for (int i = 0; i<m.rows; i++) {
-    for (int j = 0; j< m.cols; j++) {
+  for (int i = 0; i < m.rows; i++) {
+    for (int j = 0; j < m.cols; j++) {
       fprintf(fp, "%lf\t", m[i][j]);
     }
     fprintf(fp, "\n");
@@ -32,13 +31,13 @@ void printToFile(Matrix& m, String fn, int index) {
   fclose(fp);
 }
 void printToFile(Eigen::MatrixXf& m, const char* fn, const char* label) {
-  std::ofstream ofs (fn, std::ofstream::out);
+  std::ofstream ofs(fn, std::ofstream::out);
   ofs << "#[ " << label << " ]\n";
   ofs << m << "\n";
   ofs.close();
 }
 void printToFile(Eigen::VectorXf& v, const char* fn, const char* label) {
-  std::ofstream ofs (fn, std::ofstream::out);
+  std::ofstream ofs(fn, std::ofstream::out);
   ofs << "#[ " << label << " ]\n";
   ofs << v << "\n";
   ofs.close();
@@ -48,13 +47,13 @@ void printToFile(Eigen::VectorXf& v, const char* fn, const char* label) {
 class WorkingData {
  public:
   Eigen::MatrixXf X;
-  Eigen::VectorXf r;    // residual
-  Eigen::VectorXf eta;  // X * beta
-  Eigen::VectorXf p;    // p = 1/(1+exp(-eta))
-  Eigen::VectorXf V;    // p * (1-p)
-  Eigen::VectorXf h;    // diagonal of sqrt(W)*X*(X' V X)^(-1) *X'*sqrt(W)
-  Eigen::MatrixXf D;    //  X' V X
-  Eigen::MatrixXf covB; // (X' V X)^(-1)
+  Eigen::VectorXf r;     // residual
+  Eigen::VectorXf eta;   // X * beta
+  Eigen::VectorXf p;     // p = 1/(1+exp(-eta))
+  Eigen::VectorXf V;     // p * (1-p)
+  Eigen::VectorXf h;     // diagonal of sqrt(W)*X*(X' V X)^(-1) *X'*sqrt(W)
+  Eigen::MatrixXf D;     //  X' V X
+  Eigen::MatrixXf covB;  // (X' V X)^(-1)
   Eigen::VectorXf beta;
   Eigen::VectorXf delta_beta;
 
@@ -64,35 +63,30 @@ class WorkingData {
   // Eigen::VectorXf useless; // keep this, or strange crash bug will happen
 };
 
-FirthRegression::FirthRegression()
-{
-  this->w = new WorkingData;
-}
+FirthRegression::FirthRegression() { this->w = new WorkingData; }
 
-FirthRegression::~FirthRegression()
-{
+FirthRegression::~FirthRegression() {
   if (this->w) {
     delete this->w;
     this->w = NULL;
   }
 }
 
-Vector & FirthRegression::GetAsyPvalue(){
+Vector& FirthRegression::GetAsyPvalue() {
   int numCov = B.Length();
   pValue.Dimension(B.Length());
-  for (int i = 0; i < numCov; i ++){
-    double Zstat = B[i] * B[i]/(covB[i][i]);
+  for (int i = 0; i < numCov; i++) {
+    double Zstat = B[i] * B[i] / (covB[i][i]);
     // pValue[i] = ndist(Zstat);
     // if (pValue[i] >= 0.5){
     //   pValue[i] = 2*(1-pValue[i]);
     // } else pValue[i] = 2*pValue[i];
     pValue[i] = gsl_cdf_chisq_Q(Zstat, 1.0);
   }
-  return(pValue);
+  return (pValue);
 }
 
-
-void FirthRegression::Reset(Matrix& X){
+void FirthRegression::Reset(Matrix& X) {
   int nr = X.rows;
   int nc = X.cols;
 
@@ -126,19 +120,20 @@ void FirthRegression::Reset(Matrix& X){
   this->w->total.resize(nr);
 }
 
-bool FirthRegression::FitFirthModel(Matrix & X, Matrix & y, int rnrounds) {
+bool FirthRegression::FitFirthModel(Matrix& X, Matrix& y, int rnrounds) {
   if (y.cols != 1) {
     fprintf(stderr, "%s:%d Use first column of y\n", __FILE__, __LINE__);
   }
   Vector v(X.rows);
-  for (int i = 0; i < X.rows; ++i){
+  for (int i = 0; i < X.rows; ++i) {
     v[i] = y[i][0];
   }
   return this->FitFirthModel(X, v, rnrounds);
 };
 
-bool FirthRegression::FitFirthModel(Matrix & X, Vector & succ, Vector& total, int nrrounds) {
-  this-> Reset(X);
+bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
+                                    int nrrounds) {
+  this->Reset(X);
 
   G_to_Eigen(X, &this->w->X);
   G_to_Eigen(succ, &this->w->succ);
@@ -146,33 +141,47 @@ bool FirthRegression::FitFirthModel(Matrix & X, Vector & succ, Vector& total, in
 
   int rounds = 0;
   // double lastDeviance, currentDeviance;
-  Eigen::MatrixXf xw; // W^(1/2) * X
+  Eigen::MatrixXf xw;  // W^(1/2) * X
   // Newton-Raphson
   while (rounds < nrrounds) {
     // beta = beta + solve( t(X)%*%diag(p*(1-p)) %*%X) %*% t(X) %*% (Y-p);
     this->w->eta = this->w->X * this->w->beta;
     this->w->p = (-this->w->eta.array().exp() + 1.0).inverse();
-    this->w->V = this->w->p.array() * (1.0 - this->w->p.array()) * this->w->total.array();
+    this->w->V = this->w->p.array() * (1.0 - this->w->p.array()) *
+                 this->w->total.array();
 
     xw = (this->w->V.array().sqrt().matrix().asDiagonal() * this->w->X).eval();
-    this->w->D = xw.transpose() * xw; // this->w->X.transpose() * this->w->V.asDiagonal() * this->w->X; // X' V X
-    this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
-    // double rel = ((this->w->D * this->w->covB).array() - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() / this->w->D.rows();
+    this->w->D = xw.transpose() * xw;  // this->w->X.transpose() *
+                                       // this->w->V.asDiagonal() * this->w->X;
+                                       // // X' V X
+    this->w->covB = this->w->D.eval().llt().solve(
+        Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
+    // double rel = ((this->w->D * this->w->covB).array() -
+    // Eigen::MatrixXf::Identity(this->w->D.rows(),
+    // this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() /
+    // this->w->D.rows();
     // if (rel > 1e-6) { // use relative accuracy to evalute convergence
-    if ((this->w->D * this->w->covB - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows())).norm() > 1e-3) {
+    if ((this->w->D * this->w->covB -
+         Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()))
+            .norm() > 1e-3) {
       // cannot inverse
       return false;
     }
     this->w->h = (xw.transpose() * this->w->covB * xw).diagonal();
-    this->w->r = this->w->X.transpose() * (this->w->succ.array() - this->w->total.array() * this->w->p.array()
-                                           + this->w->total.array() * this->w->h.array() * (0.5 - this->w->p.array())).matrix();
+    this->w->r =
+        this->w->X.transpose() *
+        (this->w->succ.array() - this->w->total.array() * this->w->p.array() +
+         this->w->total.array() * this->w->h.array() *
+             (0.5 - this->w->p.array())).matrix();
     this->w->delta_beta = this->w->covB * this->w->r;
     this->w->beta += this->w->delta_beta;
-    if (rounds > 1 && (this->w->beta.norm() > 0 && this->w->delta_beta.norm() / this->w->beta.norm() < 1e-6)) {
+    if (rounds > 1 &&
+        (this->w->beta.norm() > 0 &&
+         this->w->delta_beta.norm() / this->w->beta.norm() < 1e-6)) {
       rounds = 0;
       break;
     }
-    rounds ++;
+    rounds++;
   }
   if (rounds == nrrounds) {
     printf("Not enough iterations!");
@@ -187,61 +196,72 @@ bool FirthRegression::FitFirthModel(Matrix & X, Vector & succ, Vector& total, in
   return true;
 }
 
-bool FirthRegression::FitFirthModel(Matrix & X, Vector & y, int nrrounds)
-{
-  this-> Reset(X);
+bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
+  this->Reset(X);
 
   G_to_Eigen(X, &this->w->X);
   G_to_Eigen(y, &this->w->y);
 
   int rounds = 0;
   // double lastDeviance, currentDeviance;
-  Eigen::MatrixXf xw; // W^(1/2) * X
-  // Newton-Raphson  
+  Eigen::MatrixXf xw;  // W^(1/2) * X
+  // Newton-Raphson
   while (rounds < nrrounds) {
     // std::cout << "beta = " << this->w->beta << "\n";
     this->w->eta = this->w->X * this->w->beta;
     this->w->p = (1.0 + (-this->w->eta.array()).exp()).inverse();
     this->w->V = this->w->p.array() * (1.0 - this->w->p.array());
 
-    xw = (this->w->V.array().sqrt().matrix().asDiagonal() * this->w->X).eval(); // W^(1/2) * X 
-    this->w->D = xw.transpose() * xw; // X' V X
-    this->w->covB = this->w->D.eval().ldlt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
+    xw = (this->w->V.array().sqrt().matrix().asDiagonal() * this->w->X)
+             .eval();                  // W^(1/2) * X
+    this->w->D = xw.transpose() * xw;  // X' V X
+    this->w->covB = this->w->D.eval().ldlt().solve(
+        Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
 
-    // double rel = ((this->w->D * this->w->covB).array() - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() / this->w->D.rows();
+    // double rel = ((this->w->D * this->w->covB).array() -
+    // Eigen::MatrixXf::Identity(this->w->D.rows(),
+    // this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() /
+    // this->w->D.rows();
     // // printf("norm = %g\n", rel);
     // if (rel > 1e-6) { // use relative accuracy to evalute convergence
-    if ((this->w->D * this->w->covB - Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows())).norm() > 1e-3) {      
+    if ((this->w->D * this->w->covB -
+         Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()))
+            .norm() > 1e-3) {
       // cannot inverse
       // printf("Cannot inverse X'WX.\n");
       // printToFile(this->w->D, "matD", "D");
       // printToFile(this->w->covB, "matCovB", "CovB");
-      // printToFile(this->w->beta, "matBeta", "beta");      
+      // printToFile(this->w->beta, "matBeta", "beta");
       return false;
     }
     this->w->h = (xw * this->w->covB * xw.transpose()).diagonal();
-    this->w->r = this->w->X.transpose() * (this->w->y -
-                                           this->w->p +
-                                           (this->w->h.array() * (0.5 - this->w->p.array())).matrix()); // X' (y-mu+h*(1/2-pi))
+    this->w->r = this->w->X.transpose() *
+                 (this->w->y - this->w->p +
+                  (this->w->h.array() * (0.5 - this->w->p.array()))
+                      .matrix());  // X' (y-mu+h*(1/2-pi))
     this->w->delta_beta = this->w->covB * this->w->r;
     // set dampen coef = 0.5 to reduce the step size
     // otherwise, IWLS may become unstable
-    // this seems working well in reality, although more optimal way is to 
+    // this seems working well in reality, although more optimal way is to
     // tune the coef to between 0 and 1.0.
     this->w->beta += this->w->delta_beta * 0.5;
     // printf("norm = %g\n", this->w->delta_beta.norm());
     // use relative accuracy to evalute convergence
-    if (rounds > 1 && (this->w->beta.norm() > 0 && this->w->delta_beta.norm() / this->w->beta.norm() < 1e-6)) {
+    if (rounds > 1 &&
+        (this->w->beta.norm() > 0 &&
+         this->w->delta_beta.norm() / this->w->beta.norm() < 1e-6)) {
       rounds = 0;
       break;
     }
-    rounds ++;
+    rounds++;
   }
   if (rounds == nrrounds) {
     printf("Not enough iterations!");
     return false;
   }
-  // this->w->covB = this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
+  // this->w->covB =
+  // this->w->D.eval().llt().solve(Eigen::MatrixXf::Identity(this->w->D.rows(),
+  // this->w->D.rows()));
 
   Eigen_to_G(this->w->beta, &B);
   Eigen_to_G(this->w->covB, &covB);
@@ -250,8 +270,6 @@ bool FirthRegression::FitFirthModel(Matrix & X, Vector & y, int nrrounds)
 
   return true;
 }
-
-
 
 #if 0
 double FirthRegression::GetDeviance() {

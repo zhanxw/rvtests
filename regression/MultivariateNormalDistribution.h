@@ -7,11 +7,9 @@
 
 //////////////////////////////////////////////////
 // a C++ class for multivariate normal distribution
-class MultivariateNormalDistribution{
-public:
-  double getAbsEps() const {
-    return mvn.getAbsEps();
-  }
+class MultivariateNormalDistribution {
+ public:
+  double getAbsEps() const { return mvn.getAbsEps(); }
   //////////////////////////////////////////////////
   // Get band probability
   //////////////////////////////////////////////////
@@ -24,25 +22,13 @@ public:
    * @param result, store results
    * @return 0 if succeed, 1 if succeed with bigger error, otherwise means fail
    */
-  int getBandProbFromCor(int n,
-                         double* lower,
-                         double* upper,
-                         double* cor,
+  int getBandProbFromCor(int n, double* lower, double* upper, double* cor,
                          double* result);
-  int getBandProbFromCor(int n,
-                         double* lower,
-                         double* upper,
-                         Matrix& cor,
+  int getBandProbFromCor(int n, double* lower, double* upper, Matrix& cor,
                          double* result);
-  int getBandProbFromCov(int n,
-                         double* lower,
-                         double* upper,
-                         Vector& mean,
-                         Matrix& cov,
-                         double* result);
-  int getBandProbFromCov(double lower,
-                         double upper,
-                         Matrix& cov,
+  int getBandProbFromCov(int n, double* lower, double* upper, Vector& mean,
+                         Matrix& cov, double* result);
+  int getBandProbFromCov(double lower, double upper, Matrix& cov,
                          double* result);
 
   //////////////////////////////////////////////////
@@ -56,47 +42,31 @@ public:
    * @param result, store results
    * @return 0 if succeed
    */
-  int getUpperFromCov(int n,
-                      double* lower,
-                      Vector& mean,
-                      Matrix& cov,
+  int getUpperFromCov(int n, double* lower, Vector& mean, Matrix& cov,
                       double* result);
   // similar to above, except assuming the means are zeros
-  int getUpperFromCov(int n,
-                      double* lower,
-                      Matrix& cov,
-                      double* result);
+  int getUpperFromCov(int n, double* lower, Matrix& cov, double* result);
   // similar to above, except assuming the means are zeros
-  int getUpperFromCov(double lower,
-                      Matrix& cov,
-                      double* result);
+  int getUpperFromCov(double lower, Matrix& cov, double* result);
 
   //////////////////////////////////////////////////
   // Get lower probability
   //////////////////////////////////////////////////
-  int getLowerFromCov(int n,
-                      double* upper,
-                      Vector& mean,
-                      Matrix& cov,
+  int getLowerFromCov(int n, double* upper, Vector& mean, Matrix& cov,
                       double* result);
-  int getLowerFromCov(int n,
-                      double* upper,
-                      Matrix& cov,
-                      double* result);
-  int getLowerFromCov(double upper,
-                      Matrix& cov,
-                      double* result);
+  int getLowerFromCov(int n, double* upper, Matrix& cov, double* result);
+  int getLowerFromCov(double upper, Matrix& cov, double* result);
 
-private:
+ private:
   /**
    * Convert a covariance matrix @param m to correlation matrix,
    * and store it to a 1-d vector @param out.
    */
   void toCor(Matrix& m, std::vector<double>* out);
 
-private:
+ private:
   MvtNorm mvn;
-  std::vector<double> corVec; // store corr mat in vec
+  std::vector<double> corVec;  // store corr mat in vec
 };
 
 #endif

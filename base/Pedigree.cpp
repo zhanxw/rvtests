@@ -2,13 +2,11 @@
 #include <assert.h>
 #include "Utils.h"
 
-namespace zhanxw{
-
+namespace zhanxw {
 
 void Family::addPerson(int pid) {
   people.insert(pid);
-  if (this->ped->isFounder(pid))
-    founder.insert(pid);
+  if (this->ped->isFounder(pid)) founder.insert(pid);
 }
 
 void Person::addFather(int id) {
@@ -26,7 +24,7 @@ void Person::addMother(int id) {
   }
 }
 
-void Person::addChild(int id){
+void Person::addChild(int id) {
   if (id >= 0) {
     child.insert(id);
   }
@@ -36,16 +34,14 @@ void Person::addChild(int id){
  * if @param family or @param person equals to "0", nothing will happen
  * or a family and/or a person will be created if needed
  */
-int Pedigree::add(const std::string& family,
-                  const std::string& person){
-  if (family == "0" || person == "0")
-    return 0;
+int Pedigree::add(const std::string& family, const std::string& person) {
+  if (family == "0" || person == "0") return 0;
 
   int fid, pid;
   fid = getFamilyID(family);
   pid = getPersonID(person);
 
-  if (fid < 0 && pid < 0) { // both new
+  if (fid < 0 && pid < 0) {  // both new
     addFamily(family);
     addPerson(person);
     fid = getFamilyID(family);
@@ -53,21 +49,29 @@ int Pedigree::add(const std::string& family,
     this->family[fid].addPerson(pid);
     this->people[pid].setFamily(fid);
     return 0;
-  } else if (fid < 0 && pid >= 0) { // new fam, old indv,
-    fprintf(stderr, "Duplicated person [ %s ] in a new family [ %s ], this is not a supported feature.\n", person.c_str(), family.c_str());
+  } else if (fid < 0 && pid >= 0) {  // new fam, old indv,
+    fprintf(stderr,
+            "Duplicated person [ %s ] in a new family [ %s ], this is not a "
+            "supported feature.\n",
+            person.c_str(), family.c_str());
     return -1;
-  } else if (fid >= 0 && pid < 0) { // known fam, new indv
+  } else if (fid >= 0 && pid < 0) {  // known fam, new indv
     addPerson(person);
     pid = getPersonID(person);
     this->family[fid].addPerson(pid);
     this->people[pid].setFamily(fid);
     return 0;
-  } else { // both known
-    bool OK = this->family[fid].containPerson(pid)  && this->people[pid].getFamily() == fid;
+  } else {  // both known
+    bool OK = this->family[fid].containPerson(pid) &&
+              this->people[pid].getFamily() == fid;
     if (!OK) {
-      // TODO: when different family have the same person id, then this line will have problem
+      // TODO: when different family have the same person id, then this line
+      // will have problem
       // see: ~/rvtests.dev/test.meta/in.ped
-      fprintf(stderr, "Duplicated person [ %s ] in the duplicated family [ %s ], but not consistent to previous entries\n", person.c_str(), family.c_str());
+      fprintf(stderr,
+              "Duplicated person [ %s ] in the duplicated family [ %s ], but "
+              "not consistent to previous entries\n",
+              person.c_str(), family.c_str());
       return -1;
     }
     return 0;
@@ -75,23 +79,22 @@ int Pedigree::add(const std::string& family,
   return 0;
 };
 
-int Pedigree::add(const std::string& family,
-                  const std::string& person,
-                  const std::string& father,
-                  const std::string& mother)  {
-
-  if (person != "0" && (person == father || person == mother) ) {
-    fprintf(stderr, "ERROR: Individual cannot be his own father/mother [ %s ]\n", person.c_str());
+int Pedigree::add(const std::string& family, const std::string& person,
+                  const std::string& father, const std::string& mother) {
+  if (person != "0" && (person == father || person == mother)) {
+    fprintf(stderr,
+            "ERROR: Individual cannot be his own father/mother [ %s ]\n",
+            person.c_str());
     return -1;
   }
   if (father != "0" && mother != "0" && father == mother) {
-    fprintf(stderr, "ERROR: Father and mother are the same individual [ %s ]\n", father.c_str());
+    fprintf(stderr, "ERROR: Father and mother are the same individual [ %s ]\n",
+            father.c_str());
     return -1;
   }
 
   // create three pairs
-  if (this->add(family, person) < 0 ||
-      this->add(family, father) < 0 ||
+  if (this->add(family, person) < 0 || this->add(family, father) < 0 ||
       this->add(family, mother) < 0) {
     return -1;
   }
@@ -112,23 +115,26 @@ int Pedigree::add(const std::string& family,
   if (fatherId >= 0) {
     this->people[fatherId].addChild(pid);
     if (this->people[fatherId].setGender(MALE) < 0) {
-      fprintf(stderr, "ERROR: Father [ %s ] is not male according to pedigree!\n", father.c_str());
+      fprintf(stderr,
+              "ERROR: Father [ %s ] is not male according to pedigree!\n",
+              father.c_str());
       errorOccured = true;
     };
   }
   if (motherId >= 0) {
     this->people[motherId].addChild(pid);
-    if (this->people[motherId].setGender(FEMALE) < 0 ) {
-      fprintf(stderr, "ERROR: Mother [ %s ] is not female according to pedigree!\n", mother.c_str());
+    if (this->people[motherId].setGender(FEMALE) < 0) {
+      fprintf(stderr,
+              "ERROR: Mother [ %s ] is not female according to pedigree!\n",
+              mother.c_str());
       errorOccured = true;
     }
   }
-  if (errorOccured)
-    return -1;
+  if (errorOccured) return -1;
   return 0;
-} // Pedigree::add
+}  // Pedigree::add
 
-} // end namespace zhanxw
+}  // end namespace zhanxw
 
 int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
   zhanxw::Pedigree& p = *ped;
@@ -150,8 +156,7 @@ int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped) {
       fprintf(stderr, "Encounter error when adding line %d.\n", lineNo);
       errorOccured = true;
     }
-    if (fd.size() >= 5 )
-      p.addGender(fd[1], fd[4]);
+    if (fd.size() >= 5) p.addGender(fd[1], fd[4]);
   }
 
   if (errorOccured) return -1;

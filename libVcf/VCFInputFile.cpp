@@ -10,18 +10,20 @@
 void VCFInputFile::rewriteVCFHeader() {
   std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
   VCFPeople& people = this->record.getPeople();
-  for (unsigned int i = 0; i <people.size(); i++ ){
+  for (unsigned int i = 0; i < people.size(); i++) {
     s += '\t';
     s += people[i]->getName();
   }
-  this->header[this->header.size()-1] = s;
+  this->header[this->header.size() - 1] = s;
 }
 
 void VCFInputFile::setRangeMode() {
   if (mode == VCF_LINE_MODE) {
     this->tabixReader = new TabixReader(this->fileName);
     if (!this->tabixReader->good()) {
-      fprintf(stderr, "[ERROR] Cannot read VCF by range, please check your have index (or create one use tabix).\nQuitting...");
+      fprintf(stderr,
+              "[ERROR] Cannot read VCF by range, please check your have index "
+              "(or create one use tabix).\nQuitting...");
       abort();
     } else {
       this->mode = VCFInputFile::VCF_RANGE_MODE;
@@ -32,7 +34,9 @@ void VCFInputFile::setRangeMode() {
     }
   } else if (mode == BCF_MODE) {
     if (!this->bcfReader->good() || !this->bcfReader->indexed()) {
-      fprintf(stderr, "[ERROR] Cannot read BCF by range, please check your have index (or create one use bcftools).\nQuitting...");
+      fprintf(stderr,
+              "[ERROR] Cannot read BCF by range, please check your have index "
+              "(or create one use bcftools).\nQuitting...");
       abort();
     }
     if (this->autoMergeRange) {
@@ -47,7 +51,6 @@ void VCFInputFile::setRangeMode() {
   // this->rangeBegin = this->range.begin();
   // this->rangeEnd = this->range.end();
   // this->rangeIterator = this->range.begin();
-
 }
 
 // void VCFInputFile::clearRange() {
@@ -68,14 +71,16 @@ void VCFInputFile::setRangeMode() {
 /**
  * @param fn: the file contains two column: old_id new_id
  */
-int VCFInputFile::updateId(const char* fn){
+int VCFInputFile::updateId(const char* fn) {
   // load conversion table
   LineReader lr(fn);
   std::map<std::string, std::string> tbl;
   std::vector<std::string> fd;
-  while(lr.readLineBySep(&fd, "\t ")){
+  while (lr.readLineBySep(&fd, "\t ")) {
     if (tbl.find(fd[0]) != tbl.end()) {
-      fprintf(stderr, "Duplicated original ids: [ %s ], replace it to new id anyway.\n", fd[0].c_str());
+      fprintf(stderr,
+              "Duplicated original ids: [ %s ], replace it to new id anyway.\n",
+              fd[0].c_str());
     };
     if (fd.empty() || fd[0].empty() || fd.size() < 2) continue;
     tbl[fd[0]] = fd[1];
@@ -85,7 +90,7 @@ int VCFInputFile::updateId(const char* fn){
   std::string s = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
   VCFPeople& people = this->record.getPeople();
   int n = 0;
-  for (unsigned int i = 0; i <people.size(); i++ ){
+  for (unsigned int i = 0; i < people.size(); i++) {
     if (tbl.find(people[i]->getName()) != tbl.end()) {
       ++n;
       people[i]->setName(tbl[people[i]->getName()]);
@@ -103,7 +108,7 @@ void VCFInputFile::init(const char* fn) {
   this->tabixReader = NULL;
   this->bcfReader = NULL;
   this->autoMergeRange = false;
-  
+
   // check whether file exists.
   FILE* fp = fopen(fn, "rb");
   if (!fp) {
@@ -119,7 +124,7 @@ void VCFInputFile::init(const char* fn) {
     this->bcfReader = new BCFReader(fn);
     const std::string& h = this->bcfReader->getHeader();
     this->header.setHeader(h);
-    this->record.createIndividual(this->header[this->header.size()-1]);
+    this->record.createIndividual(this->header[this->header.size() - 1]);
     headerLoaded = true;
   } else {
     if (!endsWith(fn, ".vcf") && !endsWith(fn, "vcf.gz")) {
@@ -130,7 +135,7 @@ void VCFInputFile::init(const char* fn) {
 
     // open file
     // read header
-    while (this->fp->readLine(&line)){
+    while (this->fp->readLine(&line)) {
       if (line[0] == '#') {
         this->header.push_back(line);
         if (line.substr(0, 6) == "#CHROM") {
@@ -144,7 +149,7 @@ void VCFInputFile::init(const char* fn) {
         FATAL("Wrong VCF header");
       }
     }
-    //this->hasIndex = this->openIndex();
+    // this->hasIndex = this->openIndex();
   }
   if (headerLoaded == false) {
     FATAL("VCF/BCF File does not have header!");
@@ -152,7 +157,7 @@ void VCFInputFile::init(const char* fn) {
   // this->clearRange();
 }
 
-bool VCFInputFile::readRecord(){
+bool VCFInputFile::readRecord() {
   int nRead = 0;
   while (true) {
     if (this->mode == VCF_LINE_MODE) {
@@ -168,10 +173,8 @@ bool VCFInputFile::readRecord(){
     if (ret) {
       reportReadError(this->line);
     }
-    if (!this->passFilter())
-      continue;
-    if (!this->isAllowedSite())
-      continue;
+    if (!this->passFilter()) continue;
+    if (!this->isAllowedSite()) continue;
     // break;
     return true;
   }
@@ -194,7 +197,7 @@ void VCFInputFile::close() {
   }
 }
 
-void VCFInputFile::setRangeList(const RangeList& rl){
+void VCFInputFile::setRangeList(const RangeList& rl) {
   if (rl.size() == 0) return;
 
   // this->clearRange();
@@ -213,19 +216,19 @@ void VCFInputFile::setRangeList(const RangeList& rl){
 
 int VCFInputFile::setSiteFile(const std::string& fn) {
   if (fn.empty()) return 0;
-  
+
   std::vector<std::string> fd;
   LineReader lr(fn);
   int pos;
   std::string chromPos;
-  while(lr.readLineBySep(&fd, "\t ")) {
+  while (lr.readLineBySep(&fd, "\t ")) {
     if (fd.empty()) continue;
-    if (fd[0].find(':')!= std::string::npos) {
+    if (fd[0].find(':') != std::string::npos) {
       this->allowedSite.insert(fd[0]);
       continue;
     }
     if (fd.size() >= 2 && str2int(fd[1], &pos) && pos > 0) {
-      chromPos = fd[0] ;
+      chromPos = fd[0];
       chromPos += ':';
       chromPos += fd[1];
       this->allowedSite.insert(chromPos);

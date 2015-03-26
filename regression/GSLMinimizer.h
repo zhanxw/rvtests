@@ -3,26 +3,28 @@
 
 #include <gsl/gsl_min.h>
 
-class Minimizer{
-public:
+class Minimizer {
+ public:
   Minimizer();
   ~Minimizer();
-  typedef double (Func)(double, void*);
+  typedef double(Func)(double, void *);
   /**
    * requires f(lowerBound) > f(startValue) < f(upperBound)
    * @return 0 when succeed
    */
-  int minimize(gsl_function F, double startValue, double lowerBound, double upperBound);
-  double getX() const{return this->finalX;};
-  double getY() const{return this->finalY;};
-private:
-  double finalX; // the point where 
+  int minimize(gsl_function F, double startValue, double lowerBound,
+               double upperBound);
+  double getX() const { return this->finalX; };
+  double getY() const { return this->finalY; };
+
+ private:
+  double finalX;  // the point where
   double finalY;
-  
+
   double epsabs;
   double epsrel;
   int maxIter;
-  
+
   // GSL stuffs
   const gsl_min_fminimizer_type *T;
   gsl_min_fminimizer *s;

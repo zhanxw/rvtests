@@ -15,16 +15,14 @@
 #define ZBOUND 1e-30
 void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf* out);
 
-class Skat::SkatImpl{
+class Skat::SkatImpl {
  public:
-  void Reset() {
-    this->pValue = -999.0;
-  };
-  int Fit(Vector & res_G,   // residual under NULL -- may change when permuting
-          Vector& v_G,      // variance under NULL -- may change when permuting
-          Matrix& X_G,      // covariance
-          Matrix & G_G,     // genotype
-          Vector &w_G)      // weight
+  void Reset() { this->pValue = -999.0; };
+  int Fit(Vector& res_G,  // residual under NULL -- may change when permuting
+          Vector& v_G,    // variance under NULL -- may change when permuting
+          Matrix& X_G,    // covariance
+          Matrix& G_G,    // genotype
+          Vector& w_G)    // weight
   {
     this->nPeople = X_G.rows;
     this->nMarker = G_G.cols;
@@ -48,7 +46,7 @@ class Skat::SkatImpl{
     Eigen::VectorXf v;
     G_to_Eigen(v_G, &v);
     if (this->nCovariate == 1) {
-      P0 = - v * v.transpose() / v.sum();
+      P0 = -v * v.transpose() / v.sum();
       // printf("dim(P0) = %d, %d\n", P0.rows(), P0.cols());
       // printf("dim(v) = %d\n", v.size());
       P0.diagonal() += v;
@@ -56,9 +54,9 @@ class Skat::SkatImpl{
     } else {
       Eigen::MatrixXf X;
       G_to_Eigen(X_G, &X);
-      Eigen::MatrixXf XtV ;        // X^t V
+      Eigen::MatrixXf XtV;  // X^t V
       XtV.noalias() = X.transpose() * v.asDiagonal();
-      P0 = - XtV.transpose() * ( ( XtV * X ).inverse() ) * XtV;
+      P0 = -XtV.transpose() * ((XtV * X).inverse()) * XtV;
       P0.diagonal() += v;
     }
     // dump();
@@ -66,7 +64,7 @@ class Skat::SkatImpl{
     // dumpToFile(tmp, "out.tmp");
     // eigen decomposition
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
-    es.compute( K_sqrt * P0 * K_sqrt.transpose());
+    es.compute(K_sqrt * P0 * K_sqrt.transpose());
 
 #ifdef DEBUG
     std::ofstream k("K");
@@ -79,23 +77,22 @@ class Skat::SkatImpl{
 
     this->mixChiSq.reset();
     int r_ub = std::min(nPeople, nMarker);
-    int r = 0; // es.eigenvalues().size();
+    int r = 0;  // es.eigenvalues().size();
     int eigen_len = es.eigenvalues().size();
-    for(int i=eigen_len-1; i>=0; i--)
-    {
-      if (es.eigenvalues()[i] > ZBOUND && r<r_ub) {
+    for (int i = eigen_len - 1; i >= 0; i--) {
+      if (es.eigenvalues()[i] > ZBOUND && r < r_ub) {
         this->mixChiSq.addLambda(es.eigenvalues()[i]);
         r++;
-      }
-      else break;
+      } else
+        break;
     }
     // calculate p-value
     this->pValue = this->mixChiSq.getPvalue(this->Q);
     return 0;
   };
 
-
-  double GetQFromNewResidual(Vector & res_G)   // e.g. permuted residual under NULL
+  double GetQFromNewResidual(
+      Vector& res_G)  // e.g. permuted residual under NULL
   {
     // calculate Q
     Eigen::VectorXf res;
@@ -105,16 +102,16 @@ class Skat::SkatImpl{
     return Q;
   }
 
-  double GetPvalue() const {return this->pValue;};
+  double GetPvalue() const { return this->pValue; };
 
-  double GetQ() const {return this->Q;};
+  double GetQ() const { return this->Q; };
 
  private:
-  //Eigen::MatrixXf K;        // G * W * G'
-  Eigen::MatrixXf K_sqrt;     // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
-  Eigen::VectorXf w_sqrt;     // W^{0.5} 
-  Eigen::MatrixXf P0;         // V - VX ( X' V X)^{-1} X V
-  Eigen::VectorXf res;        // residual
+  // Eigen::MatrixXf K;        // G * W * G'
+  Eigen::MatrixXf K_sqrt;  // W^{0.5} * G' ----> K = K_sqrt' * K_sqrt
+  Eigen::VectorXf w_sqrt;  // W^{0.5}
+  Eigen::MatrixXf P0;      // V - VX ( X' V X)^{-1} X V
+  Eigen::VectorXf res;     // residual
 
   int nPeople;
   int nMarker;
@@ -124,34 +121,30 @@ class Skat::SkatImpl{
   double pValue;
   double Q;
 };
-Skat::Skat() {
-  this->skatImpl =  new SkatImpl;
-}
-Skat::~Skat() {
-  delete this->skatImpl;
-}
-void Skat::Reset() {
-  this->skatImpl->Reset();
-}
+Skat::Skat() { this->skatImpl = new SkatImpl; }
+Skat::~Skat() { delete this->skatImpl; }
+void Skat::Reset() { this->skatImpl->Reset(); }
 
-int Skat::Fit(Vector & res_G,   // residual under NULL -- may change when permuting
-              Vector& v_G,      // variance under NULL -- may change when permuting
-              Matrix& X_G,      // covariance
-              Matrix & G_G,     // genotype
-              Vector &w_G)     // weight
+int Skat::Fit(
+    Vector& res_G,  // residual under NULL -- may change when permuting
+    Vector& v_G,    // variance under NULL -- may change when permuting
+    Matrix& X_G,    // covariance
+    Matrix& G_G,    // genotype
+    Vector& w_G)    // weight
 {
   return this->skatImpl->Fit(res_G, v_G, X_G, G_G, w_G);
 };
 
-double Skat::GetQFromNewResidual(Vector & res_G){   // residual under NULL -- may change when permuting
+double Skat::GetQFromNewResidual(
+    Vector& res_G) {  // residual under NULL -- may change when permuting
   return this->skatImpl->GetQFromNewResidual(res_G);
 }
-double Skat::GetPvalue() const //  {return this->pValue;};
+double Skat::GetPvalue() const  //  {return this->pValue;};
 {
   return this->skatImpl->GetPvalue();
 }
 
-double Skat::GetQ() const // {return this->Q;};
+double Skat::GetQ() const  // {return this->Q;};
 {
   return this->skatImpl->GetQ();
 }

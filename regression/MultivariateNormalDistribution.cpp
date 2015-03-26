@@ -3,20 +3,17 @@
 #include <math.h>
 #include <gsl/gsl_cdf.h>
 
-
 #include "MathMatrix.h"
 
 //////////////////////////////////////////////////
 // Get band probability
 //////////////////////////////////////////////////
-int MultivariateNormalDistribution::getBandProbFromCor(int n,
-                                                       double* lower,
+int MultivariateNormalDistribution::getBandProbFromCor(int n, double* lower,
                                                        double* upper,
                                                        double* cor,
                                                        double* result) {
   if (n == 1) {
-    *result =  (gsl_cdf_ugaussian_P(*upper) -
-                gsl_cdf_ugaussian_P(*lower));
+    *result = (gsl_cdf_ugaussian_P(*upper) - gsl_cdf_ugaussian_P(*lower));
     return 0;
   }
 
@@ -24,8 +21,7 @@ int MultivariateNormalDistribution::getBandProbFromCor(int n,
   return (*result >= 0. ? 0 : -1);
 }
 
-int MultivariateNormalDistribution::getBandProbFromCor(int n,
-                                                       double* lower,
+int MultivariateNormalDistribution::getBandProbFromCor(int n, double* lower,
                                                        double* upper,
                                                        Matrix& cor,
                                                        double* result) {
@@ -34,8 +30,7 @@ int MultivariateNormalDistribution::getBandProbFromCor(int n,
   return getBandProbFromCor(n, lower, upper, corVec.data(), result);
 }
 
-int MultivariateNormalDistribution::getBandProbFromCov(int n,
-                                                       double* lower,
+int MultivariateNormalDistribution::getBandProbFromCov(int n, double* lower,
                                                        double* upper,
                                                        Vector& mean,
                                                        Matrix& cov,
@@ -45,7 +40,7 @@ int MultivariateNormalDistribution::getBandProbFromCov(int n,
     (lower)[i] -= mean[i];
     (lower)[i] /= sqrt(cov[i][i]);
     (upper)[i] -= mean[i];
-    (upper)[i] /=sqrt(cov[i][i]);
+    (upper)[i] /= sqrt(cov[i][i]);
   }
 
   toCor(cov, &corVec);
@@ -66,22 +61,18 @@ int MultivariateNormalDistribution::getBandProbFromCov(double lower,
   std::vector<double> lb(n, lower);
   std::vector<double> ub(n, upper);
   toCor(cov, &corVec);
-  return this->getBandProbFromCor(n,
-                                  lb.data(),
-                                  ub.data(),
-                                  corVec.data(),
+  return this->getBandProbFromCor(n, lb.data(), ub.data(), corVec.data(),
                                   result);
 }
 
 //////////////////////////////////////////////////
 // Get upper probability
 //////////////////////////////////////////////////
-int MultivariateNormalDistribution::getUpperFromCov(int n,
-                                                    double* lower,
+int MultivariateNormalDistribution::getUpperFromCov(int n, double* lower,
                                                     Matrix& cov,
                                                     double* result) {
   if (n == 1) {
-    *result =  (gsl_cdf_gaussian_Q(*lower, sqrt(cov[0][0])));
+    *result = (gsl_cdf_gaussian_Q(*lower, sqrt(cov[0][0])));
     return 0;
   }
 
@@ -94,10 +85,8 @@ int MultivariateNormalDistribution::getUpperFromCov(int n,
   return (*result >= 0. ? 0 : -1);
 }
 
-int MultivariateNormalDistribution::getUpperFromCov(int n,
-                                                    double* lower,
-                                                    Vector& mean,
-                                                    Matrix& cov,
+int MultivariateNormalDistribution::getUpperFromCov(int n, double* lower,
+                                                    Vector& mean, Matrix& cov,
                                                     double* result) {
   for (int i = 0; i < n; ++i) {
     lower[i] -= mean[i];
@@ -105,8 +94,7 @@ int MultivariateNormalDistribution::getUpperFromCov(int n,
   return getUpperFromCov(n, lower, cov, result);
 }
 
-int MultivariateNormalDistribution::getUpperFromCov(double lower,
-                                                    Matrix& cov,
+int MultivariateNormalDistribution::getUpperFromCov(double lower, Matrix& cov,
                                                     double* result) {
   if (cov.rows != cov.cols) {
     return -1;
@@ -116,16 +104,12 @@ int MultivariateNormalDistribution::getUpperFromCov(double lower,
   int n = m.rows;
 
   std::vector<double> lowerBound(n, lower);
-  return this->getUpperFromCov(n,
-                               lowerBound.data(),
-                               cov,
-                               result);
+  return this->getUpperFromCov(n, lowerBound.data(), cov, result);
 }
 //////////////////////////////////////////////////
 // Get lower probability
 //////////////////////////////////////////////////
-int MultivariateNormalDistribution::getLowerFromCov(int n,
-                                                    double* upper,
+int MultivariateNormalDistribution::getLowerFromCov(int n, double* upper,
                                                     Matrix& cov,
                                                     double* result) {
   if (n == 1) {
@@ -143,10 +127,8 @@ int MultivariateNormalDistribution::getLowerFromCov(int n,
   return (*result >= 0. ? 0 : -1);
 }
 
-int MultivariateNormalDistribution::getLowerFromCov(int n,
-                                                    double* upper,
-                                                    Vector& mean,
-                                                    Matrix& cov,
+int MultivariateNormalDistribution::getLowerFromCov(int n, double* upper,
+                                                    Vector& mean, Matrix& cov,
                                                     double* result) {
   for (int i = 0; i < n; ++i) {
     upper[i] -= mean[i];
@@ -154,8 +136,7 @@ int MultivariateNormalDistribution::getLowerFromCov(int n,
   return getLowerFromCov(n, upper, cov, result);
 }
 
-int MultivariateNormalDistribution::getLowerFromCov(double upper,
-                                                    Matrix& cov,
+int MultivariateNormalDistribution::getLowerFromCov(double upper, Matrix& cov,
                                                     double* result) {
   if (cov.rows != cov.cols) {
     return -1;
@@ -165,16 +146,14 @@ int MultivariateNormalDistribution::getLowerFromCov(double upper,
   int n = m.rows;
 
   std::vector<double> upperBound(n, upper);
-  return this->getLowerFromCov(n,
-                               upperBound.data(),
-                               cov,
-                               result);
+  return this->getLowerFromCov(n, upperBound.data(), cov, result);
 }
 
 //////////////////////////////////////////////////
 // Utility functions
 //////////////////////////////////////////////////
-void MultivariateNormalDistribution::toCor(Matrix& m, std::vector<double>* out) {
+void MultivariateNormalDistribution::toCor(Matrix& m,
+                                           std::vector<double>* out) {
   if (m.rows != m.cols) return;
   if (m.rows == 0) return;
 
@@ -186,7 +165,7 @@ void MultivariateNormalDistribution::toCor(Matrix& m, std::vector<double>* out) 
   }
 
   std::vector<double>& cor = (*out);
-  cor.resize(n*(n-1)/2, 0.);
+  cor.resize(n * (n - 1) / 2, 0.);
   int k = 0;
   for (int i = 1; i < n; ++i) {
     for (int j = 0; j < i; ++j) {

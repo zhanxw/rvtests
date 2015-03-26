@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h> // gethostname
-#include <string.h> // strlen
+#include <unistd.h>  // gethostname
+#include <string.h>  // strlen
 #include <time.h>
 
 #include <string>
@@ -19,7 +19,7 @@
 
 #define UNUSED(x) ((void)(x))
 
-typedef enum PARAMETER_TYPE{
+typedef enum PARAMETER_TYPE {
   UNSUPPORTED_TYPE,
   BOOL_TYPE,
   INT_TYPE,
@@ -27,24 +27,23 @@ typedef enum PARAMETER_TYPE{
   STRING_TYPE
 } ParameterType;
 
-struct FlagInfo{
+struct FlagInfo {
  public:
-  FlagInfo():
-      pt(UNSUPPORTED_TYPE),
-      data(NULL),
-      isParsed(false),
-      isLongParam(false) {};
+  FlagInfo()
+      : pt(UNSUPPORTED_TYPE), data(NULL), isParsed(false), isLongParam(false){};
+
  public:
-  ParameterType pt;   // the parameter type
-  void* data;         // where the parsed value stores
-  std::string doc;    // documentation
-  bool isParsed;      // whether we have parsed the flag and store the value in data.
-  bool isLongParam;   // --flag i long parameter, -flag is not
+  ParameterType pt;  // the parameter type
+  void* data;        // where the parsed value stores
+  std::string doc;   // documentation
+  bool
+      isParsed;  // whether we have parsed the flag and store the value in data.
+  bool isLongParam;  // --flag i long parameter, -flag is not
 };
 
-class ParameterParser{
+class ParameterParser {
  public:
-  ParameterParser():ptrRemainingArg(NULL) {
+  ParameterParser() : ptrRemainingArg(NULL) {
     this->currentParameterGroupName = "Default Parameter Group";
   }
   void AddParameterGroup(const char* name) {
@@ -52,9 +51,10 @@ class ParameterParser{
     this->currentParameterGroupName = name;
   }
   void AddRemainingArg(void* data) {
-    this->ptrRemainingArg = (std::vector<std::string>*) data;
+    this->ptrRemainingArg = (std::vector<std::string>*)data;
   }
-  void AddParameter(ParameterType pt, void* data, const char* flag, const char* doc) {
+  void AddParameter(ParameterType pt, void* data, const char* flag,
+                    const char* doc) {
     std::string f = flag;
 
     // check parameter validity
@@ -76,14 +76,18 @@ class ParameterParser{
       f = f.substr(1);
       fi.isLongParam = false;
     } else {
-      fprintf(stderr, "WARNING: Flag \"%s\" is not a valid declaration, try \"-%s\" or \"--%s\".\n", flag, flag, flag);
+      fprintf(stderr,
+              "WARNING: Flag \"%s\" is not a valid declaration, try \"-%s\" or "
+              "\"--%s\".\n",
+              flag, flag, flag);
       return;
     }
     // prevent double existence
     std::vector<std::string>::iterator it;
     for (it = flagVec.begin(); it != flagVec.end(); it++) {
-      if (*it == flag){
-        fprintf(stderr, "WARNING: Duplicate flag \"%s\" and \"%s\"\n", flag, (*it).c_str());
+      if (*it == flag) {
+        fprintf(stderr, "WARNING: Duplicate flag \"%s\" and \"%s\"\n", flag,
+                (*it).c_str());
         return;
       }
     }
@@ -101,7 +105,7 @@ class ParameterParser{
   }
   void InitializeValue(ParameterType pt, void* data, const char* flag) {
     // initialize data
-    switch(pt) {
+    switch (pt) {
       case BOOL_TYPE:
         *(bool*)data = false;
         break;
@@ -115,7 +119,8 @@ class ParameterParser{
         *(std::string*)data = "";
         break;
       default:
-        fprintf(stderr, "WARNING: Unrecognized parameter type for flag \"%s\"\n", flag);
+        fprintf(stderr,
+                "WARNING: Unrecognized parameter type for flag \"%s\"\n", flag);
         return;
     }
   }
@@ -124,30 +129,28 @@ class ParameterParser{
     FILE* fp = fopen(fileName, "r");
     if (!fp) {
       fprintf(stderr, "ERROR: Cannot open parameter file \"%s\"\n", fileName);
-      return ;
+      return;
     }
     char line[1024];
     int index;
     int len;
     bool isCommentLine = true;
-    while (isCommentLine){
+    while (isCommentLine) {
       int ret = fscanf(fp, "%s", line);
       UNUSED(ret);
       len = strlen(line);
       if (!len) continue;
       for (index = 0; index < len; index++) {
-        if ( line[index] == ' ')
-          continue;
-        if ( line[index] == '#')
-          break;
+        if (line[index] == ' ') continue;
+        if (line[index] == '#') break;
         isCommentLine = false;
         break;
       }
     }
 
     int argLen = 10;
-    int argc = 1; // we will put each parsed results from argc = 1.
-    char** argv = (char**) malloc( sizeof(char*) * argc) ;
+    int argc = 1;  // we will put each parsed results from argc = 1.
+    char** argv = (char**)malloc(sizeof(char*) * argc);
     if (!argv) {
       fprintf(stderr, "ERROR: malloc() failed!\n");
       return;
@@ -165,7 +168,7 @@ class ParameterParser{
           arg.push_back(line[index]);
           continue;
         } else {
-          argv[argc] = (char*) malloc(sizeof(char) * arg.size());
+          argv[argc] = (char*)malloc(sizeof(char) * arg.size());
           if (!argv[argc]) {
             fprintf(stderr, "ERROR: malloc() failed!\n");
             return;
@@ -176,9 +179,8 @@ class ParameterParser{
       } else {
         // not inside the quote
         if (line[index] == ' ') {
-          if (arg.size() == 0)
-            continue;
-          argv[argc] = (char*) malloc(sizeof(char) * arg.size());
+          if (arg.size() == 0) continue;
+          argv[argc] = (char*)malloc(sizeof(char) * arg.size());
           if (!argv[argc]) {
             fprintf(stderr, "ERROR: malloc() failed!\n");
             return;
@@ -192,13 +194,12 @@ class ParameterParser{
       // allocate new space
       if (argc == argLen) {
         argLen *= 2;
-        char** temp = (char**)realloc(argv, sizeof(char*)*argLen);
+        char** temp = (char**)realloc(argv, sizeof(char*) * argLen);
         if (!temp) {
           fprintf(stderr, "ERROR: realloc() failed!\n");
           return;
         }
-        if (argv != temp)
-          free(argv);
+        if (argv != temp) free(argv);
         argv = temp;
       }
     }
@@ -207,14 +208,11 @@ class ParameterParser{
 
     // clean up memory
     for (int i = 1; i < argc; ++i) {
-      if (argv[i])
-        free(argv[i]);
+      if (argv[i]) free(argv[i]);
     }
-    if (argv)
-      free(argv);
-
+    if (argv) free(argv);
   }
-  void WriteToFile(FILE* fp){
+  void WriteToFile(FILE* fp) {
     assert(fp);
     this->WriteToFileWithComment(fp, "");
   }
@@ -240,23 +238,22 @@ class ParameterParser{
       }
       time_t tt = time(0);
       // ctime() will output an extra \n
-      fprintf(fp, "# ParameterList created by %s on %s at %s",
-              username, hostName, ctime(&tt));
+      fprintf(fp, "# ParameterList created by %s on %s at %s", username,
+              hostName, ctime(&tt));
     }
     int numFlagOutputted = 0;
-    for (size_t i = 0; i < this->flagVec.size(); i++){
+    for (size_t i = 0; i < this->flagVec.size(); i++) {
       FlagInfo& fi = this->flagInfoMap[i];
       if (fi.isParsed) {
         // separate different flags
-        if (numFlagOutputted)
-          fprintf(fp, " ");
+        if (numFlagOutputted) fprintf(fp, " ");
 
         if (fi.isLongParam)
           fprintf(fp, "--");
         else
           fprintf(fp, "-");
         fprintf(fp, "%s", flagVec[i].c_str());
-        switch(fi.pt) {
+        switch (fi.pt) {
           case BOOL_TYPE:
             break;
           case INT_TYPE:
@@ -269,16 +266,17 @@ class ParameterParser{
             fprintf(fp, " \"%s\"", ((std::string*)fi.data)->c_str());
             break;
           default:
-            fprintf(stderr, "WARNING: Unrecognized parameter type for flag \"%s\"\n", this->flagVec[i].c_str());
+            fprintf(stderr,
+                    "WARNING: Unrecognized parameter type for flag \"%s\"\n",
+                    this->flagVec[i].c_str());
             return;
         }
-        numFlagOutputted ++;
+        numFlagOutputted++;
       }
     }
     for (size_t i = 0; i < this->ptrRemainingArg->size(); i++) {
       // separate different flags
-      if (numFlagOutputted)
-        fprintf(fp, " ");
+      if (numFlagOutputted) fprintf(fp, " ");
       // output each remaining argument
       fprintf(fp, " \"%s\"", (*this->ptrRemainingArg)[i].c_str());
     }
@@ -294,7 +292,8 @@ class ParameterParser{
     fclose(fp);
   }
   /**
-   * WriteToStreamWithComment() is EXACTLY the rewrite of WriteToFileWithComment()
+   * WriteToStreamWithComment() is EXACTLY the rewrite of
+   * WriteToFileWithComment()
    * This repetative work is for output LOG file
    */
   void WriteToStreamWithComment(std::ostream& fout, const char* comment) {
@@ -315,22 +314,22 @@ class ParameterParser{
       }
       time_t tt = time(0);
       // ctime() will output an extra \n
-      fout << "# ParameterList created by " << username << " on "<< hostName << " at " << ctime(&tt);
+      fout << "# ParameterList created by " << username << " on " << hostName
+           << " at " << ctime(&tt);
     }
     int numFlagOutputted = 0;
-    for (size_t i = 0; i < this->flagVec.size(); i++){
+    for (size_t i = 0; i < this->flagVec.size(); i++) {
       FlagInfo& fi = this->flagInfoMap[i];
       if (fi.isParsed) {
         // separate different flags
-        if (numFlagOutputted)
-          fout << " ";
+        if (numFlagOutputted) fout << " ";
 
         if (fi.isLongParam)
           fout << "--";
         else
           fout << "-";
         fout << flagVec[i];
-        switch(fi.pt) {
+        switch (fi.pt) {
           case BOOL_TYPE:
             break;
           case INT_TYPE:
@@ -340,19 +339,20 @@ class ParameterParser{
             fout << " " << *(double*)fi.data;
             break;
           case STRING_TYPE:
-            fout << " \""<< *((std::string*)fi.data) <<  "\"";
+            fout << " \"" << *((std::string*)fi.data) << "\"";
             break;
           default:
-            fprintf(stderr, "WARNING: Unrecognized parameter type for flag \"%s\"\n", this->flagVec[i].c_str());
+            fprintf(stderr,
+                    "WARNING: Unrecognized parameter type for flag \"%s\"\n",
+                    this->flagVec[i].c_str());
             return;
         }
-        numFlagOutputted ++;
+        numFlagOutputted++;
       }
     }
     for (size_t i = 0; i < this->ptrRemainingArg->size(); i++) {
       // separate different flags
-      if (numFlagOutputted)
-        fout << " ";
+      if (numFlagOutputted) fout << " ";
       // output each remaining argument
       fout << " \"" << (*this->ptrRemainingArg)[i] << "\"";
     }
@@ -368,9 +368,8 @@ class ParameterParser{
       flag = argv[i];
       // flag = '--' meaning the end of all parameter
       if (flag == "--") {
-        ++i ;
-        while (i < argc)
-          this->ptrRemainingArg->push_back(argv[i++]);
+        ++i;
+        while (i < argc) this->ptrRemainingArg->push_back(argv[i++]);
         return;
       }
 
@@ -382,31 +381,40 @@ class ParameterParser{
 
       unsigned int choppedLeadingDash = 0;
       // user may input ---flag, ----flag, ..., and we will chop all leading -
-      // user may also input ---, ----, but I don't understand what that means, so report error
-      while (flag.size() > 0){
+      // user may also input ---, ----, but I don't understand what that means,
+      // so report error
+      while (flag.size() > 0) {
         if (flag[0] == '-') {
-          choppedLeadingDash ++;
+          choppedLeadingDash++;
           flag = flag.substr(1);
         } else {
           break;
         }
       }
       if (flag.empty()) {
-        fprintf(stderr, "ERROR: we don't understand the argument \"%s\"\n", argv[i]);
-        return;        
+        fprintf(stderr, "ERROR: we don't understand the argument \"%s\"\n",
+                argv[i]);
+        return;
       }
       if (choppedLeadingDash > 2) {
-        fprintf(stderr, "WARNING: you typed too many dash in \"%s\"?\n", argv[i]);
+        fprintf(stderr, "WARNING: you typed too many dash in \"%s\"?\n",
+                argv[i]);
       } else if (choppedLeadingDash == 1 && flag.size() > 1) {
-        fprintf(stderr, "WARNING: long parameter should have two lead dashes: \"%s\"?\n", argv[i]);
+        fprintf(
+            stderr,
+            "WARNING: long parameter should have two lead dashes: \"%s\"?\n",
+            argv[i]);
       } else if (choppedLeadingDash > 1 && flag.size() == 1) {
-        fprintf(stderr, "WARNING: long parameter should have two lead dashes: \"%s\"?\n", argv[i]);
+        fprintf(
+            stderr,
+            "WARNING: long parameter should have two lead dashes: \"%s\"?\n",
+            argv[i]);
       }
 
       // check if variable flag is a predefined flag or not
       std::vector<std::string>::iterator it;
       for (it = flagVec.begin(); it != flagVec.end(); it++) {
-        if (*it == flag){
+        if (*it == flag) {
           break;
         }
       }
@@ -423,22 +431,29 @@ class ParameterParser{
       unsigned int idx = it - this->flagVec.begin();
       void* data = this->flagInfoMap[idx].data;
       if (this->flagInfoMap[idx].isParsed) {
-        fprintf(stderr, "WARNING: flag \"%s\" provided more than once, the previous value will be overwritten\n", argv[i]);
+        fprintf(stderr,
+                "WARNING: flag \"%s\" provided more than once, the previous "
+                "value will be overwritten\n",
+                argv[i]);
       }
       this->flagInfoMap[idx].isParsed = true;
-      switch(this->flagInfoMap[idx].pt) {
+      switch (this->flagInfoMap[idx].pt) {
         case BOOL_TYPE:
           *(bool*)data = true;
           break;
         case INT_TYPE:
-          if (!str2int(argv[i+1], (int*)data)) {
-            fprintf(stderr, "WARNING: arg \"%s %s\" does not give valid integer\n", argv[i], argv[i+1]);
+          if (!str2int(argv[i + 1], (int*)data)) {
+            fprintf(stderr,
+                    "WARNING: arg \"%s %s\" does not give valid integer\n",
+                    argv[i], argv[i + 1]);
           }
           ++i;
           break;
         case DOUBLE_TYPE:
-          if (!str2double(argv[i+1], (double*)data)) {
-            fprintf(stderr, "WARNING: arg \"%s %s\" does not give valid double\n", argv[i], argv[i+1]);
+          if (!str2double(argv[i + 1], (double*)data)) {
+            fprintf(stderr,
+                    "WARNING: arg \"%s %s\" does not give valid double\n",
+                    argv[i], argv[i + 1]);
           }
           ++i;
           break;
@@ -446,19 +461,23 @@ class ParameterParser{
           *(std::string*)data = argv[++i];
           break;
         default:
-          fprintf(stderr, "ERROR: Unrecognized parameter type for flag %s\n", argv[i]);
+          fprintf(stderr, "ERROR: Unrecognized parameter type for flag %s\n",
+                  argv[i]);
           return;
       }
     }
   }
   void Status() {
-    fprintf(stderr, "The following parameters are available.  Ones with \"[]\" are in effect:\n");
+    fprintf(stderr,
+            "The following parameters are available.  Ones with \"[]\" are in "
+            "effect:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Available Options\n");
     /*
       Format illustration:
       Individual Filter : --indvDepthMin [], --indvDepthMax [], --indvQualMin []
-      <- group name widt -><- SEP -><----------- flag name width ------------------------->
+      <- group name widt -><- SEP -><----------- flag name width
+      ------------------------->
       GROUP_WIDTH                               FLAG_WIDTH
     */
 
@@ -469,7 +488,8 @@ class ParameterParser{
     std::string right;
     std::string rightItem;
 
-    for (size_t groupIndex = 0; groupIndex < this->groupNameFlagIndexMap.size(); ++groupIndex){
+    for (size_t groupIndex = 0; groupIndex < this->groupNameFlagIndexMap.size();
+         ++groupIndex) {
       std::string k;
       std::vector<unsigned int> v;
       this->groupNameFlagIndexMap.at(groupIndex, &k, &v);
@@ -479,10 +499,11 @@ class ParameterParser{
       left += " :";
       right.clear();
 
-      for (size_t i = 0; i < v.size(); i++) { // loop flags under the same param group
+      for (size_t i = 0; i < v.size();
+           i++) {  // loop flags under the same param group
         int idx = v[i];
         const std::string& flag = this->flagVec[idx];
-        FlagInfo &fi = this->flagInfoMap[idx];
+        FlagInfo& fi = this->flagInfoMap[idx];
         void* data = fi.data;
 
         if (fi.isLongParam) {
@@ -499,7 +520,7 @@ class ParameterParser{
           }
         }
         if (fi.isParsed) {
-          switch(fi.pt){
+          switch (fi.pt) {
             case BOOL_TYPE:
               if (*(bool*)data) {
                 rightItem += "true";
@@ -517,7 +538,9 @@ class ParameterParser{
               rightItem += *(std::string*)data;
               break;
             default:
-              fprintf(stderr, "ERROR: That should be a bug, report to zhanxw@gmail.com");
+              fprintf(
+                  stderr,
+                  "ERROR: That should be a bug, report to zhanxw@gmail.com");
               return;
           }
         }
@@ -528,7 +551,7 @@ class ParameterParser{
         right += rightItem;
         right += ",";
         rightItem.clear();
-      } // end loop per param group
+      }  // end loop per param group
       // fprintf(stderr, "\n");
       leftColumn.setContent(left);
       rightColumn.setContent(right);
@@ -539,7 +562,8 @@ class ParameterParser{
     LineBreaker leftColumn(FLAG_WIDTH);
     LineBreaker rightColumn(DOC_WIDTH);
     std::string left;
-    for (size_t groupIndex = 0; groupIndex < this->groupNameFlagIndexMap.size(); ++groupIndex){
+    for (size_t groupIndex = 0; groupIndex < this->groupNameFlagIndexMap.size();
+         ++groupIndex) {
       std::string k;
       std::vector<unsigned int> v;
       this->groupNameFlagIndexMap.at(groupIndex, &k, &v);
@@ -550,7 +574,7 @@ class ParameterParser{
       for (size_t i = 0; i < v.size(); i++) {
         int idx = v[i];
         const std::string& flag = this->flagVec[idx];
-        FlagInfo &fi = this->flagInfoMap[idx];
+        FlagInfo& fi = this->flagInfoMap[idx];
 
         if (fi.isLongParam) {
           left = "--";
@@ -567,6 +591,7 @@ class ParameterParser{
       }
     }
   }
+
  private:
   // all flags are stored here, "--flag" will store "flag" in flagVec
   std::vector<std::string> flagVec;
@@ -583,42 +608,39 @@ class ParameterParser{
   const static int DOC_WIDTH = 55;
 };
 
-#define BEGIN_PARAMETER_LIST(pp)                \
-  ParameterParser pp;
-#define END_PARAMETER_LIST(pp)                  \
-  std::vector<std::string> FLAG_REMAIN_ARG;     \
+#define BEGIN_PARAMETER_LIST(pp) ParameterParser pp;
+#define END_PARAMETER_LIST(pp)              \
+  std::vector<std::string> FLAG_REMAIN_ARG; \
   pp.AddRemainingArg(&FLAG_REMAIN_ARG);
 // pp is an instane of ParameterParser
-#define ADD_PARAMETER_GROUP(pp, x)              \
-  (pp).AddParameterGroup(x);
-#define ADD_BOOL_PARAMETER(pp, x, flag, doc)            \
-  bool FLAG_##x = false;                                \
+#define ADD_PARAMETER_GROUP(pp, x) (pp).AddParameterGroup(x);
+#define ADD_BOOL_PARAMETER(pp, x, flag, doc) \
+  bool FLAG_##x = false;                     \
   (pp).AddParameter(BOOL_TYPE, &FLAG_##x, flag, doc);
-#define ADD_INT_PARAMETER(pp, x, flag, doc)             \
-  int FLAG_##x = 0;                                     \
+#define ADD_INT_PARAMETER(pp, x, flag, doc) \
+  int FLAG_##x = 0;                         \
   (pp).AddParameter(INT_TYPE, &FLAG_##x, flag, doc);
-#define ADD_DOUBLE_PARAMETER(pp, x, flag, doc)          \
-  double FLAG_##x  = 0.0;                               \
+#define ADD_DOUBLE_PARAMETER(pp, x, flag, doc) \
+  double FLAG_##x = 0.0;                       \
   (pp).AddParameter(DOUBLE_TYPE, &FLAG_##x, flag, doc);
-#define ADD_STRING_PARAMETER(pp, x, flag, doc)          \
-  std::string FLAG_##x;                                 \
+#define ADD_STRING_PARAMETER(pp, x, flag, doc) \
+  std::string FLAG_##x;                        \
   (pp).AddParameter(STRING_TYPE, &FLAG_##x, flag, doc);
 // default arguments
-#define ADD_DEFAULT_INT_PARAMETER(pp, x, def, flag, doc)        \
-  int FLAG_##x = def;                                           \
+#define ADD_DEFAULT_INT_PARAMETER(pp, x, def, flag, doc) \
+  int FLAG_##x = def;                                    \
   (pp).AddParameter(INT_TYPE, &FLAG_##x, flag, doc);
-#define ADD_DEFAULT_DOUBLE_PARAMETER(pp, x, def, flag, doc)     \
-  double FLAG_##x = def;                                        \
+#define ADD_DEFAULT_DOUBLE_PARAMETER(pp, x, def, flag, doc) \
+  double FLAG_##x = def;                                    \
   (pp).AddParameter(DOUBLE_TYPE, &FLAG_##x, flag, doc);
-#define ADD_DEFAULT_STRING_PARAMETER(pp, x, def, flag, doc)     \
-  std::string FLAG_##x = def ;                                  \
+#define ADD_DEFAULT_STRING_PARAMETER(pp, x, def, flag, doc) \
+  std::string FLAG_##x = def;                               \
   (pp).AddParameter(STRING_TYPE, &FLAG_##x, flag, doc);
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Helper functions
-static void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg){
-  if (flag.empty()){
+void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg) {
+  if (flag.empty()) {
     fprintf(stderr, "%s\n", msg);
     abort();
   }

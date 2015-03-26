@@ -3,8 +3,8 @@
 
 #include "VCFValue.h"
 
-
-/* inline int parseTillChar(const char c, const char* line, const int beg, VCFValue* ret) { */
+/* inline int parseTillChar(const char c, const char* line, const int beg,
+ * VCFValue* ret) { */
 /*     assert(ret); */
 /*     ret->line = line; */
 /*     ret->beg = beg; */
@@ -15,7 +15,8 @@
 /*     return ret->end; */
 /* }; */
 
-/* inline int parseTillChar(const char* c, const char* line, const int beg, VCFValue* ret) { */
+/* inline int parseTillChar(const char* c, const char* line, const int beg,
+ * VCFValue* ret) { */
 /*     assert(ret); */
 /*     ret->line = line; */
 /*     ret->beg = beg; */
@@ -28,10 +29,12 @@
 /* }; */
 
 /* /\** */
-/*  * @return 0: found @param id in @paraminfo, and store results in @param result */
+/*  * @return 0: found @param id in @paraminfo, and store results in @param
+ * result */
 /*  * @return -1: not found, @param result value is undetermined */
 /*  *\/ */
-/* inline int parseVCFINFO(std::string* result, const std::string info, const char* id) { */
+/* inline int parseVCFINFO(std::string* result, const std::string info, const
+ * char* id) { */
 /*     size_t begin = info.find(id); */
 /*     if (begin == std::string::npos) { */
 /*         return -1; */
@@ -70,7 +73,7 @@
 /*     } */
 /*     if (!isMatch)  */
 /*         return -1; */
-    
+
 /*     // move to the first digit */
 /*     dpBegin += dpStrLen;  */
 /*     assert(s[dpBegin] == '='); */
@@ -85,6 +88,5 @@
 /*     buffer[i] = '\0'; */
 /*     return atoi(buffer); */
 /* }; */
-
 
 #endif /* _VCFFUNCTION_H_ */

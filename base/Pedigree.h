@@ -10,31 +10,20 @@
 #include "IO.h"
 #include "TypeConversion.h"
 
-template<class T1, class T2>
+template <class T1, class T2>
 class BiMap {
  public:
-  T2& get(const T1& t1) {
-    return d1[t1];
-  }
-  T1& get(const T2& t2) {
-    return d2[t2];
-  }
-  T2& operator[] (const T1& t1) {
-    return d1[t1];
-  }
-  T1& operator[] (const T2& t2) {
-    return d2[t2];
-  }
+  T2& get(const T1& t1) { return d1[t1]; }
+  T1& get(const T2& t2) { return d2[t2]; }
+  T2& operator[](const T1& t1) { return d1[t1]; }
+  T1& operator[](const T2& t2) { return d2[t2]; }
   void add(const T1& t1, const T2& t2) {
     d1[t1] = t2;
     d2[t2] = t1;
   }
-  bool exists(const T1& t1) {
-    return d1.count(t1) > 0 ? true : false;
-  }
-  bool exists(const T2& t2) {
-    return d2.count(t2) > 0 ? true : false;
-  }
+  bool exists(const T1& t1) { return d1.count(t1) > 0 ? true : false; }
+  bool exists(const T2& t2) { return d2.count(t2) > 0 ? true : false; }
+
  private:
   std::map<T1, T2> d1;
   std::map<T2, T1> d2;
@@ -42,31 +31,21 @@ class BiMap {
 
 class StringIntBiMap {
  public:
-  StringIntBiMap() :defaultString(), defaultInt(-1){};
-  int& get(const std::string& t1) {
-    return d1[t1];
-  }
-  std::string& get(const int& t2) {
-    return d2[t2];
-  }
+  StringIntBiMap() : defaultString(), defaultInt(-1){};
+  int& get(const std::string& t1) { return d1[t1]; }
+  std::string& get(const int& t2) { return d2[t2]; }
 
-  const int& operator[] (const std::string& t1) const {
-    if (d1.count(t1))
-      return d1.find(t1)->second;
+  const int& operator[](const std::string& t1) const {
+    if (d1.count(t1)) return d1.find(t1)->second;
     return defaultInt;
   }
-  int& operator[] ( const std::string& t1)  {
-    return d1[t1];
-  }
+  int& operator[](const std::string& t1) { return d1[t1]; }
 
-  const std::string& operator[] (const int& t2) const {
-    if (d2.count(t2))
-      return d2.find(t2)->second;
+  const std::string& operator[](const int& t2) const {
+    if (d2.count(t2)) return d2.find(t2)->second;
     return defaultString;
   }
-  std::string& operator[] (const int& t2)  {
-    return d2[t2];
-  }
+  std::string& operator[](const int& t2) { return d2[t2]; }
 
   void add(const std::string& t1, const int& t2) {
     d1[t1] = t2;
@@ -75,12 +54,9 @@ class StringIntBiMap {
   bool exists(const std::string& t1) const {
     return d1.count(t1) > 0 ? true : false;
   }
-  bool exists(const int& t2) const {
-    return d2.count(t2) > 0 ? true : false;
-  }
-  size_t size() const {
-    return d1.size();
-  }
+  bool exists(const int& t2) const { return d2.count(t2) > 0 ? true : false; }
+  size_t size() const { return d1.size(); }
+
  private:
   std::string defaultString;
   int defaultInt;
@@ -88,47 +64,40 @@ class StringIntBiMap {
   std::map<int, std::string> d2;
 };
 
-
 namespace zhanxw {
 class Pedigree;
 
-typedef enum {UNKNOW = 0, MALE = 1, FEMALE = 2} Gender;
+typedef enum { UNKNOW = 0, MALE = 1, FEMALE = 2 } Gender;
 
 //////////////////////////////////////////////////////////////////////
 // Person
-class Person{
+class Person {
  public:
-  Person(Pedigree* p, int id): id(id),
-                               father(-1), mother(-1),
-                               founder(true),
-                               gender(UNKNOW),
-                               ped(p),
-                               family(-1) {};
+  Person(Pedigree* p, int id)
+      : id(id),
+        father(-1),
+        mother(-1),
+        founder(true),
+        gender(UNKNOW),
+        ped(p),
+        family(-1){};
   void addFather(int id);
-  int getFather() const {
-    return father;
-  }
-  bool hasFather() const {
-    return father >= 0;
-  }
+  int getFather() const { return father; }
+  bool hasFather() const { return father >= 0; }
   void addMother(int id);
-  int getMother() const {
-    return mother;
-  }
-  bool hasMother() const {
-    return mother >= 0;
-  }
+  int getMother() const { return mother; }
+  bool hasMother() const { return mother >= 0; }
   void addChild(int id);
   int setGender(int g) {
     if (g < 0 || g > 2) {
       fprintf(stderr, "Invalid gender\n");
       return -1;
     }
-    if (this->gender == UNKNOW)  {
+    if (this->gender == UNKNOW) {
       gender = (Gender)g;
       return 0;
     }
-    if ( (int) this->gender != g) {
+    if ((int)this->gender != g) {
       fprintf(stderr, "Conflicting gender!\n");
       return -1;
     }
@@ -139,36 +108,26 @@ class Person{
     int g = atoi(gender);
     return setGender(g);
   }
-  Gender getGender() const {
-    return gender;
-  }
-  bool isMale() const {
-    return gender == MALE;
-  }
-  bool isFemale() const {
-    return gender == FEMALE;
-  }
+  Gender getGender() const { return gender; }
+  bool isMale() const { return gender == MALE; }
+  bool isFemale() const { return gender == FEMALE; }
   void setFamily(int fam) {
-    if (fam >= 0)
-      this->family = fam;
+    if (fam >= 0) this->family = fam;
   }
-  int getFamily() const {
-    return this->family;
-  }
-  void setFounder() {
-    this->founder = true;
-  }
-  bool isFounder() const{
-    return founder;
-  };
+  int getFamily() const { return this->family; }
+  void setFounder() { this->founder = true; }
+  bool isFounder() const { return founder; };
   void dump() const {
-    printf("founder = %s, gender = %d, father = %d, mother = %d, ", founder ? "yes" : "no", (int)gender, father, mother);
+    printf("founder = %s, gender = %d, father = %d, mother = %d, ",
+           founder ? "yes" : "no", (int)gender, father, mother);
     printf("child = ");
-    for (std::set<int>::const_iterator it = child.begin(); it != child.end(); ++it){
+    for (std::set<int>::const_iterator it = child.begin(); it != child.end();
+         ++it) {
       printf("%d, ", *it);
     }
     puts("");
   };
+
  private:
   int id;
   int father;
@@ -177,22 +136,20 @@ class Person{
   bool founder;
   Gender gender;
   Pedigree* ped;
-  int family; // <0: meaning this person is mentioned, but does not have its own entry.
-}; // class Person
+  int family;  // <0: meaning this person is mentioned, but does not have its
+               // own entry.
+};             // class Person
 
 //////////////////////////////////////////////////////////////////////
 // Family
-class Family{
+class Family {
  public:
-  Family(Pedigree* p): ped(p) {};
+  Family(Pedigree* p) : ped(p){};
   void addPerson(int pid);
-  bool containPerson(int pid) const{
-    return (people.count(pid) > 0);
-  }
-  void removeFounder(int pid) {
-    this->founder.erase(pid);
-  }
-  const std::set<int>& getPeople() const{return people;};
+  bool containPerson(int pid) const { return (people.count(pid) > 0); }
+  void removeFounder(int pid) { this->founder.erase(pid); }
+  const std::set<int>& getPeople() const { return people; };
+
  private:
   std::set<int> people;
   std::set<int> founder;
@@ -205,18 +162,16 @@ class Pedigree {
  public:
   Pedigree() : totalPeople(0), totalFounder(0){};
 
-  int add(const std::string& family,
-          const std::string& person);
+  int add(const std::string& family, const std::string& person);
 
-  int add(const std::string& family,
-          const std::string& person,
-          const std::string& father,
-          const std::string& mother);
+  int add(const std::string& family, const std::string& person,
+          const std::string& father, const std::string& mother);
   int addGender(const std::string& person, const std::string& gender) {
     int id = getPersonID(person);
     if (id < 0) return -1;
     if (this->people[id].setGender(atoi(gender))) {
-      fprintf(stderr, "Failed to set gender [ %s ] for person [ %s ]\n", gender.c_str(), person.c_str());
+      fprintf(stderr, "Failed to set gender [ %s ] for person [ %s ]\n",
+              gender.c_str(), person.c_str());
       return -1;
     }
     return 0;
@@ -224,7 +179,7 @@ class Pedigree {
   /**
    * @return >=0 family id
    */
-  int requestFamilyID(const std::string& family) const{
+  int requestFamilyID(const std::string& family) const {
     if (family.empty() || family == "0") return -1;
     int fid;
     // get family id
@@ -238,7 +193,7 @@ class Pedigree {
   /**
    * @return >=0 person id, or -1, if person == "0"
    */
-  int requestPersonID(const std::string& person) const{
+  int requestPersonID(const std::string& person) const {
     if (person.empty() || person == "0") return -1;
     int pid;
     // get person id
@@ -254,8 +209,7 @@ class Pedigree {
    * Otherwise, return the true founder status
    */
   bool isFounder(int pid) {
-    if (pid < 0 || pid >= (int)family.size())
-      return true;
+    if (pid < 0 || pid >= (int)family.size()) return true;
     return people[pid].isFounder();
   }
   int getFamilyID(const std::string& fam) const {
@@ -284,18 +238,10 @@ class Pedigree {
     return NULL;
   }
 
-  size_t getFamilyNumber() const {
-    return family.size();
-  }
-  const std::vector<Family>& getFamily() const{
-    return family;
-  }
-  size_t getPeopleNumber() const {
-    return people.size();
-  }
-  const std::vector<Person>& getPeople() const {
-    return people;
-  }
+  size_t getFamilyNumber() const { return family.size(); }
+  const std::vector<Family>& getFamily() const { return family; }
+  size_t getPeopleNumber() const { return people.size(); }
+  const std::vector<Person>& getPeople() const { return people; }
   void addFamily(const std::string& fam) {
     if (familyId.exists(fam)) return;
     Family f(this);
@@ -308,7 +254,7 @@ class Pedigree {
     if (personId.exists(person)) return;
     int n = this->personId.size();
     Person p(this, n);
-    this->personId[person]  = n;
+    this->personId[person] = n;
     this->personId[n] = person;
     this->people.push_back(p);
     ++totalPeople;
@@ -317,14 +263,13 @@ class Pedigree {
   void removeFounder(int id) {
     if (this->people[id].isFounder()) {
       --totalFounder;
-      this->family[  this->people[id].getFamily() ] .removeFounder(id);
+      this->family[this->people[id].getFamily()].removeFounder(id);
     }
   }
-  int getFounderNumber() const {
-    return this->totalFounder;
-  }
+  int getFounderNumber() const { return this->totalFounder; }
   /**
-   * Put a sequence to @param v such that founders are at the beginning, and all individuals parents are always before itself
+   * Put a sequence to @param v such that founders are at the beginning, and all
+   * individuals parents are always before itself
    */
   int calculateIterationSequence(std::vector<int>* seq) const {
     std::vector<int>& v = *seq;
@@ -344,19 +289,21 @@ class Pedigree {
         if (processed.count(i)) continue;
         int fat = people[i].getFather();
         int mot = people[i].getMother();
-        if ( (processed.count ( fat ) && processed.count ( mot ) ) ||
-             (!people[i].hasFather() && processed.count ( mot ) ) ||
-             (processed.count ( fat ) && !people[i].hasMother() )
-             ) {
+        if ((processed.count(fat) && processed.count(mot)) ||
+            (!people[i].hasFather() && processed.count(mot)) ||
+            (processed.count(fat) && !people[i].hasMother())) {
           ++added;
           v[idx++] = i;
           processed.insert(i);
         }
       }
       if (added == 0) {
-        fprintf(stderr, "Some people are not added, pedigree may have problem (%d total, %zu processed ):\n", totalPeople, processed.size());
+        fprintf(stderr,
+                "Some people are not added, pedigree may have problem (%d "
+                "total, %zu processed ):\n",
+                totalPeople, processed.size());
         fprintf(stderr, "idx = %d\n", idx);
-        for (size_t i = 0; i < people.size(); ++i){
+        for (size_t i = 0; i < people.size(); ++i) {
           if (processed.count(i)) continue;
           fprintf(stderr, "Unprocessed individual: %s\n", getPersonName(i));
         }
@@ -365,6 +312,7 @@ class Pedigree {
     }
     return 0;
   }
+
  private:
   std::vector<Family> family;
   std::vector<Person> people;
@@ -372,8 +320,7 @@ class Pedigree {
   StringIntBiMap personId;
   int totalPeople;
   int totalFounder;
-}; // class Pedigree
-
+};  // class Pedigree
 }
 
 int loadPedigree(const std::string& fn, zhanxw::Pedigree* ped);
@@ -395,19 +342,17 @@ inline void dumpPedigree(const zhanxw::Pedigree& ped) {
     ped.getPeople()[i].dump();
   }
   puts("");
-
 }
 
 inline void dumpPedFile(const zhanxw::Pedigree& ped) {
   const std::vector<zhanxw::Family>& fam = ped.getFamily();
   int nFam = fam.size();
-  for (int i = 0; i < nFam; ++i ) {
-    const zhanxw::Family & f = fam[i];
+  for (int i = 0; i < nFam; ++i) {
+    const zhanxw::Family& f = fam[i];
     const std::set<int> people = f.getPeople();
     // int nPerson = people.size();
     for (std::set<int>::const_iterator iter = people.begin();
-         iter != people.end();
-         ++iter) {
+         iter != people.end(); ++iter) {
       int id = *iter;
       const zhanxw::Person& p = ped.getPeople()[id];
       fprintf(stdout, "%s\t", ped.getFamilyName(i));
@@ -420,6 +365,5 @@ inline void dumpPedFile(const zhanxw::Pedigree& ped) {
     }
   }
 }
-
 
 #endif /* _PEDIGREE_H_ */

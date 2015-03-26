@@ -8,11 +8,9 @@
 #include <unordered_map>
 #include <cmath>
 
-class SiteSet{
-public:
-  SiteSet() {
-    this->site.rehash(ceil(32/this->site.max_load_factor()));
-  }
+class SiteSet {
+ public:
+  SiteSet() { this->site.rehash(ceil(32 / this->site.max_load_factor())); }
   // Load plain position file
   // column 1: chrom, column 2: pos
   int loadSiteFile(const char* fileName);
@@ -37,38 +35,38 @@ public:
 
   void loadSite(const char* chrom, int pos) {
     if (site.find(chrom) == site.end()) {
-      site[chrom].rehash( ceil(1000000/site[chrom].max_load_factor()) );
+      site[chrom].rehash(ceil(1000000 / site[chrom].max_load_factor()));
     }
     site[chrom].insert(pos);
   };
-  void loadSite(const std::string& chrom, int pos) {
-    site[chrom].insert(pos);
-  };
-  bool isIncluded(const char* chrom, int pos) const{
-    std::unordered_map<std::string, std::unordered_set<int> >::const_iterator it;
+  void loadSite(const std::string& chrom, int pos) { site[chrom].insert(pos); };
+  bool isIncluded(const char* chrom, int pos) const {
+    std::unordered_map<std::string, std::unordered_set<int> >::const_iterator
+        it;
     it = this->site.find(chrom);
     if (it == this->site.end()) {
       return false;
     }
-    if (it->second.find(pos) == it->second.end()){
+    if (it->second.find(pos) == it->second.end()) {
       return false;
     }
     return true;
   }
-  void clear() {
-    this->site.clear();
-  }
+  void clear() { this->site.clear(); }
   size_t getTotalSite() const {
     size_t s = 0;
-    std::unordered_map<std::string, std::unordered_set<int> >::const_iterator it = this->site.begin();
+    std::unordered_map<std::string, std::unordered_set<int> >::const_iterator
+        it = this->site.begin();
     for (; it != this->site.end(); it++) {
       const std::unordered_set<int>& pos = it->second;
       s += pos.size();
     }
     return s;
   }
-private:
-  std::unordered_map<std::string, std::unordered_set<int> > site; // key: chorom val: positions
+
+ private:
+  std::unordered_map<std::string, std::unordered_set<int> >
+      site;  // key: chorom val: positions
 };
 
 #endif /* _SITESET_H_ */

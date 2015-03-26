@@ -11,34 +11,35 @@
 /**
  * the versatile format to store value for VCF file.
  */
-class VCFValue{
+class VCFValue {
  public:
   const char* line;
-  int beg; // inclusive
-  int end; // exclusive, and beg <= end
-  VCFValue():line(NULL), beg(0), end(0){};
+  int beg;  // inclusive
+  int end;  // exclusive, and beg <= end
+  VCFValue() : line(NULL), beg(0), end(0){};
+
  public:
-  int toInt() const{
+  int toInt() const {
     if (!line) return 0;
-    return atoi(line+beg);
+    return atoi(line + beg);
   };
   void toInt(int* i) const {
     if (!line) {
       *i = 0;
       return;
     }
-    *i = atoi(line+beg);
+    *i = atoi(line + beg);
   };
   double toDouble() const {
     if (!line) return 0.0;
-    return atof(line+beg);
+    return atof(line + beg);
   };
   void toDouble(double* d) const {
     if (!line) {
       *d = 0.0;
-      return ;
+      return;
     }
-    *d = strtod(line+beg, 0);
+    *d = strtod(line + beg, 0);
   };
   const char* toStr() const {
     if (!line) return "";
@@ -55,7 +56,7 @@ class VCFValue{
       return;
     }
     s->clear();
-    for (int i = beg; i < end; i++){
+    for (int i = beg; i < end; i++) {
       s->push_back(line[i]);
     }
   };
@@ -65,40 +66,38 @@ class VCFValue{
       fputc(line[i], fp);
     }
   };
+
  public:
   // try to convert to genotype
-  int getGenotype() const{
+  int getGenotype() const {
     int g = 0;
     int p = beg;
-    if (line[p] == '.')
-      return MISSING_GENOTYPE;
+    if (line[p] == '.') return MISSING_GENOTYPE;
     if (line[p] < '0') {
       REPORT("Wrong genotype detected. [1]");
       return MISSING_GENOTYPE;
     } else {
       g += line[p] - '0';
     }
-    
-    p ++ ;
-    if (p == end)
-      return g;
+
+    p++;
+    if (p == end) return g;
     if (line[p] != '|' && line[p] != '/') {
       return MISSING_GENOTYPE;
     }
 
-    p ++;
+    p++;
     if (p == end) {
       REPORT("Wrong genotype length = 2");
       return MISSING_GENOTYPE;
     }
-    if (line[p] == '.')
-      return MISSING_GENOTYPE;
+    if (line[p] == '.') return MISSING_GENOTYPE;
     if (line[p] < '0')
       REPORT("Wrong genotype detected. [2]");
     else
       g += line[p] - '0';
 
-    p ++;
+    p++;
     if (p != end) {
       return MISSING_GENOTYPE;
     }
@@ -141,57 +140,51 @@ class VCFValue{
     if (g == 2) return 1;
     return g;
   }
-  
+
   /**
    * @return 0 or 1 or 2 as genotype
    */
-  int getAllele1() const{
+  int getAllele1() const {
     int g = 0;
     int p = beg;
-    if (line[p] == '.')
-      return MISSING_GENOTYPE;
+    if (line[p] == '.') return MISSING_GENOTYPE;
     if (line[p] < '0')
       REPORT("Wrong genotype detected. [1]");
     else
       g += line[p] - '0';
     return g;
   };
-  int getAllele2() const{
+  int getAllele2() const {
     int g = 0;
     int p = beg + 2;
-    if (p >= end)
-      return MISSING_GENOTYPE;
-    if (line[p] == '.')
-      return MISSING_GENOTYPE;
+    if (p >= end) return MISSING_GENOTYPE;
+    if (line[p] == '.') return MISSING_GENOTYPE;
     if (line[p] < '0')
       REPORT("Wrong genotype detected. [2]");
     else
       g += line[p] - '0';
     return g;
   };
-  bool isPhased() const{
+  bool isPhased() const {
     if (end - beg != 3) return false;
     int p = beg + 1;
     if (line[p] == '/') return false;
     if (line[p] == '|') return true;
     return false;
   };
-  bool isHaploid() const{
-    return (end - beg == 1);
-  };
-  bool isMissingGenotype() const{
+  bool isHaploid() const { return (end - beg == 1); };
+  bool isMissingGenotype() const {
     if (!line) return true;
-    for (int i = beg; i < end; i++){
+    for (int i = beg; i < end; i++) {
       if (line[i] == '.') return true;
     }
     return false;
   };
   /**
-   * Just test if the current VCFValue is missing, not if the genotype is missing
+   * Just test if the current VCFValue is missing, not if the genotype is
+   * missing
    */
-  bool isMissing() const{
-    return (beg == end) || line == NULL;
-  };
+  bool isMissing() const { return (beg == end) || line == NULL; };
   /**
    * Use @param s , search from @param beg, till @param c.
    * Store the search results in (*this).

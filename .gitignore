@@ -7,3 +7,4 @@ GPATH
 GRTAGS
 GTAGS
 test
+example/out*

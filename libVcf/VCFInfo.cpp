@@ -2,17 +2,16 @@
 
 const VCFValue VCFInfo::defaultValue;
 
-const VCFValue& VCFInfo::getTag(const char* tag, bool* isMissing){
+const VCFValue& VCFInfo::getTag(const char* tag, bool* isMissing) {
   if (!tag || tag[0] == '\0') {
     *isMissing = true;
     return VCFInfo::defaultValue;
   }
 
-  if (!this->hasParsed)
-    this->parseActual();
+  if (!this->hasParsed) this->parseActual();
 
   std::string s = tag;
-  if (!this->data.find(s) ) {
+  if (!this->data.find(s)) {
     *isMissing = true;
     return VCFInfo::defaultValue;
   } else {

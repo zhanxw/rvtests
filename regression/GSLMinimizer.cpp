@@ -4,41 +4,39 @@
 
 #include "GSLMinimizer.h"
 
-Minimizer::Minimizer():epsabs(0.001), epsrel(0.0), maxIter(100){
+Minimizer::Minimizer() : epsabs(0.001), epsrel(0.0), maxIter(100) {
   T = gsl_min_fminimizer_brent;
-  s = gsl_min_fminimizer_alloc (T);
+  s = gsl_min_fminimizer_alloc(T);
 }
-Minimizer::~Minimizer(){
-  gsl_min_fminimizer_free (s);
-}
-int Minimizer::minimize(gsl_function F, double startValue, double lowerBound, double upperBound) {
+Minimizer::~Minimizer() { gsl_min_fminimizer_free(s); }
+int Minimizer::minimize(gsl_function F, double startValue, double lowerBound,
+                        double upperBound) {
   // gsl_function F;
   // F.function = func;
   // F.params = params;
-  
-  gsl_min_fminimizer_set (s, &F, startValue, lowerBound, upperBound);
+
+  gsl_min_fminimizer_set(s, &F, startValue, lowerBound, upperBound);
   int iter = 0;
   int status;
   double a, b;
   do {
     iter++;
-    status = gsl_min_fminimizer_iterate (s);
-    if (status == GSL_EBADFUNC ||
-        status == GSL_FAILURE) {
+    status = gsl_min_fminimizer_iterate(s);
+    if (status == GSL_EBADFUNC || status == GSL_FAILURE) {
       return -1;
     }
-    
-    finalX = gsl_min_fminimizer_x_minimum (s);
-    a = gsl_min_fminimizer_x_lower (s);
-    b = gsl_min_fminimizer_x_upper (s);
+
+    finalX = gsl_min_fminimizer_x_minimum(s);
+    a = gsl_min_fminimizer_x_lower(s);
+    b = gsl_min_fminimizer_x_upper(s);
 
     // stopping rule
-    // see http://www.gnu.org/software/gsl/manual/html_node/Minimization-Stopping-Parameters.html
-    status
-        = gsl_min_test_interval (a, b, epsabs, epsrel);
+    // see
+    // http://www.gnu.org/software/gsl/manual/html_node/Minimization-Stopping-Parameters.html
+    status = gsl_min_test_interval(a, b, epsabs, epsrel);
 
     if (status == GSL_SUCCESS) {
-      //printf ("Converged:\n");
+      // printf ("Converged:\n");
       finalY = gsl_min_fminimizer_f_minimum(s);
       return 0;
     }
@@ -48,6 +46,6 @@ int Minimizer::minimize(gsl_function F, double startValue, double lowerBound, do
     //         iter, a, b,
     //         m, m - m_expected, b - a);
   } while (status == GSL_CONTINUE && iter < this->maxIter);
-  
+
   return -1;
 }

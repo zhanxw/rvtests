@@ -11,16 +11,12 @@
 #undef DEBUG
 
 #ifdef DEBUG
-#include "MatrixOperation.h" // for dump vars
+#include "MatrixOperation.h"  // for dump vars
 #pragma message "Enable debug for MultivariateVT"
 #endif
 
-int MultivariateVT::compute(Vector& freq,
-                            Matrix& U,
-                            Matrix& V) {
-  if (freq.Length() != U.rows ||
-      freq.Length() != V.rows ||
-      U.cols != 1 ||
+int MultivariateVT::compute(Vector& freq, Matrix& U, Matrix& V) {
+  if (freq.Length() != U.rows || freq.Length() != V.rows || U.cols != 1 ||
       V.rows != V.cols) {
     return -1;
   }
@@ -28,7 +24,8 @@ int MultivariateVT::compute(Vector& freq,
   const int numFreq = freq.Length();
   int numKeep = 0;
   std::set<int> skip;
-  std::set<int> freqTable; // to avoid float numeric comparison, store maf * 1e6
+  std::set<int>
+      freqTable;  // to avoid float numeric comparison, store maf * 1e6
   maf.Dimension(numFreq);
   for (int i = 0; i < numFreq; ++i) {
     maf[i] = freq[i] < 0.5 ? freq[i] : 1.0 - freq[i];
@@ -45,14 +42,14 @@ int MultivariateVT::compute(Vector& freq,
       continue;
     }
     freqTable.insert(mafInt);
-    numKeep ++;
+    numKeep++;
   }
 
 #ifdef DEBUG
-  fprintf(stderr, "numFreq = %d\n", numFreq);  
+  fprintf(stderr, "numFreq = %d\n", numFreq);
   fprintf(stderr, "numKeep = %d\n", numKeep);
 #endif
-  
+
   if (numKeep == 0) {
     return -1;
   }
@@ -63,8 +60,7 @@ int MultivariateVT::compute(Vector& freq,
 
   int j = 0;
   for (std::set<int>::const_iterator it = freqTable.begin();
-       it != freqTable.end();
-       ++it) {
+       it != freqTable.end(); ++it) {
     cutoff[j++] = 1.0 * (*it) / 1000000;
   }
 
@@ -77,7 +73,7 @@ int MultivariateVT::compute(Vector& freq,
       if (maf[i] <= cutoff[j]) {
         phi[i][j] = 1.;
       } else {
-        phi[i][j] = 0. ;
+        phi[i][j] = 0.;
       }
     }
   }
@@ -92,7 +88,7 @@ int MultivariateVT::compute(Vector& freq,
   phiT.Transpose(phi);
   tmp.Product(phiT, V);
   this->v_phi.Product(tmp, phi);
-  
+
   int maxIdx = -1;
   double maxVal = -DBL_MAX;
   for (int i = 0; i < numKeep; ++i) {
@@ -105,29 +101,29 @@ int MultivariateVT::compute(Vector& freq,
 
 #ifdef DEBUG
   dumpToFile(freq, "freq");
-  dumpToFile(cutoff, "cutoff");    
+  dumpToFile(cutoff, "cutoff");
   dumpToFile(U, "U");
   dumpToFile(V, "V");
   dumpToFile(phi, "phi");
   dumpToFile(u_phi, "u.phi");
   dumpToFile(v_phi, "v.phi");
 #endif
-  
+
   this->minMAF = maf.Min();
   this->maxMAF = maf.Max();
   this->optimalMAF = cutoff[maxIdx];
   this->optimalU = u_phi[0][maxIdx];
   this->optimalV = v_phi[maxIdx][maxIdx];
   this->stat = maxVal;
-  
+
   this->optimalNumVar = 0;
-  for (int i = 0 ; i < numFreq; ++i) {
-    if (phi[i][maxIdx] > 0)
-      ++ this->optimalNumVar;
+  for (int i = 0; i < numFreq; ++i) {
+    if (phi[i][maxIdx] > 0) ++this->optimalNumVar;
   }
-  
-  if (this->mvn.getBandProbFromCov(-maxVal, maxVal, this->v_phi, &this->pvalue)) {
-    this->pvalue = -1; //failed
+
+  if (this->mvn.getBandProbFromCov(-maxVal, maxVal, this->v_phi,
+                                   &this->pvalue)) {
+    this->pvalue = -1;  // failed
     return -1;
   }
   this->pvalue = 1.0 - this->pvalue;

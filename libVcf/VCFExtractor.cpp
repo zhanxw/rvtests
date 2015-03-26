@@ -15,9 +15,8 @@ bool VCFExtractor::passFilter() {
   // quick checks: depth, qual, af
   if (checkSiteDepth() && useSiteDepthFromInfo()) {
     const VCFValue& v = r.getInfoTag("DP", &missing);
-    if (missing)
-      return false;
-    if (!siteDepthOK(v.toInt())){
+    if (missing) return false;
+    if (!siteDepthOK(v.toInt())) {
       return false;
     }
   };
@@ -28,12 +27,11 @@ bool VCFExtractor::passFilter() {
     }
   }
   if (checkSiteFreq() && useSiteFreqFromInfo()) {
-    //fprintf(stderr, "useSiteFreqFromInfo = %s\n",
+    // fprintf(stderr, "useSiteFreqFromInfo = %s\n",
     //        useSiteFreqFromInfo() ? "true" : "false");
     const VCFValue& v = r.getInfoTag("AF", &missing);
-    if (missing)
-      return false;
-    if (!siteFreqOK(v.toDouble())){
+    if (missing) return false;
+    if (!siteFreqOK(v.toDouble())) {
       return false;
     }
   }
@@ -41,19 +39,16 @@ bool VCFExtractor::passFilter() {
   // check annotation
   if (requiredAnnotation()) {
     const VCFValue& v = r.getInfoTag("ANNO", &missing);
-    if (missing)
-      return false;
-    if (!matchAnnotatoin(v.toStr())){
+    if (missing) return false;
+    if (!matchAnnotatoin(v.toStr())) {
       return false;
     }
   }
 
   // shall we loop each individuals?
-  if (  (checkSiteDepth() && !useSiteDepthFromInfo()) ||
-        (checkSiteFreq() && !useSiteFreqFromInfo()) ||
-        (checkSiteMAC()) ||
-        (isVariantSiteOnly())) {
-
+  if ((checkSiteDepth() && !useSiteDepthFromInfo()) ||
+      (checkSiteFreq() && !useSiteFreqFromInfo()) || (checkSiteMAC()) ||
+      (isVariantSiteOnly())) {
     // loop each individual and check
     /* int dp = 0; */
     /* int qual = 0; */
@@ -61,19 +56,20 @@ bool VCFExtractor::passFilter() {
     int ac = 0;
     int an = 0;
     double af = -1.0;
-    double nMiss = 0; // number of missing
+    double nMiss = 0;  // number of missing
     int gt = -9;
 
     for (unsigned int i = 0; i < people.size(); i++) {
       VCFIndividual* indv = people[i];
       int GTidx = r.getFormatIndex("GT");
       if (GTidx >= 0)
-        gt = indv->get(0, &missing).getGenotype();  // [0] meaning the first field of each individual
+        gt = indv->get(0, &missing).getGenotype();  // [0] meaning the first
+                                                    // field of each individual
       else
         missing = true;
       if (missing) {
-        nMiss ++;
-      } else{
+        nMiss++;
+      } else {
         if (gt >= 0) {
           an += 2;
           ac += gt;
@@ -103,14 +99,12 @@ bool VCFExtractor::passFilter() {
   // check about sex chrom
   if (this->chromXExtraction == PAR) {
     if (!parRegion) this->parRegion = new ParRegion;
-    if (!parRegion->isParRegion(r.getChrom(), r.getPos()))
-      return false;
+    if (!parRegion->isParRegion(r.getChrom(), r.getPos())) return false;
   }
   if (this->chromXExtraction == HEMI) {
     if (!parRegion) this->parRegion = new ParRegion;
-    if (!parRegion->isHemiRegion(r.getChrom(), r.getPos()))
-      return false;
+    if (!parRegion->isHemiRegion(r.getChrom(), r.getPos())) return false;
   }
 
   return true;
-}; // end passFilter()
+};  // end passFilter()

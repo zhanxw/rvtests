@@ -4,7 +4,7 @@
 #include "Pedigree.h"
 #include "SimpleMatrix.h"
 
-namespace zhanxw{
+namespace zhanxw {
 
 class Kinship {
  public:
@@ -20,9 +20,8 @@ class Kinship {
       printf("\n");
     }
   };
-  const SimpleMatrix& getKinship() const{
-    return this->mat;
-  }
+  const SimpleMatrix& getKinship() const { return this->mat; }
+
  private:
   SimpleMatrix mat;
 };
@@ -44,13 +43,12 @@ class KinshipForX {
       printf("\n");
     }
   };
-  const SimpleMatrix& getKinship() const{
-    return this->mat;
-  }
+  const SimpleMatrix& getKinship() const { return this->mat; }
+
  private:
   SimpleMatrix mat;
 };
 
-} // namespace
+}  // namespace
 
 #endif /* _KINSHIP_H_ */

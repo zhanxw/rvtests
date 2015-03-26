@@ -9,13 +9,13 @@
 
 #include "LinearRegression.h"
 
-class LinearRegressionScoreTest{
+class LinearRegressionScoreTest {
  public:
   LinearRegressionScoreTest();
   /**
    * @param colToTest: 0-based index, for that column of X will be tested
    */
-  bool FitLinearModel(Matrix &X, Vector &y, int colToTest);
+  bool FitLinearModel(Matrix& X, Vector& y, int colToTest);
 
   bool FitNullModel(Matrix& Xnull, Vector& y);
   bool TestCovariate(Matrix& Xnull, Vector& y, Vector& Xcol);
@@ -32,23 +32,23 @@ class LinearRegressionScoreTest{
    */
   bool TestCovariate(Matrix& x, Vector& y);
 
-  double GetStat() const {return this->stat;};
-  double GetPvalue() const {return this->pvalue;};
+  double GetStat() const { return this->stat; };
+  double GetPvalue() const { return this->pvalue; };
 
   // U and V matrix are square matrice with dimension equalling to Xcol
   // e.g. when testing a single beta coefficient, U and V are 1 by 1 matrice.
   // e.g. when there is no covariates or intercept
   // U = x' * (y - y_hat)
   // V = x' * x * sigma2
-  const Matrix& GetU() const {return this->Umatrix;};
-  const Matrix& GetV() const {return this->Vmatrix;};
-  const Matrix& GetBeta() const { return this->betaMatrix;}
-  const double GetSigma2() const { return this->lr.GetSigma2();};
+  const Matrix& GetU() const { return this->Umatrix; };
+  const Matrix& GetV() const { return this->Vmatrix; };
+  const Matrix& GetBeta() const { return this->betaMatrix; }
+  const double GetSigma2() const { return this->lr.GetSigma2(); };
 
   // get estimates from null models
-  Vector & GetNullCovEst() {return this->lr.GetCovEst();} ; // (X'X)^{-1} X'Y
-  Matrix & GetNullCovB() {return this->lr.GetCovB();};
-  
+  Vector& GetNullCovEst() { return this->lr.GetCovEst(); };  // (X'X)^{-1} X'Y
+  Matrix& GetNullCovB() { return this->lr.GetCovB(); };
+
  private:
   void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
   double pvalue;
@@ -58,7 +58,5 @@ class LinearRegressionScoreTest{
   Matrix betaMatrix;
   LinearRegression lr;
 };
-
-
 
 #endif /* _LINEARREGRESSIONSCORETEST_H_ */

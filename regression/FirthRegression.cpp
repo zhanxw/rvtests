@@ -228,6 +228,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
     // // printf("norm = %g\n", rel);
     // if (rel > 1e-6) { // use relative accuracy to evalute convergence
 #if 0
+    fprintf(stderr, "----------\n");
     fprintf(stderr, "n = %ld\n", this->w->D.rows());
     fprintf(stderr, "norm = %g\n", (this->w->D * this->w->covB -
          Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()))
@@ -263,8 +264,8 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
     // printf("norm = %g\n", this->w->delta_beta.norm());
     // use relative accuracy to evalute convergence
     if (rounds > 1 &&
-        (this->w->beta.norm() > 0 &&
-         this->w->delta_beta.norm() / this->w->beta.norm() < 1e-6)) {
+        (this->w->delta_beta.norm() / this->w->beta.norm() < 1e-6 ||
+         this->w->delta_beta.array().abs().maxCoeff() < 1e-3)) {
       rounds = 0;
       break;
     }

@@ -94,16 +94,22 @@ class SingleVariantWaldTest : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& cov = dc->getCovariate();
 
-    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
+    if (genotype.cols != 1) {
       fitOK = false;
       return -1;
     }
+    
     copyPhenotype(phenotype, &this->Y);
-
     if (cov.cols) {
       copyGenotypeWithCovariateAndIntercept(genotype, cov, &this->X);
     } else {
       copyGenotypeWithIntercept(genotype, &this->X);
+    }
+    if (isMonomorphicMarker(genotype, 0)) {
+      // Put monomorphic check after copying genotype to this->X
+      // so that the output column "Test" can work
+      fitOK = false;
+      return -1;
     }
 
     if (!isBinaryOutcome()) {
@@ -124,10 +130,8 @@ class SingleVariantWaldTest : public ModelFitter {
     // skip interecept (column 0)
     for (int i = 1; i < this->X.cols; ++i) {
       siteInfo.writeValueTab(fp);
-      if (!fitOK) {
-        // fprintf(fp, "%s\tNA\tNA\tNA\n", this->X.GetColumnLabel(i));
-        result.updateValue("Test", this->X.GetColumnLabel(i));
-      } else {
+      result.updateValue("Test", this->X.GetColumnLabel(i));
+      if (fitOK) {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
           beta = linear.GetCovEst()[i];
@@ -141,7 +145,6 @@ class SingleVariantWaldTest : public ModelFitter {
 
         // fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se,
         // pval);
-        result.updateValue("Test", this->X.GetColumnLabel(i));
         result.updateValue("Beta", beta);
         result.updateValue("SE", se);
         result.updateValue("Pvalue", pval);
@@ -173,22 +176,28 @@ class SingleVariantFirthTest : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& cov = dc->getCovariate();
 
-    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
+    if (genotype.cols != 1) {
       fitOK = false;
       return -1;
     }
-    copyPhenotype(phenotype, &this->Y);
+    if (!isBinaryOutcome()) {
+      fitOK = false;
+      return -1;
+    }
 
+    copyPhenotype(phenotype, &this->Y);
     if (cov.cols) {
       copyGenotypeWithCovariateAndIntercept(genotype, cov, &this->X);
     } else {
       copyGenotypeWithIntercept(genotype, &this->X);
     }
-
-    if (!isBinaryOutcome()) {
+    if (isMonomorphicMarker(genotype, 0)) {
+      // Put monomorphic check after copying genotype to this->X
+      // so that the output column "Test" can work
       fitOK = false;
       return -1;
     }
+
     fitOK = firth.Fit(this->X, this->Y);
     // dumpToFile(X, "X");
     // dumpToFile(Y, "Y");
@@ -210,7 +219,7 @@ class SingleVariantFirthTest : public ModelFitter {
       result.updateValue("Test", this->X.GetColumnLabel(i));
       if (fitOK) {
         result.updateValue("Beta", firth.GetCovEst()[i]);
-        result.updateValue("SE", firth.GetCovB()[i][i]);
+        result.updateValue("SE", sqrt(firth.GetCovB()[i][i]));
         result.updateValue("Pvalue", firth.GetAsyPvalue()[i]);
       }
     }
@@ -236,12 +245,16 @@ class SingleVariantScoreTest : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
 
-    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
+    if (genotype.cols != 1) {
       fitOK = false;
       return -1;
     }
     nSample = genotype.rows;
     af = getMarkerFrequency(genotype, 0);
+    if (isMonomorphicMarker(genotype, 0)) {
+      fitOK = false;
+      return -1;
+    }
 
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
     copyPhenotype(phenotype, &this->pheno);
@@ -283,14 +296,13 @@ class SingleVariantScoreTest : public ModelFitter {
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     result.clearValue();
+        result.updateValue("AF", af);
     if (fitOK) {
       if (!isBinaryOutcome()) {
-        result.updateValue("AF", af);
         result.updateValue("STAT", linear.GetStat());
         result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" : "-");
         result.updateValue("PVALUE", linear.GetPvalue());
       } else {
-        result.updateValue("AF", af);
         result.updateValue("STAT", logistic.GetStat());
         result.updateValue("DIRECTION", logistic.GetU()[0][0] > 0 ? "+" : "-");
         result.updateValue("PVALUE", logistic.GetPvalue());

@@ -143,6 +143,9 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
   G_to_Eigen(total, &this->w->total);
 
   int rounds = 0;
+  double lastLLK = NAN;
+  double currentLLK = NAN;
+  
   // double lastDeviance, currentDeviance;
   Eigen::MatrixXf xw;  // W^(1/2) * X
   // Newton-Raphson
@@ -185,6 +188,15 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
       break;
     }
     rounds++;
+
+    currentLLK = (((this->w->succ.array() + .5) * this->w->p.array().log()) +
+                  ((this->w->total.array() - this->w->succ.array() + .5) *
+                   (1.0 - this->w->p.array()).log())).sum();
+    if (!isnan(lastLLK) &&
+        currentLLK < lastLLK) {
+      break;
+    }
+    lastLLK = currentLLK;
   }
   if (rounds == nrrounds) {
     printf("Not enough iterations!\n");
@@ -206,7 +218,9 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
   G_to_Eigen(y, &this->w->y);
 
   int rounds = 0;
-  // double lastDeviance, currentDeviance;
+  double lastLLK = NAN;
+  double currentLLK = NAN;
+  
   Eigen::MatrixXf xw;  // W^(1/2) * X
   // Newton-Raphson
   while (rounds < nrrounds) {
@@ -239,7 +253,10 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
     std::cerr << "D = " << this->w->D << "\n";
     std::cerr << "covB = " << this->w->covB<< "\n";
     std::cerr << "D * covB = " << this->w->D * this->w->covB << "\n";    
-#endif   
+#endif
+#if 0
+    // probably no need to check ldlt decompositin succeed,
+    // as this process tries to find the best available solution.
     if ((this->w->D * this->w->covB -
          Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()))
             .norm() > 1e-3) {
@@ -250,6 +267,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
       // printToFile(this->w->beta, "matBeta", "beta");
       return false;
     }
+#endif 
     this->w->h = (xw * this->w->covB * xw.transpose()).diagonal();
     this->w->r = this->w->X.transpose() *
                  (this->w->y - this->w->p +
@@ -260,7 +278,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
     // otherwise, IWLS may become unstable
     // this seems working well in reality, although more optimal way is to
     // tune the coef to between 0 and 1.0.
-    this->w->beta += this->w->delta_beta * 0.5;
+    this->w->beta += this->w->delta_beta * 0.8;
     // printf("norm = %g\n", this->w->delta_beta.norm());
     // use relative accuracy to evalute convergence
     if (rounds > 1 &&
@@ -270,6 +288,14 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
       break;
     }
     rounds++;
+
+    currentLLK = (((this->w->y.array() + .5) * this->w->p.array().log()) +
+          ((1. - this->w->y.array() + .5) * (1.0 - this->w->p.array()).log())).sum();
+    if (!isnan(lastLLK) &&
+        currentLLK < lastLLK) {
+      break;
+    }
+    lastLLK = currentLLK;
   }
   if (rounds == nrrounds) {
     printf("Not enough iterations!\n");
@@ -286,58 +312,3 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
 
   return true;
 }
-
-#if 0
-double FirthRegression::GetDeviance() {
-  double ll = 0.0;
-  if (this->w->y.size()) {
-    ll = (
-        (this->w->y.array() * this->w->p.array().log()) +
-        ((1. - this->w->y.array()) * (1.0 - this->w->p.array()).log())
-          ).sum();
-  } else {
-    ll = (
-        (this->w->succ.array() * this->w->p.array().log()) +
-        ((this->w->total- this->w->succ).array() * (1.0 - this->w->p.array()).log())
-          ).sum();
-  }
-
-  double deviance = -2.0 * ll;
-  return deviance;
-}
-
-double FirthRegression::GetDeviance(Matrix & X, Vector & y)
-{
-  double ll = 0.0;
-
-  for (int i = 0; i < X.rows; i++)
-  {
-    double t = 0.0;
-    for (int j = 0; j < X.cols; j++)
-      t += B[j] * X[i][j];
-    double yhat = 1 / (1 + exp(-t));
-
-    ll += y[i] == 1 ? log (yhat) : log(1 - yhat);
-  }
-  
-  double deviance = -2.0 * ll;
-  return deviance;
-}
-
-double FirthRegression::GetDeviance(Matrix & X, Vector & succ, Vector& total)
-{
-  double ll = 0.0;
-  for (int i = 0; i < X.rows; i++)
-  {
-    double t = 0.0;
-    for (int j = 0; j < X.cols; j++)
-      t += B[j] * X[i][j];
-    double yhat = 1 / (1 + exp(-t));
-
-    ll += succ[i] * log(yhat) + (total[i] - succ[i]) * log(1-yhat);
-  }
-
-  double deviance = -2.0 * ll;
-  return deviance;
-}
-#endif

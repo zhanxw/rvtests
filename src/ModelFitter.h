@@ -38,14 +38,15 @@ class ModelFitter {
     return 0;
   }
 
-  const std::string& getModelName() const { return this->modelName; };
+  const std::string& getModelName() const { return this->modelName; }
   // for particular class to call when fitting repeatedly
   // e.g. clear permutation counter
   // e.g. clear internal cache
-  virtual void reset() { this->result.clearValue(); };
+  virtual void reset() { this->result.clearValue(); }
   // virtual void needFittingCovariate();
   bool isBinaryOutcome() const { return this->binaryOutcome; }
   void setBinaryOutcome() { this->binaryOutcome = true; }
+  void setQuantitativeOutcome() { this->binaryOutcome = false; }  
   bool isFamilyModel() const { return this->familyModel; }
   bool needToIndexResult() const { return this->indexResult; }
   void setContinuousOutcome() { this->binaryOutcome = false; }

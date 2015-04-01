@@ -110,69 +110,18 @@ inline bool hasMissingMarker(Matrix& genotype, int col) {
  * Remove columns of markers in @param genotype (people by marker) where there
  * are missing genotypes
  */
-inline void removeMissingMarker(Matrix* genotype) {
-  Matrix& g = *genotype;
-  int col = 0;
-  while (col < g.cols) {
-    if (hasMissingMarker(g, col)) {
-      // move last column to this column
-      const int lastCol = g.cols - 1;
-      for (int r = 0; r < g.rows; ++r) {
-        g[r][col] = g[r][lastCol];
-      }
-      g.SetColumnLabel(col, g.GetColumnLabel(lastCol));
-      g.Dimension(g.rows, lastCol);
-      continue;
-    };
-    ++col;
-  };
-};
+void removeMissingMarker(Matrix* genotype); 
+
 /**
  * @return true if markers on @param col of @param genotype (people by marker)
  * is monomorphic (genotypes are all the same)
  */
-inline bool isMonomorphicMarker(Matrix& genotype, int col) {
-  if (col >= genotype.cols || col < 0) {
-    logger->error("Invalid check of monomorhpic marker.");
-    return false;
-  }
-
-  // first first non-missing genotype
-  int nonMissingRow = genotype.rows;
-  for (int i = 0; i < genotype.rows; ++i) {
-    if (genotype[i][col] >= 0) {
-      nonMissingRow = i;
-      break;
-    }
-  }
-
-  for (int r = nonMissingRow + 1; r < genotype.rows; ++r) {
-    if (genotype[r][col] < 0)  // missing
-      continue;
-    if (genotype[r][col] != genotype[nonMissingRow][col]) return false;
-  }
-  return true;
-};
+bool isMonomorphicMarker(Matrix& genotype, int col);
 
 /**
  * remove monomorphic columns of @param genotype
  */
-inline void removeMonomorphicSite(Matrix* genotype) {
-  Matrix& g = *genotype;
-  int col = 0;
-  while (col < g.cols) {
-    if (isMonomorphicMarker(g, col)) {
-      // move last column to this column
-      const int lastCol = g.cols - 1;
-      for (int r = 0; r < g.rows; ++r) {
-        g[r][col] = g[r][lastCol];
-      }
-      g.Dimension(g.rows, lastCol);
-      continue;
-    }
-    ++col;
-  }
-};
+void removeMonomorphicMarker(Matrix* genotype);
 
 /**
  * Convert genotype back to reference allele count
@@ -213,12 +162,11 @@ class DataConsolidator {
     this->originalGenotype = geno;
     this->genotype = geno;
 
-    // remove monomorphic site
-    removeMonomorphicSite(&this->genotype);
-
     copyColName(pheno, &this->phenotype);
     copyColName(cov, &this->covariate);
     copyColName(geno, &this->genotype);
+    copyColName(geno, &this->originalGenotype);
+    
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(&this->genotype);
@@ -263,7 +211,6 @@ class DataConsolidator {
     } else {
       logger->error(
           "Uninitialized consolidation methods to handle missing data!");
-      // return -1;
     }
   }
   bool hasNoMissingGenotype(Matrix& g, int r) {
@@ -298,8 +245,9 @@ class DataConsolidator {
   }
   const std::vector<std::string>& getRowLabel() const { return this->rowLabel; }
   Matrix& getGenotype() { return this->genotype; }
-  Matrix& getFlippedToMinorGenotype() {
+  Matrix& getFlippedToMinorPolymorphicGenotype() {
     convertToMinorAlleleCount(this->genotype, &this->flippedToMinorGenotype);
+    removeMonomorphicMarker(&flippedToMinorGenotype);
     return this->flippedToMinorGenotype;
   }
   Matrix& getPhenotype() { return this->phenotype; }

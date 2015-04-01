@@ -1,3 +1,8 @@
+2015-04-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix bug when dealing binary phenotypes
+	* Revise banner
+
 2015-03-24  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Revise documentation

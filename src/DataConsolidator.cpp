@@ -36,6 +36,80 @@ void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
   }
 }
 
+void removeMissingMarker(Matrix* genotype) {
+  Matrix& g = *genotype;
+  // 1. find first nonmissing marker
+  int missingCol = 0;
+  for (missingCol = 0; missingCol < g.cols; ++ missingCol) {
+    if (hasMissingMarker(g, missingCol))
+      break;
+  }
+  if (missingCol == g.cols) return; // no missing markers
+
+  // 2. move non-missing sites to overwrite missing sites
+  for (int col = missingCol + 1;
+       col < g.cols; ++col) {
+    if (hasMissingMarker(g, col)) {
+      ++col;
+    }
+
+    for (int r = 0; r < g.rows; ++r ){
+      g[r][missingCol] = g[r][col];
+    }
+    missingCol ++;
+  }
+  g.Dimension(g.rows, missingCol);
+}
+
+bool isMonomorphicMarker(Matrix& genotype, int col) {
+  if (col >= genotype.cols || col < 0) {
+    logger->error("Invalid check of monomorhpic marker.");
+    return false;
+  }
+
+  // find first non-missing genotype
+  int nonMissingRow = genotype.rows;
+  for (int i = 0; i < genotype.rows; ++i) {
+    if (genotype[i][col] >= 0) {
+      nonMissingRow = i;
+      break;
+    }
+  }
+
+  for (int r = nonMissingRow + 1; r < genotype.rows; ++r) {
+    if (genotype[r][col] < 0)  // missing
+      continue;
+    if (genotype[r][col] != genotype[nonMissingRow][col]) return false;
+  }
+  return true;
+}
+
+void removeMonomorphicMarker(Matrix* genotype) {
+  Matrix& g = *genotype;
+  // 1. find first monomorhpic site
+  int monoCol  = 0;
+  for (monoCol = 0; monoCol < g.cols; ++monoCol) {
+    if (isMonomorphicMarker(g, monoCol)) {
+      break;
+    }
+  }
+  if (monoCol == g.cols) return; // no monomorphic site
+
+  // 2. move polymorphic sites to overwrite monomorphic sites
+  for (int col = monoCol + 1; col < g.cols; ++col) {
+    if (isMonomorphicMarker(g, col)) {
+      continue;
+    }
+
+    // move g[, col] to g[, monoCol]
+    for (int r = 0; r < g.rows; ++r) {
+      g[r][monoCol] = g[r][col];
+    }
+    monoCol ++;
+  }
+  g.Dimension(g.rows, monoCol);
+}
+
 DataConsolidator::DataConsolidator()
     : strategy(DataConsolidator::UNINITIALIZED),
       phenotypeUpdated(true),

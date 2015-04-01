@@ -21,7 +21,6 @@
 /* #include "MathStats.h" */
 /* #include "MathSVD.h" */
 
-class WorkingData;  // store temporary data structure
 
 // use Wald statistics
 class LogisticRegression {
@@ -86,6 +85,8 @@ class LogisticRegression {
   Matrix Dtwo;
   Matrix XtV;
 #endif
+ private:
+  class WorkingData;  // store temporary data structure
   WorkingData* w;  // holding temporary caluclation results
 };
 #endif

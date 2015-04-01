@@ -79,72 +79,6 @@ void makeVariableThreshodlGenotype(
 void appendHeritability(FileWriter* fp, const FastLMM& model);
 void appendHeritability(FileWriter* fp, const GrammarGamma& model);
 
-#if 0
-// take X, Y, Cov and fit model
-// note, ModelFitter will use VCFData as READ-ONLY data structure,
-// and collapsing results are stored internally.
-class ModelFitter{
- public:
-  virtual int fit(DataConsolidator* dc) = 0;
-
-  // write result header
-  virtual void writeHeader(FileWriter* fp, const Result& siteInfo) = 0;
-  // write model output
-  virtual void writeOutput(FileWriter* fp, const Result& siteInfo) = 0;
-  // write footnotes in model output
-  virtual void writeFootnote(FileWriter* fp) {};
-
-  ModelFitter(){
-    this->modelName = "UninitializedModel";
-    this->binaryOutcome = false; // default: using continuous outcome
-    this->familyModel = false;   // is this case for for family only?
-    this->indexResult = false;
-  }
-  virtual ~ModelFitter() {}
-  const std::string& getModelName() const { return this->modelName; };
-  // for particular class to call when fitting repeatedly
-  // e.g. clear permutation counter
-  // e.g. clear internal cache
-  virtual void reset() { this->result.clearValue();};
-  // virtual void needFittingCovariate();
-  bool isBinaryOutcome() const{
-    return this->binaryOutcome;
-  }
-  void setBinaryOutcome() {
-    this->binaryOutcome = true;
-  }
-  bool isFamilyModel() const {
-    return this->familyModel;
-  }
-  bool needToIndexResult() const {
-    return this->indexResult;
-  }
-  void setContinuousOutcome() {
-    this->binaryOutcome = false;
-  }
-  const Result& getResult() const {
-    return this->result;
-  }
-  void appendHeader(SummaryHeader* h) {
-    header.push_back(h);
-  }
-  void setPrefix(const std::string& p) {
-    this->outputPrefix = p;
-  }
- protected:
-  std::string modelName;
-  bool binaryOutcome;
-  bool familyModel;
-  bool indexResult;
-  Result result;
-  FileWriter* fp;
-
-  // optionally used
-  std::string outputPrefix;
-  std::vector<SummaryHeader*> header;
-}; // end ModelFitter
-#endif
-
 class SingleVariantWaldTest : public ModelFitter {
  public:
   SingleVariantWaldTest() : fitOK(false) {
@@ -160,7 +94,7 @@ class SingleVariantWaldTest : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& cov = dc->getCovariate();
 
-    if (genotype.cols != 1) {
+    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
       return -1;
     }
@@ -239,7 +173,7 @@ class SingleVariantFirthTest : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& cov = dc->getCovariate();
 
-    if (genotype.cols != 1) {
+    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
       return -1;
     }
@@ -268,11 +202,11 @@ class SingleVariantFirthTest : public ModelFitter {
   }
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
+    
     // skip interecept (column 0)
     for (int i = 1; i < this->X.cols; ++i) {
-      siteInfo.writeValueTab(fp);
       result.clearValue();
-
       result.updateValue("Test", this->X.GetColumnLabel(i));
       if (fitOK) {
         result.updateValue("Beta", firth.GetCovEst()[i]);
@@ -302,7 +236,7 @@ class SingleVariantScoreTest : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
 
-    if (genotype.cols != 1) {
+    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
       return -1;
     }
@@ -403,7 +337,11 @@ class SingleVariantFisherExactTest : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& cov = dc->getCovariate();
 
-    if (genotype.cols == 0 || !isBinaryOutcome()) {
+    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
+      fitOK = false;
+      return -1;
+    }
+    if (!isBinaryOutcome()) {
       fitOK = false;
       return -1;
     }
@@ -522,7 +460,7 @@ class SingleVariantFamilyScore : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
 
-    if (genotype.cols != 1) {
+    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
       return -1;
     }
@@ -613,7 +551,7 @@ class SingleVariantFamilyLRT : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
 
-    if (genotype.cols != 1) {
+    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
       return -1;
     }
@@ -702,7 +640,7 @@ class SingleVariantFamilyGrammarGamma : public ModelFitter {
     Matrix& genotype = dc->getGenotype();
     Matrix& covariate = dc->getCovariate();
 
-    if (genotype.cols != 1) {
+    if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
       return -1;
     }
@@ -782,7 +720,7 @@ class CMCTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
     return this->fit(phenotype, genotype, covariate);
   }
@@ -876,7 +814,7 @@ class CMCWaldTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
@@ -967,7 +905,7 @@ class ZegginiWaldTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
@@ -1051,7 +989,7 @@ class CMCFisherExactTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& cov = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
@@ -1125,7 +1063,7 @@ class ZegginiTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
@@ -1194,7 +1132,7 @@ class MadsonBrowningTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
@@ -1288,7 +1226,7 @@ class FpTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
@@ -1356,7 +1294,7 @@ class RareCoverTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
@@ -1519,7 +1457,7 @@ class CMATTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
@@ -1914,7 +1852,7 @@ class VTCMC : public ModelFitter {
   }
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     copy(phenotype, &this->pheno);
@@ -2063,7 +2001,7 @@ class AnalyticVT : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
@@ -2210,7 +2148,7 @@ class FamCMC : public ModelFitter {
     }
 
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
@@ -2319,7 +2257,7 @@ class FamZeggini : public ModelFitter {
     }
 
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
@@ -2425,7 +2363,7 @@ class FamFp : public ModelFitter {
     }
 
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
@@ -2523,7 +2461,7 @@ class SkatTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
     Vector& weight = dc->getWeight();
 
@@ -2684,7 +2622,7 @@ class KBACTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
@@ -2812,7 +2750,7 @@ class FamSkatTest : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorGenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
     Vector& weight = dc->getWeight();
 

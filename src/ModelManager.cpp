@@ -220,10 +220,15 @@ int ModelManager::create(const std::string& modelType,
     return -1;
   }
 
-  // set parameter and output prefix
+  // set parameter and output prefix for newly created models
   for (size_t i = previousModelNumber; i < model.size(); ++i) {
     model[i]->setParameter(parser);
     model[i]->setPrefix(prefix);
+    if (this->binaryOutcome) {
+      model[i]->setBinaryOutcome();
+    } else {
+      model[i]->setQuantitativeOutcome();
+    }
   }
   // create output files
   for (size_t i = previousModelNumber; i < model.size(); ++i) {

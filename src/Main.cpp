@@ -28,20 +28,21 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150325";
+const char* VERSION = "20150401";
 
 void banner(FILE* fp) {
   const char* string =
-      "..............................................         \n"
-      " ...      R(are) V(ariant) Tests            ...        \n"
-      "  ...      Xiaowei Zhan, Youna Hu            ...       \n"
-      "   ...      Bingshan Li, Dajiang Liu          ...      \n"
-      "    ...      Goncalo Abecasis                  ...     \n"
-      "     ...      zhanxw@umich.edu                  ...    \n"
-      "      ...      March 2015                        ...   \n"
-      "       ...      zhanxw.github.io/rvtests          ...  \n"
-      "        .............................................. \n"
-      "                                                       \n";
+      "+----------------------------------------+ \n"
+      "|      R(are) V(ariant) Tests            | \n"
+      "|----------------------------------------| \n"
+      "|      Xiaowei Zhan, Youna Hu            | \n"
+      "|      Bingshan Li, Dajiang Liu          | \n"
+      "|      Goncalo Abecasis                  | \n"
+      "|      zhanxw@umich.edu                  | \n"
+      "|      April 2015                        | \n"
+      "|      zhanxw.github.io/rvtests          | \n"
+      "|----------------------------------------+ \n"
+      "                                           \n";
   fputs(string, fp);
 };
 
@@ -1090,6 +1091,13 @@ int main(int argc, char** argv) {
   }
 
   ModelManager modelManager(FLAG_outPrefix);
+  // set up models in qtl/binary modes
+  if (binaryPhenotype) {
+    modelManager.setBinaryOutcome();
+  } else {
+    modelManager.setQuantitativeOutcome();    
+  }
+  // create models
   modelManager.create("single", FLAG_modelSingle);
   modelManager.create("burden", FLAG_modelBurden);
   modelManager.create("vt", FLAG_modelVT);
@@ -1238,13 +1246,12 @@ int main(int argc, char** argv) {
           "%.1f ] seconds.",
           diff);
     }
-
   } else if (!FLAG_kinship.empty() && FLAG_modelMeta.empty()) {
     logger->info(
         "Family-based model not specified. \"--kinship\" option was specified "
         "but ignored here.");
   }
-
+  
   // set imputation method
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");
@@ -1333,7 +1340,7 @@ int main(int argc, char** argv) {
     // output headers
     for (size_t m = 0; m < model.size(); m++) {
       model[m]->writeHeader(fOuts[m], buf);
-    };
+    }
 
     int variantProcessed = 0;
     while (true) {
@@ -1350,12 +1357,12 @@ int main(int argc, char** argv) {
         logger->error("Extract genotype failed at site: %s:%s!",
                       buf["CHROM"].c_str(), buf["POS"].c_str());
         continue;
-      };
+      }
       if (genotype.rows == 0) {
         logger->warn("Extract [ %s:%s ] has 0 variants, skipping",
                      buf["CHROM"].c_str(), buf["POS"].c_str());
         continue;
-      };
+      }
 
       ++variantProcessed;
       dc.consolidate(phenotypeMatrix, covariate, genotype);
@@ -1367,7 +1374,7 @@ int main(int argc, char** argv) {
         model[m]->reset();
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
-      };
+      }
     }
     logger->info("Analyzed [ %d ] variants", variantProcessed);
   } else if (rangeMode != "Single" &&

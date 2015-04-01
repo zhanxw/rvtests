@@ -30,12 +30,14 @@ void printToFile(Matrix& m, String fn, int index) {
   }
   fclose(fp);
 }
+
 void printToFile(Eigen::MatrixXf& m, const char* fn, const char* label) {
   std::ofstream ofs(fn, std::ofstream::out);
   ofs << "#[ " << label << " ]\n";
   ofs << m << "\n";
   ofs.close();
 }
+
 void printToFile(Eigen::VectorXf& v, const char* fn, const char* label) {
   std::ofstream ofs(fn, std::ofstream::out);
   ofs << "#[ " << label << " ]\n";
@@ -44,7 +46,7 @@ void printToFile(Eigen::VectorXf& v, const char* fn, const char* label) {
 }
 #endif
 
-class WorkingData {
+class FirthRegression::WorkingData {
  public:
   Eigen::MatrixXf X;
   Eigen::VectorXf r;     // residual
@@ -60,10 +62,11 @@ class WorkingData {
   Eigen::VectorXf y;
   Eigen::VectorXf succ;
   Eigen::VectorXf total;
-  // Eigen::VectorXf useless; // keep this, or strange crash bug will happen
 };
 
-FirthRegression::FirthRegression() { this->w = new WorkingData; }
+FirthRegression::FirthRegression() {
+  this->w = new WorkingData;
+}
 
 FirthRegression::~FirthRegression() {
   if (this->w) {
@@ -133,7 +136,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Matrix& y, int rnrounds) {
 
 bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
                                     int nrrounds) {
-  this->Reset(X);
+  //this->Reset(X);
 
   G_to_Eigen(X, &this->w->X);
   G_to_Eigen(succ, &this->w->succ);
@@ -184,7 +187,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
     rounds++;
   }
   if (rounds == nrrounds) {
-    printf("Not enough iterations!");
+    printf("Not enough iterations!\n");
     return false;
   }
 
@@ -224,6 +227,18 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
     // this->w->D.rows();
     // // printf("norm = %g\n", rel);
     // if (rel > 1e-6) { // use relative accuracy to evalute convergence
+#if 0
+    fprintf(stderr, "n = %ld\n", this->w->D.rows());
+    fprintf(stderr, "norm = %g\n", (this->w->D * this->w->covB -
+         Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()))
+            .norm() );
+    fprintf(stderr, "max = %g\n", (this->w->D * this->w->covB -
+         Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()))
+            .maxCoeff() );
+    std::cerr << "D = " << this->w->D << "\n";
+    std::cerr << "covB = " << this->w->covB<< "\n";
+    std::cerr << "D * covB = " << this->w->D * this->w->covB << "\n";    
+#endif   
     if ((this->w->D * this->w->covB -
          Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()))
             .norm() > 1e-3) {
@@ -256,7 +271,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
     rounds++;
   }
   if (rounds == nrrounds) {
-    printf("Not enough iterations!");
+    printf("Not enough iterations!\n");
     return false;
   }
   // this->w->covB =

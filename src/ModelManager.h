@@ -23,7 +23,9 @@ class ModelManager {
    * Resource clean up
    */
   void close();
-
+  void setBinaryOutcome() { this->binaryOutcome = true; }
+  void setQuantitativeOutcome() { this->binaryOutcome = false; }  
+  
  private:
   void createIndex();
 
@@ -32,6 +34,7 @@ class ModelManager {
   std::vector<ModelFitter*> model;
   std::vector<FileWriter*> fOuts;
   std::vector<std::string> fileToIndex;
+  bool binaryOutcome;
 };
 
 #endif

@@ -2,8 +2,6 @@
 #define __FIRTH_REGRESSION_H__
 
 #include "MathMatrix.h"
-class WorkingData;  // store temporary data structure
-
 // use Wald statistics
 class FirthRegression {
  public:
@@ -54,6 +52,8 @@ class FirthRegression {
   Vector pValue;   // pvalues
   Vector p;        // p: estimted prob;
   Vector V;        // V: p(1-p) ;
+ private:
+  class WorkingData;  // store temporary data structure
   WorkingData* w;  // holding temporary caluclation results
 };
 #endif

@@ -44,7 +44,7 @@ void printToFile(Matrix& m, String fn, int index) {
 }
 #endif
 
-class WorkingData {
+class LogisticRegression::WorkingData {
  public:
   Eigen::MatrixXd X;
   Eigen::VectorXd r;    // residual

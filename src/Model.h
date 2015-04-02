@@ -211,10 +211,9 @@ class SingleVariantFirthTest : public ModelFitter {
   }
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
-    siteInfo.writeValueTab(fp);
-    
     // skip interecept (column 0)
     for (int i = 1; i < this->X.cols; ++i) {
+      siteInfo.writeValueTab(fp);
       result.clearValue();
       result.updateValue("Test", this->X.GetColumnLabel(i));
       if (fitOK) {
@@ -222,8 +221,8 @@ class SingleVariantFirthTest : public ModelFitter {
         result.updateValue("SE", sqrt(firth.GetCovB()[i][i]));
         result.updateValue("Pvalue", firth.GetAsyPvalue()[i]);
       }
+      result.writeValueLine(fp);      
     }
-    result.writeValueLine(fp);
   }
 
  private:
@@ -3652,9 +3651,12 @@ class MetaCovTest : public ModelFitter {
         }
       }
     } else {
+#if 0
+      //// allow binary traits
       /// for binary, no need to center. and not support family.
       fprintf(stderr, "Not supported mode!\n");
       abort();
+#endif
     }
     fitOK = true;
     return (fitOK ? 0 : -1);

@@ -1,3 +1,7 @@
+2015-04-02  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+
+	* Fix output formats for Firth regression
+
 2015-04-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix bug when dealing binary phenotypes

@@ -37,10 +37,13 @@ class ParRegion {
       region = "hg19";
     }
     if (region == "hg19" || region == "b37" || region == "grch37") {
-      this->region.push_back(std::make_pair(60001, 2699520));
-      this->region.push_back(std::make_pair(154931044, 155270560));
+      this->region.push_back(std::make_pair(60001, 2781479));
+      this->region.push_back(std::make_pair(155701383, 156030895));
     } else if (region == "hg18" || region == "b36" || region == "grch36") {
       this->region.push_back(std::make_pair(1, 2709520));
+      this->region.push_back(std::make_pair(154584238, 154913754));
+    } else if (region == "hg38" || region == "b38" || region == "grch38") {
+      this->region.push_back(std::make_pair(10001, 2709520));
       this->region.push_back(std::make_pair(154584238, 154913754));
     } else {
       std::vector<std::string> fd;

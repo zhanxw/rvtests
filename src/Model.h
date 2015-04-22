@@ -3778,7 +3778,6 @@ class MetaCovTest : public ModelFitter {
     result.updateValue("CHROM", lociQueue.front().pos.chrom);
     result.updateValue("START_POS", lociQueue.front().pos.pos);
     result.updateValue("END_POS", lociQueue.back().pos.pos);
-    /* fprintf(fp, "%d\t", idx); */
     result.updateValue("NUM_MARKER", idx);
     std::string s;
     for (int i = 0; i < idx; ++i) {

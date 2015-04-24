@@ -36,15 +36,36 @@ class ParRegion {
     if (region.empty()) {
       region = "hg19";
     }
+    /**
+       Reference:
+       http://www.ncbi.nlm.nih.gov/projects/genome/assembly/grc/human/
+
+       Also check:
+       http://genome.ucsc.edu/cgi-bin/hgGateway
+       
+       GRCh 37 or GRCh37 Patch Release 13 or hg19
+       Name     Chr     Start           Stop
+       PAR#1    X       60,001          2,699,520
+       PAR#2    X       154,931,044     155,260,560
+
+       GRCh 38 or hg38
+       Name     Chr     Start           Stop       
+       PAR#1    X       10,001          2,781,479
+       PAR#2    X       155,701,383     156,030,895
+
+       Hg18 (from UCSC)
+       chrX:1-2709520 and chrX:154584238-154913754
+     */
+    
     if (region == "hg19" || region == "b37" || region == "grch37") {
-      this->region.push_back(std::make_pair(60001, 2781479));
-      this->region.push_back(std::make_pair(155701383, 156030895));
+      this->region.push_back(std::make_pair(60001, 2699520));
+      this->region.push_back(std::make_pair(154931044, 155260560));
     } else if (region == "hg18" || region == "b36" || region == "grch36") {
       this->region.push_back(std::make_pair(1, 2709520));
       this->region.push_back(std::make_pair(154584238, 154913754));
     } else if (region == "hg38" || region == "b38" || region == "grch38") {
-      this->region.push_back(std::make_pair(10001, 2709520));
-      this->region.push_back(std::make_pair(154584238, 154913754));
+      this->region.push_back(std::make_pair(10001, 2781479));
+      this->region.push_back(std::make_pair(155701383, 156030895));
     } else {
       std::vector<std::string> fd;
       std::vector<std::string> loc;

@@ -30,7 +30,7 @@ void VCFInputFile::setRangeMode() {
     }
   } else if (mode == VCF_RANGE_MODE) {
     if (this->autoMergeRange) {
-      this->tabixReader->mergeRange();
+      this->tabixReader->enableAutoMerge();
     }
   } else if (mode == BCF_MODE) {
     if (!this->bcfReader->good() || !this->bcfReader->indexed()) {
@@ -40,7 +40,7 @@ void VCFInputFile::setRangeMode() {
       abort();
     }
     if (this->autoMergeRange) {
-      this->bcfReader->mergeRange();
+      this->bcfReader->enableAutoMerge();
     }
   }
 

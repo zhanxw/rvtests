@@ -422,8 +422,8 @@ But in the non-PAR region, the difference is that Hardy-Weinberg P-value are cal
 
 *Related individuals*. Just append `--xHemi` to the `vcf2kinship` (more details in [Kinship generation](#kinship-generation)) and `rvtest` command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.
 
-*PAR region*. PAR region is defined as two regions X:60001-2699520 and X:154931044-155270560. Use `--xLabel` can speicify which chromosome has PAR region (default: 23|X)
-and use `--xParRegion` to specify PAR region (default: hg19, meaning '60001-2699520,154931044-155260560' in the UCSC build hg19, specify "hg18" will use PAR region definition in the UCSC build hg18).
+*PAR region*. PAR region is defined as two regions X:60001-2699520 and X:154931044-155260560. Use `--xLabel` can speicify which chromosome has PAR region (default: 23 or X)
+and use `--xParRegion` to specify PAR region (default: hg19, meaning '60001-2699520,154931044-155260560' in the UCSC build hg19, specify "hg18" will use PAR region definition in the UCSC build hg18, or specify "hg38" will use UCSC build 38).
 
 # Kinship generation
 

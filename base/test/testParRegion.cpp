@@ -7,10 +7,10 @@ int main(int argc, char *argv[])
     assert(!p.isParRegion("1", 100));
     assert(!p.isParRegion("X", 60000));
     assert(p.isParRegion("X", 60001));
-    assert(p.isParRegion("X", 155270559));
-    assert(p.isParRegion("X", 155270560));
-    assert(p.isParRegion("23", 155270560));
-    assert(!p.isParRegion("23", 155270561));
+    assert(!p.isParRegion("X", 154931043));
+    assert(p.isParRegion("X", 154931044));
+    assert(p.isParRegion("23", 154931044));
+    assert(!p.isParRegion("23", 155260561));
   }
   {
     ParRegion p("X", "b36");

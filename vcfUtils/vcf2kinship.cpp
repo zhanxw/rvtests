@@ -773,13 +773,14 @@ int main(int argc, char** argv){
           geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists
         } else { // hemi region
           if (sex[i] == 1) {
-            geno = indv->get(GTidx, &missing).getMaleNonParGenotype01();
+            geno = indv->get(GTidx, &missing).getMaleNonParGenotype01(); // geno should be 0, 1 or missing
+            // if geno is missing but it is a valid genotype (0, 1, 2..), then it's wrong coding
             if (geno < 0 && indv->get(GTidx, &missing).getGenotype() >= 0) {
               numMaleHemiWrongCoding ++;
             }
             if (geno < 0) numMaleHemiMissing ++;
           } else if (sex[i] == 2) {
-            geno = indv->get(GTidx, &missing).getGenotype(); // here missing mean if GT exists
+            geno = indv->get(GTidx, &missing).getGenotype(); // here missing means if GT exists
           } else {
             geno = MISSING_GENOTYPE;
             missing = true;
@@ -926,7 +927,6 @@ int output( const std::vector<std::string>& famName,
             const SimpleMatrix& mat,
             bool performPCA,
             const std::string& outPrefix) {
-
   if (famName.size() != indvName.size()) {
     return -1;
   }

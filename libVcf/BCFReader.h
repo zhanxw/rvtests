@@ -14,11 +14,10 @@ class BCFReader {
         readyToRead(false),
         b(0),
         bout(0),
-      off(0),
-      str2id(0),
-      autoMergeRange(false){
+        off(0),
+        str2id(0) {
     open(fn);
-  }
+  };
 
   virtual ~BCFReader() { close(); };
 
@@ -53,9 +52,6 @@ class BCFReader {
   int addRange(const RangeList& r) {
     range.addRange(r);
     resetRangeIterator();
-    if (this->autoMergeRange) {
-      this->mergeRange();
-    }
     return 0;
   }
 
@@ -65,11 +61,9 @@ class BCFReader {
   void mergeRange() {
     range.sort();
     resetRangeIterator();
-  }
+  };
 
   const std::string& getHeader() const { return this->header; }
-  void enableAutoMerge() { this->autoMergeRange = true; }
-  void disableAutoMerge() { this->autoMergeRange = false; }
 
   bool indexed() const { return this->hasIndex; }
 
@@ -82,7 +76,7 @@ class BCFReader {
       this->hasIndex = false;
     }
     return this->hasIndex;
-  }
+  };
 
   void closeIndex() { bcf_idx_destroy(idx); };
 
@@ -103,7 +97,7 @@ class BCFReader {
       bcf_str2id_destroy(str2id);
     }
     closeIndex();
-  }
+  };
   void resetRangeIterator() {
     this->rangeBegin = this->range.begin();
     this->rangeEnd = this->range.end();
@@ -138,7 +132,6 @@ class BCFReader {
   int line_len;
   // int origStdout;
   std::string header;
-  bool autoMergeRange;  
 };
 
 #endif /* _BCFREADER_H_ */

@@ -200,14 +200,17 @@ void VCFInputFile::close() {
 void VCFInputFile::setRangeList(const RangeList& rl) {
   if (rl.size() == 0) return;
 
-  // this->clearRange();
-  // this->range = rl;
   this->setRangeMode();
-  // this->clearRange();
+  
+  RangeList l;
+  l.setRange(rl);
+  if (this->autoMergeRange)
+    l.sort();
+  
   if (mode == VCF_RANGE_MODE) {
-    this->tabixReader->setRange(rl);
+    this->tabixReader->setRange(l);
   } else if (mode == BCF_MODE) {
-    this->bcfReader->setRange(rl);
+    this->bcfReader->setRange(l);
   } else {
     fprintf(stderr, "[ERROR] invalid reading mode, quitting...\n");
     abort();

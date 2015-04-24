@@ -11,10 +11,9 @@ class TabixReader {
         hasIndex(false),
         readyToRead(false),
         tabixHandle(0),
-        ti_line(0),
-        autoMergeRange(false){
+        ti_line(0) {
     open(fn);
-  }
+  };
 
   virtual ~TabixReader() { close(); };
 
@@ -94,7 +93,7 @@ class TabixReader {
     iter = 0;
 
     return false;
-  }
+  };
 
   /**
    * @return 0 if adding region is valid
@@ -125,9 +124,6 @@ class TabixReader {
       ti_iter_destroy(iter);
       iter = 0;
     }
-    if (this->autoMergeRange) {
-      this->mergeRange();
-    }
     return 0;
   }
 
@@ -137,11 +133,8 @@ class TabixReader {
   void mergeRange() {
     range.sort();
     resetRangeIterator();
-  }
-  
+  };
   const std::string& getHeader() const { return this->header; }
-  void enableAutoMerge() { this->autoMergeRange = true; }
-  void disableAutoMerge() { this->autoMergeRange = false; }
 
  private:
   bool openIndex(const std::string& fn) {
@@ -155,7 +148,7 @@ class TabixReader {
 
     this->hasIndex = true;
     return true;
-  }
+  };
 
   void closeIndex() {
     // fpritnf(stderr, "close index...");
@@ -217,7 +210,7 @@ class TabixReader {
     cannotOpen = false;
     readyToRead = true;
     return 0;
-  }
+  };
 
   void close() {
     // destroy range iterator
@@ -230,8 +223,7 @@ class TabixReader {
       this->tabixHandle = 0;
       // fpritnf(stderr, "close handle...");
     }
-  }
-  
+  };
   void resetRangeIterator() {
     this->rangeBegin = this->range.begin();
     this->rangeEnd = this->range.end();
@@ -258,8 +250,6 @@ class TabixReader {
 
   std::string header;
   std::string firstLine;
-
-  bool autoMergeRange;
 };
 
 #endif /* _TABIXREADER_H_ */

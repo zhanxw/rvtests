@@ -108,14 +108,16 @@ class VCFInputFile {
     RangeList r;
     r.addRangeFile(fn);
     this->setRange(r);
-  };
+  }
   // @param l is a string of range(s)
   void setRange(const char* chrom, int begin, int end) {
     RangeList r;
     r.addRange(chrom, begin, end);
     this->setRange(r);
   }
-  void setRange(const RangeList& rl) { this->setRangeList(rl); }
+  void setRange(const RangeList& rl) {
+    this->setRangeList(rl);
+  }
   void setRangeList(const std::string& l) {
     if (l.empty()) return;
 
@@ -123,8 +125,10 @@ class VCFInputFile {
     r.addRangeList(l);
     this->setRange(r);
   }
+  // this function the entry point for all function add/change region list
   void setRangeList(const RangeList& rl);
-  // which chromosomal sites are allowed to read
+
+  // which single-base chromosomal sites are allowed to read
   int setSiteFile(const std::string& fn);
 
   /**

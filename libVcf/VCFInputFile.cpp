@@ -29,9 +29,10 @@ void VCFInputFile::setRangeMode() {
       this->mode = VCFInputFile::VCF_RANGE_MODE;
     }
   } else if (mode == VCF_RANGE_MODE) {
-    if (this->autoMergeRange) {
-      this->tabixReader->enableAutoMerge();
-    }
+    // Auto-merge should be handled by VCFInputFile, not in tabixReader    
+    // if (this->autoMergeRange) {
+    //   this->tabixReader->enableAutoMerge();
+    // }
   } else if (mode == BCF_MODE) {
     if (!this->bcfReader->good() || !this->bcfReader->indexed()) {
       fprintf(stderr,
@@ -39,9 +40,10 @@ void VCFInputFile::setRangeMode() {
               "(or create one use bcftools).\nQuitting...");
       abort();
     }
-    if (this->autoMergeRange) {
-      this->bcfReader->enableAutoMerge();
-    }
+    // Auto-merge should be handled by VCFInputFile, not in bcfReader
+    // if (this->autoMergeRange) {
+    //   this->bcfReader->enableAutoMerge();
+    // }
   }
 
   // if (this->autoMergeRange) {

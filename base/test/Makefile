@@ -1,6 +1,6 @@
 EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
       testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
-      testCommonFunction testTypeConversion testSimpleTimer
+      testCommonFunction testTypeConversion testSimpleTimer testProfiler
 all: $(EXE)
 debug: all
 
@@ -42,8 +42,6 @@ kinship:
 	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct && \
         ./testKinshipToKinInbcoef a test.KinInbcoef.pedtest test.KinInbcoef.listtest > test.KinInbcoef.outtest && diff test.KinInbcoef.outtest test.KinInbcoef.outtest.correct && \
         ./testKinshipToKinInbcoef x test.KinInbcoefX.pedtestX2 test.KinInbcoefX.listtestX2 > test.KinInbcoefX.outtestX2 && diff test.KinInbcoefX.outtestX2 test.KinInbcoefX.outtestX2.correct
-
-#diff -q t1.output t1.correct
 
 clean:
 	-rm -f $(EXE) *.o *.d *.out

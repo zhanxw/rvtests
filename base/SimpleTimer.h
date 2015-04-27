@@ -24,8 +24,6 @@ class SimpleTimer {
   int _elapsed;
 };
 
-#ifdef USE_ACCURATE_TIMER
-
 #include <ctime>
 #include <ratio>
 #include <chrono>
@@ -51,6 +49,5 @@ class AccurateTimer {
 
   double _elapsed;
 };
-#endif
 
 #endif /* _SIMPLETIMER_H_ */

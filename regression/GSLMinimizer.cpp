@@ -11,10 +11,6 @@ Minimizer::Minimizer() : epsabs(0.001), epsrel(0.0), maxIter(100) {
 Minimizer::~Minimizer() { gsl_min_fminimizer_free(s); }
 int Minimizer::minimize(gsl_function F, double startValue, double lowerBound,
                         double upperBound) {
-  // gsl_function F;
-  // F.function = func;
-  // F.params = params;
-
   gsl_min_fminimizer_set(s, &F, startValue, lowerBound, upperBound);
   int iter = 0;
   int status;

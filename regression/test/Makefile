@@ -1,4 +1,5 @@
-EXE = testLinearRegression \
+EXE = testGSLIntegration \
+      testLinearRegression \
       testLinearRegressionCov \
       testLogisticRegression \
       testLogisticRegressionCov \

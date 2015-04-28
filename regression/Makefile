@@ -13,6 +13,7 @@ BASE = LogisticRegression \
        EigenMatrixInterface \
        FastLMM \
        GSLMinimizer \
+       GSLIntegration \
        GrammarGamma \
        MetaCov \
        LogisticRegressionVT \

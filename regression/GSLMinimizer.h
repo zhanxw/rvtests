@@ -6,8 +6,8 @@
 class Minimizer {
  public:
   Minimizer();
-  ~Minimizer();
-  typedef double(Func)(double, void *);
+  virtual ~Minimizer();
+
   /**
    * requires f(lowerBound) > f(startValue) < f(upperBound)
    * @return 0 when succeed

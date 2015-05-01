@@ -21,7 +21,6 @@
 /* #include "MathStats.h" */
 /* #include "MathSVD.h" */
 
-
 // use Wald statistics
 class LogisticRegression {
  public:
@@ -60,6 +59,9 @@ class LogisticRegression {
       // value is close to estimated results.
   void Reset(Matrix& X);  // get everything cleared
 
+  // result = W - (W Z)*(Z' W Z)^(-1) * (Z' W)
+  int CalculateScaledWeight(Vector& w, Matrix& cov, Matrix* result);
+
  private:
   double GetDeviance();
 
@@ -87,6 +89,6 @@ class LogisticRegression {
 #endif
  private:
   class WorkingData;  // store temporary data structure
-  WorkingData* w;  // holding temporary caluclation results
+  WorkingData* w;     // holding temporary caluclation results
 };
 #endif

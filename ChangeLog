@@ -1,4 +1,9 @@
-2015-04-23  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2015-04-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Support meta analysis summary statistics for binary traits related individuals
+	* Fix '--meta cov' calculation in the hemizygous region
+
+2015-04-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Update PAR region definition (now support hg38/GRCh38)
 	* Fix duplicated variants in gene/set based tests

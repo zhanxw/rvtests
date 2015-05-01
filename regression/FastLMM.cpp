@@ -469,8 +469,9 @@ class FastLMM::Impl {
 
     const int n = ux.cols();
     Eigen::MatrixXf m =
-        (ux.transpose() * (lambda.array() + delta).matrix() * ux).ldlt().solve(
-            Eigen::MatrixXf::Identity(n, n));
+        (ux.transpose() * (lambda.array() + delta).matrix().asDiagonal() * ux)
+            .ldlt()
+            .solve(Eigen::MatrixXf::Identity(n, n));
     // fprintf(stderr, "m[0][0] = %g\n", m(0,0));
     Eigen_to_G(m, betaCov);
   }
@@ -507,18 +508,80 @@ class FastLMM::Impl {
         sigma2;
     Eigen_to_G(m, zz);
   }
+  void toEigen(const std::vector<double>& g,
+               Eigen::MatrixXf* out) {
+    const int n = g.size();
+    (*out).resize(n, 1);
+    for (int i = 0; i < n; ++i ) {
+      (*out)(i, 0) = g[i];
+    }
+  }
+  void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
+                const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                double* out) {
+    // // const Eigen::MatrixXf& U = kinshipU.mat;
+    const int n = g1.size();
+    Eigen::Map<const Eigen::MatrixXd> g1D(g1.data(), n, 1);
+    Eigen::MatrixXf g1E = g1D.cast<float>();
+    Eigen::Map<const Eigen::MatrixXd> g2D(g2.data(), n, 1);
+    Eigen::MatrixXf g2E = g2D.cast<float>();
+
+    *out = (g1E.array() * (this->lambda.array() + delta).inverse() * g2E.array()).sum() / this->sigma2;
+    
+    // Eigen::MatrixXf g1E;
+    // Eigen::MatrixXf g2E;
+    // toEigen(g1, &g1E);
+    // toEigen(g2, &g2E);
+    
+    // *out = (g1E.transpose() * U * this->scaledK * U.transpose() * g2E)(0, 0);
+    // todo
+    // *out = (g1E.transpose() * this->scaledK * g2E)(0, 0) / this->sigma2;
+  }
+  void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS, std::vector<double>* out) {
+    // const Eigen::MatrixXf& U = kinshipU.mat;    
+    const int n = g.size();
+    Eigen::Map<const Eigen::MatrixXd> gD(g.data(), n, 1);
+    Eigen::MatrixXf gE = gD.cast<float>();
+
+    // res: 1 by nCov matrix
+    const int nCov = ux.cols();
+    Eigen::MatrixXf res =
+        gE.transpose() *
+        (this->lambda.array() + delta).inverse().matrix().asDiagonal() * ux /
+        sigma2;
+
+    out->resize(nCov);
+    for (int i = 0; i < nCov; ++i) {
+      (*out)[i] = (double)res(0, i);
+    }
+  }
+
   int TransformCentered(std::vector<double>* geno, const EigenMatrix& kinshipU,
                         const EigenMatrix& kinshipS) {
-    // type conversion
+    // cast type double to float
     int n = geno->size();
     Eigen::Map<Eigen::MatrixXd> gD(geno->data(), n, 1);
     Eigen::MatrixXf g = gD.cast<float>();
     Eigen::RowVectorXf g_mean = g.colwise().mean();
     const Eigen::MatrixXf& U = kinshipU.mat;
     g = U.transpose() * (g.rowwise() - g_mean);
-    for (int i = 0; i < n; ++i) {
-      (*geno)[i] = (double)g(i, 0);
-    }
+
+    // cast type back
+    gD = g.cast<double>();
+    return 0;
+  }
+  int Transform(std::vector<double>* geno, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS) {
+    // type conversion
+    int n = geno->size();
+    Eigen::Map<Eigen::MatrixXd> gD(geno->data(), n, 1);
+    Eigen::MatrixXf g = gD.cast<float>();
+    const Eigen::MatrixXf& U = kinshipU.mat;
+    g = U.transpose() * g;
+
+    // cast type back
+    gD = g.cast<double>();
     return 0;
   }
   int GetWeight(Vector* out) const {
@@ -631,10 +694,26 @@ double FastLMM::GetSigmaK() { return this->impl->GetSigmaK(); }
 double FastLMM::GetSigma1() { return this->impl->GetSigma1(); }
 void FastLMM::GetCovZY(Matrix* zy) { return this->impl->GetCovZY(zy); }
 void FastLMM::GetCovZZ(Matrix* zz) { return this->impl->GetCovZZ(zz); }
+void FastLMM::GetCovXX(const std::vector<double>& g1,
+                       const std::vector<double>& g2,
+                       const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                       double* out) {
+  return this->impl->GetCovXX(g1, g2, kinshipU, kinshipS,  out);
+}
+void FastLMM::GetCovXZ(const std::vector<double>& g,
+                       const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                       std::vector<double>* out) {
+  return this->impl->GetCovXZ(g, kinshipU, kinshipS, out);
+}
 int FastLMM::TransformCentered(std::vector<double>* x,
                                const EigenMatrix& kinshipU,
                                const EigenMatrix& kinshipS) {
   return this->impl->TransformCentered(x, kinshipU, kinshipS);
+}
+int FastLMM::Transform(std::vector<double>* x,
+                               const EigenMatrix& kinshipU,
+                               const EigenMatrix& kinshipS) {
+  return this->impl->Transform(x, kinshipU, kinshipS);
 }
 int FastLMM::GetWeight(Vector* out) const { return this->impl->GetWeight(out); }
 

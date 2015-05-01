@@ -198,7 +198,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   //
   this->Vmatrix = SS;
   this->Vmatrix *= lr.GetSigma2();
-
+  
   svd.InvertInPlace(SS);
   Matrix Umat;
   copy(U, &Umat);

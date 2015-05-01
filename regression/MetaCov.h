@@ -25,11 +25,27 @@ class MetaCov {
   // U' * ( x - center(x) )
   int TransformCentered(std::vector<double>* x, const EigenMatrix& kinshipU,
                         const EigenMatrix& kinshipS);
+  // U' * x
+  int Transform(std::vector<double>* x, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS);
+
   // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
   int GetWeight(Vector* out);
 
-  // get Z' \Sigma^{-1} Z
-  void GetCovZZ(Matrix* zz);
+  // @parm out = G' (\Sigma^{-1} - ...) * G
+  //                     ^ scaled sigma
+  // NOTE: here assume @param g1 and @param g2 is transformed. e.g. U' * g
+  void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
+                const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                double* out);
+
+  // @parm out = G' \Sigma^{-1} Z, @param is a row vector
+  // NOTE: here assume @param g is transformed. e.g. U' * g  
+  void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS, std::vector<double>* out);
+
+  // @parm out = Z' \Sigma^{-1} Z
+  void GetCovZZ(Matrix* out);
 };
 
 #endif /* _METACOV_H_ */

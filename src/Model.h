@@ -22,6 +22,7 @@
 #include "regression/GrammarGamma.h"
 #include "regression/MetaCov.h"
 #include "regression/MatrixOperation.h"
+#include "regression/EigenMatrixInterface.h"
 #include "regression/MultivariateVT.h"
 #include "regression/FamSkat.h"
 #include "regression/FirthRegression.h"
@@ -98,7 +99,7 @@ class SingleVariantWaldTest : public ModelFitter {
       fitOK = false;
       return -1;
     }
-    
+
     copyPhenotype(phenotype, &this->Y);
     if (cov.cols) {
       copyGenotypeWithCovariateAndIntercept(genotype, cov, &this->X);
@@ -221,7 +222,7 @@ class SingleVariantFirthTest : public ModelFitter {
         result.updateValue("SE", sqrt(firth.GetCovB()[i][i]));
         result.updateValue("Pvalue", firth.GetAsyPvalue()[i]);
       }
-      result.writeValueLine(fp);      
+      result.writeValueLine(fp);
     }
   }
 
@@ -295,7 +296,7 @@ class SingleVariantScoreTest : public ModelFitter {
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     result.clearValue();
-        result.updateValue("AF", af);
+    result.updateValue("AF", af);
     if (fitOK) {
       if (!isBinaryOutcome()) {
         result.updateValue("STAT", linear.GetStat());
@@ -3273,6 +3274,111 @@ class MetaScoreTest : public ModelFitter {
     double sigma2;
     Vector pheno;
   };
+  class MetaFamBinary : public MetaBase {
+   public:
+    MetaFamBinary() : lmm(FastLMM::SCORE, FastLMM::MLE) {}
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
+      // calculate alpha, b
+      int nCase = 0;
+      int nCtrl = 0;
+      for (int i = 0; i < phenotype.rows; ++i) {
+        if (phenotype[i][0] == 1) {
+          ++nCase;
+        } else if (phenotype[i][0] == 0) {
+          ++nCtrl;
+        }
+      }
+      if (nCtrl > 0) {
+        alpha = log(1.0 * nCase / nCtrl);
+      } else {
+        alpha = 500.;
+      }
+      calculateB();
+
+      bool fitOK;
+      if (!hemiRegion) {
+        fitOK = (0 ==
+                 lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                  *dc->getKinshipSForAuto()));
+      } else {
+        fitOK = (0 ==
+                 lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForX(),
+                                  *dc->getKinshipSForX()));
+      }
+      if (fitOK) {
+        needToFitNullModel = false;
+        return 0;
+      }
+      return -1;
+    }
+    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& cov = dc->getCovariate();
+      if (!hemiRegion) {
+        // TODO test covariate include 1s?
+        return lmm.TestCovariate(cov, phenotype, genotype,
+                                 *dc->getKinshipUForAuto(),
+                                 *dc->getKinshipSForAuto());
+      } else {
+        return lmm.TestCovariate(cov, phenotype, genotype,
+                                 *dc->getKinshipUForX(),
+                                 *dc->getKinshipSForX());
+      }
+    }
+    double GetAF(Matrix& geno, DataConsolidator* dc) {
+      if (!hemiRegion) {
+        return lmm.FastGetAF(*dc->getKinshipUForAuto(),
+                             *dc->getKinshipSForAuto(), dc->getGenotype());
+      } else {
+        return lmm.FastGetAF(*dc->getKinshipUForX(), *dc->getKinshipSForX(),
+                             dc->getGenotype());
+      }
+    }
+    void PrintNullModel(FileWriter* fp,
+                        const std::vector<std::string>& covLabel) {
+      Vector beta;
+      lmm.GetNullCovEst(&beta);
+      Matrix betaSd;
+      lmm.GetNullCovB(&betaSd);
+      double sigmaG2 = lmm.GetSigmaG2();
+      double sigmaE2 = lmm.GetSigmaE2();
+
+      fp->write("##NullModelEstimates\n");
+      fp->write("## - Name\tBeta\tSD\n");
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      const int n = covLabel.size();
+      for (int i = 0; i < n; ++i) {
+        if (i + 1 >= beta.Length()) break;
+        fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
+                   betaSd[i + 1][i + 1]);
+      }
+      // sigma
+      fp->printf("## - SigmaG2\t%g\tNA\n", sigmaG2);
+      fp->printf("## - SigmaE2\t%g\tNA\n", sigmaE2);
+    }
+    double GetU() { return lmm.GetUStat() * this->b; }
+    double GetV() { return lmm.GetVStat() * this->b * this->b; }
+    double GetEffect() {
+      if (lmm.GetVStat() != 0.0 && this->b != 0.0) {
+        return lmm.GetUStat() / lmm.GetVStat() / b;
+      }
+      return 0.0;
+    }
+    double GetPvalue() { return lmm.GetPvalue(); }
+
+   private:
+    void calculateB();
+
+   private:
+    FastLMM lmm;
+
+    double alpha;
+    double b;
+  };
   class MetaUnrelatedBinary : public MetaBase {
    public:
     int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
@@ -3345,11 +3451,11 @@ class MetaScoreTest : public ModelFitter {
   };
 
   MetaBase* createModel(bool familyModel, bool binaryOutcome) {
-    if (familyModel && binaryOutcome) {
-      return NULL;
-    }
     if (familyModel && !binaryOutcome) {
       return new MetaFamQtl;
+    }
+    if (familyModel && binaryOutcome) {
+      return new MetaFamBinary;
     }
     if (!familyModel && binaryOutcome) {
       return new MetaUnrelatedBinary;
@@ -3368,21 +3474,6 @@ class MetaScoreTest : public ModelFitter {
   double af;
   double afFromCase;
   double afFromControl;
-#if 0
-  Vector pheno;
-
-  // QT linear model for unrelated
-  LinearRegressionScoreTest linear;
-  // Binary logistic model for unrelated
-  LogisticRegressionScoreTest logistic;
-  LogisticRegression logisticAlt;
-  // QT linear model for related
-  FastLMM linearFamScoreForAuto;
-  FastLMM linearFamScoreForX;
-  Matrix cov;
-  Matrix X; // intercept, cov(optional) and genotype
-
-#endif
 
   bool fitOK;
 
@@ -3394,14 +3485,8 @@ class MetaScoreTest : public ModelFitter {
   double hwePvalueFromCase;
   double hwePvalueFromControl;
   double callRate;
-#if 0
-  bool needToFitNullModelForAuto;
-  bool needToFitNullModelForX;
-  bool hasHeritabilityForAuto;
-  bool hasHeritabilityForX;
-#endif
-  bool useFamilyModel;
 
+  bool useFamilyModel;
   bool isHemiRegion;  // is the variant tested in hemi region?
   bool headerOutputted;
   bool outputGwama;
@@ -3432,7 +3517,7 @@ class MetaRecessiveTest : public MetaScoreTest {
 };
 
 class MetaCovTest : public ModelFitter {
- private:
+ public:
   typedef std::vector<double> Genotype;
   struct Pos {
     std::string chrom;
@@ -3441,11 +3526,17 @@ class MetaCovTest : public ModelFitter {
   struct Loci {
     Pos pos;
     Genotype geno;
+    std::vector<double> covXZ;  // cov(geno, covariate)
   };
 
  public:
   MetaCovTest(int windowSize)
-      : fitOK(false), useFamilyModel(false), isHemiRegion(false) {
+      : model(NULL),
+        modelAuto(NULL),
+        modelX(NULL),
+        fitOK(false),
+        useFamilyModel(false),
+        isHemiRegion(false) {
     this->modelName = "MetaCov";
     this->indexResult = true;
     this->numVariant = 0;
@@ -3453,8 +3544,8 @@ class MetaCovTest : public ModelFitter {
     // this->mleVarY = -1.;
     this->fout = NULL;
     this->windowSize = windowSize;
-    this->needToFitNullModelForAuto = true;
-    this->needToFitNullModelForX = true;
+    // this->needToFitNullModelForAuto = true;
+    // this->needToFitNullModelForX = true;
     result.addHeader("CHROM");
     result.addHeader("START_POS");
     result.addHeader("END_POS");
@@ -3466,12 +3557,23 @@ class MetaCovTest : public ModelFitter {
   }
   ~MetaCovTest() {
     while (queue.size() > 0) {
+#if 0
       if (isBinaryOutcome()) {
         printCovarianceForBinaryTrait(fout, queue);
       } else {
         printCovariance(fout, queue);
       }
+#endif
+      printCovariance(fout, queue, isBinaryOutcome());
       queue.pop_front();
+    }
+    if (modelAuto) {
+      delete modelAuto;
+      modelAuto = NULL;
+    }
+    if (modelX) {
+      delete modelX;
+      modelX = NULL;
     }
   }
   virtual int setParameter(const ModelParser& parser) {
@@ -3484,8 +3586,8 @@ class MetaCovTest : public ModelFitter {
     return this->fitWithGivenGenotype(genotype, dc);
   }
   int fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& covariate = dc->getCovariate();
+    // Matrix& phenotype = dc->getPhenotype();
+    // Matrix& covariate = dc->getCovariate();
     Result& siteInfo = dc->getResult();
     this->isHemiRegion = dc->isHemiRegion(0);
 
@@ -3501,7 +3603,7 @@ class MetaCovTest : public ModelFitter {
     if (nSample < 0) {  // unitialized
       // calculate variance of y
       nSample = genotype.rows;
-      weight.Dimension(nSample);
+      // weight.Dimension(nSample);
     }
     if (nSample != genotype.rows) {
       fprintf(stderr, "Sample size changed at [ %s:%s ]",
@@ -3510,7 +3612,83 @@ class MetaCovTest : public ModelFitter {
       return -1;
     }
 
-    // set weight
+    loci.pos.chrom = siteInfo["CHROM"];
+    loci.pos.pos = atoi(siteInfo["POS"]);
+
+    if ((siteInfo["REF"]).size() != 1 ||
+        (siteInfo["ALT"]).size() != 1) {  // not snp
+      fitOK = false;
+      return -1;
+    }
+
+    // assign loci.geno, and
+    // check if this is a monomorphic site, if so, just skip it.
+    // skip monomorphic sites
+    if (isMonomorphicMarker(genotype, 0)) {
+      fitOK = false;
+      return -1;
+    }
+
+    // double sum =0.;
+    // for (int i = 0; i < nSample; ++i) {
+    //   sum += genotype[i][0];
+    // }
+    // double avg = sum / nSample;
+
+    // // fprintf(stderr, "avg = %g\n", avg);
+    // for (int i = 0; i < nSample; ++i) {
+    //   loci.geno[i] = genotype[i][0]  - avg;
+    // }
+
+    // fit null model
+    if (isHemiRegion) {
+      model = modelX;
+      if (!model) {
+        model = modelX = createModel(this->useFamilyModel, isBinaryOutcome());
+        model->hemiRegion = true;
+      }
+    } else {
+      model = modelAuto;
+      if (!model) {
+        model = modelAuto =
+            createModel(this->useFamilyModel, isBinaryOutcome());
+        model->hemiRegion = false;
+      }
+    }
+    if (!model) return -1;
+
+    if (model->needToFitNullModel || dc->isPhenotypeUpdated() ||
+        dc->isCovariateUpdated()) {
+      // copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+      fitOK = (0 == model->FitNullModel(genotype, dc));
+      if (!fitOK) return -1;
+      model->needToFitNullModel = false;
+    }
+
+    // assign genotype to loci.geno
+    loci.geno.resize(nSample);
+    for (int i = 0; i < nSample; ++i) {
+      loci.geno[i] = genotype[i][0];
+    }
+    model->transformGenotype(&loci.geno, dc);
+    model->calculateXZ(loci.geno, &loci.covXZ);
+    model->calculateZZ(&this->covZZ);
+    CholeskyInverseMatrix(this->covZZ, &this->covZZInv);
+
+#if 0    
+    // Calculate weight and covariance XZ, ZZ (X: geno, Z: covariate)
+    // 
+    // For weight:
+    // fam qtl:         sigma2_g * lambda + sigma2_e
+    // unrel qtl:       1/sigma2
+    // fam bin:         b^2 * (sigma2_g * lambda + sigma2_e)
+    // unrel bin:       y * (1 - y)
+    // 
+    // For covXZ, covZZ
+    // fam qtl:         X
+    // unrel qtl:       
+    // fam bin:         
+    // unrel bin:       
     if (!isBinaryOutcome()) {  // qtl
       if (useFamilyModel) {
         if (!isHemiRegion) {  // autosomal
@@ -3548,7 +3726,7 @@ class MetaCovTest : public ModelFitter {
             needToFitNullModelForX = false;
             // get weight
             metaCovForX.GetWeight(&this->weight);
-            metaCovForAuto.GetCovZZ(&this->covZVZ);
+            metaCovForX.GetCovZZ(&this->covZVZ);
           }
         }
       } else {  // unrelated individuals (not family model)
@@ -3607,29 +3785,9 @@ class MetaCovTest : public ModelFitter {
         }
       }
     }
-    loci.pos.chrom = siteInfo["CHROM"];
-    loci.pos.pos = atoi(siteInfo["POS"]);
+#endif
 
-    if ((siteInfo["REF"]).size() != 1 ||
-        (siteInfo["ALT"]).size() != 1) {  // not snp
-      fitOK = false;
-      return -1;
-    }
-
-    // assign loci.geno, and
-    // check if this is a monomorphic site, if so, just skip it.
-    loci.geno.resize(nSample);
-    double g0 = genotype[0][0];
-    bool isVarint = false;
-    for (int i = 0; i < nSample; ++i) {
-      loci.geno[i] = genotype[i][0];
-      if (loci.geno[i] != g0) isVarint = true;
-    }
-    if (!isVarint) {
-      fitOK = false;
-      return -1;
-    }
-
+#if 0
     if (!isBinaryOutcome()) {
       if (useFamilyModel) {
         if (!isHemiRegion) {
@@ -3658,8 +3816,9 @@ class MetaCovTest : public ModelFitter {
       abort();
 #endif
     }
+#endif
     fitOK = true;
-    return (fitOK ? 0 : -1);
+    return 0;
   }  // fitWithGivenGenotype
 
   // write result header
@@ -3674,11 +3833,12 @@ class MetaCovTest : public ModelFitter {
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     this->fout = fp;
     while (queue.size() && getWindowSize(queue, loci) > windowSize) {
-      if (isBinaryOutcome()) {
-        printCovarianceForBinaryTrait(fout, queue);
-      } else {
-        printCovariance(fout, queue);
-      }
+      // if (isBinaryOutcome()) {
+      //   printCovarianceForBinaryTrait(fout, queue);
+      // } else {
+      //   printCovariance(fout, queue);
+      // }
+      printCovariance(fout, queue, isBinaryOutcome());
       queue.pop_front();
     }
     if (fitOK) {
@@ -3689,6 +3849,7 @@ class MetaCovTest : public ModelFitter {
   }
 
  private:
+#if 0  
   /**
    * @return \sum g1 * g2 - \sum(g1) * \sum(g2)/n
    * NOTE: we already centered g1, g2, so the above reduced to
@@ -3706,6 +3867,7 @@ class MetaCovTest : public ModelFitter {
 
     return cov_ij;
   }
+
 
   /**
    * @return g1^T * weight * g2
@@ -3731,7 +3893,7 @@ class MetaCovTest : public ModelFitter {
     }
     return sum;
   }
-
+#endif
   /**
    * @return max integer if different chromosome; or return difference between
    * head and tail locus.
@@ -3750,65 +3912,129 @@ class MetaCovTest : public ModelFitter {
       return abs(tail.pos.pos - head.pos.pos);
     }
   }
+  double computeQuadraticForm(const std::vector<double>& a, Matrix& X,
+                              const std::vector<double>& b) {
+    const int n = X.rows;
+    double s = 0.;
+    for (int i = 0; i < n; ++i) {
+      for (int j = 0; j < i; ++j) {
+        s += 2.0 * a[i] * X[i][j] * b[j];
+      }
+      s += a[i] * a[i];
+    }
+    return s;
+  }
+  double computeScaledXX(const double covX1X2,
+                         const std::vector<double>& covX1Z,
+                         const std::vector<double>& covX2Z, Matrix& covZZInv) {
+    double ret = covX1X2;
+    ret -= computeQuadraticForm(covX1Z, covZZInv, covX2Z);
+    // fprintf(stderr, "%d: ret = %g\n", __LINE__, ret);
+    ret /= nSample;  // divide n is by convention, no particular meaning.
+    // fprintf(stderr, "ret = %g\n", ret);
+    return ret;
+  }
   /**
    * @return 0
    * print the covariance for the front of loci to the rest of loci
    */
-  int printCovariance(FileWriter* fp, const std::deque<Loci>& lociQueue) {
+  int printCovariance(FileWriter* fp, const std::deque<Loci>& lociQueue,
+                      bool binaryOutcome) {
     std::deque<Loci>::const_iterator iter = lociQueue.begin();
-    position.resize(lociQueue.size());
-    covXX.resize(lociQueue.size());
-    covXZ.resize(this->cov.cols);
 
-    int idx = 0;
-    for (; iter != lociQueue.end(); ++iter) {
+    const size_t numMarker = lociQueue.size();
+    position.resize(numMarker);
+    this->covXX.resize(numMarker);
+    double covX1X2;
+    for (int idx = 0; iter != lociQueue.end(); ++iter, ++idx) {
       position[idx] = iter->pos.pos;
       // covXX[idx] = getCovariance(lociQueue.front().geno, iter->geno) * this->
       // mleVarY;
-      covXX[idx] = getCovariance(lociQueue.front().geno, iter->geno);
-      idx++;
+      model->calculateXX(lociQueue.front().geno, iter->geno, &covX1X2);
+      this->covXX[idx] = computeScaledXX(covX1X2, lociQueue.front().covXZ,
+                                         iter->covXZ, this->covZZInv);
     }
-    if (outputGwama) {
-      for (int i = 0; i < this->cov.cols; ++i) {
-        covXZ[i] =
-            getCovarianceForBinaryTrait(lociQueue.front().geno, this->cov, i);
-      }
-    }
+    // if (outputGwama || binaryOutcome) {
+    //   // covXZ.resize(this->cov.cols);
+    //   // for (int i = 0; i < this->cov.cols; ++i) {
+    //   //   covXZ[i] =
+    //   //       getCovarianceForBinaryTrait(lociQueue.front().geno, this->cov,
+    //   //       i);
+    //   // }
+    //   model->calculateXZ(lociQueue.front().geno);
+    //   // model->calculateZZ();
+    // }
 
     result.updateValue("CHROM", lociQueue.front().pos.chrom);
     result.updateValue("START_POS", lociQueue.front().pos.pos);
     result.updateValue("END_POS", lociQueue.back().pos.pos);
-    result.updateValue("NUM_MARKER", idx);
-    std::string s;
-    for (int i = 0; i < idx; ++i) {
-      if (i) s += ',';
-      s += toString(position[i]);
-    }
+    result.updateValue("NUM_MARKER", (int)numMarker);
+
+    static std::string s;
+    s.resize(0);
+
+    // for (int i = 0; i < idx; ++i) {
+    //   if (i) s += ',';
+    //   s += toString(position[i]);
+    // }
+    appendToString(position, &s);
     result.updateValue("MARKER_POS", s);
 
     s.clear();
-    for (int i = 0; i < idx; ++i) {
-      if (i) s += ',';
-      s += floatToString(covXX[i]);
-    }
-    if (outputGwama) {
+    // for (int i = 0; i < idx; ++i) {
+    //   if (i) s += ',';
+    //   s += floatToString(covXX[i]);
+    // }
+    appendToString(this->covXX, &s);
+    if (outputGwama || binaryOutcome) {
       s += ':';
-      for (int i = 0; i < this->cov.cols; ++i) {
-        if (i) s += ',';
-        s += floatToString(covXZ[i]);
-      }
+      appendToString(lociQueue.front().covXZ, &s);
+      // for (int i = 0; i < this->cov.cols; ++i) {
+      //   if (i) s += ',';
+      //   s += floatToString(covXZ[i]);
+      // }
+
       s += ':';
-      for (int i = 0; i < this->covZVZ.rows; ++i) {
-        for (int j = 0; j <= i; ++j) {
-          if (i || j) s += ',';
-          s += floatToString(this->covZVZ[i][j]);
-        }
-      }
+      // for (int i = 0; i < this->covZVZ.rows; ++i) {
+      //   for (int j = 0; j <= i; ++j) {
+      //     if (i || j) s += ',';
+      //     s += floatToString(this->covZVZ[i][j]);
+      //   }
+      // }
+      appendToString(this->covZZ, &s);
     }
     result.updateValue("COV", s);
     result.writeValueLine(fp);
     return 0;
   }
+  void appendToString(const std::vector<int>& position, std::string* out) {
+    std::string& s = *out;
+    for (size_t i = 0; i < position.size(); ++i) {
+      if (i) s += ',';
+      s += toString(position[i]);
+    }
+  }
+  void appendToString(const std::vector<double>& vec, std::string* out) {
+    std::string& s = *out;
+    for (size_t i = 0; i < vec.size(); ++i) {
+      if (i) s += ',';
+      s += toString(vec[i]);
+    }
+  }
+  void appendToString(Matrix& mat, std::string* out) {
+    if (mat.cols != mat.rows) {
+      fprintf(stderr, "only square matrix is supported!\n");
+    }
+    std::string& s = *out;
+    for (int i = 0; i < mat.rows; ++i) {
+      for (int j = 0; j <= i; ++j) {
+        if (i || j) s += ',';
+        s += floatToString(mat[i][j]);
+      }
+    }
+  }
+
+#if 0  
   /**
    * @return 0
    * print the covariance for the front of loci to the rest of loci
@@ -3865,6 +4091,8 @@ class MetaCovTest : public ModelFitter {
     result.writeValueLine(fp);
     return 0;
   }
+#endif
+#if 0  
   void calculateUnrelZVZ(Matrix& cov, double sigma2, Matrix* covZVZ) {
     Matrix& zz = *covZVZ;
 
@@ -3880,8 +4108,355 @@ class MetaCovTest : public ModelFitter {
       zz.Zero();
     }
   }
+#endif
+ private:
+  class MetaCovBase {
+   public:
+    MetaCovBase() : needToFitNullModel(true) {}
+    virtual ~MetaCovBase() {}
+    virtual int FitNullModel(Matrix& genotype, DataConsolidator* dc) = 0;
+    virtual int transformGenotype(Genotype* out, DataConsolidator* dc) = 0;
+    virtual int calculateXX(const Genotype& x1, const Genotype& x2,
+                            double* covXX) = 0;
+    virtual int calculateXZ(const Genotype& x, std::vector<double>* covXZ) = 0;
+    virtual int calculateZZ(Matrix* covZZ) = 0;
+    bool needToFitNullModel;
+    bool hemiRegion;
+
+    // double covXX;               // store cov of (x0, x0), (x0, x1), (x0,
+    // x2)...
+    // std::vector<double> covXZ;  // store cov of (x, z0), (x, z1), ...
+    // Matrix covZZ;
+
+   protected:
+    Matrix cov;
+  };
+  class MetaCovFamQtl : public MetaCovBase {
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
+      bool fitOK;
+      if (!hemiRegion) {
+        fitOK = (0 ==
+                 metaCov.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                      *dc->getKinshipSForAuto()));
+        this->U = dc->getKinshipUForAuto();
+        this->S = dc->getKinshipSForAuto();
+      } else {
+        fitOK = (0 ==
+                 metaCov.FitNullModel(cov, phenotype, *dc->getKinshipUForX(),
+                                      *dc->getKinshipSForX()));
+        this->U = dc->getKinshipUForX();
+        this->S = dc->getKinshipSForX();
+      }
+      if (fitOK) {
+        needToFitNullModel = false;
+        return 0;
+      }
+      return -1;
+    }
+    int transformGenotype(Genotype* out, DataConsolidator* dc) {
+      if (!hemiRegion) {
+        metaCov.TransformCentered(out, *dc->getKinshipUForAuto(),
+                                  *dc->getKinshipSForAuto());
+      } else {
+        metaCov.TransformCentered(out, *dc->getKinshipUForX(),
+                                  *dc->getKinshipSForX());
+      }
+      return 0;
+    }
+    int calculateXX(const Genotype& g1, const Genotype& g2, double* covXX) {
+      // const int nSample = g1.size();
+      metaCov.GetCovXX(g1, g2, *U, *S, covXX);
+      // (*covXX) /= nSample;
+      return 0;
+    }
+    int calculateXZ(const Genotype& g, std::vector<double>* covXZ) {
+      metaCov.GetCovXZ(g, *U, *S, covXZ);
+      return 0;
+    }
+    int calculateZZ(Matrix* covZZ) {
+      metaCov.GetCovZZ(covZZ);
+      return 0;
+    }
+
+   private:
+    const EigenMatrix* U;
+    const EigenMatrix* S;
+    MetaCov metaCov;
+  };  // class MetaCovFamQtl
+  class MetaCovUnrelatedQtl : public MetaCovBase {
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
+      const int nSample = genotype.rows;
+      double s = 0;
+      double s2 = 0;
+      for (int i = 0; i < nSample; ++i) {
+        s += phenotype[i][0];
+        s2 += phenotype[i][0] * phenotype[i][0];
+      }
+      this->sigma2 = (s2 - s * s / nSample) / nSample;
+      // fprintf(stderr, "sigma2 = %g\n", sigma2);
+
+      // if (sigma2 != 0) {
+      //   for (int i = 0; i < nSample; ++i) {
+      //     weight[i] = 1.0 / sigma2;  // mleVarY
+      //   }
+      // } else {
+      //   fprintf(stderr, "sigma2 = 0.0 for the phenotype!\n");
+      //   for (int i = 0; i < nSample; ++i) {
+      //     weight[i] = 1.0;
+      //   }
+      // }
+
+      return 0;
+    }
+    int transformGenotype(Genotype* out, DataConsolidator* dc) {
+      if (out->empty()) {
+        return 0.;
+      }
+
+      double sum = 0.0;
+      for (size_t i = 0; i < out->size(); ++i) {
+        sum += out->at(i);
+      }
+      const double avg = sum / out->size();
+      for (size_t i = 0; i < out->size(); ++i) {
+        (*out)[i] -= avg;
+      }
+      return 0;
+    }
+    int calculateXX(const Genotype& x1, const Genotype& x2, double* covXX) {
+      const int n = x1.size();
+      if (n == 0) return 0.0;
+
+      double sum_ij = 0.0;           // sum of genotype[,i]*genotype[,j]
+      for (int c = 0; c < n; ++c) {  // iterator each people
+        // fprintf(using namespace std;err, "weight[%d] = %g\n", (int)c,
+        // weight[int(c)]);
+        // sum_ij += w1[c] * w2[c] / this->weight[(int)c];
+        sum_ij += x1[c] * x2[c];
+      }
+      *covXX = sum_ij / this->sigma2;  //  / n;
+      return 0;
+    }
+    int calculateXZ(const Genotype& x, std::vector<double>* covXZ) {
+      const int nc = this->cov.cols;
+      (*covXZ).resize(nc);
+
+      double sum = 0.0;
+      const int n = x.size();
+      if (n == 0) return 0;
+
+      for (int c = 0; c < nc; ++c) {
+        sum = 0.0;
+        for (int i = 0; i < n; ++i) {
+          sum += x[i] * cov[i][c];
+        }
+        (*covXZ)[c] = sum / this->sigma2;
+      }
+      return 0;
+    }
+    int calculateZZ(Matrix* covZZ) {
+      Matrix c;
+      c = cov;
+      centerMatrix(&c);
+      Matrix ct;
+      ct.Transpose(c);
+      covZZ->Product(ct, c);
+      covZZ->Multiply(1.0 / this->sigma2);
+      return 0;
+    }
+
+   private:
+    double sigma2;
+  };  // end MetaCovUnrelatedQtl
+  class MetaCovFamBinary : public MetaCovBase {
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
+      // calculate alpha, b
+      int nCase = 0;
+      int nCtrl = 0;
+      for (int i = 0; i < phenotype.rows; ++i) {
+        if (phenotype[i][0] == 1) {
+          ++nCase;
+        } else if (phenotype[i][0] == 0) {
+          ++nCtrl;
+        }
+      }
+      if (nCtrl > 0) {
+        alpha = log(1.0 * nCase / nCtrl);
+      } else {
+        alpha = 500.;
+      }
+      calculateB();
+
+      bool fitOK;
+      if (!hemiRegion) {
+        fitOK = (0 ==
+                 metaCov.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                      *dc->getKinshipSForAuto()));
+        this->U = dc->getKinshipUForAuto();
+        this->S = dc->getKinshipSForAuto();
+      } else {
+        fitOK = (0 ==
+                 metaCov.FitNullModel(cov, phenotype, *dc->getKinshipUForX(),
+                                      *dc->getKinshipSForX()));
+        this->U = dc->getKinshipUForX();
+        this->S = dc->getKinshipSForX();
+      }
+      if (fitOK) {
+        needToFitNullModel = false;
+        return 0;
+      }
+      return -1;
+    }
+    int transformGenotype(Genotype* out, DataConsolidator* dc) {
+      if (!hemiRegion) {
+        metaCov.TransformCentered(out, *dc->getKinshipUForAuto(),
+                                  *dc->getKinshipSForAuto());
+      } else {
+        metaCov.TransformCentered(out, *dc->getKinshipUForX(),
+                                  *dc->getKinshipSForX());
+      }
+      return 0;
+    }
+
+    int calculateXX(const Genotype& g1, const Genotype& g2, double* covXX) {
+      metaCov.GetCovXX(g1, g2, *U, *S, covXX);
+      (*covXX) *= b * b;
+      return 0;
+    }
+    int calculateXZ(const Genotype& g, std::vector<double>* covXZ) {
+      metaCov.GetCovXZ(g, *U, *S, covXZ);
+      const int n = covXZ->size();
+      for (int i = 0; i < n; ++i) {
+        (*covXZ)[i] *= b * b;
+      }
+      return 0;
+    }
+    int calculateZZ(Matrix* covZZ) {
+      metaCov.GetCovZZ(covZZ);
+      covZZ->Multiply(b * b);
+      return 0;
+    }
+
+   private:
+    void calculateB();
+
+   private:
+    double alpha;
+    double b;
+
+   private:
+    const EigenMatrix* U;
+    const EigenMatrix* S;
+    MetaCov metaCov;
+  };
+  class MetaCovUnrelatedBinary : public MetaCovBase {
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+      copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
+      bool fitOK;
+      if (this->needToFitNullModel || dc->isPhenotypeUpdated() ||
+          dc->isCovariateUpdated()) {
+        copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+        // copyPhenotype(phenotype, &this->pheno);
+        fitOK = logistic.FitLogisticModel(cov, phenotype, 100);
+        if (!fitOK) return -1;
+        needToFitNullModel = false;
+
+        Vector& y = logistic.GetPredicted();
+        this->nSample = y.Length();
+        this->weight = logistic.GetVariance();
+        // logistic.CalculateScaledWeight(weight, cov, &this->scaledWeight);
+      }
+
+      return 0;
+    }
+    int transformGenotype(Genotype* out, DataConsolidator* dc) { return 0; }
+
+    int calculateXX(const Genotype& x1, const Genotype& x2, double* covX1X2) {
+      double& covXX = *covX1X2;
+      covXX = 0.0;
+      for (int i = 0; i < nSample; ++i) {
+        for (int j = 0; j < i; ++j) {
+          covXX += 2.0 * x1[i] * this->weight[i] * x2[j];
+        }
+        covXX += x1[i] * this->weight[i] * x2[i];
+      }
+      // covXX /= x1.size();
+      return 0;
+    }
+    int calculateXZ(const Genotype& x, std::vector<double>* covXZ) {
+      const int nCov = cov.cols;
+      (*covXZ).resize(nCov);
+      for (int c = 0; c < nCov; ++c) {
+        double s = 0.;
+        for (int i = 0; i < nSample; ++i) {
+          s += x[i] * weight[i] * cov[i][c];
+        }
+        (*covXZ)[c] = s;
+      }
+      return 0;
+    }
+    int calculateZZ(Matrix* argCovZZ) {
+      Matrix& covZZ = *argCovZZ;
+      const int nCov = cov.cols;
+      covZZ.Dimension(nCov, nCov);
+      for (int i = 0; i < nCov; ++i) {
+        for (int j = 0; j <= i; ++j) {
+          covZZ[i][j] = 0.0;
+          for (int k = 0; k < nSample; ++k) {
+            covZZ[i][j] += cov[i][k] * weight[k] * cov[k][j];
+          }
+          if (j != i) {
+            covZZ[j][i] = covZZ[i][j];
+          }
+        }
+      }
+      return 0;
+    }
+
+   private:
+    int nSample;
+    // Vector pheno;
+    LogisticRegression logistic;
+    Vector weight;
+    Matrix scaledWeight;
+  };  // end class MetaCovUnrelatedBinary
+
+  MetaCovBase* createModel(bool familyModel, bool binaryOutcome) {
+    if (familyModel && !binaryOutcome) {
+      return new MetaCovFamQtl;
+    }
+    if (familyModel && binaryOutcome) {
+      return new MetaCovFamBinary;
+    }
+    if (!familyModel && !binaryOutcome) {
+      return new MetaCovUnrelatedQtl;
+    }
+    if (!familyModel && binaryOutcome) {
+      return new MetaCovUnrelatedBinary;
+    }
+    return NULL;
+  }
 
  private:
+  MetaCovBase* model;
+  MetaCovBase* modelAuto;
+  MetaCovBase* modelX;
+
   std::deque<Loci> queue;
   int numVariant;
   int nSample;
@@ -3890,21 +4465,26 @@ class MetaCovTest : public ModelFitter {
   int windowSize;
   Loci loci;
   bool fitOK;
-  // Result result;
+// Result result;
+#if 0
   MetaCov metaCovForAuto;
   MetaCov metaCovForX;
   bool needToFitNullModelForAuto;
   bool needToFitNullModelForX;
-  bool useFamilyModel;
   Vector weight;  // per individual weight
   LogisticRegression logistic;
-  Matrix cov;
-  Vector pheno;
-  bool isHemiRegion;  // is the variant tested in hemi region
-  std::vector<int> position;
   std::vector<double> covXX;
   std::vector<double> covXZ;
   Matrix covZVZ;
+  Vector pheno;
+#endif
+  std::vector<double> covXX;
+  Matrix covZZ;
+  Matrix covZZInv;
+  bool useFamilyModel;
+  Matrix cov;
+  bool isHemiRegion;  // is the variant tested in hemi region
+  std::vector<int> position;
   bool outputGwama;
 };  // MetaCovTest
 

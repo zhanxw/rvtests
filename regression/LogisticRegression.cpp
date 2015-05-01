@@ -343,3 +343,27 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& y, int nrrounds) {
 
   return true;
 }
+
+// result = W - (W Z)*(Z' W Z)^(-1) * (Z' W)
+int LogisticRegression::CalculateScaledWeight(Vector& w, Matrix& cov, Matrix* result) {
+  int n = w.Length();
+
+  Eigen::VectorXf W;
+  Eigen::MatrixXf Z;
+  // Eigen::MatrixXf W;
+  G_to_Eigen(w, &W);
+  G_to_Eigen(cov, &Z);
+  // W = Wvec.asDiagonal();
+  
+  Eigen::MatrixXf res;
+  Eigen::MatrixXf zwz;
+  zwz.noalias() = (Z.transpose() * W.asDiagonal() * Z).eval().ldlt().solve(Eigen::MatrixXf::Identity(n, n));
+  Eigen::MatrixXf wz;
+  wz.noalias() = W.asDiagonal() * Z;
+  
+  //res = W - (W *Z) * tmp * Z.transpose() * W;
+  res = - wz * zwz * wz.transpose();
+  res.diagonal() += W;
+  Eigen_to_G(res, result);
+  return 0;
+}

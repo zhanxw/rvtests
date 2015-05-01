@@ -60,13 +60,24 @@ class FastLMM {
   // get scaled factors
   double GetSigmaK();
   double GetSigma1();
-  // get covariance
+  // get covariance. Z: covariates, Y: response, X: genotype
   void GetCovZY(Matrix* zy);  // Cov(YZ) = Y' Simga^{-1} Z
   void GetCovZZ(Matrix* zz);  // Cov(ZZ) = Z' Simga^{-1} Z
+  // NOTE: here assume @param g1 and @param g2 is transformed. e.g. U' * g
+  void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
+                const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                double* out);
+  // NOTE: here assume @param g is transformed. e.g. U' * g
+  void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS, std::vector<double>* out);
   // transform genotype (e.g. in MetaCov)
   // x <- U' * ( x - center(x) )
   int TransformCentered(std::vector<double>* x, const EigenMatrix& kinshipU,
                         const EigenMatrix& kinshipS);
+  // transform genotype (e.g. in MetaCov)
+  // x <- U' * x
+  int Transform(std::vector<double>* x, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS);
   // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
   int GetWeight(Vector* out) const;
 };

@@ -15,8 +15,22 @@ class MetaCov::Impl {
     return lmm.TransformCentered(geno, kinshipU, kinshipS);
   }
 
-  int GetWeight(Vector* out) const { return lmm.GetWeight(out); }
+  // U' * x
+  int Transform(std::vector<double>* geno, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS) {
+    return lmm.Transform(geno, kinshipU, kinshipS);
+  }
 
+  int GetWeight(Vector* out) const { return lmm.GetWeight(out); }
+  void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
+                const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                double* out) {
+    return lmm.GetCovXX(g1, g2, kinshipU, kinshipS, out);
+  }
+  void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS, std::vector<double>* out) {
+    return lmm.GetCovXZ(g, kinshipU, kinshipS, out);
+  }
   void GetCovZZ(Matrix* zz) { return lmm.GetCovZZ(zz); }
 
  private:
@@ -42,6 +56,24 @@ int MetaCov::TransformCentered(std::vector<double>* x,
   return this->impl->TransformCentered(x, kinshipU, kinshipS);
 }
 
+int MetaCov::Transform(std::vector<double>* x, const EigenMatrix& kinshipU,
+                       const EigenMatrix& kinshipS) {
+  return this->impl->Transform(x, kinshipU, kinshipS);
+}
+
 int MetaCov::GetWeight(Vector* out) { return this->impl->GetWeight(out); }
+
+void MetaCov::GetCovXX(const std::vector<double>& g1,
+                       const std::vector<double>& g2,
+                       const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                       double* out) {
+  return this->impl->GetCovXX(g1, g2, kinshipU, kinshipS, out);
+}
+
+void MetaCov::GetCovXZ(const std::vector<double>& g,
+                       const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                       std::vector<double>* out) {
+  return this->impl->GetCovXZ(g, kinshipU, kinshipS, out);
+}
 
 void MetaCov::GetCovZZ(Matrix* zz) { this->impl->GetCovZZ(zz); }

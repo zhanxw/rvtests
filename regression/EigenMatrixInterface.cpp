@@ -1,5 +1,7 @@
 #include "EigenMatrixInterface.h"
 
+#include <Eigen/Cholesky>
+
 void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* _EigenM) {
   Eigen::MatrixXf& EigenM = *_EigenM;
   EigenM.resize(GM.rows, GM.cols);
@@ -88,4 +90,14 @@ void cbind_G_to_Eigen(Matrix& GM1, Matrix& GM2, Eigen::MatrixXd* EigenM) {
       m(i, j + GM1.cols) = GM2[i][j];
     }
   }
+}
+
+void CholeskyInverseMatrix(Matrix& in, Matrix* out) {
+  if (in.rows != in.cols) return;
+
+  const int n = in.rows;
+  Eigen::MatrixXf x, res;
+  G_to_Eigen(in, &x);
+  res = x.ldlt().solve(Eigen::MatrixXf::Identity(n, n));
+  Eigen_to_G(res, out);
 }

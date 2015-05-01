@@ -3,6 +3,8 @@
 #include "Model.h"
 #include "ModelParser.h"
 
+#include "regression/GSLIntegration.h"
+
 //////////////////////////////////////////////////////////////////////
 // Implementation of various collpasing methods
 /**
@@ -283,6 +285,38 @@ void makeVariableThreshodlGenotype(
     (*collapseFunc)(in, cols, out, idx);
     ++idx;
   }
+}
+
+double fIntegrand(double x, void* param) {
+  if (x > 500 || x < -500) return 0.0;
+  const double alpha = * ((double*) param);
+  const double tmp = exp(alpha + x);
+  const double k = 1.0 / sqrt(2.0 * 3.1415926535897);
+  const double ret = tmp / (1. + tmp) / (1. + tmp) * k * exp(- x * x * 0.5);
+  // fprintf(stderr, "alpha = %g\tx = %g\t ret = %g\n", alpha, x, ret);
+  return ret;
+}
+
+int obtainB(double alpha, double* out) {
+  Integration i;
+  gsl_function F;
+  F.function = &fIntegrand;
+  F.params = &alpha;
+  if (i.integrate(F)) {
+    fprintf(stderr, "Calculation of b may be inaccurate.\n");
+    return -1;
+  }
+  *out = i.getResult();
+  return 0;
+}
+
+void MetaScoreTest::MetaFamBinary::calculateB() {
+  obtainB(this->alpha, &this->b);
+  return;
+}
+void MetaCovTest::MetaCovFamBinary::calculateB() {
+  obtainB(this->alpha, &this->b);
+  return;
 }
 
 #if 0

@@ -20,4 +20,6 @@ void G_to_Eigen(Matrix& GM, Eigen::MatrixXd* EigenM);
 // EigenM = cbind( GM1, GM2 )
 void cbind_G_to_Eigen(Matrix& GM1, Matrix& GM2, Eigen::MatrixXf* EigenM);
 
+void CholeskyInverseMatrix(Matrix& in, Matrix* out);
+
 #endif /* _EIGENMATRIXINTERFACE_H_ */

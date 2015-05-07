@@ -35,6 +35,10 @@ samtools: samtools-0.1.19.tar.bz2
 	ln -s -f samtools-0.1.19 samtools
 	(cd samtools; make lib-recur)
 
+nlopt: nlopt-2.4.2.tar.gz
+	tar zvxf $<
+	-(DIR=`pwd`; cd nlopt-2.4.2; ./configure --prefix="$${DIR}"/nlopt; make -j; make install)
+
 ######################################################################
 # download sources
 UNAME_S := $(shell uname -s)
@@ -60,6 +64,9 @@ gsl-1.16.tar.gz:
 bzip2-1.0.6.tar.gz:
 	echo "obtain Bzip2 library"
 	$(call DOWNLOAD,http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz)
+nlopt-2.4.2.tar.gz:
+	echo "obtain nlopt library"
+	$(call DOWNLOAD,http://ab-initio.mit.edu/nlopt/nlopt-2.4.2.tar.gz)
 clean:
 	-rm -rf $(LIB)
 deepclean:

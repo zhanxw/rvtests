@@ -278,7 +278,9 @@ class DataConsolidator {
       if (sex > 0 && (*this->sex)[i] != sex) {
         continue;
       }
-      if (phenotype > 0 && (int)(this->phenotype[i][0]) != phenotype) {
+      // + 1: PLINK use 1 and 2 as ctrl and case, but
+      // internally, we use 0 and 1. 
+      if (phenotype > 0 && (int)(this->phenotype[i][0] + 1) != phenotype) {
         continue;
       }
 

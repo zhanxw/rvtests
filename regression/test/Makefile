@@ -8,7 +8,8 @@ EXE = testGSLIntegration \
       testFirthRegression \
       testLogisticVT \
       testLinearVT \
-      testMultivariateNormalDistribution
+      testMultivariateNormalDistribution \
+      testLMM
 
 all: $(EXE)
 debug: $(EXE)
@@ -19,6 +20,7 @@ CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I..
             ../../third/tabix/libtabix.a \
             ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
             ../../third/gsl/lib/libgsl.a \
+            ../../third/nlopt/lib/libnlopt.a \
             -lz -lbz2 
 
 define BUILD_each

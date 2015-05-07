@@ -459,8 +459,14 @@ bool isBinaryPhenotype(const std::vector<double>& phenotype) {
         return false;
     }
   }
-  logger->info("Loaded %d case, %d control, and %d missing phenotypes.", nCase,
+  logger->info("Loaded %d cases, %d controls, and %d missing phenotypes.", nCase,
                nControl, nMissing);
+  if (nCase == 0) {
+    logger->warn("There are no case!");
+  }
+  if (nControl == 0) {
+    logger->warn("There are no control!");
+  }
   return true;
 }
 

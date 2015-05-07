@@ -36,7 +36,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: March 2015)
+(Updated: May 2015)
 
 # Introduction
 
@@ -271,9 +271,9 @@ Covariance           |  cov        | Q  |     Y      |         R, U           | 
 
 (##) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
 
-The above models are suitable to generate summary statistics which can be later meta-analyzed (see Djiang Liu (2014) Nature Genetics).
-Rvtests implemented the above method and the results can be further analyzed in RareMetals [link](http: //genome. sph. umich. edu/wiki/RareMETALS).
-It also worth to mention that our group offered another toolset for meta-analysis [link](http://genome.sph.umich.edu/wiki/Rare-Metal).
+The above models are suitable to generate summary statistics which can be later meta-analyzed (see [Djiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html)).
+Rvtests implemented the above method and the results can be further analyzed in RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)).
+It also worth to mention that our group offered another toolset for meta-analysis ([link](http://genome.sph.umich.edu/wiki/Rare-Metal)).
 
 ## Utility models
 
@@ -417,7 +417,7 @@ In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1
 
 *Genotype in the regression model*. For consistencmaine, male genotypes are converted to 0 or 2.
 
-*MetaScore results*. If specify `--meta score`, the output file `prefix.MetaScore.assoc` includes PAR-region and non-PAR region analysis. 
+*MetaScore results*. If specify `--meta score`, the output file `prefix.MetaScore.assoc.gz` includes PAR-region and non-PAR region analysis. 
 But in the non-PAR region, the difference is that Hardy-Weinberg P-value are calculated using female samples.
 
 *Related individuals*. Just append `--xHemi` to the `vcf2kinship` (more details in [Kinship generation](#kinship-generation)) and `rvtest` command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.

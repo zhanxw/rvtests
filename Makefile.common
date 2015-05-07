@@ -17,14 +17,17 @@ GSL_LIB = $(ROOT)/third/gsl/lib/libgsl.a
 BZIP2_INC = $(ROOT)/third/bzip2
 BZIP2_LIB = $(ROOT)/third/bzip2/libbz2.a
 
+NLOPT_INC = $(ROOT)/third/nlopt/include
+NLOPT_LIB = $(ROOT)/third/nlopt/lib/libnlopt.a
+
 BCF_INC = $(ROOT)/third/samtools/bcftools
 BCF_LIB = $(ROOT)/third/samtools/bcftools/libbcf.a
 
 SAMTOOLS_INC = $(ROOT)/third/samtools
 SAMTOOLS_LIB = $(ROOT)/third/samtools/libbam.a
 
-THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(BZIP2_INC)
-THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(BZIP2_LIB)
+THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(BZIP2_INC) $(NLOPT_INC)
+THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(BZIP2_LIB) $(NLOPT_LIB)
 ##################################################
 ## Our libs.
 BASE_INC = $(ROOT)/base

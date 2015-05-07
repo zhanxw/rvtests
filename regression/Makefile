@@ -7,6 +7,7 @@ BASE = LogisticRegression \
        LinearRegression \
        LinearRegressionScoreTest \
        LinearRegressionPermutationTest \
+       LMM \
        kbac_interface kbac \
        Skat qfc MixtureChiSquare \
        Table2by2 \
@@ -37,6 +38,7 @@ $(EIGEN_INC) $(EIGEN_LIB):
 	(cd ../third; $(MAKE) eigen)
 
 GSL_INC = ../third/gsl/include
+NLOPT_INC = ../third/nlopt/include
 
 MVTNORM_OBJ = libMvtnorm/mvtnorm.o libMvtnorm/mvt.o libMvtnorm/randomF77.o
 $(MVTNORM_OBJ):
@@ -60,7 +62,7 @@ define BUILD_each
   SRC := $(1).cpp
   -include  $(1).d
   $$(TAR): $$(SRC) $$(EIGEN_INC)
-	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC) -I$(NLOPT_INC)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 

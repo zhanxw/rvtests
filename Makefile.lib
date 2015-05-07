@@ -9,10 +9,10 @@ $(PCRE_INC) $(PCRE_LIB):
 	$(MAKE) -C $(ROOT)/third pcre
 $(GSL_INC) $(GSL_LIB):
 	$(MAKE) -C $(ROOT)/third gsl
-
+$(NLOPT_INC) $(NLOPT_LIB):
+	$(MAKE) -C $(ROOT)/third nlopt
 $(BZIP2_INC) $(BZIP2_LIB):
 	$(MAKE) -C $(ROOT)/third bzip2
-
 $(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
 	$(MAKE) -C $(ROOT)/third samtools
 

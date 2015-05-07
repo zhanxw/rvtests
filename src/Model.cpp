@@ -312,6 +312,7 @@ int obtainB(double alpha, double* out) {
 
 void MetaScoreTest::MetaFamBinary::calculateB() {
   obtainB(this->alpha, &this->b);
+  // fprintf(stderr, "alpha = %g, b = %g\n", alpha, b);
   return;
 }
 void MetaCovTest::MetaCovFamBinary::calculateB() {

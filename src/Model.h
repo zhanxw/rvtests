@@ -3636,17 +3636,6 @@ class MetaCovTest : public ModelFitter {
       return -1;
     }
 
-    // double sum =0.;
-    // for (int i = 0; i < nSample; ++i) {
-    //   sum += genotype[i][0];
-    // }
-    // double avg = sum / nSample;
-
-    // // fprintf(stderr, "avg = %g\n", avg);
-    // for (int i = 0; i < nSample; ++i) {
-    //   loci.geno[i] = genotype[i][0]  - avg;
-    // }
-
     // fit null model
     if (isHemiRegion) {
       model = modelX;
@@ -3764,8 +3753,6 @@ class MetaCovTest : public ModelFitter {
     double covX1X2;
     for (int idx = 0; iter != lociQueue.end(); ++iter, ++idx) {
       position[idx] = iter->pos.pos;
-      // covXX[idx] = getCovariance(lociQueue.front().geno, iter->geno) * this->
-      // mleVarY;
       model->calculateXX(lociQueue.front().geno, iter->geno, &covX1X2);
       this->covXX[idx] = computeScaledXX(covX1X2, lociQueue.front().covXZ,
                                          iter->covXZ, this->covZZInv);
@@ -3810,7 +3797,7 @@ class MetaCovTest : public ModelFitter {
     std::string& s = *out;
     for (size_t i = 0; i < vec.size(); ++i) {
       if (i) s += ',';
-      s += toString(vec[i]);
+      s += toString(vec[i] * scale);
     }
   }
   void appendToString(Matrix& mat, const double scale, std::string* out) {
@@ -3821,7 +3808,7 @@ class MetaCovTest : public ModelFitter {
     for (int i = 0; i < mat.rows; ++i) {
       for (int j = 0; j <= i; ++j) {
         if (i || j) s += ',';
-        s += floatToString(mat[i][j]);
+        s += floatToString(mat[i][j] * scale);
       }
     }
   }
@@ -3839,11 +3826,6 @@ class MetaCovTest : public ModelFitter {
     virtual int calculateZZ(Matrix* covZZ) = 0;
     bool needToFitNullModel;
     bool hemiRegion;
-
-    // double covXX;               // store cov of (x0, x0), (x0, x1), (x0,
-    // x2)...
-    // std::vector<double> covXZ;  // store cov of (x, z0), (x, z1), ...
-    // Matrix covZZ;
 
    protected:
     Matrix cov;

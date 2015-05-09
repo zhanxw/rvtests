@@ -19,7 +19,8 @@ double MixtureChiSquare::getPvalue(double Q) {
   // fprintf(stderr, "Q = %g\n", Q);
   // fprintf(stderr, "fault = %d\n", fault);
   return pValue;
-};
+}
+
 void MixtureChiSquare::dumpLambda() const {
   for (int i = 0; i < lambda_size; ++i) {
     fprintf(stderr, "lambda[%d] = %g\n", i, lambda[i]);

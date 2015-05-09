@@ -1,20 +1,15 @@
 param.true <- c(1, 1, 1)
 
 genEst <- function(param) {
-  if (FALSE) {
-    param <- c(1.11395 ,1.0358 ,2.44936)
-    param <- c(1.1817 , 1.08299 ,1.95787)
-    param <- c(1.1816980624884292, 0.90370923261676994, 3.4572070322521493)
-  }
   set.seed(12345)
 
   n <- 200
 
-  k1 <- matrix(rnorm(n*n), n, n)
-  k1 <- t(k1) %*% k1
+  k1 <- matrix(runif(n*n, 0, 1), n, n)
+  k1 <- cov2cor(t(k1) %*% k1)
 
-  k2 <- matrix(rnorm(n*n), n, n)
-  k2 <- t(k2) %*% k2
+  k2 <- matrix(runif(n*n, 0, 1), n, n)
+  k2 <- cov2cor(t(k2) %*% k2)
 
   I <- diag(rep(1, n))
 
@@ -48,21 +43,24 @@ getEst <- function(param) {
   n <- nrow(x)
   I <- diag(rep(1, n))
 
-  f <- function(param) {
+  f <- function(param, mask) {
     print(param)
-    Sigma <- param[1] * k1 + param[2] * k2 + param[3] * I
+    print(mask)
+    Sigma <- param[1] * k1 * mask[1] + param[2] * k2 * mask[2] + param[3] * I * mask[3]
     SigmaInv <- solve(Sigma)
     beta <- solve(t(Cov) %*% SigmaInv %*% Cov, t(Cov) %*% SigmaInv %*% y)
     resid <- y - Cov %*% beta
     ## llk <- -0.5 * (n*log(2*pi) + log(det(Sigma)) + t(resid) %*% SigmaInv %*% resid )
-    llk <- -0.5 * (n*log(2*pi) + sum(log(eigen(Sigma, symmetric = TRUE, only.values = TRUE)$values)) + t(resid) %*% SigmaInv %*% resid )
+    ## llk <- -0.5 * (n*log(2*pi) + sum(log(eigen(Sigma, symmetric = TRUE, only.values = TRUE)$values)) + t(resid) %*% SigmaInv %*% resid )
+    L <- chol(Sigma)
+    llk <- -0.5 * (n*log(2*pi) + sum(log(diag(L))) * 2 + t(resid) %*% SigmaInv %*% resid )
     llk <- -llk ## optim is a minimizer
     print(llk)
     return(llk)
   }
 
-  optim(param, f, method = "Nelder-Mead", lower = rep(1e-8, 3))
-
+  #optim(param, f, method = "Nelder-Mead", lower = rep(1e-8, 3))
+  optim(param, f, mask = c(1, 1, 0), method = "Nelder-Mead")
 
   getUV <- function(param) {
     print(param)

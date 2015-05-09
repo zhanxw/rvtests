@@ -1,3 +1,7 @@
+2015-05-09  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix and verified '--meta cov' outputs
+
 2015-04-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Support generating meta analysis summary statistics for binary traits related individuals

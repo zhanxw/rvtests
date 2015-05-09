@@ -519,7 +519,6 @@ class FastLMM::Impl {
   void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
                 const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
                 double* out) {
-    // // const Eigen::MatrixXf& U = kinshipU.mat;
     const int n = g1.size();
     Eigen::Map<const Eigen::MatrixXd> g1D(g1.data(), n, 1);
     Eigen::MatrixXf g1E = g1D.cast<float>();
@@ -527,15 +526,6 @@ class FastLMM::Impl {
     Eigen::MatrixXf g2E = g2D.cast<float>();
 
     *out = (g1E.array() * (this->lambda.array() + delta).inverse() * g2E.array()).sum() / this->sigma2;
-    
-    // Eigen::MatrixXf g1E;
-    // Eigen::MatrixXf g2E;
-    // toEigen(g1, &g1E);
-    // toEigen(g2, &g2E);
-    
-    // *out = (g1E.transpose() * U * this->scaledK * U.transpose() * g2E)(0, 0);
-    // todo
-    // *out = (g1E.transpose() * this->scaledK * g2E)(0, 0) / this->sigma2;
   }
   void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
                 const EigenMatrix& kinshipS, std::vector<double>* out) {

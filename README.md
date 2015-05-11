@@ -276,14 +276,14 @@ The above models are suitable to generate summary statistics which can be later 
 Rvtests implemented the above method and the results can be further analyzed in RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)).
 It also worth to mention that our group offered another tool set for meta-analysis ([link](http://genome.sph.umich.edu/wiki/Rare-Metal)).
 
-Explanation of outputs
+**Explanation of outputs**
 
-N_INFORMATIVE: Number of samples
-AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by colon.
-INFORMATIVE_ALT_AC: Number of samples carrying variants
-HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by colon.
-U_STAT, SQRT_V_STAT: U and V statistics are score statistics. Details can be found in [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html).
-ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. 
+- N_INFORMATIVE: Number of samples
+- AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by colon.
+- INFORMATIVE_ALT_AC: Number of samples carrying variants
+- HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by colon.
+- U_STAT, SQRT_V_STAT: U and V statistics are score statistics. Details can be found in [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html).
+- ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. 
 
 ## Utility models
 

@@ -45,8 +45,9 @@ getEst <- function(param) {
 
   f <- function(param, mask) {
     print(param)
-    print(mask)
+   print(mask)
     Sigma <- param[1] * k1 * mask[1] + param[2] * k2 * mask[2] + param[3] * I * mask[3]
+    # Sigma <- param[1] * k1  + param[2] * k2  + param[3] * I * 0
     SigmaInv <- solve(Sigma)
     beta <- solve(t(Cov) %*% SigmaInv %*% Cov, t(Cov) %*% SigmaInv %*% y)
     resid <- y - Cov %*% beta
@@ -61,6 +62,7 @@ getEst <- function(param) {
 
   #optim(param, f, method = "Nelder-Mead", lower = rep(1e-8, 3))
   optim(param, f, mask = c(1, 1, 0), method = "Nelder-Mead")
+  optim(param, f, mask = c(1, 0, 1), method = "Nelder-Mead")
 
   getUV <- function(param) {
     print(param)

@@ -52,12 +52,15 @@ class MixtureChiSquare {
     df = newDf;
     lambda_cap = newCap;
   };
+  // use Davies's method to calculate P-value
   double getPvalue(double Q);
+  // use Liu's method to calculate P-value
+  double getLiuPvalue(double Q);  
   void dumpLambda() const;
 
  private:
   const double sigma;  // coefficient of standard normal variable
-  const int lim;       // maximum number of terms in tegration
+  const int lim;       // maximum number of terms integration
   const double acc;    // accuracy
   int lambda_cap;      // capacity of *lambda
 

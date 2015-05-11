@@ -28,7 +28,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150430";
+const char* VERSION = "20150509";
 
 void banner(FILE* fp) {
   const char* string =
@@ -593,9 +593,9 @@ int main(int argc, char** argv) {
   ADD_STRING_PARAMETER(pl, cov, "--covar", "Specify covariate file")
   ADD_STRING_PARAMETER(
       pl, covName, "--covar-name",
-      "Specify the column name in coavriate file to be included in analysis")
+      "Specify the column name in covariate file to be included in analysis")
   ADD_BOOL_PARAMETER(pl, sex, "--sex",
-                     "Include sex (5th) as covaraite from PED file")
+                     "Include sex (5th) as covariates from PED file")
 
   ADD_PARAMETER_GROUP(pl, "Specify Phenotype")
   ADD_STRING_PARAMETER(pl, pheno, "--pheno", "Specify phenotype file")
@@ -616,7 +616,7 @@ int main(int argc, char** argv) {
   // ADD_STRING_PARAMETER(pl, glTag, "--gl", "Specify which genotype likelihood
   // tag to use. (e.g. GL)")
 
-  ADD_PARAMETER_GROUP(pl, "Chromsome X Options")
+  ADD_PARAMETER_GROUP(pl, "Chromosome X Options")
   ADD_STRING_PARAMETER(pl, xLabel, "--xLabel",
                        "Specify X chromosome label (default: 23|X")
   ADD_STRING_PARAMETER(pl, xParRegion, "--xParRegion",
@@ -658,7 +658,7 @@ int main(int argc, char** argv) {
                     "Specify minimum Minor Allele Count(inclusive) to be "
                     "included in analysis")
   ADD_STRING_PARAMETER(pl, annoType, "--annoType",
-                       "Specify annotation type that is follwed by ANNO= in "
+                       "Specify annotation type that is followed by ANNO= in "
                        "the VCF INFO field, regular expression is allowed ")
 
   ADD_PARAMETER_GROUP(pl, "Genotype Filter")
@@ -735,7 +735,7 @@ int main(int argc, char** argv) {
   ADD_STRING_PARAMETER(pl, condition, "--condition",
                        "Specify markers to be conditions (specify range)")
 
-  ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
+  ADD_PARAMETER_GROUP(pl, "Auxiliary Functions")
   ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
   END_PARAMETER_LIST(pl);
 

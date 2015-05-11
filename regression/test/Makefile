@@ -9,7 +9,8 @@ EXE = testGSLIntegration \
       testLogisticVT \
       testLinearVT \
       testMultivariateNormalDistribution \
-      testLMM
+      testLMM \
+      testMixtureChiSquare
 
 all: $(EXE)
 debug: $(EXE)

@@ -40,7 +40,7 @@
 
 # Introduction
 
-Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrealted individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf] format as genotype input file and takes PLINK format phenotype file and covariate file. From our practice, it is capable to analyze 8,000 related individuals using less than 400 Mb memory. 
+Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrelated individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf] format as genotype input file and takes PLINK format phenotype file and covariate file. From our practice, it is capable to analyze 8,000 related individuals using less than 400 Mb memory. 
 
 [vcf]: http://www.1000genomes.com/
 
@@ -71,7 +71,7 @@ Groupwise tests includes three major kinds of tests.
 * Variable threshold tests: group variants under different frequency thresholds.
 * Kernel methods: suitable to tests rare variants having different directions of effects. These includes SKAT test and KBAC test. 
 
-All above tests requires to group variants into a unit. The simplist case is to use gene as grouping unit. For different grouping method, see [Grouping](#Grouping). 
+All above tests requires to group variants into a unit. The simplest case is to use gene as grouping unit. For different grouping method, see [Grouping](#Grouping). 
 
 To perform rare variant tests by gene, you need to use `--geneFile` to specify the gene range in a refFlat format. We provided different gene definitions in the [Resources](#Resources) section. You can use `--gene` to specify which gene(s) to test. For example, specify `--gene CFH,ARMS2` will perform association tests on CFH and ARMS2 genes. If there is no providing `--gene` option, all genes will be tests.
 
@@ -87,7 +87,7 @@ To test related individuals, you will need to first create a kinship matrix:
 
     vcf2kinship --inVcf input.vcf --bn --out output
 
-The option `--bn` means calculating empirical kinship using Balding-Nicols method. You can specifiy `--ibs` to obtain IBS kinship or use `--pedigree input.ped` to calculate kinship from known pedigree information.
+The option `--bn` means calculating empirical kinship using Balding-Nicols method. You can specify `--ibs` to obtain IBS kinship or use `--pedigree input.ped` to calculate kinship from known pedigree information.
 
 Then you can use linear mixed model based association tests such as Fast-LMM score test, Fast-LMM LRT test and Grammar-gamma tests. An exemplar command is shown: 
 
@@ -108,7 +108,7 @@ In a more realistic scenario, you may want to adjust for covariates and want to 
 
 Here the `--covar` specify a covariate file, and `--covar-name` specify which covariates can used in the analysis. Covariate file format can be found [here](#Covariate file). `--inverseNormal --useResidualAsPhenotype` specifies trait transformation method. That means first fit a regression model of the phenotype on covariates (intercept automatically added), then the residuals are inverse normalized. Trait transformation details can be found [here](#Trait transformation).
 
-We support both unrelated individuals and related indivudlas (e.g. family data). You need to append `--kinship input.kinship` to the command line:
+We support both unrelated individuals and related individuals (e.g. family data). You need to append `--kinship input.kinship` to the command line:
 
     rvtests --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output --kinship input.kinship
 
@@ -125,7 +125,7 @@ coded as 0/0/1. Missing genotypes will be imputed to the mean.
 
 ## Genotype file (VCF)
 
-Rvtests supports VCF (Variant Call Format) files. Files in both plain txt format or gzipped format are supported. To use group-based rare variant tests, indexed the VCF files using [tabix](http://samtools.sourceforge.net/tabix.shtml) are required. 
+Rvtests supports VCF (Variant Call Format) files. Files in both plain text format or gzipped format are supported. To use group-based rare variant tests, indexed the VCF files using [tabix](http://samtools.sourceforge.net/tabix.shtml) are required. 
 
 Here are the commands to convert plain text format to bgzipped VCF format:
 
@@ -173,7 +173,7 @@ The covariate file, (e.g. `example.covar`) has a similar format as the phenotype
     P4 P4 0 0 0 0.704 -1.052 -0.237 1
     P5 P5 0 0 1 2.512 -3.085 -2.579 1
 
-The covariate file is specified by the `--covar` option (e.g. `--covar example.covar`). To specify covariates that will be used in the association analysis, the option `--covar-name` can be used. For example, when age, bmi and 3 PCs are used for association analysis, the following option can be specified for the rvtest program, i.e. 
+The covariate file is specified by the `--covar` option (e.g. `--covar example.covar`). To specify covariates that will be used in the association analysis, the option `--covar-name` can be used. For example, when age, bmi and 3 PCs are used for association analysis, the following option can be specified for the rvtests program, i.e. 
 `--covar example.covar --covar-name age,bmi,pc1,pc2,pc3`.
 
 Note: Missing data in the covariate file can be labeled by any non-numeric value (e.g. NA). They will be automatically imputed to the mean value in the data file. 
@@ -181,9 +181,9 @@ Note: Missing data in the covariate file can be labeled by any non-numeric value
 
 ## Trait transformation
 
-In this meta-analysis, we use inversed normal transformed residuals in the association analysis, which is achieved by using a combination of `--inverseNormal`  and `--useResidualAsPhenotype`. Specifically, we first fit the null model by regressing phenotype on covariates. The residuals are then inverse normal transformed (see Appendix A more detailed formulae for transformation). Transformed residuals will be used to obtain score statistics. 
+In this meta-analysis, we use inverse normal transformed residuals in the association analysis, which is achieved by using a combination of `--inverseNormal`  and `--useResidualAsPhenotype`. Specifically, we first fit the null model by regressing phenotype on covariates. The residuals are then inverse normal transformed (see Appendix A more detailed formula for transformation). Transformed residuals will be used to obtain score statistics. 
 
-In meta analysis, an exemplar command for using rvtest looks like the following:
+In meta analysis, an exemplar command for using rvtests looks like the following:
 
     ./rvtest --inVcf $vcf --pheno $example.pheno --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out $output_prefix  
 
@@ -201,11 +201,11 @@ Exact test     |  exact    |B     |     N      |         U           | Fisher's 
 Fam LRT        |  famLRT   |Q     |     Y      |         R, U        | Fast-LMM model
 Fam Score      |  famScore |Q     |     Y      |         R, U        | Fast-LMM model style likelihood ratio test
 Grammar-gamma  |famGrammarGamma| Q     |     Y      |         R, U        | Grammar-gamma method
-Firth regresion  |firth| B     |     Y      |         U        | Logistic regression with Firth correction by David Firth, disucssed by Clement Ma.
+Firth regression  |firth| B     |     Y      |         U        | Logistic regression with Firth correction by David Firth, discussed by Clement Ma.
 
-(#) Model columns list the regconized names in rvtests. For example, use `--single score` will apply score test.
+(#) Model columns list the recognized names in rvtests. For example, use `--single score` will apply score test.
 
-(##) In trait column, B and Q stand for binary, quantitiave trait.
+(##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
 
 ## Burden tests
@@ -216,17 +216,17 @@ CMC             |  cmc       |B, Q  |     Y      |         U           | Collaps
 Zeggini         |  zeggini   |B, Q  |     Y      |         U           | Aggregate counts of rare variants by Morris Zeggini.
 Madsen-Browning |  mb        |B     |     N      |         U           | Up-weight rare variant using inverse frequency from controls by Madsen.
 Fp              |  fp        |B     |     N      |         U           | Up-weight rare variant using inverse frequency from controls by Danyu Lin.
-Exact CMC       |  exactCMC  |B     |     N      |         U           | Collapsing and combine rare variants, then pefore Fisher's exact test.
-CMC Wald        |  cmcWald   |B, Q  |     Y      |         U           | Collapsing and combine rare variants, then pefore Wald test.
+Exact CMC       |  exactCMC  |B     |     N      |         U           | Collapsing and combine rare variants, then perform Fisher's exact test.
+CMC Wald        |  cmcWald   |B, Q  |     Y      |         U           | Collapsing and combine rare variants, then perform Wald test.
 RareCover       |  rarecover |B     |     N      |         U           | Find optimal grouping unit for rare variant tests by Thomas Hoffman.
 CMAT            |  cmat      |B     |     N      |         U           | Test non-coding variants by Matt Zawistowski.
 FamCMC          |  famcmc       |B, Q  |     Y      |         R           | Collapsing and combine rare variants extended to related samples.
 FamZeggini      |  famzeggini   |B, Q  |     Y      |         R           | Aggregate counts of rare variants extended to related samples.
 
 
-(#) Model columns list the regconized names in rvtests. For example, use `--burden cmc` will apply CMC test.
+(#) Model columns list the recognized names in rvtests. For example, use `--burden cmc` will apply CMC test.
 
-(##) In trait column, B and Q stand for binary, quantitiave trait.
+(##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
 
 ## Variable threshold models
@@ -236,9 +236,9 @@ Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | De
 Variable threshold model by permutation     |  vt    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.
 Variable threshold model by analytic form   |  analyticVt    |B, Q  |     Y      |         U   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
 
-(#) Model columns list the regconized names in rvtests. For example, use `--vt price` will apply score test.
+(#) Model columns list the recognized names in rvtests. For example, use `--vt price` will apply score test.
 
-(##) In trait column, B and Q stand for binary, quantitiave trait.
+(##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
 
 
@@ -250,30 +250,40 @@ SKAT     |  skat    |B, Q  |     Y      |         U           | Sequencing kerne
 KBAC     |  kbac     |B  |     N      |         U           | Kernel-based adaptive clustering model by Dajiang Liu.
 FamSKAT     |  famSkat    |Q  |     Y      |         R           | Sequencing kernel association test extended to related individuals by Han Chen.
 
-(#) Model columns list the regconized names in rvtests. For example, use `--kernel skat` will apply SKAT test.
+(#) Model columns list the recognized names in rvtests. For example, use `--kernel skat` will apply SKAT test.
 To further customize SKAT test, you can use *--kernel skat[nPerm=100:alpha=0.001:beta1=1:beta2=20]* to specify permutation counts, type-1 error, 
-beta distribution parameters for upweighting rare variants. Rvtests will output a message showing: 
+beta distribution parameters for up-weighting rare variants. Rvtests will output a message showing: 
 
     [INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)
 
-(##) In trait column, B and Q stand for binary, quantitiave trait.
+(##) In trait column, B or Q stand for binary or quantitative trait, respectively.
+
 
 ## Meta-analysis models
 
 Type | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
-Score test           |  score      | Q  |     Y      |         R, U           | standard score tests
-Dominant model       |  dominant   | Q  |     Y      |         R, U           | score tests and covariance matrix under dominant disease model
-Recessive model      |  recessive  | Q  |     Y      |         R, U           | score tests and covariance matrix under recessive disease model
-Covariance           |  cov        | Q  |     Y      |         R, U           | covariance matrix
+Score test           |  score      | B,Q  |     Y      |         R, U           | standard score tests
+Dominant model       |  dominant   | B,Q  |     Y      |         R, U           | score tests and covariance matrix under dominant disease model
+Recessive model      |  recessive  | B,Q  |     Y      |         R, U           | score tests and covariance matrix under recessive disease model
+Covariance           |  cov        | B,Q  |     Y      |         R, U           | covariance matrix
 
-(#) Model columns list the regconized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
+(#) Model columns list the recognized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
 
-(##) In trait column, B and Q stand for (b)inary, (q)uantitiave trait.
+(##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
-The above models are suitable to generate summary statistics which can be later meta-analyzed (see [Djiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html)).
+The above models are suitable to generate summary statistics which can be later meta-analyzed (see [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html)).
 Rvtests implemented the above method and the results can be further analyzed in RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)).
-It also worth to mention that our group offered another toolset for meta-analysis ([link](http://genome.sph.umich.edu/wiki/Rare-Metal)).
+It also worth to mention that our group offered another tool set for meta-analysis ([link](http://genome.sph.umich.edu/wiki/Rare-Metal)).
+
+Explanation of outputs
+
+N_INFORMATIVE: Number of samples
+AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by colon.
+INFORMATIVE_ALT_AC: Number of samples carrying variants
+HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by colon.
+U_STAT, SQRT_V_STAT: U and V statistics are score statistics. Details can be found in [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html).
+ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. 
 
 ## Utility models
 
@@ -314,11 +324,11 @@ Frequency Cutoff
                  --freqUpper : Specify upper minor allele frequency bound to be included in analysis
                  --freqLower : Specify lower minor allele frequency bound to be included in analysis
 
-If you specify `--freqLower 0.01 --freqUpper 0.05`, only the variants with minor allele ferquncy between 0.01 and 0.05 (boundary inclusive) will be analyzed.
+If you specify `--freqLower 0.01 --freqUpper 0.05`, only the variants with minor allele frequency between 0.01 and 0.05 (boundary inclusive) will be analyzed.
 
 Similar to sample inclusion/exclusion options, you can specify a range of variants to be included by 
 specifying `--rangeList` option. For example `--rangeList 1:100-200` will include the chromosome 1 position 100bp to 200bp region.
-Alternatively, use a separate file, `range.txt`, and `--rangeFile range.txt` to speicify association tests range.
+Alternatively, use a separate file, `range.txt`, and `--rangeFile range.txt` to specify association tests range.
 
                  --rangeList : Specify some ranges to use, please use chr:begin-end format.
                  --rangeFile : Specify the file containing ranges, please use chr:begin-end format.
@@ -326,22 +336,22 @@ Alternatively, use a separate file, `range.txt`, and `--rangeFile range.txt` to 
 
 It is supported to filter variant site by site depth, minor allele count or annotation (annotated VCF file is needed).
 
-              --siteDepthMin : Specify minimum depth(inclusive) to be incluced in analysis
-              --siteDepthMax : Specify maximum depth(inclusive) to be incluced in analysis
-                --siteMACMin : Specify minimum Minor Allele Count(inclusive) to be incluced in analysis
-                  --annoType : Specify annotation type that is follwed by ANNO= in the VCF INFO field, regular expression is allowed
+              --siteDepthMin : Specify minimum depth(inclusive) to be included in analysis
+              --siteDepthMax : Specify maximum depth(inclusive) to be included in analysis
+                --siteMACMin : Specify minimum Minor Allele Count(inclusive) to be included in analysis
+                  --annoType : Specify annotation type that is followed by ANNO= in the VCF INFO field, regular expression is allowed
 
-*NOTE*: `--annoType Nonsynonymous` will only analyze nonsynonymous variants where they have `ANNO=Nonsynonymous` in the INFO field. 
-VCF with annotatino information are called annotated VCF here. And to annotate 
+*NOTE*: `--annoType Nonsynonymous` will only analyze non-synonymous variants where they have `ANNO=Nonsynonymous` in the INFO field. 
+VCF with annotating information are called annotated VCF here. And to annotate 
 a VCF file, you can use [ANNO](https://github.com/zhanxw/anno), a fast and accurate annotation software.
 
 ## Genotype filters
 
 Genotype with low depth or low quality can be filtered out by these options:
 
-              --indvDepthMin : Specify minimum depth(inclusive) of a sample to be incluced in analysis
-              --indvDepthMax : Specify maximum depth(inclusive) of a sample to be incluced in analysis
-               --indvQualMin : Specify minimum depth(inclusive) of a sample to be incluced in analysis
+              --indvDepthMin : Specify minimum depth(inclusive) of a sample to be included in analysis
+              --indvDepthMax : Specify maximum depth(inclusive) of a sample to be included in analysis
+               --indvQualMin : Specify minimum depth(inclusive) of a sample to be included in analysis
 
 When genotypes are filtered, they are marked as missing genotypes. 
 Consequently, samples with missing genotype may or may not be included in the analysis.
@@ -353,11 +363,11 @@ See next section about how you like to handle missing genotypes.
 
 ## Handle missing genotypes and phenotypes
 
-When genotypes are missing (e.g. genotype = "./.") or gentoypes are filtered out, 
+When genotypes are missing (e.g. genotype = "./.") or genotypes are filtered out, 
 there are three options to handle them: (1) impute to its mean(default option); (2) impute by HWE equilibrium; (3) remove from the model.
 Use `--impute [mean|hwe|drop]` to specify which option to use.
 
-When quantitative phenotypes are missing, for example, some samples have gneotype files, but not phenotypes, 
+When quantitative phenotypes are missing, for example, some samples have genotype files, but not phenotypes, 
 rvtests can impute missing phenotype to its mean. 
 
 *NOTE:* Do not use `--imputePheno` for binary trait.
@@ -366,12 +376,12 @@ In summary, the following two options can be used:
 
                --impute : Specify either of mean, hwe, and drop
           --imputePheno : Impute phenotype to mean by those have genotypes but no
-                          phenotpyes
+                          phenotypes
                           
                           
 ## Specify groups (e.g burden unit)
 
-Rare variants association tests are usually performed in gruops of variants. 
+Rare variants association tests are usually performed in groups of variants. 
 The natural grouping unit is gene. Rvtests can read gene definition file in `refFlat` format,
 and perform association for each gene. Use `--geneFile` option to specify the gene file name.
 For example, `--geneFile refFlat_hg19.txt.gz` will use `refFlat_hg19.txt.gz` as gene definition file,
@@ -382,7 +392,7 @@ Alternative grouping unit can be specified as *set*.
 These *sets* are treated similar to gene.
 You can thus use `--setFile` to define sets (similar to `--geneFile` option), 
 and use `--set` to define a specific set (similar to `--gene` option). 
-Additionally, use `--setList` can speicify a set to test from command line.
+Additionally, use `--setList` can specify a set to test from command line.
 
 The format of a set file is: (1) set names; (2) ranges (e.g. chrom:begin-end);
 For example, you have a set file, `example.set`, like this:
@@ -407,22 +417,22 @@ In summary, options related to *Grouping Unit* are listed below:
 
 # Sex chromosome analysis
 
-Rvtests suppport X chromosome analysis. In human X chromosome, there is PAR (pseudoautosomal region) and non-PAR region.
+Rvtests support X chromosome analysis. In human X chromosome, there is PAR (pseudoautosomal region) and non-PAR region.
 For males, there are two X allele in PAR region and one allele in non-PAR region.
-While the PAR region is treated in the same way as autosomes, rvtests treate non-PAR region differently.
+While the PAR region is treated in the same way as autosomes, rvtests treat non-PAR region differently.
 Below we will describe the details about how rvtests handles non-PAR region.
 
 *Prepare data*. According to VCF standard, male genotype needs to coded as 0 or 1. For compatibility, rvtests also support 0/0 or 1/1 coding. 
 In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1/1". All other genotypes will be treated as missing.
 
-*Genotype in the regression model*. For consistencmaine, male genotypes are converted to 0 or 2.
+*Genotype in the regression model*. For consistence, male genotypes are converted to 0 or 2.
 
 *MetaScore results*. If specify `--meta score`, the output file `prefix.MetaScore.assoc.gz` includes PAR-region and non-PAR region analysis. 
 But in the non-PAR region, the difference is that Hardy-Weinberg P-value are calculated using female samples.
 
 *Related individuals*. Just append `--xHemi` to the `vcf2kinship` (more details in [Kinship generation](#kinship-generation)) and `rvtest` command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.
 
-*PAR region*. PAR region is defined as two regions X:60001-2699520 and X:154931044-155260560. Use `--xLabel` can speicify which chromosome has PAR region (default: 23 or X)
+*PAR region*. PAR region is defined as two regions X:60001-2699520 and X:154931044-155260560. Use `--xLabel` can specify which chromosome has PAR region (default: 23 or X)
 and use `--xParRegion` to specify PAR region (default: hg19, meaning '60001-2699520,154931044-155260560' in the UCSC build hg19, specify "hg18" will use PAR region definition in the UCSC build hg18, or specify "hg38" will use UCSC build 38).
 
 # Kinship generation
@@ -430,17 +440,17 @@ and use `--xParRegion` to specify PAR region (default: hg19, meaning '60001-2699
 Analysis of related individual usually requires estimation of kinship. You can a separate tool, `vcf2kinship`.
 `vcf2kinship` is usually included in rvtests binary distribution or can be built from software source codes.
 
-`vcf2kinship` can calcualte pedigree kinship using a pedigree input file (PED format, see [Phenotype file](#phenotype-file), use option `--ped`).
+`vcf2kinship` can calculate pedigree kinship using a pedigree input file (PED format, see [Phenotype file](#phenotype-file), use option `--ped`).
 The output file name is specified by `--prefix` option. If you use `--prefix output` then the output files will include `output.kinship`.
 
-It can also calculate empirical kinship using genotyp input file (VCF format, see [Genotype file (VCF)](#genotype-file-vcf), use option `--inVcf`).
-For empiricial kinship, you also need to specify the kinship model, either Balding-Nicols model (ue option `--bn`) or Identity-by-state model (use option `--ibs`).
+It can also calculate empirical kinship using genotype input file (VCF format, see [Genotype file (VCF)](#genotype-file-vcf), use option `--inVcf`).
+For empirical kinship, you also need to specify the kinship model, either Balding-Nicols model (use option `--bn`) or Identity-by-state model (use option `--ibs`).
 
-In sex chromosome analysis, it is often required to generate kinship on X chromsoome regions, then you need to speicfy `--xHemi`. If your input VCF file has different X chromosome label (e.g. chromosome name is '23' instead of 'X'), you can use `--xLabel 23`.
+In sex chromosome analysis, it is often required to generate kinship on X chromosome regions, then you need to specify `--xHemi`. If your input VCF file has different X chromosome label (e.g. chromosome name is '23' instead of 'X'), you can use `--xLabel 23`.
 
 If principal component decomposition (PCA) results are needed, you can use option `--pca`. Then output files with suffix '.pca' include PCA results.
 
-When dealing with large input files, it is often preferred to use multiple CPU to speed up calculation using the option `--thread N` in which N is the number of CPUs.
+When dealing with large input files, it is often preferred to use multiple CPU to speed up calculation using the option `--thread N` in which N is the number of CPU.
 
 For example, to generate pedigree-based kinship (`--ped`) on both autosomal region and X chromosome (`--xHemi`) region, the command line is:
 
@@ -454,13 +464,13 @@ NOTE: you need to provide a pedigree file (PED) in the above case, as `vcf2kinsh
 
 # Frequently Asked Questions (FAQ)
 
-* Does rvtests suppport binary traits of related-individuals?
+* Does rvtests support binary traits of related-individuals?
 
 Not yet. It's a complex scenario and we have not found good solutions.
 
 * Can you provide a list of command line options?
 
-Rvtests have build help taht can be found by executing `rvtest --help`.
+Rvtests have build-in help that can be found by executing `rvtest --help`.
 We also put all available options in this [link](https://github.com/zhanxw/rvtests/wiki/Command-Line-Options).
 
 * Can you provide standard error (SE) or confidence interval (CI) for the estimated Beta in the score model?
@@ -471,6 +481,12 @@ For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta
 * Why the INFORMATIVE_ALT_AC, N_REF and N_ALT columns have zero counts for certain chromosome X regions in meta-analysis models?
 
 These counts are calculated from female individuals. If your study only has male samples, rvtests cannot report these counts. Because if a male carries a non-reference allele, we cannot conclude that this is heterozygous (0/1) site or homozygous alternatives (1/1) site.
+
+* Why P-values can be -1?
+
+If rvtests fails to fit using a certain model, it cannot calculate P-value reliably. Rvtests will print P-value as -1 instead of any number between 0 and 1 to indicate that an error occurred.
+However, this should rarely happen. Please contact us if you have further questions.
+
 
 # Feedback/Contact
 

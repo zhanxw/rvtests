@@ -78,7 +78,7 @@ class Permutation {
    */
   bool next() {
     if (this->actualPerm >= this->numPerm) return false;
-    if (numX + numEqual > threshold) {
+    if (numX + numEqual >= threshold) {
       return false;
     }
     return true;

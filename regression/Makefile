@@ -23,6 +23,7 @@ BASE = LogisticRegression \
        MultivariateNormalDistribution \
        MultivariateVT \
        FamSkat \
+       cdflib \
 
 OBJ = $(BASE:%=%.o)
 

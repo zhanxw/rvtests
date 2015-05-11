@@ -3,7 +3,6 @@
 #include "EigenMatrixInterface.h"
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
-//#include <Eigen/Dense>
 #include "MixtureChiSquare.h"
 
 // #define DEBUG
@@ -88,6 +87,9 @@ class Skat::SkatImpl {
     }
     // calculate p-value
     this->pValue = this->mixChiSq.getPvalue(this->Q);
+    if (this->pValue == 0.0 || this->pValue == 1.0) {
+      this->pValue = this->mixChiSq.getLiuPvalue(this->Q);      
+    }
     return 0;
   };
 

@@ -76,9 +76,9 @@ All above tests requires to group variants into a unit. The simplest case is to 
 To perform rare variant tests by gene, you need to use `--geneFile` to specify the gene range in a refFlat format. We provided different gene definitions in the [Resources](#Resources) section. You can use `--gene` to specify which gene(s) to test. For example, specify `--gene CFH,ARMS2` will perform association tests on CFH and ARMS2 genes. If there is no providing `--gene` option, all genes will be tests.
 
 The following command line demonstrate how to use CMC method, variable threshold method(proposed by Price) and kernel based method (SKAT by Shawn Lee and KBAC by
-Dajiang Liu) to test every gene listed in *refFlat\_hg19\_uniq\_gene.txt.gz*.
+Dajiang Liu) to test every gene listed in *refFlat\_hg19.txt.gz*.
 
-    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --geneFile refFlat_hg19_uniq_gene.txt.gz --burden cmc --vt price --kernel skat,kbac
+    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --geneFile refFlat_hg19.txt.gz --burden cmc --vt price --kernel skat,kbac
 
 
 ## Related individual tests

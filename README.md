@@ -47,7 +47,7 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 # Download
 
 Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
-Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.9.2/rvtests-20150424.tar.gz).
+Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases/download/v1.9.3/rvtests-20150509.tar.gz).
 
 
 # Quick tutorial
@@ -76,9 +76,9 @@ All above tests requires to group variants into a unit. The simplest case is to 
 To perform rare variant tests by gene, you need to use `--geneFile` to specify the gene range in a refFlat format. We provided different gene definitions in the [Resources](#Resources) section. You can use `--gene` to specify which gene(s) to test. For example, specify `--gene CFH,ARMS2` will perform association tests on CFH and ARMS2 genes. If there is no providing `--gene` option, all genes will be tests.
 
 The following command line demonstrate how to use CMC method, variable threshold method(proposed by Price) and kernel based method (SKAT by Shawn Lee and KBAC by
-Dajiang Liu) to test every gene listed in *refFlat\_hg19\_uniq\_gene.txt.gz*.
+Dajiang Liu) to test every gene listed in *refFlat\_hg19.txt.gz*.
 
-    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --geneFile refFlat_hg19_uniq_gene.txt.gz --burden cmc --vt price --kernel skat,kbac
+    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --geneFile refFlat_hg19.txt.gz --burden cmc --vt price --kernel skat,kbac
 
 
 ## Related individual tests
@@ -276,14 +276,14 @@ The above models are suitable to generate summary statistics which can be later 
 Rvtests implemented the above method and the results can be further analyzed in RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)).
 It also worth to mention that our group offered another tool set for meta-analysis ([link](http://genome.sph.umich.edu/wiki/Rare-Metal)).
 
-Explanation of outputs
+**Explanation of outputs**
 
-N_INFORMATIVE: Number of samples
-AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by colon.
-INFORMATIVE_ALT_AC: Number of samples carrying variants
-HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by colon.
-U_STAT, SQRT_V_STAT: U and V statistics are score statistics. Details can be found in [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html).
-ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. 
+- N_INFORMATIVE: Number of samples
+- AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by colon.
+- INFORMATIVE_ALT_AC: Number of samples carrying variants
+- HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by colon.
+- U_STAT, SQRT_V_STAT: U and V statistics are score statistics. Details can be found in [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html).
+- ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. 
 
 ## Utility models
 

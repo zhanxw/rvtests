@@ -26,7 +26,8 @@ static double goalFunction(double x, void* param);
 
 class FastLMM::Impl {
  public:
-  Impl(FastLMM::Test test, FastLMM::Model model) : test(test), model(model) {}
+  Impl(FastLMM::Test test, FastLMM::Model model)
+      : test(test), model(model), needToCenterGentype(true) {}
   int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
     // sanity check
@@ -207,8 +208,12 @@ class FastLMM::Impl {
     if (this->test == FastLMM::SCORE) {
       // just return score test statistics
       Eigen::ArrayXf u_g_center;
-      u_g_center =
-          (U.transpose() * (g.rowwise() - g.colwise().mean())).eval().array();
+      if (needToCenterGentype) {
+        u_g_center =
+            (U.transpose() * (g.rowwise() - g.colwise().mean())).eval().array();
+      } else {
+        u_g_center = (U.transpose() * g).eval().array();
+      }
 #ifdef DEBUG
       dumpToFile(U, "U");
       dumpToFile(lambda, "lambda");
@@ -251,7 +256,11 @@ class FastLMM::Impl {
     Eigen::MatrixXf g;
     G_to_Eigen(Xcol, &g);
 
-    u_g_center = (U.transpose() * (g.rowwise() - g.colwise().mean())).eval();
+    if (needToCenterGentype) {
+      u_g_center = (U.transpose() * (g.rowwise() - g.colwise().mean())).eval();
+    } else {
+      u_g_center = (U.transpose() * g).eval();
+    }
     Eigen::MatrixXf u =
         (u_g_center.transpose()) *
         (lambda.array() + delta).inverse().matrix().asDiagonal() *
@@ -269,20 +278,6 @@ class FastLMM::Impl {
     dumpToFile(u_g_center, "u_g_center");
     dumpToFile(u, "u");
     dumpToFile(v, "v");
-
-    {
-      g = g.col(0);
-      Eigen::ArrayXf u_g_center;
-      u_g_center = (U.transpose() *  (g.rowwise() - g.colwise().mean())).eval().array();
-      this->Ustat = (  ( (u_g_center) *
-                         (this->uResid).array()) /
-                       (lambda.array() + delta)
-                       ).sum() / this->sigma2;
-      // this->Vstat = (u_g_center.square() / (lambda.array() + delta)).sum() / this->sigma2 ;
-      this->Vstat = ((u_g_center).matrix().transpose() * this->scaledK * (u_g_center.matrix()))(0, 0) / this->sigma2;
-      fprintf(stderr, "Ustat = %g, Vstat = %g\n", Ustat, Vstat);
-      fprintf(stderr, "U[0] = %g, V[0][0] = %g\n", u(0, 0), v(0, 0));
-    }
 #endif
     return 0;
   }
@@ -508,11 +503,10 @@ class FastLMM::Impl {
         sigma2;
     Eigen_to_G(m, zz);
   }
-  void toEigen(const std::vector<double>& g,
-               Eigen::MatrixXf* out) {
+  void toEigen(const std::vector<double>& g, Eigen::MatrixXf* out) {
     const int n = g.size();
     (*out).resize(n, 1);
-    for (int i = 0; i < n; ++i ) {
+    for (int i = 0; i < n; ++i) {
       (*out)(i, 0) = g[i];
     }
   }
@@ -525,11 +519,13 @@ class FastLMM::Impl {
     Eigen::Map<const Eigen::MatrixXd> g2D(g2.data(), n, 1);
     Eigen::MatrixXf g2E = g2D.cast<float>();
 
-    *out = (g1E.array() * (this->lambda.array() + delta).inverse() * g2E.array()).sum() / this->sigma2;
+    *out = (g1E.array() * (this->lambda.array() + delta).inverse() *
+            g2E.array()).sum() /
+           this->sigma2;
   }
   void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
                 const EigenMatrix& kinshipS, std::vector<double>* out) {
-    // const Eigen::MatrixXf& U = kinshipU.mat;    
+    // const Eigen::MatrixXf& U = kinshipU.mat;
     const int n = g.size();
     Eigen::Map<const Eigen::MatrixXd> gD(g.data(), n, 1);
     Eigen::MatrixXf gE = gD.cast<float>();
@@ -584,6 +580,7 @@ class FastLMM::Impl {
     // %g\n", sigma2, lambda(0), lambda(99), delta);
     return 0;
   }
+  void disableCenterGenotype() { this->needToCenterGentype = false; }
 
  private:
   // Eigen::MatrixXf S;
@@ -614,6 +611,7 @@ class FastLMM::Impl {
   Eigen::MatrixXf scaledK;
   double sigmaK;
   double sigma1;
+  bool needToCenterGentype;
 };
 
 //////////////////////////////////////////////////
@@ -688,7 +686,7 @@ void FastLMM::GetCovXX(const std::vector<double>& g1,
                        const std::vector<double>& g2,
                        const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
                        double* out) {
-  return this->impl->GetCovXX(g1, g2, kinshipU, kinshipS,  out);
+  return this->impl->GetCovXX(g1, g2, kinshipU, kinshipS, out);
 }
 void FastLMM::GetCovXZ(const std::vector<double>& g,
                        const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
@@ -700,13 +698,12 @@ int FastLMM::TransformCentered(std::vector<double>* x,
                                const EigenMatrix& kinshipS) {
   return this->impl->TransformCentered(x, kinshipU, kinshipS);
 }
-int FastLMM::Transform(std::vector<double>* x,
-                               const EigenMatrix& kinshipU,
-                               const EigenMatrix& kinshipS) {
+int FastLMM::Transform(std::vector<double>* x, const EigenMatrix& kinshipU,
+                       const EigenMatrix& kinshipS) {
   return this->impl->Transform(x, kinshipU, kinshipS);
 }
 int FastLMM::GetWeight(Vector* out) const { return this->impl->GetWeight(out); }
-
+void FastLMM::disableCenterGenotype() { this->impl->disableCenterGenotype(); }
 // need to negaive the MLE to minize it
 double goalFunction(double x, void* param) {
   FastLMM::Impl* p = (FastLMM::Impl*)param;

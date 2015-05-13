@@ -144,7 +144,7 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new SkatTest(nPerm, alpha, beta1, beta2));
       logger->info(
           "SKAT test significance will be evaluated using %d permutations at "
-          "alpha = %g weight = Beta(beta1 = %.2f, beta2 = %.2f)",
+          "alpha = %g weight = Beta[beta1 = %.2f, beta2 = %.2f]",
           nPerm, alpha, beta1, beta2);
     } else if (modelName == "kbac") {
       parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);

@@ -9,10 +9,12 @@
 LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
-       RangeList SimpleMatrix Pedigree Kinship Profiler
+       RangeList SimpleMatrix Pedigree Kinship Profiler VersionChecker
 OBJ = $(BASE:%=%.o)
 
 DEFAULT_CXXFLAGS = -std=c++0x -I. -I../third/tabix -I../third/pcre/include -I../third/bzip2
+# enable read over HTTP and FTP
+DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 
 .PHONY: all release debug
 all: release

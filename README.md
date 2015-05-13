@@ -278,12 +278,13 @@ It also worth to mention that our group offered another tool set for meta-analys
 
 **Explanation of outputs**
 
-- N_INFORMATIVE: Number of samples
+- N_INFORMATIVE: Number of samples that are analyzed for association. 
 - AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by colon.
-- INFORMATIVE_ALT_AC: Number of samples carrying variants
+- INFORMATIVE_ALT_AC: The number of alternative alleles in the analyzed samples.
 - HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by colon.
-- U_STAT, SQRT_V_STAT: U and V statistics are score statistics. Details can be found in [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html).
-- ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. 
+- U_STAT, SQRT_V_STAT: U and V statistics are score statistics and their covariance matrix. Details can be found in [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html).
+- ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. We apply a new correction method when binary trait associations for
+related individuals are analyzed in standard linear mixed models. The log odds ratio is approximately correct for related individual analysis as well.
 
 ## Utility models
 
@@ -427,10 +428,10 @@ In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1
 
 *Genotype in the regression model*. For consistence, male genotypes are converted to 0 or 2.
 
-*MetaScore results*. If specify `--meta score`, the output file `prefix.MetaScore.assoc.gz` includes PAR-region and non-PAR region analysis. 
-But in the non-PAR region, the difference is that Hardy-Weinberg P-value are calculated using female samples.
+*MetaScore results*. If `--meta score` is specified, the output file `prefix.MetaScore.assoc.gz` includes PAR-region and non-PAR region analysis. 
+However, in the non-PAR region, the difference is that Hardy-Weinberg P-value and homeozygous-reference/heterzygous/homozygous-alternative sample sizes are calculated using female samples only.
 
-*Related individuals*. Just append `--xHemi` to the `vcf2kinship` (more details in [Kinship generation](#kinship-generation)) and `rvtest` command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.
+*Related individuals*. Just append `--xHemi` to the `vcf2kinship` (more details in [Kinship generation](#kinship-generation)) and `rvtest` command lines. Rvtests can recognize non-PAR region kinship file and use it in the analysis.
 
 *PAR region*. PAR region is defined as two regions X:60001-2699520 and X:154931044-155260560. Use `--xLabel` can specify which chromosome has PAR region (default: 23 or X)
 and use `--xParRegion` to specify PAR region (default: hg19, meaning '60001-2699520,154931044-155260560' in the UCSC build hg19, specify "hg18" will use PAR region definition in the UCSC build hg18, or specify "hg38" will use UCSC build 38).
@@ -490,10 +491,14 @@ However, this should rarely happen. Please contact us if you have further questi
 
 # Feedback/Contact
 
-Questions and requests can be sent to Xiaowei Zhan
-([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
-or Goncalo Abecasis
-([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
+Questions and requests can be sent to
+Xiaowei Zhan ([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
+or
+Dajiang Liu ([dajiang.liu@outlook.com](mailto:dajiang.liu@outlook.com "mailto:dajiang.liu@outlook.com"))
+or
+Goncalo Abecasis ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
 
-Rvtests is a collaborative effort by Youna Hu, Bingshan Li and Dajiang Liu.
+Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.
+
+Among rvtests users who have provided many valuable feedbacks or comments, we want to thank: Xueling Sim, Scott Verize, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, the GIANT consoritum and the GLGC consortium.
 

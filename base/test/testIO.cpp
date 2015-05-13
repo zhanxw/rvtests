@@ -80,5 +80,25 @@ int main(int argc, char *argv[])
 
     }
 
+    {
+      char fn[] = "http://zhanxw.com/rvtests/version";
+      LineReader lr(fn);
+      std::string ln;
+        int i = 0;
+        while(lr.readLine(&ln)){
+          fprintf(stderr, "line %d: %s\n", i + 1, ln.c_str());
+            i ++;
+        }
+    }
+    {
+      char fn[] = "http://zhanxw.com/rvtests/version.gz";
+      LineReader lr(fn);
+      std::string ln;
+        int i = 0;
+        while(lr.readLine(&ln)){
+          fprintf(stderr, "line %d: %s\n", i + 1, ln.c_str());
+            i ++;
+        }
+    }
     return 0;
 }

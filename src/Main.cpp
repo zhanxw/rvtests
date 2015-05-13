@@ -24,11 +24,12 @@
 #include "GitVersion.h"
 #include "Result.h"
 #include "base/Indexer.h"
+#include "base/VersionChecker.h"
 #include "regression/LinearRegression.h"
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150509";
+const char* VERSION = "20150511";
 
 void banner(FILE* fp) {
   const char* string =
@@ -736,6 +737,7 @@ int main(int argc, char** argv) {
                        "Specify markers to be conditions (specify range)")
 
   ADD_PARAMETER_GROUP(pl, "Auxiliary Functions")
+  ADD_BOOL_PARAMETER(pl, noweb, "--noweb", "Skip checking new version")      
   ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
   END_PARAMETER_LIST(pl);
 
@@ -771,6 +773,16 @@ int main(int argc, char** argv) {
   logger->infoToFile("Parameters END");
   logger->sync();
 
+#if 0
+  // check new version
+  VersionChecker verChecker("http://zhanxw.com/rvtests/version");
+  if (!FLAG_noweb && verChecker.hasNewVersionThan(VERSION)) {
+    fprintf(stderr, "New version is available!\n");
+    verChecker.printNewVersion();
+  }
+#endif
+  
+  // start analysis
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 

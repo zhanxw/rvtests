@@ -3280,7 +3280,9 @@ class MetaScoreTest : public ModelFitter {
   };
   class MetaFamBinary : public MetaBase {
    public:
-    MetaFamBinary() : lmm(FastLMM::SCORE, FastLMM::MLE) {}
+    MetaFamBinary() : lmm(FastLMM::SCORE, FastLMM::MLE) {
+      lmm.disableCenterGenotype();
+    }
     int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
       Matrix& phenotype = dc->getPhenotype();
       Matrix& covariate = dc->getCovariate();
@@ -3458,19 +3460,20 @@ class MetaScoreTest : public ModelFitter {
   };
 
   MetaBase* createModel(bool familyModel, bool binaryOutcome) {
+    MetaBase* ret = NULL;
     if (familyModel && !binaryOutcome) {
-      return new MetaFamQtl;
+      ret = new MetaFamQtl;
     }
     if (familyModel && binaryOutcome) {
-      return new MetaFamBinary;
+      ret = new MetaFamBinary;
     }
     if (!familyModel && binaryOutcome) {
-      return new MetaUnrelatedBinary;
+      ret = new MetaUnrelatedBinary;
     }
     if (!familyModel && !binaryOutcome) {
-      return new MetaUnrelatedQtl;
+      ret = new MetaUnrelatedQtl;
     }
-    return NULL;
+    return ret;
   }
 
  private:
@@ -4142,19 +4145,20 @@ class MetaCovTest : public ModelFitter {
   };  // end class MetaCovUnrelatedBinary
 
   MetaCovBase* createModel(bool familyModel, bool binaryOutcome) {
+    MetaCovBase*  ret = NULL;
     if (familyModel && !binaryOutcome) {
-      return new MetaCovFamQtl;
+      ret = new MetaCovFamQtl;
     }
     if (familyModel && binaryOutcome) {
-      return new MetaCovFamBinary;
+      ret = new MetaCovFamBinary;
     }
     if (!familyModel && !binaryOutcome) {
-      return new MetaCovUnrelatedQtl;
+      ret = new MetaCovUnrelatedQtl;
     }
     if (!familyModel && binaryOutcome) {
-      return new MetaCovUnrelatedBinary;
+      ret = new MetaCovUnrelatedBinary;
     }
-    return NULL;
+    return ret;
   }
 
  private:

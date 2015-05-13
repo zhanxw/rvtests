@@ -147,6 +147,7 @@ class GzipFileReader : public AbstractFileReader {
  private:
   gzFile fp;
 };
+
 //////////////////////////////////////////////////////////////////////
 // Bzip2 reading class
 #include <bzlib.h>
@@ -219,6 +220,91 @@ class Bzip2FileReader : public AbstractFileReader {
   BZFILE* bzp;
   int bzerror;
 };
+
+#ifdef _USE_KNETFILE
+#include "knetfile.h"
+
+class KnetFileReader : public AbstractFileReader {
+ public:
+  KnetFileReader(const char* fileName) : bgzf_fp(NULL), knet_fp(NULL) {
+    this->open(fileName);
+#ifdef IO_DEBUG
+    fprintf(stderr, "KnetFileReader() open %s\n", fileName);
+#endif
+  };
+  virtual ~KnetFileReader() {
+#ifdef IO_DEBUG
+    fprintf(stderr, "~KnetFileReader() close\n");
+#endif
+    this->close();
+  };
+
+  // get a char, if EOF, return EOF
+  int getc() {
+    if (bgzfMode)
+      return bgzf_getc(this->bgzf_fp);
+    char c;
+    knet_read(this->knet_fp, &c, 1);
+    return c;
+  }
+  // check eof
+  bool isEof() {
+    // this is always false, as we don't know the exact file size
+    return false;
+
+    // bgzf_check_EOF will 'fseek' to the file end, and check the last 28 bytes
+    // but for net resources, it's not possible to reach file end.
+    // return bgzf_check_EOF(this->fp);
+  }
+  // open
+  void* open(const char* fileName) {
+    size_t l = strlen(fileName);
+    if (l > 3 && !strcmp(fileName + l - 3, ".gz")) {
+      bgzfMode = true;
+    }  else {
+      bgzfMode = false;
+    }
+
+    if (bgzfMode) {
+      this->bgzf_fp = bgzf_open(fileName, "r");
+      if (!this->bgzf_fp) {
+        fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
+      }
+      return this->bgzf_fp;
+    }
+
+    this->knet_fp = knet_open(fileName, "r");
+    if (!this->knet_fp) {
+      fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
+    }
+    return this->knet_fp;
+  }
+  // close
+  void close() {
+    if (this->bgzfMode) {
+      if (this->bgzf_fp) {
+        bgzf_close(this->bgzf_fp);
+        bgzf_fp = NULL;
+      }
+    }
+    if (this->knet_fp) {
+      knet_close(this->knet_fp);
+      knet_fp = NULL;
+    }
+  }
+  int read(void* buf, int len) {
+    if (bgzfMode)
+      return bgzf_read(this->bgzf_fp, buf, len);
+    return knet_read(this->knet_fp, buf,len);
+  }
+
+ private:
+  bool bgzfMode;
+  BGZF* bgzf_fp;
+  knetFile* knet_fp;
+};
+#endif
+
 //////////////////////////////////////////////////////////////////////
 
 /**

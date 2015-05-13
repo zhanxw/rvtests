@@ -23,8 +23,11 @@ class FastLMM {
   // @return 0 when success
   int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
                    const EigenMatrix& kinshipS);
+  // test @param Xcol
   int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  // U = (X_centered)' * Inverse(Sigma) * Y_res
+  // V = (X_centered)' * Inverse(Sigma_ X|Y) * X_centered
   int CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
                      const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
                      Matrix* uMat, Matrix* vMat);
@@ -80,6 +83,8 @@ class FastLMM {
                 const EigenMatrix& kinshipS);
   // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
   int GetWeight(Vector* out) const;
+
+  void disableCenterGenotype();
 };
 
 #endif /* _FASTLMM_H_ */

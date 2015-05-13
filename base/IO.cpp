@@ -9,6 +9,23 @@ AbstractFileReader* AbstractFileReader::open(const char* fileName) {
     return fr;
   }
 
+#ifdef _USE_KNETFILE
+  if (strstr(fileName, "ftp://") == fileName || strstr(fileName, "http://") == fileName) {
+    fr = new KnetFileReader(fileName);
+    // fprintf(stderr, "open knetfile %s\n", fileName);
+    return fr;
+  }
+#endif
+  // check fileName suffix
+  size_t l = strlen(fileName);
+  if (l > 3 && !strcmp(fileName + l - 3, ".gz")) {
+    fr = new GzipFileReader(fileName);
+    return fr;
+  } else if (l > 4 && !strcmp(fileName + l - 4, ".bz2")) {
+    fr = new Bzip2FileReader(fileName);
+    return fr;
+  }
+
   switch (AbstractFileReader::checkFileType(fileName)) {
     case PLAIN:
       fr = new PlainFileReader(fileName);

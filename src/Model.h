@@ -2858,9 +2858,12 @@ class MetaScoreTest : public ModelFitter {
 #endif
   {
     this->modelName = "MetaScore";
+    nSample = nCase = nCtrl = -1;
     af = afFromCase = afFromControl = -1.;
     fitOK = false;
     homRef = het = homAlt = missing = -1;
+    homRefCase = hetCase = homAltCase = missingCase = -1;
+    homRefCtrl = hetCtrl = homAltCtrl = missingCtrl = -1;
     hweP = hwePvalueFromCase = hwePvalueFromControl = -1.;
     callRate = -1.;
     useFamilyModel = false;
@@ -2916,7 +2919,7 @@ class MetaScoreTest : public ModelFitter {
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
-    int nSample = (homRef + het + homAlt + missing);
+    nSample = (homRef + het + homAlt + missing);
     if (nSample) {
       callRate = 1.0 - 1.0 * missing / nSample;
     } else {
@@ -2947,9 +2950,6 @@ class MetaScoreTest : public ModelFitter {
 
     // handle binary cases
     if (isBinaryOutcome()) {
-      int homRefCase, hetCase, homAltCase, missingCase;
-      int homRefCtrl, hetCtrl, homAltCtrl, missingCtrl;
-
       if (!isHemiRegion) {
         dc->countRawGenotypeFromCase(0, &homRefCase, &hetCase, &homAltCase,
                                      &missingCase);
@@ -2958,8 +2958,10 @@ class MetaScoreTest : public ModelFitter {
       } else {
         dc->countRawGenotypeFromFemaleCase(0, &homRefCase, &hetCase,
                                            &homAltCase, &missingCase);
+        nCase = (homRefCase + hetCase + homAltCase + missingCase);
         dc->countRawGenotypeFromFemaleControl(0, &homRefCtrl, &hetCtrl,
                                               &homAltCtrl, &missingCtrl);
+        nCtrl = (homRefCtrl + hetCtrl + homAltCtrl + missingCtrl);
       }
 
       if (homRefCase + hetCase + homAltCase == 0 ||
@@ -3068,19 +3070,38 @@ class MetaScoreTest : public ModelFitter {
       }
     }
 
-    result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
-    result.updateValue("CALL_RATE", callRate);
     if (!isBinaryOutcome()) {
+      result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
+      result.updateValue("CALL_RATE", callRate);
       result.updateValue("HWE_PVALUE", hweP);
+      result.updateValue("N_REF", homRef);
+      result.updateValue("N_HET", het);
+      result.updateValue("N_ALT", homAlt);
     } else {
-      static char hwePString[128];
-      snprintf(hwePString, 128, "%g:%g:%g", hweP, hwePvalueFromCase,
+      static const int buffLen = 128;
+      static char buff[buffLen];
+
+      snprintf(buff, 128, "%d:%d:%d", informativeAC,
+               hetCase + 2 * homAltCase,
+               hetCtrl + 2 * homAltCtrl);
+      result.updateValue("INFORMATIVE_ALT_AC", buff);
+
+      snprintf(buff, 128, "%g:%g:%g", callRate,
+               nCase == 0 ? 0.0 : 1.0 - 1.0 * missingCase / nCase,
+               nCtrl == 0 ? 0.0 : 1.0 - 1.0 * missingCtrl / nCtrl);
+      result.updateValue("CALL_RATE", buff);
+    
+      snprintf(buff, 128, "%g:%g:%g", hweP, hwePvalueFromCase,
                hwePvalueFromControl);
-      result.updateValue("HWE_PVALUE", hwePString);
+      result.updateValue("HWE_PVALUE", buff);
+
+      snprintf(buff, 128, "%d:%d:%d", homRef, homRefCase, homRefCtrl);
+      result.updateValue("N_REF", buff);
+      snprintf(buff, 128, "%d:%d:%d", het, hetCase, hetCtrl);
+      result.updateValue("N_HET", buff);
+      snprintf(buff, 128, "%d:%d:%d", homAlt, homAltCase, homAltCtrl);
+      result.updateValue("N_ALT", buff);
     }
-    result.updateValue("N_REF", homRef);
-    result.updateValue("N_HET", het);
-    result.updateValue("N_ALT", homAlt);
 
     if (fitOK) {
       result.updateValue("U_STAT", model->GetU());
@@ -3481,6 +3502,10 @@ class MetaScoreTest : public ModelFitter {
   MetaBase* modelAuto;
   MetaBase* modelX;
 
+  int nSample;
+  int nCase;
+  int nCtrl;
+  
   double af;
   double afFromCase;
   double afFromControl;
@@ -3491,6 +3516,15 @@ class MetaScoreTest : public ModelFitter {
   int het;
   int homAlt;
   int missing;
+  int homRefCase;
+  int hetCase;
+  int homAltCase;
+  int missingCase;
+  int homRefCtrl;
+  int hetCtrl;
+  int homAltCtrl;
+  int missingCtrl;
+  
   double hweP;
   double hwePvalueFromCase;
   double hwePvalueFromControl;

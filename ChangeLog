@@ -1,4 +1,9 @@
-2015-05-11  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2015-06-02  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Output more statistics for binary meta-analysis
+	* Remove 'auto' keyword to support more g++ compiler
+
+2015-05-11  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Change '--meta score' for binary related individuals
 	* Improve documentation

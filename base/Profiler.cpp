@@ -33,14 +33,17 @@ struct FlatMetric{
 
 void Profiler::dump() {
   std::vector< FlatMetric > v;
-  for (auto& x : Profiler::data) {
-    v.push_back(FlatMetric(x.first, x.second.nHits, x.second.timer.getSeconds()));
+  for (std::unordered_map<std::string, Metric>::iterator it = data.begin();
+       it != data.end();
+       ++it) {
+    v.push_back(FlatMetric(it->first, it->second.nHits, it->second.timer.getSeconds()));
   }
   std::sort(v.begin(), v.end(),
             [](const FlatMetric& a, const FlatMetric& b) -> bool {
               return a.avgElapsed > b.avgElapsed;
             });
-  for (auto& x: v) {
+  for (size_t i = 0; i != v.size(); ++i) {
+    const FlatMetric& x = v[i];
     fprintf(
         stderr,
         "Function [ %s ] hit [ %d ] times, total elapsed time [ %g ] seconds, avg elapsed time [ %g ] seconds\n",

@@ -4,7 +4,7 @@ EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
 all: $(EXE)
 debug: all
 
-CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/tabix/ \
+CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/gsl/include -I../../third/tabix/ \
 -I../../third/pcre/include \
 ../../base/lib-dbg-base.a -lz -lbz2 \
 ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \

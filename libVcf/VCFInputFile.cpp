@@ -114,7 +114,7 @@ void VCFInputFile::init(const char* fn) {
   // check whether file exists.
   FILE* fp = fopen(fn, "rb");
   if (!fp) {
-    fprintf(stderr, "Cannot open file [ %s ]\n", fn);
+    fprintf(stderr, "[ERROR] Cannot open file [ %s ]\n", fn);
     return;
   }
   fclose(fp);

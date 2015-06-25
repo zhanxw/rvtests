@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     abort();
   }
 
-  REQUIRE_STRING_PARAMETER(FLAG_inPlink, "Please provide input file using: --inVcf");
+  REQUIRE_STRING_PARAMETER(FLAG_inPlink, "Please provide input file using: --inPlink");
 
   PlinkInputFile* pin = new PlinkInputFile(FLAG_inPlink.c_str());
   FILE* fout = fopen(FLAG_outVcf.c_str(), "wt");

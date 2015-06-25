@@ -719,8 +719,8 @@ class BufferedFileWriter : public AbstractFileWriter {
     this->buf = new char[bufLen + 1];  // last char in the buffer is always '\0'
     // that help to use fputs()
     if (!this->buf) {
-      fprintf(stderr, "Cannot create BufferedFileWriter\n");
-      abort();
+      fprintf(stderr, "%s:%d Cannot create BufferedFileWriter\n", __FILE__, __LINE__);
+      exit(1);
     }
     this->buf[bufLen] = '\0';
     this->bufPtr = 0;
@@ -801,8 +801,8 @@ class FileWriter {
     }
     this->fp = new BufferedFileWriter(this->fpRaw);
     if (!this->fpRaw || !this->fp) {
-      fprintf(stderr, "Cannot create file\n");
-      abort();
+      fprintf(stderr, "%s:%d Cannot create file\n", __FILE__, __LINE__);
+      exit(1);
     }
 
     this->createBuffer();
@@ -825,8 +825,8 @@ class FileWriter {
 
     this->fp = new BufferedFileWriter(this->fpRaw);
     if (!this->fpRaw || !this->fp) {
-      fprintf(stderr, "Cannot create file\n");
-      abort();
+      fprintf(stderr, "%s:%d Cannot create file\n", __FILE__, __LINE__);
+      exit(1);
     }
 
     this->createBuffer();
@@ -914,8 +914,8 @@ class FileWriter {
     delete[] this->buf;
     this->buf = new char[newBufLen];
     if (!this->buf) {
-      fprintf(stderr, "Cannot increase printf buffer for FileWriter.\n");
-      abort();
+      fprintf(stderr, "%s:%d Cannot increase printf buffer for FileWriter.\n", __FILE__, __LINE__);
+      exit(1);
     }
     this->bufLen = newBufLen;
   }

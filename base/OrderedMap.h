@@ -62,26 +62,26 @@ class OrderedMap {
   }
   const TYPE& valueAt(unsigned int idx) const {
     if (idx >= this->size()) {
-      fprintf(stderr, "Cannot find KEY in valueAt()\n");
-      abort();
+      fprintf(stderr, "%s:%d Cannot find KEY in valueAt()\n", __FILE__, __LINE__);
+      exit(1);
     }
     const KEY& k = this->keyVec[idx];
     if (this->keyTypeMap.find(k) == this->keyTypeMap.end()) {
-      fprintf(stderr, "Cannot find KEY in valueAt()\n");
-      abort();
+      fprintf(stderr, "%s:%d Cannot find KEY in valueAt()\n", __FILE__, __LINE__);
+      exit(1);
     } else {
       return this->keyTypeMap.find(k)->second;
     }
   }
   TYPE& valueAt(unsigned int idx) {
     if (idx >= this->size()) {
-      fprintf(stderr, "Cannot find KEY in valueAt()\n");
-      abort();
+      fprintf(stderr, "%s:%d Cannot find KEY in valueAt()\n", __FILE__, __LINE__);
+      exit(1);
     }
     const KEY& k = this->keyVec[idx];
     if (this->keyTypeMap.find(k) == this->keyTypeMap.end()) {
-      fprintf(stderr, "Cannot find KEY in valueAt()\n");
-      abort();
+      fprintf(stderr, "%s:%d Cannot find KEY in valueAt()\n", __FILE__, __LINE__);
+      exit(1);
     }
     return this->keyTypeMap.find(k)->second;
   }

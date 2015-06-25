@@ -60,7 +60,7 @@ inline void REPORT(const char* x) {
 
 inline void FATAL(const char* x) {
   REPORT(x);
-  abort();
+  exit(1);
 };
 
 #endif /* _EXCEPTION_H_ */

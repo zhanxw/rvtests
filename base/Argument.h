@@ -641,8 +641,8 @@ class ParameterParser {
 // Helper functions
 void REQUIRE_STRING_PARAMETER(const std::string& flag, const char* msg) {
   if (flag.empty()) {
-    fprintf(stderr, "%s\n", msg);
-    abort();
+    fprintf(stderr, "Cannot find required parameter [ %s ]\n", msg);
+    exit(1);
   }
 };
 

@@ -2487,7 +2487,9 @@ class SkatTest : public ModelFitter {
     weight.Dimension(genotype.cols);
     for (int i = 0; i < weight.Length(); i++) {
       double freq = getMarkerFrequency(genotype, i);
-      freq = (freq * (genotype.rows * 2 + 1) - 1) / (genotype.rows * 2);
+      if (freq > 0.5) { // convert to MAF
+        freq = 1.0 - freq;
+      }
       if (freq > 1e-30) {  // avoid dividing zero
         weight[i] = gsl_ran_beta_pdf(
             freq, this->beta1,

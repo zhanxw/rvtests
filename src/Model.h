@@ -182,6 +182,9 @@ class SingleVariantFirthTest : public ModelFitter {
       return -1;
     }
     if (!isBinaryOutcome()) {
+      warnOnce(
+          "Firth test does not support continuous outcomes. Results will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
@@ -263,7 +266,10 @@ class SingleVariantScoreTest : public ModelFitter {
       if (needToFitNullModel || dc->isPhenotypeUpdated() ||
           dc->isCovariateUpdated()) {
         fitOK = linear.FitNullModel(cov, pheno);
-        if (!fitOK) return -1;
+        if (!fitOK) {
+          warnOnce("Single variant score test failed in fitting null model.");
+          return -1;
+        }
         needToFitNullModel = false;
       }
       fitOK = linear.TestCovariate(cov, pheno, genotype);
@@ -271,7 +277,10 @@ class SingleVariantScoreTest : public ModelFitter {
       if (needToFitNullModel || dc->isPhenotypeUpdated() ||
           dc->isCovariateUpdated()) {
         fitOK = logistic.FitNullModel(cov, pheno, 100);
-        if (!fitOK) return -1;
+        if (!fitOK) {
+          warnOnce("Single variant score test failed in fitting null model.");
+          return -1;
+        }
         needToFitNullModel = false;
       }
       fitOK = logistic.TestCovariate(cov, pheno, genotype);
@@ -354,10 +363,16 @@ class SingleVariantFisherExactTest : public ModelFitter {
       return -1;
     }
     if (!isBinaryOutcome()) {
+      warnOnce(
+          "Fisher's exact test does not support continuous outcomes. Results "
+          "will be all NAs.");
       fitOK = false;
       return -1;
     }
     if (cov.cols) {
+      warnOnce(
+          "Fisher's exact test does not support covariates. Results will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
@@ -465,6 +480,9 @@ class SingleVariantFamilyScore : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     if (isBinaryOutcome()) {
+      warnOnce(
+          "Single variant score test (related individual) does not support "
+          "binary outcomes. Results will be all NAs.");
       fitOK = false;
       return -1;
     }
@@ -556,6 +574,9 @@ class SingleVariantFamilyLRT : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     if (isBinaryOutcome()) {
+      warnOnce(
+          "Single variant likelihood ratio test (related individuals) does not "
+          "support binary outcomes. Results will be all NAs.");
       fitOK = false;
       return -1;
     }
@@ -645,6 +666,9 @@ class SingleVariantFamilyGrammarGamma : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     if (isBinaryOutcome()) {
+      warnOnce(
+          "Single variant garmma-gamma test (related individuals) does not "
+          "support binary outcomes. Results will be all NAs.");
       fitOK = false;
       return -1;
     }
@@ -754,12 +778,18 @@ class CMCTest : public ModelFitter {
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(cov, pheno, 100);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce("CMC test failed in fitting null model.");
+        return -1;
+      }
       fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     } else {
       fitOK = linear.FitNullModel(cov, pheno);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce("CMC test failed in fitting null model.");
+        return -1;
+      }
       fitOK = linear.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     }
@@ -1005,14 +1035,20 @@ class CMCFisherExactTest : public ModelFitter {
     Matrix& cov = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
+      warnOnce(
+          "Fisher's exact test does not support continuous outcomes. Results "
+          "will be all NAs.");
       fitOK = false;
       return -1;
     }
     if (genotype.cols == 0) {
       fitOK = false;
-      return 1;
+      return -1;
     }
     if (cov.cols) {
+      warnOnce(
+          "Fisher's exact test does not support covariates. Results will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
@@ -1096,12 +1132,18 @@ class ZegginiTest : public ModelFitter {
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(cov, pheno, 100);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce("Zeggini test failed in fitting null model.");
+        return -1;
+      }
       fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     } else {
       fitOK = linear.FitNullModel(cov, pheno);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce("Zeggini test failed in fitting null model.");
+        return -1;
+      }
       fitOK = linear.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     }
@@ -1148,6 +1190,9 @@ class MadsonBrowningTest : public ModelFitter {
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
+      warnOnce(
+          "Madsen-Browning test does not support continuous outcomes. Results "
+          "will be all NAs.");
       fitOK = false;
       return -1;
     }
@@ -1159,13 +1204,14 @@ class MadsonBrowningTest : public ModelFitter {
     }
     Matrix cov;
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
-
     copyPhenotype(phenotype, &this->pheno);
-
     madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
 
     fitOK = logistic.FitNullModel(cov, pheno, 100);
-    if (!fitOK) return -1;
+    if (!fitOK) {
+      warnOnce("Madsen-Browning test failed in fitting null model.");
+      return -1;
+    }
     fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
     if (!fitOK) return -1;
 
@@ -1259,12 +1305,18 @@ class FpTest : public ModelFitter {
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(cov, pheno, 100);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce("Fp test failed in fitting null model.");
+        return -1;
+      }
       fitOK = logistic.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     } else {
       fitOK = linear.FitNullModel(cov, pheno);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce("Fp test failed in fitting null model.");
+        return -1;
+      }
       fitOK = linear.TestCovariate(cov, pheno, collapsedGenotype);
       return (fitOK ? 0 : -1);
     }
@@ -1310,10 +1362,16 @@ class RareCoverTest : public ModelFitter {
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
+      warnOnce(
+          "Rarecover test does not support continuous outcomes. Results will "
+          "be all NAs.");
       fitOK = false;
       return -1;
     }
     if (covariate.cols != 0) {  // rare cover does not take covariate
+      warnOnce(
+          "Rarecover test does not support covariates. Results will be all "
+          "NAs.");
       fitOK = false;
       return -1;
     }
@@ -1473,10 +1531,16 @@ class CMATTest : public ModelFitter {
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
+      warnOnce(
+          "CMAT test does not support continuous outcomes. Results will be all "
+          "NAs.");
       fitOK = false;
       return -1;
     }
     if (covariate.cols != 0) {
+      warnOnce(
+          "CMAT exact test does not support covariates. Results will be all "
+          "NAs.");
       fitOK = false;
       return -1;
     }
@@ -1611,8 +1675,9 @@ class VariableThresholdPrice : public ModelFitter {
       return -1;
     }
     if (covariate.cols != 0) {
-      fprintf(stderr,
-              "Price's Variable Threshold method does not take covariate.\n");
+      warnOnce(
+          "Price's Variable Threshold method does not take covariate. Results "
+          "will be all NAs");
     }
 
     // rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
@@ -1877,6 +1942,7 @@ class VTCMC : public ModelFitter {
     // copyPhenotype(phenotype, &this->phenotype);
     int ret = fitNullModel(dc);
     if (ret) {
+      warnOnce("VT CMC test failed in fitting null model.");
       return -1;
     }
     // convertToMinorAlleleCount(genotype, &geno);
@@ -2024,6 +2090,9 @@ class AnalyticVT : public ModelFitter {
 
     if (isBinaryOutcome()) {
       // does not support binary outcomes
+      warnOnce(
+          "Analytic VT test does not support binary outcomes. Results will be "
+          "all NAs.");
       return -1;
     }
 
@@ -2035,6 +2104,7 @@ class AnalyticVT : public ModelFitter {
     this->useFamilyModel = dc->hasKinship();
     if (this->useFamilyModel ^ (this->type == RELATED)) {
       // model and data does not match
+      warnOnce("Analytic VT test has internal error!");
       return -1;
     }
 
@@ -2069,7 +2139,10 @@ class AnalyticVT : public ModelFitter {
           dc->isCovariateUpdated()) {
         fitOK = lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
                                  *dc->getKinshipSForAuto()) == 0;
-        if (!fitOK) return -1;
+        if (!fitOK) {
+          warnOnce("Analytic VT test failed in fitting null model (LMM).");
+          return -1;
+        }
         needToFitNullModel = false;
       }
 
@@ -2082,6 +2155,7 @@ class AnalyticVT : public ModelFitter {
                          *dc->getKinshipSForAuto(), &u, &v);
     }
     if (mvvt.compute(af, u, v)) {
+      warnOnce("Analytic VT test failed in computing multivarate statistics.");
       fitOK = false;
       return -1;
     }
@@ -2155,6 +2229,10 @@ class FamCMC : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     if (isBinaryOutcome()) {
+      warnOnce(
+          "CMC test (for related individuals) does not support binary "
+          "outcomes. Results will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
@@ -2178,7 +2256,12 @@ class FamCMC : public ModelFitter {
                                     *dc->getKinshipSForAuto())
                ? true
                : false);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce(
+            "CMC test (for related individuals) failed in fitting null model "
+            "(LMM).");
+        return -1;
+      }
       needToFitNullModel = false;
     }
 
@@ -2264,6 +2347,10 @@ class FamZeggini : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     if (isBinaryOutcome()) {
+      warnOnce(
+          "Zeggini test (for related individuals) does not support binary "
+          "outcomes. Results will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
@@ -2287,7 +2374,12 @@ class FamZeggini : public ModelFitter {
                                     *dc->getKinshipSForAuto())
                ? true
                : false);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce(
+            "Zeggini test (for related individuals) failed in fitting null "
+            "model (LMM).");
+        return -1;
+      }
       needToFitNullModel = false;
     }
 
@@ -2370,6 +2462,10 @@ class FamFp : public ModelFitter {
   // fitting model
   int fit(DataConsolidator* dc) {
     if (isBinaryOutcome()) {
+      warnOnce(
+          "Fp test (for related individuals) does not support binary "
+          "outcomes. Results will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
@@ -2393,7 +2489,12 @@ class FamFp : public ModelFitter {
                                     *dc->getKinshipSForAuto())
                ? true
                : false);
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce(
+            "Fp test (for related individuals) failed in fitting null model "
+            "(LMM).");
+        return -1;
+      }
       needToFitNullModel = false;
     }
 
@@ -2487,7 +2588,7 @@ class SkatTest : public ModelFitter {
     weight.Dimension(genotype.cols);
     for (int i = 0; i < weight.Length(); i++) {
       double freq = getMarkerFrequency(genotype, i);
-      if (freq > 0.5) { // convert to MAF
+      if (freq > 0.5) {  // convert to MAF
         freq = 1.0 - freq;
       }
       if (freq > 1e-30) {  // avoid dividing zero
@@ -2513,6 +2614,8 @@ class SkatTest : public ModelFitter {
     if (isBinaryOutcome()) {
       fitOK = logistic.FitLogisticModel(cov, phenoVec, 100);
       if (!fitOK) {
+        warnOnce("SKAT test failed in fitting null model (logistic model).");
+
         return -1;
       }
       ynull = logistic.GetPredicted();
@@ -2520,6 +2623,7 @@ class SkatTest : public ModelFitter {
     } else {
       fitOK = linear.FitLinearModel(cov, phenoVec);
       if (!fitOK) {
+        warnOnce("SKAT test failed in fitting null model (linear model).");
         return -1;
       }
       ynull = linear.GetPredicted();
@@ -2640,10 +2744,15 @@ class KBACTest : public ModelFitter {
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
+      warnOnce(
+          "KBAC test does not support continuous outcomes. Results will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
     if (covariate.cols != 0) {
+      warnOnce(
+          "KBAC test does not support covariates. Results will be all NAs.");
       fitOK = false;
       return -1;
     }
@@ -2774,11 +2883,19 @@ class FamSkatTest : public ModelFitter {
     }
 
     if (isBinaryOutcome()) {
+      warnOnce(
+          "SKAT test (for related individuals) does not support binary "
+          "outcomes. Results will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
     const bool useFamilyModel = dc->hasKinship();
     if (!useFamilyModel) {
+      warnOnce(
+          "SKAT test (for related individuals) cannot find kinship. Results "
+          "will be "
+          "all NAs.");
       fitOK = false;
       return -1;
     }
@@ -2789,7 +2906,12 @@ class FamSkatTest : public ModelFitter {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK = skat.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
                                 *dc->getKinshipSForAuto()) == 0;
-      if (!fitOK) return -1;
+      if (!fitOK) {
+        warnOnce(
+            "SKAT test (for related individuals) failed in fitting null model "
+            "(SKAT)");
+        return -1;
+      }
       needToFitNullModel = false;
     }
 
@@ -3083,8 +3205,7 @@ class MetaScoreTest : public ModelFitter {
       static const int buffLen = 128;
       static char buff[buffLen];
 
-      snprintf(buff, 128, "%d:%d:%d", informativeAC,
-               hetCase + 2 * homAltCase,
+      snprintf(buff, 128, "%d:%d:%d", informativeAC, hetCase + 2 * homAltCase,
                hetCtrl + 2 * homAltCtrl);
       result.updateValue("INFORMATIVE_ALT_AC", buff);
 
@@ -3092,7 +3213,7 @@ class MetaScoreTest : public ModelFitter {
                nCase == 0 ? 0.0 : 1.0 - 1.0 * missingCase / nCase,
                nCtrl == 0 ? 0.0 : 1.0 - 1.0 * missingCtrl / nCtrl);
       result.updateValue("CALL_RATE", buff);
-    
+
       snprintf(buff, 128, "%g:%g:%g", hweP, hwePvalueFromCase,
                hwePvalueFromControl);
       result.updateValue("HWE_PVALUE", buff);
@@ -3507,7 +3628,7 @@ class MetaScoreTest : public ModelFitter {
   int nSample;
   int nCase;
   int nCtrl;
-  
+
   double af;
   double afFromCase;
   double afFromControl;
@@ -3526,7 +3647,7 @@ class MetaScoreTest : public ModelFitter {
   int hetCtrl;
   int homAltCtrl;
   int missingCtrl;
-  
+
   double hweP;
   double hwePvalueFromCase;
   double hwePvalueFromControl;
@@ -4181,7 +4302,7 @@ class MetaCovTest : public ModelFitter {
   };  // end class MetaCovUnrelatedBinary
 
   MetaCovBase* createModel(bool familyModel, bool binaryOutcome) {
-    MetaCovBase*  ret = NULL;
+    MetaCovBase* ret = NULL;
     if (familyModel && !binaryOutcome) {
       ret = new MetaCovFamQtl;
     }

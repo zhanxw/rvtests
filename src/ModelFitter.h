@@ -30,6 +30,7 @@ class ModelFitter {
     this->binaryOutcome = false;  // default: using continuous outcome
     this->familyModel = false;    // is this case for for family only?
     this->indexResult = false;
+    this->warningOnceUsed = false;
   }
   virtual ~ModelFitter() {}
   // each model may have its own set of params, use this to set it up
@@ -54,7 +55,7 @@ class ModelFitter {
   void appendHeader(SummaryHeader* h) { header.push_back(h); }
   void setPrefix(const std::string& p) { this->outputPrefix = p; }
   std::string getPrefix() const { return this->outputPrefix; }
-
+  void warnOnce(const std::string& msg);
  protected:
   // specify this for sub-classes
   std::string modelName;
@@ -69,5 +70,6 @@ class ModelFitter {
 
   // optionally used
   std::vector<SummaryHeader*> header;
+  bool warningOnceUsed;
 };     // end ModelFitter
 #endif /* _MODELFITTER_H_ */

@@ -214,8 +214,8 @@ Burden tests | Model(#)    |Traits(##) | Covariates | Related / unrelated | Desc
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 CMC             |  cmc       |B, Q  |     Y      |         U           | Collapsing and combine rare variants by Bingshan Li.
 Zeggini         |  zeggini   |B, Q  |     Y      |         U           | Aggregate counts of rare variants by Morris Zeggini.
-Madsen-Browning |  mb        |B     |     N      |         U           | Up-weight rare variant using inverse frequency from controls by Madsen.
-Fp              |  fp        |B     |     N      |         U           | Up-weight rare variant using inverse frequency from controls by Danyu Lin.
+Madsen-Browning |  mb        |B     |     Y      |         U           | Up-weight rare variant using inverse frequency from controls by Madsen.
+Fp              |  fp        |B     |     Y      |         U           | Up-weight rare variant using inverse frequency from controls by Danyu Lin.
 Exact CMC       |  exactCMC  |B     |     N      |         U           | Collapsing and combine rare variants, then perform Fisher's exact test.
 CMC Wald        |  cmcWald   |B, Q  |     Y      |         U           | Collapsing and combine rare variants, then perform Wald test.
 RareCover       |  rarecover |B     |     N      |         U           | Find optimal grouping unit for rare variant tests by Thomas Hoffman.

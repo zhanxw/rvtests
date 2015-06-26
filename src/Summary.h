@@ -18,7 +18,7 @@ extern const char* VERSION;
 
 class Summary {
  public:
-  Summary() : min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0){};
+  Summary() : min(0), q1(0), median(0), q3(0), max(0), mean(0), sd(0), n(0) {}
   void add(const std::vector<double>& v) {
     n = v.size();
     if (n == 0) return;
@@ -34,7 +34,7 @@ class Summary {
 
     mean = calculateMean(v);
     sd = calculateSampleSD(v);
-  };
+  }
 
  public:
   double min;
@@ -52,8 +52,7 @@ class Summary {
  */
 class SummaryHeader {
  public:
-  SummaryHeader()
-      : inverseNormalized(false), isBinaryPhenotype(false), fitOK(false){};
+  SummaryHeader() : inverseNormalized(false) {}
   void recordPhenotype(const char* label, const std::vector<double>& pheno) {
     this->phenoLabel.push_back(label);
     Summary s;
@@ -62,14 +61,6 @@ class SummaryHeader {
   }
   void setInverseNormalize(bool b) { this->inverseNormalized = b; }
 
-  /* void recordRawPhenotype(const std::vector<double>& phenoInOrder){ */
-  /*   rawPheno.add(phenoInOrder); */
-  /* }; */
-  /* void recordTransformedPhenotype(const std::vector<double>& phenoInOrder,
-   * bool inverseNormalized){ */
-  /*   this->inverseNormal = inverseNormalized; */
-  /*   transformedPheno.add(phenoInOrder); */
-  /* }; */
   void recordCovariateColumn(Matrix& m, int col) {
     int nr = m.rows;
 
@@ -92,20 +83,6 @@ class SummaryHeader {
       this->recordCovariateColumn(m, i);
     }
   }
-#if 0  
-  void fitModel(const std::vector<double>& pheno, bool binaryPhenotype, Matrix& cov) {
-    this->isBinaryPhenotype = binaryPhenotype;
-    Vector p;
-    assign(pheno, &p);
-    Matrix c;
-    copyCovariateAndIntercept(p.Length(), cov, &c);
-    if (binaryPhenotype) {
-      fitOK = this->logistic.Fit(c, p);
-    } else {
-      fitOK = this->linear.Fit(c, p);
-    }
-  }
-#endif
   void outputHeader(FileWriter* fp) {
     // write summaries
     int nSample = pheno.size() ? pheno[0].n : 0;
@@ -144,53 +121,7 @@ class SummaryHeader {
                    cov[i].mean, cov[i].sd * cov[i].sd);
       }
     }
-#if 0
-    //write null model
-    fp->write("##NullModelEstimates\n");
-    if (!fitOK) {
-      fp->write("## - WARNING: Null model fit failed\n");
-    } else {
-      if (!this->isBinaryPhenotype) {
-        printNullModelEstimate(fp,
-                               linear.GetCovEst(),
-                               linear.GetCovB(),
-                               linear.GetSigma2());
-      } else {
-        printNullModelEstimate(fp,
-                               logistic.GetCovEst(),
-                               logistic.GetCovB(),
-                               1.0);
-      }
-    }
-#endif
   }
-#if 0
-  void printNullModelEstimate(FileWriter* fp,
-                              const Vector& beta,
-                              const Matrix& betaSd,
-                              const double sigma) {
-    if (beta.Length() != betaSd.rows) {
-      fprintf(stderr, "Dimension does not match in class Summary.\n");
-      /* fprintf(stderr, "Dim %d %d %d\n", beta.Length(), betaSd.rows, (int)covLabel.size()); */
-      return;
-    }
-    // NOTE: beta dimension and number of covariate labels may not equals,
-    //       we may regression out covaraite of the response variables.
-    /*     beta.Length() != (int)covLabel.size() + 1)  */
-    fp->printf("## - Name\tBeta\tSD\n");
-    
-    // intercept
-    fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
-    // other cov
-    const int n = covLabel.size();
-    for (int i = 0; i < n; ++i) {
-      if  (i + 1 >= beta.Length() ) break;
-      fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i+1], betaSd[i+1][i+1]);
-    }
-    // sigma
-    fp->printf("## - Sigma\t%g\tNA\n", sigma);
-  }
-#endif
   const std::vector<std::string>& getCovLabel() const { return this->covLabel; }
 
  private:
@@ -202,11 +133,6 @@ class SummaryHeader {
 
   std::vector<std::string> covLabel;
   std::vector<Summary> cov;
-
-  bool isBinaryPhenotype;
-  // LinearRegression linear;
-  // LogisticRegression logistic;
-  bool fitOK;
 };
 
 #endif /* _SUMMARY_H_ */

@@ -2710,7 +2710,6 @@ class SkatTest : public ModelFitter {
   bool usePermutation;
   double stat;
   Permutation perm;
-
 };  // SkatTest
 
 class KBACTest : public ModelFitter {

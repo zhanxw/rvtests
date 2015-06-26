@@ -2565,6 +2565,7 @@ class SkatTest : public ModelFitter {
     this->beta1 = beta1;
     this->beta2 = beta2;
     this->modelName = "Skat";
+    this->needToFitNullModel = true;
   }
   void reset() {
     this->skat.Reset();
@@ -2611,32 +2612,37 @@ class SkatTest : public ModelFitter {
     Matrix cov;
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
-    if (isBinaryOutcome()) {
-      fitOK = logistic.FitLogisticModel(cov, phenoVec, 100);
-      if (!fitOK) {
-        warnOnce("SKAT test failed in fitting null model (logistic model).");
+    // this part caluclate null model, only need to do once
+    if (needToFitNullModel || dc->isPhenotypeUpdated() ||
+        dc->isCovariateUpdated()) {
+      if (isBinaryOutcome()) {
+        fitOK = logistic.FitLogisticModel(cov, phenoVec, 100);
+        if (!fitOK) {
+          warnOnce("SKAT test failed in fitting null model (logistic model).");
 
-        return -1;
+          return -1;
+        }
+        ynull = logistic.GetPredicted();
+        v = logistic.GetVariance();
+      } else {
+        fitOK = linear.FitLinearModel(cov, phenoVec);
+        if (!fitOK) {
+          warnOnce("SKAT test failed in fitting null model (linear model).");
+          return -1;
+        }
+        ynull = linear.GetPredicted();
+        v.Dimension(genotype.rows);
+        for (int i = 0; i < genotype.rows; ++i) {
+          v[i] = linear.GetSigma2();
+        }
       }
-      ynull = logistic.GetPredicted();
-      v = logistic.GetVariance();
-    } else {
-      fitOK = linear.FitLinearModel(cov, phenoVec);
-      if (!fitOK) {
-        warnOnce("SKAT test failed in fitting null model (linear model).");
-        return -1;
+      this->res.Dimension(ynull.Length());
+      for (int i = 0; i < this->ynull.Length(); ++i) {
+        this->res[i] = phenoVec[i] - this->ynull[i];
       }
-      ynull = linear.GetPredicted();
-      v.Dimension(genotype.rows);
-      for (int i = 0; i < genotype.rows; ++i) {
-        v[i] = linear.GetSigma2();
-      }
+      needToFitNullModel = false;
     }
-    this->res.Dimension(ynull.Length());
-    for (int i = 0; i < this->ynull.Length(); ++i) {
-      this->res[i] = phenoVec[i] - this->ynull[i];
-    }
-
+    
     // get Pvalue
     skat.Fit(res, v, cov, genotype, weight);
     this->stat = skat.GetQ();
@@ -2686,6 +2692,7 @@ class SkatTest : public ModelFitter {
   }
 
  private:
+  bool needToFitNullModel;
   double beta1;
   double beta2;
   // Matrix X; // n by (p+1) matrix, people by covariate (note intercept is
@@ -2703,6 +2710,7 @@ class SkatTest : public ModelFitter {
   bool usePermutation;
   double stat;
   Permutation perm;
+
 };  // SkatTest
 
 class KBACTest : public ModelFitter {

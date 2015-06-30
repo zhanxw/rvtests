@@ -25,6 +25,7 @@ echo "Meta-analysis (generate summary statistics)"
 echo "Rare-variant analysis"
 ../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --burden cmc,cmcWald,zeggini,zegginiWald --out out9
 ../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --vt price --out out10
-../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --kernel kbac,skat --out out11
+../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --kernel skat --out out11
+../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --kernel kbac,skat --pheno-name y4 --out out12
 
 echo "Documentation of the examples can be found in README.md or https://github.com/zhanxw/rvtests/blob/master/README.md ."

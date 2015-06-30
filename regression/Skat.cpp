@@ -9,6 +9,12 @@
 #undef DEBUG
 #ifdef DEBUG
 #include <fstream>
+template <class T>
+void dumpEigen(const char* fn, T& m) {
+  std::ofstream k(fn);
+  k << m;
+  k.close();
+}
 #endif
 
 #define ZBOUND 1e-30
@@ -88,7 +94,7 @@ class Skat::SkatImpl {
     // calculate p-value
     this->pValue = this->mixChiSq.getPvalue(this->Q);
     if (this->pValue == 0.0 || this->pValue == 1.0) {
-      this->pValue = this->mixChiSq.getLiuPvalue(this->Q);      
+      this->pValue = this->mixChiSq.getLiuPvalue(this->Q);
     }
     return 0;
   };

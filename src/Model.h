@@ -2589,6 +2589,7 @@ class SkatTest : public ModelFitter {
     weight.Dimension(genotype.cols);
     for (int i = 0; i < weight.Length(); i++) {
       double freq = getMarkerFrequency(genotype, i);
+      // fprintf(stderr, "freq[%d] = %g\n", i, freq);
       if (freq > 0.5) {  // convert to MAF
         freq = 1.0 - freq;
       }
@@ -2619,7 +2620,6 @@ class SkatTest : public ModelFitter {
         fitOK = logistic.FitLogisticModel(cov, phenoVec, 100);
         if (!fitOK) {
           warnOnce("SKAT test failed in fitting null model (logistic model).");
-
           return -1;
         }
         ynull = logistic.GetPredicted();
@@ -2642,20 +2642,23 @@ class SkatTest : public ModelFitter {
       }
       needToFitNullModel = false;
     }
-    
+
     // get Pvalue
     skat.Fit(res, v, cov, genotype, weight);
     this->stat = skat.GetQ();
     this->pValue = skat.GetPvalue();
 
     // permuation part
-    this->perm.init(this->stat);
+    if (this->usePermutation) {
+      permutedRes = res;
+      this->perm.init(this->stat);
 
-    double s;
-    while (this->perm.next()) {
-      permute(&res);
-      s = skat.GetQFromNewResidual(res);
-      this->perm.add(s);
+      double s;
+      while (this->perm.next()) {
+        permute(&permutedRes);
+        s = skat.GetQFromNewResidual(permutedRes);
+        this->perm.add(s);
+      }
     }
     fitOK = true;
     return 0;
@@ -2702,7 +2705,8 @@ class SkatTest : public ModelFitter {
   LogisticRegression logistic;
   LinearRegression linear;
   Vector ynull;
-  Vector res;  // residual under the null
+  Vector res;          // residual under the null
+  Vector permutedRes;  // residual under the null
   Skat skat;
   bool fitOK;
   double pValue;

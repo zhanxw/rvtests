@@ -488,6 +488,11 @@ These counts are calculated from female individuals. If your study only has male
 If rvtests fails to fit using a certain model, it cannot calculate P-value reliably. Rvtests will print P-value as -1 instead of any number between 0 and 1 to indicate that an error occurred.
 However, this should rarely happen. Please contact us if you have further questions.
 
+* Why SKAT Q-values reported by rvtests are different from the SKAT R package?
+
+We strictly follow the notations in the SKAT publication. However, in SKAT R package, its implementation is slightly different.
+For example, in quantitative trait anlaysis, Q is divided by (2 * \hat{sigma2}) in the R package, but not in rvtests.
+Although Q values can be different, the P-values from the two software packges should be comparable (minor differences exist due to numerical issues).
 
 # Feedback/Contact
 

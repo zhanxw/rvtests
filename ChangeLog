@@ -1,3 +1,9 @@
+2015-06-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Improve SKAT speed
+	* Improve error handling when files are missing
+	* Provide more warning messages
+
 2015-06-02  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Output more statistics for binary meta-analysis

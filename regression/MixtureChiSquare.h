@@ -2,7 +2,6 @@
 #define _MIXTURECHISQUARE_H_
 
 #include <cstddef>
-
 class MixtureChiSquare {
  public:
   MixtureChiSquare() : sigma(0.0), lim(10000), acc(0.0001) {
@@ -13,7 +12,7 @@ class MixtureChiSquare {
     lambda_cap = 10;
   }
   ~MixtureChiSquare() {
-    if (lambda_size) {
+    if (lambda) {
       delete[] lambda;
       delete[] noncen;
       delete[] df;

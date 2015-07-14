@@ -36,7 +36,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: May 2015)
+(Updated: July 2015)
 
 # Introduction
 

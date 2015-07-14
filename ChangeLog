@@ -1,3 +1,9 @@
+2015-07-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Improve stability for Price's VT test
+	* Improve error handling when files are missing
+	* Fix calculation of minor allele frequency when extracting genotypes
+
 2015-06-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve SKAT speed

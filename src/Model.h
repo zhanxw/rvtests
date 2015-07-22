@@ -1743,7 +1743,7 @@ class VariableThresholdPrice : public ModelFitter {
         fitOK = false;
         return -1;
       }
-        
+
       this->perm.init(this->zmax);
       // begin permutation
       while (this->perm.next()) {
@@ -3734,29 +3734,17 @@ class MetaCovTest : public ModelFitter {
     this->indexResult = true;
     this->numVariant = 0;
     this->nSample = -1;
-    // this->mleVarY = -1.;
     this->fout = NULL;
     this->windowSize = windowSize;
-    // this->needToFitNullModelForAuto = true;
-    // this->needToFitNullModelForX = true;
     result.addHeader("CHROM");
     result.addHeader("START_POS");
     result.addHeader("END_POS");
     result.addHeader("NUM_MARKER");
     result.addHeader("MARKER_POS");
     result.addHeader("COV");
-    /* result.addHeader("COV_XZ"); */
-    /* result.addHeader("COV_ZZ"); */
   }
   ~MetaCovTest() {
     while (queue.size() > 0) {
-#if 0
-      if (isBinaryOutcome()) {
-        printCovarianceForBinaryTrait(fout, queue);
-      } else {
-        printCovariance(fout, queue);
-      }
-#endif
       printCovariance(fout, queue, isBinaryOutcome());
       queue.pop_front();
     }
@@ -3793,10 +3781,9 @@ class MetaCovTest : public ModelFitter {
       return -1;
     }
     this->useFamilyModel = dc->hasKinship();
-    if (nSample < 0) {  // unitialized
+    if (nSample < 0) {  // uninitialized
       // calculate variance of y
       nSample = genotype.rows;
-      // weight.Dimension(nSample);
     }
     if (nSample != genotype.rows) {
       fprintf(stderr, "Sample size changed at [ %s:%s ]",
@@ -3905,18 +3892,23 @@ class MetaCovTest : public ModelFitter {
       return abs(tail.pos.pos - head.pos.pos);
     }
   }
+  // X is symmetric matrix
+  // return: a' * X * b
+  // = \sum_i \sum_j a_i * X_{ij} * b_j
+  // = \sum_i {a_i * X_ii * b_i + \sum_{j!=i} (a_i * b_j + a_j *b_i) * X_{ij}
   double computeQuadraticForm(const std::vector<double>& a, Matrix& X,
                               const std::vector<double>& b) {
     const int n = X.rows;
     double s = 0.;
     for (int i = 0; i < n; ++i) {
+      s += a[i] * X[i][i] * b[i];
       for (int j = 0; j < i; ++j) {
-        s += 2.0 * a[i] * X[i][j] * b[j];
+        s += (a[i] * b[j] + a[j] * b[i]) * X[i][j];
       }
-      s += a[i] * a[i];
     }
     return s;
   }
+  // return = covX1X2 - covX1Z' * covZZInv * covX2Z
   double computeScaledXX(const double covX1X2,
                          const std::vector<double>& covX1Z,
                          const std::vector<double>& covX2Z, Matrix& covZZInv) {
@@ -4277,19 +4269,16 @@ class MetaCovTest : public ModelFitter {
       return 0;
     }
     int transformGenotype(Genotype* out, DataConsolidator* dc) { return 0; }
-
+    // covX1X2 = x1' * W * x2
     int calculateXX(const Genotype& x1, const Genotype& x2, double* covX1X2) {
       double& covXX = *covX1X2;
       covXX = 0.0;
       for (int i = 0; i < nSample; ++i) {
-        for (int j = 0; j < i; ++j) {
-          covXX += 2.0 * x1[i] * this->weight[i] * x2[j];
-        }
         covXX += x1[i] * this->weight[i] * x2[i];
       }
-      // covXX /= x1.size();
       return 0;
     }
+    // covXZ = g' W Z where Z = (z1, z2, ... , zp)
     int calculateXZ(const Genotype& x, std::vector<double>* covXZ) {
       const int nCov = cov.cols;
       (*covXZ).resize(nCov);
@@ -4310,7 +4299,7 @@ class MetaCovTest : public ModelFitter {
         for (int j = 0; j <= i; ++j) {
           covZZ[i][j] = 0.0;
           for (int k = 0; k < nSample; ++k) {
-            covZZ[i][j] += cov[i][k] * weight[k] * cov[k][j];
+            covZZ[i][j] += cov[k][i] * weight[k] * cov[k][j];
           }
           if (j != i) {
             covZZ[j][i] = covZZ[i][j];

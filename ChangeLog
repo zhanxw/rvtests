@@ -1,6 +1,6 @@
 2015-07-20  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
 
-	* Fix covariance bugs
+	* Fix covariance bugs for binary traits of unrelated individuals
 
 2015-07-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

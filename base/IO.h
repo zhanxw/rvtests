@@ -310,14 +310,14 @@ class KnetFileReader : public AbstractFileReader {
 /**
  * Example code:
 
- BufferedReader br("Makefile", 200);
- char buf[500] = {};
- int nRead = 0;
- while ( (nRead = br.read(buf, 500)) > 0) {
- for (int i = 0; i < nRead; i++) {
- printf("%c", buf[i]);
- }
- }
+   BufferedReader br("Makefile", 200);
+   char buf[500] = {};
+   int nRead = 0;
+   while ( (nRead = br.read(buf, 500)) > 0) {
+     for (int i = 0; i < nRead; i++) {
+       printf("%c", buf[i]);
+     }
+   }
 */
 class BufferedReader : public AbstractFileReader {
  public:

@@ -1,3 +1,8 @@
+2015-08-14  Xiaowei Zhan  <zhanxw@bronco.swmed.edu>
+
+	* Improve SKAT accuracy to match SKAT R package
+	* Add option maxMAF for vcf2plink
+
 2015-07-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve stability for Price's VT test

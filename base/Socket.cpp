@@ -6,7 +6,7 @@
 #include <netdb.h>
 #include <unistd.h> // close()
 
-Socket::Socket(const std::string& host, int port):servinfo(NULL), fd(-1), usable(false) {
+Socket::Socket(const std::string& host, int port):servinfo(NULL), fd(-1), usable(false), quiet(false) {
   connect(host, port);
 }
 
@@ -32,21 +32,27 @@ int Socket::connect(const std::string& host, int port) {
   char strPort[128];
   sprintf(strPort, "%d", port);
   if ((status = getaddrinfo(host.c_str(), strPort, &hints, &servinfo)) != 0) {
-    fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
-    exit(1);
+    if (!this->quiet) {
+      fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+    }
+    return -1;
   }
 
   // 2. get socket
   // use the first servinfo TODO: will try second, third ... if the first fails
   this->fd = ::socket(this->servinfo->ai_family, this->servinfo->ai_socktype, this->servinfo->ai_protocol);
   if (this->fd == -1 ) {
-    perror("socket() error");
+    if (!this->quiet) {
+      perror("socket() error");
+    }
     return -1;
   }
   
   // 3. connect
   if (::connect(this->fd, this->servinfo->ai_addr, this->servinfo->ai_addrlen) == -1) {
-    perror("connect() errror");
+    if (!this->quiet) {
+      perror("connect() errror");
+    }
     return -1;
   }
   

@@ -22,6 +22,7 @@ class Socket{
   int fd;
   bool usable;
   char buffer[4096];
+  bool quiet;
 };
 
 #endif /* SOCKET_H */

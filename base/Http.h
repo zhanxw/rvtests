@@ -15,7 +15,7 @@ class Http{
   std::string path;
   Socket* socket;
   char buf[1024];
-  const int bufSize = 1024;
+  const static int bufSize = 1024;
 };
 
 #endif /* HTTP_H */

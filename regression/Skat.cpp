@@ -88,12 +88,13 @@ class Skat::SkatImpl {
       if (es.eigenvalues()[i] > ZBOUND && r < r_ub) {
         this->mixChiSq.addLambda(es.eigenvalues()[i]);
         r++;
-      } else
+      } else {
         break;
+      }
     }
     // calculate p-value
     this->pValue = this->mixChiSq.getPvalue(this->Q);
-    if (this->pValue == 0.0 || this->pValue == 1.0) {
+    if (this->pValue <= 0.0 || this->pValue == 1.0) {
       this->pValue = this->mixChiSq.getLiuPvalue(this->Q);
     }
     return 0;

@@ -4,7 +4,7 @@
 #include <cstddef>
 class MixtureChiSquare {
  public:
-  MixtureChiSquare() : sigma(0.0), lim(10000), acc(0.0001) {
+  MixtureChiSquare() : sigma(0.0), lim(10000), acc(0.000001) {
     lambda = new double[10];
     noncen = new double[10];
     df = new int[10];

@@ -86,6 +86,7 @@ int main(int argc, char** argv){
         ADD_BOOL_PARAMETER(pl, biallelic, "--biallelic", "Specify only include bi-allelic SNP sites")
         ADD_BOOL_PARAMETER(pl, plinkChrom, "--plinkChrom", "Specify only include chromosome 1-22, X, Y, MT as PLINK required")
         ADD_DEFAULT_DOUBLE_PARAMETER(pl, minMAF, -1, "--minMAF", "Specify minimum accepted minor allele frequency")
+        ADD_DEFAULT_DOUBLE_PARAMETER(pl, maxMAF, -1, "--maxMAF", "Specify maximum accepted minor allele frequency")
         ADD_DEFAULT_DOUBLE_PARAMETER(pl, minHWE, -1, "--minHWE", "Specify minimum accepted HWE p-value")
         ADD_DEFAULT_DOUBLE_PARAMETER(pl, minCallRate, -1, "--minCallRate", "Specify minimum call rate threshold")
         ADD_PARAMETER_GROUP(pl, "Other Function")        
@@ -183,6 +184,7 @@ int main(int argc, char** argv){
 
     int lowSiteFreq = 0; // counter of low site qualities
     int lowMAF = 0;
+    int highMAF = 0;
     int lowCallRate = 0;
     int lowHWE = 0;
     int nonSnp = 0; // counter of non-SNP site
@@ -213,7 +215,7 @@ int main(int argc, char** argv){
         }
         
         // examine individual genotype
-        if (FLAG_variantOnly || FLAG_minMAF >= 0. || FLAG_minHWE >= 0. || FLAG_minCallRate >= 0.0) {
+        if (FLAG_variantOnly || FLAG_minMAF >= 0. || FLAG_maxMAF >= 0. || FLAG_minHWE >= 0. || FLAG_minCallRate >= 0.0) {
           bool hasVariant = false;
           int geno;
           int homRef = 0, het = 0, homAlt = 0, missing = 0;
@@ -239,13 +241,17 @@ int main(int argc, char** argv){
             nonVariantSite++;
             continue;
           }
-          if (FLAG_minMAF >= 0.) {
+          if (FLAG_minMAF >= 0. || FLAG_maxMAF >= 0.) {
             double maf = 0.0;
             if (homRef + het + homAlt > 0) {
               maf = 0.5 * (het + homAlt + homAlt) / (homRef + het + homAlt);
             }
-            if (maf < FLAG_minMAF) {
+            if (FLAG_minMAF >= 0. && maf < FLAG_minMAF) {
               ++ lowMAF;
+              continue;
+            }
+            if (FLAG_maxMAF >= 0. && maf > FLAG_maxMAF) {
+              ++ highMAF;
               continue;
             }
           }
@@ -287,9 +293,6 @@ int main(int argc, char** argv){
             continue;
           }
         }
-        if (FLAG_minMAF > 0) {
-          
-        }
         if (FLAG_minHWE > 0) {
         }
         if (FLAG_minGD > 0 || FLAG_minGQ > 0) {
@@ -323,6 +326,9 @@ int main(int argc, char** argv){
     }
     if (lowMAF) {
       fprintf(stdout, "Skipped %d sites due to Minor Allele Frequency lower than %f\n", lowMAF, FLAG_minMAF);
+    }
+    if (highMAF) {
+      fprintf(stdout, "Skipped %d sites due to Minor Allele Frequency higher than %f\n", highMAF, FLAG_maxMAF);
     }
     if (lowHWE) {
       fprintf(stdout, "Skipped %d sites due to HWE P-values lower than %f\n", lowHWE, FLAG_minHWE);

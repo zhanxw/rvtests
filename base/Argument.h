@@ -602,7 +602,7 @@ class ParameterParser {
   // store group and flags (their indices in flagVec)that belongs to that group
   OrderedMap<std::string, std::vector<unsigned int> > groupNameFlagIndexMap;
   // aka. positional argument,
-  // those not processed argument
+  // those not processed arguments
   std::vector<std::string>* ptrRemainingArg;
   const static int FLAG_WIDTH = 25;
   const static int DOC_WIDTH = 55;

@@ -126,11 +126,18 @@ class GenotypeExtractor {
       }
 
       // check frequency cutoffs
+      int numNonMissingPeople = 0;
       double maf = 0.;
       for (int i = 0; i < numPeople; ++i) {
+        if (m[row][i] < 0) continue;
         maf += m[row][i];
+        ++ numNonMissingPeople;
       }
-      maf = maf / (2. * numPeople);
+      if (numNonMissingPeople) {
+        maf = maf / (2. * numNonMissingPeople);
+      } else {
+        maf = 0.0;
+      }
       if (maf > .5) {
         maf = 1.0 - maf;
       }
@@ -755,7 +762,7 @@ int main(int argc, char** argv) {
     for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
       fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
     }
-    abort();
+    exit(1);
   }
 
   if (!FLAG_outPrefix.size()) FLAG_outPrefix = "rvtest";
@@ -924,7 +931,7 @@ int main(int argc, char** argv) {
                             &columnNamesInCovariate, &sampleToDropInCovariate);
     if (ret < 0) {
       logger->error("Load covariate file failed !");
-      abort();
+      exit(1);
     }
 
     // drop phenotype samples
@@ -958,7 +965,7 @@ int main(int argc, char** argv) {
   std::vector<int> sex;
   if (loadSex(FLAG_pheno, phenotypeNameInOrder, &sex)) {
     logger->error("Cannot load sex of samples from phenotype file");
-    abort();
+    exit(1);
   }
 
   if (FLAG_sex) {            // append sex in covariate
@@ -978,13 +985,13 @@ int main(int argc, char** argv) {
     if (loadMarkerFromVCF(FLAG_inVcf, FLAG_condition, &rowLabel, &geno) < 0) {
       logger->error("Load conditional markers [ %s ] from [ %s ] failed.",
                     FLAG_condition.c_str(), FLAG_inVcf.c_str());
-      abort();
+      exit(1);
     }
     if (appendGenotype(&covariate, phenotypeNameInOrder, geno, rowLabel) < 0) {
       logger->error(
           "Failed to combine conditional markers [ %s ] from [ %s ] failed.",
           FLAG_condition.c_str(), FLAG_inVcf.c_str());
-      abort();
+      exit(1);
     }
   }
 
@@ -1002,7 +1009,7 @@ int main(int argc, char** argv) {
           "Covariate [ %s ] equals [ %g ] for all samples, cannot fit "
           "model...\n",
           covariate.GetColumnLabel(i), *s.begin());
-      abort();
+      exit(1);
     }
   }
 
@@ -1084,12 +1091,12 @@ int main(int argc, char** argv) {
 
   if (phenotypeInOrder.empty()) {
     logger->fatal("There are 0 samples with valid phenotypes, quitting...");
-    abort();
+    exit(1);
   }
 
   // g_SummaryHeader->fitModel(phenotypeInOrder, binaryPhenotype, covariate);
 
-  logger->info("Analysis begin with [ %zu ] samples...",
+  logger->info("Analysis begins with [ %zu ] samples...",
                phenotypeInOrder.size());
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -1099,7 +1106,7 @@ int main(int argc, char** argv) {
                            FLAG_modelKernel.size());
   if (singleVariantMode && groupVariantMode) {
     logger->error("Cannot support both single variant and region based tests");
-    abort();
+    exit(1);
   }
 
   ModelManager modelManager(FLAG_outPrefix);
@@ -1134,12 +1141,12 @@ int main(int argc, char** argv) {
   std::string rangeMode = "Single";
   if (FLAG_geneFile.size() && (FLAG_setFile.size() || FLAG_setList.size())) {
     logger->error("Cannot specify both gene file and set file.");
-    abort();
+    exit(1);
   }
 
   if (!FLAG_gene.empty() && FLAG_geneFile.empty()) {
     logger->error("Please provide gene file for gene bases analysis.");
-    abort();
+    exit(1);
   }
   OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
@@ -1156,7 +1163,7 @@ int main(int argc, char** argv) {
 
   if (!FLAG_set.empty() && FLAG_setFile.empty()) {
     logger->error("Please provide set file for set bases analysis.");
-    abort();
+    exit(1);
   }
   if (FLAG_setFile.size()) {
     rangeMode = "Range";
@@ -1188,7 +1195,7 @@ int main(int argc, char** argv) {
       logger->error(
           "To use family based method, you need to use --kinship to specify a "
           "kinship file (you use vcf2kinship to generate one).");
-      abort();
+      exit(1);
     }
 
     // load autosomal kinship
@@ -1197,7 +1204,7 @@ int main(int argc, char** argv) {
     start = clock();
     if (dc.loadKinshipFileForAuto(FLAG_kinship, phenotypeNameInOrder)) {
       logger->error("Failed to load kinship file [ %s ]", FLAG_kinship.c_str());
-      abort();
+      exit(1);
     }
     diff = (std::clock() - start) / (double)CLOCKS_PER_SEC;
     logger->info(
@@ -1207,7 +1214,7 @@ int main(int argc, char** argv) {
     start = clock();
     if (dc.decomposeKinshipForAuto()) {
       logger->error("Failed to decompose kinship matrix");
-      abort();
+      exit(1);
     }
     diff = (std::clock() - start) / (double)CLOCKS_PER_SEC;
     logger->info(
@@ -1240,7 +1247,7 @@ int main(int argc, char** argv) {
       if (dc.loadKinshipFileForX(FLAG_xHemiKinship, phenotypeNameInOrder)) {
         logger->error("Failed to load kinship file [ %s ]",
                       FLAG_xHemiKinship.c_str());
-        abort();
+        exit(1);
       }
       diff = (std::clock() - start) / (double)CLOCKS_PER_SEC;
       logger->info(
@@ -1250,7 +1257,7 @@ int main(int argc, char** argv) {
       start = clock();
       if (dc.decomposeKinshipForX()) {
         logger->error("Failed to decompose kinship matrix");
-        abort();
+        exit(1);
       }
       diff = (std::clock() - start) / (double)CLOCKS_PER_SEC;
       logger->info(
@@ -1289,11 +1296,11 @@ int main(int argc, char** argv) {
   GenotypeExtractor ge(&vin);
   if (FLAG_freqUpper > 0) {
     ge.setSiteFreqMax(FLAG_freqUpper);
-    logger->info("Set upper frequency limit to %f", FLAG_freqUpper);
+    logger->info("Set upper minor allele frequency limit to %g", FLAG_freqUpper);
   }
   if (FLAG_freqLower > 0) {
     ge.setSiteFreqMin(FLAG_freqLower);
-    logger->info("Set lower frequency limit to %f", FLAG_freqLower);
+    logger->info("Set lower minor allele frequency limit to %g", FLAG_freqLower);
   }
 
   // handle sex chromosome
@@ -1497,7 +1504,7 @@ int main(int argc, char** argv) {
                  variantProcessed, (int)geneRange.size());
   } else {
     logger->error("Unsupported reading mode and test modes!");
-    abort();
+    exit(1);
   }
 
   // Resource cleaning up

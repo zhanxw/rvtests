@@ -1695,10 +1695,18 @@ class VariableThresholdPrice : public ModelFitter {
       for (int i = 0; i < sortedGenotype.rows; ++i) {
         z = calculateZForBinaryTrait(this->phenotype, this->sortedGenotype[i],
                                      weight);
+        // cannot allow frequency cutoff to be zero
+        if (freq[i] == 0) {
+          continue;
+        }
         if (z > this->zmax) {
           zmax = z;
           this->optimalFreq = freq[i];
         }
+      }
+      if (this->zmax == -999.0) {
+        fitOK = false;
+        return -1;
       }
       this->perm.init(zmax);
 
@@ -1717,19 +1725,26 @@ class VariableThresholdPrice : public ModelFitter {
         }
         this->perm.add(zp);
       }
-
     } else {
       centerVector(&this->phenotype);
       for (int i = 0; i < sortedGenotype.rows; ++i) {
         z = calculateZForContinuousTrait(this->phenotype,
                                          this->sortedGenotype[i], weight);
+        // cannot allow frequency cutoff to be zero
+        if (freq[i] == 0) {
+          continue;
+        }
         if (z > this->zmax) {
           this->zmax = z;
           this->optimalFreq = freq[i];
         }
       }
+      if (this->zmax == -999.0) {
+        fitOK = false;
+        return -1;
+      }
+        
       this->perm.init(this->zmax);
-
       // begin permutation
       while (this->perm.next()) {
         double zp = -999.0;

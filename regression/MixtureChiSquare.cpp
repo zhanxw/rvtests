@@ -5,6 +5,12 @@
 #include "qfc.c"    // for mixutre chi-sq
 
 double MixtureChiSquare::getPvalue(double Q) {
+  if (lambda_size == 1) {
+    // Davies method does not support one lambda
+    return getLiuPvalue(Q);
+  }
+
+  // Davies method
   int fault;
   double trace[7];
 

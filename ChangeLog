@@ -3,6 +3,11 @@
 	* Add version checker for Linux version
 	* Improve user interface by print effective commandline options
 
+2015-08-14  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Improve SKAT accuracy to match SKAT R package
+	* Add option maxMAF for vcf2plink
+
 2015-07-20  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix covariance bugs for binary traits of unrelated individuals

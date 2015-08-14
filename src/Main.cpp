@@ -29,7 +29,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150720";
+const char* VERSION = "20150812";
 
 void banner(FILE* fp) {
   const char* string =
@@ -40,7 +40,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      July 2015                         | \n"
+      "|      August 2015                       | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -780,14 +780,12 @@ int main(int argc, char** argv) {
   logger->infoToFile("Parameters END");
   logger->sync();
 
-#if 0
   // check new version
   VersionChecker verChecker("http://zhanxw.com/rvtests/version");
   if (!FLAG_noweb && verChecker.hasNewVersionThan(VERSION)) {
     fprintf(stderr, "New version is available!\n");
     verChecker.printNewVersion();
   }
-#endif
   
   // start analysis
   time_t startTime = time(0);
@@ -1377,7 +1375,7 @@ int main(int argc, char** argv) {
                       buf["CHROM"].c_str(), buf["POS"].c_str());
         continue;
       }
-      if (genotype.rows == 0) {
+      if (genotype.cols == 0) {
         logger->warn("Extract [ %s:%s ] has 0 variants, skipping",
                      buf["CHROM"].c_str(), buf["POS"].c_str());
         continue;
@@ -1431,7 +1429,7 @@ int main(int argc, char** argv) {
                         geneName.c_str());
           continue;
         }
-        if (genotype.rows == 0) {
+        if (genotype.cols == 0) {
           logger->warn("Gene %s has 0 variants, skipping", geneName.c_str());
           continue;
         }
@@ -1473,15 +1471,15 @@ int main(int argc, char** argv) {
 
       buf.clearValue();
       int ret = ge.extractMultipleGenotype(&genotype);
+
       if (ret != GenotypeExtractor::SUCCEED) {
         logger->error("Extract genotype failed for gene %s!", geneName.c_str());
         continue;
       }
-      if (genotype.rows == 0) {
+      if (genotype.cols == 0) {
         logger->info("Gene %s has 0 variants, skipping", geneName.c_str());
         continue;
       }
-
       variantProcessed += genotype.cols;  // genotype is people by marker
       dc.consolidate(phenotypeMatrix, covariate, genotype);
 
@@ -1499,12 +1497,6 @@ int main(int argc, char** argv) {
         model[m]->writeOutput(fOuts[m], buf);
       }
 
-#ifdef DEBUG
-      // DEBUG
-      logger->info("%s", currentTime().c_str());
-      rangeList.dump();
-      logger->info("Variant processed = %d", variantProcessed);
-#endif
     }
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions",
                  variantProcessed, (int)geneRange.size());

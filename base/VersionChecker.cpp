@@ -1,33 +1,35 @@
 #include "VersionChecker.h"
-#include "IO.h"
+#include "Http.h"
 #include "TypeConversion.h"
 
+
 VersionChecker::VersionChecker(const std::string& urlToVersion) {
-#ifdef _USE_KNETFILE
-  LineReader lr(urlToVersion);
-  std::string line;
-  while (lr.readLine(&line)) {
-    this->remoteInformation.push_back(line);
-  }
-#endif
+  Http http(urlToVersion);
+  http.read(&this->remoteInformation);
 }
 
 int VersionChecker::hasNewVersionThan(const std::string& currentVersion) {
   int ver;
   if (str2int(currentVersion, &ver)) {
-    return this->hasNewVersionThan(ver);
+    return -1;
   }
-  return 0;
+  return this->hasNewVersionThan(ver);
 }
 
 int VersionChecker::hasNewVersionThan(int currentVersion) {
+  if (!this->remoteInformation.size()) {
+    return -1;
+  }
   int remoteVersion;
-  if (!str2int(remoteInformation[0], &remoteVersion)) return 0;
+  if (!str2int(remoteInformation[0], &remoteVersion)) return -1;
   if (remoteVersion > currentVersion) return 1;
   return 0;
 }
 
 void VersionChecker::printNewVersion() const {
+  if (!remoteInformation.size()) {
+    return;
+  }
   for (size_t i = 1; i != remoteInformation.size(); ++i) {
     fprintf(stderr, "%s\n", remoteInformation[i].c_str());
   }

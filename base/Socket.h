@@ -10,7 +10,7 @@ class Socket{
  public:
   Socket(const std::string& host,
          int port);
-  ~Socket();
+  virtual ~Socket();
   int connect(const std::string& host,
               int port);
   void close();

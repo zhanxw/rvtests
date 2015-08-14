@@ -1,6 +1,7 @@
 EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
       testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
-      testCommonFunction testTypeConversion testSimpleTimer testProfiler testVersionChecker 
+      testCommonFunction testTypeConversion testSimpleTimer testProfiler testVersionChecker \
+      testSocket
 all: $(EXE)
 debug: all
 

@@ -70,5 +70,15 @@ int main(int argc, char *argv[])
     assert(result.size() == 1);
     assert(result[0] == "");
   }  
+  {
+      std::string s = "";
+      std::string res = stringStrip(s);
+      assert(res.size() == 0);
+
+      s = "  ";
+      res = stringStrip(s);
+      assert(res.size() == 0);
+  }
+
   return 0;
 }

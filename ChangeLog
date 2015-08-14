@@ -1,4 +1,9 @@
-2015-07-20  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2015-08-14  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Add version checker for Linux version
+	* Improve user interface by print effective commandline options
+
+2015-07-20  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix covariance bugs for binary traits of unrelated individuals
 

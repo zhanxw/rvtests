@@ -41,8 +41,11 @@ inline bool hasLeadingChr(const std::string& s) {
 
 // remove the leading and trailing white spaces
 inline std::string stringStrip(const std::string& s) {
-  unsigned int beg = s.find_first_not_of(' ');
-  unsigned int end = s.find_last_not_of(' ');
+  size_t beg = s.find_first_not_of(' ');
+  if (beg == std::string::npos) {
+    return "";
+  }
+  size_t end = s.find_last_not_of(' ');
   return s.substr(beg, end - beg);
 }
 /**

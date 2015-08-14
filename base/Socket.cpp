@@ -24,20 +24,21 @@ int Socket::connect(const std::string& host, int port) {
   // 1. Get IP
   int status;
   struct addrinfo hints;
-  struct addrinfo* servinfo = NULL;  // will point to the results
+  this->servinfo = NULL;  // will point to the results
   memset(&hints, 0, sizeof hints);   // make sure the struct is empty
   hints.ai_family = AF_UNSPEC;       // don't care IPv4 or IPv6
   hints.ai_socktype = SOCK_STREAM;   // TCP stream sockets
   hints.ai_flags = AI_PASSIVE;       // fill in my IP for me
   char strPort[128];
   sprintf(strPort, "%d", port);
-  if ((status = getaddrinfo(NULL, strPort, &hints, &servinfo)) != 0) {
+  if ((status = getaddrinfo(host.c_str(), strPort, &hints, &servinfo)) != 0) {
     fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
     exit(1);
   }
 
   // 2. get socket
-  this->fd = socket(this->servinfo->ai_family, this->servinfo->ai_socktype, this->servinfo->ai_protocol);
+  // use the first servinfo TODO: will try second, third ... if the first fails
+  this->fd = ::socket(this->servinfo->ai_family, this->servinfo->ai_socktype, this->servinfo->ai_protocol);
   if (this->fd == -1 ) {
     perror("socket() error");
     return -1;

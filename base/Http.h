@@ -19,7 +19,7 @@ class Http{
   int port;
   Socket* socket;
   char buf[1024];
-  const int bufSize = 1024;
+  const static int bufSize = 1024;
   std::string proxy;
   int proxyPort;
   std::string request;

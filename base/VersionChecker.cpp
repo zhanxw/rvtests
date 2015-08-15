@@ -11,17 +11,17 @@ VersionChecker::VersionChecker(const std::string& urlToVersion) {
 int VersionChecker::hasNewVersionThan(const std::string& currentVersion) {
   int ver;
   if (str2int(currentVersion, &ver)) {
-    return -1;
+    return 0;
   }
   return this->hasNewVersionThan(ver);
 }
 
 int VersionChecker::hasNewVersionThan(int currentVersion) {
   if (!this->remoteInformation.size()) {
-    return -1;
+    return 0;
   }
   int remoteVersion;
-  if (!str2int(remoteInformation[0], &remoteVersion)) return -1;
+  if (!str2int(remoteInformation[0], &remoteVersion)) return 0;
   if (remoteVersion > currentVersion) return 1;
   return 0;
 }

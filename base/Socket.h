@@ -16,6 +16,7 @@ class Socket{
   void close();
   int send(const std::string& msg);
   int recv(void* buf, int len);
+  int timedRecv(void* buf, int len, double seconds);
   bool isUsable() const {return this->usable;}
  private:
   struct addrinfo* servinfo;

@@ -12,6 +12,7 @@ int main(int argc, char *argv[])
     std::string s = "a b\"MID\" c d";
     std::vector<std::string> result;
     unsigned int ret = stringTokenize(s, ' ', &result);
+    assert(ret == 4);    
     assert(result.size() == 4);
     assert(result[0] == "a");
     assert(result[1] == "b\"MID\"");

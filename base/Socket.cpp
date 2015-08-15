@@ -83,7 +83,9 @@ int Socket::send(const std::string& msg) {
       break;
     }
     if (nSent < 0) {
-      perror("recv() error");
+      if (!this->quiet) {
+        perror("send() error");
+      }
       return -1;
     }
   }
@@ -91,9 +93,42 @@ int Socket::send(const std::string& msg) {
 }
 
 int Socket::recv(void* buf, int len) {
-  if (!usable)
+  if (!usable) {
     return -1;
-
+  }
   int nRecv = ::recv(this->fd, buf, len, 0);
+  if (!quiet && nRecv < 0) {
+    perror("recv() error");
+  }
   return (nRecv);
 }
+
+int Socket::timedRecv(void* buf, int len, double seconds) {
+  if (!usable) {
+    return -1;
+  }
+    
+  fd_set readfds;
+  FD_ZERO(&readfds);
+  FD_SET(this->fd, &readfds);
+  
+  struct timeval tv;
+  tv.tv_sec = (int)seconds;
+  tv.tv_usec = int((seconds - (int)seconds) * 1000);
+
+  int ret = select(this->fd + 1, &readfds, NULL, NULL, &tv);
+  if (ret == -1) { // error occured
+    if (!quiet) {
+      perror("recv() error in select()");
+    }
+    return -1;
+  } else if (ret == 0) { // timeout
+    if (!quiet) {
+      fprintf(stderr, "recv() timeout\n");
+    }
+    return 0;
+  } else {
+    return this->recv(buf, len);
+  }
+}
+

@@ -31,9 +31,10 @@ Http::Http(const std::string& url) {
   }
   
   // check if proxy is used
-  proxy = getenv("http_proxy");
-  if (proxy.size())  {
+  char* pProxy = getenv("http_proxy");
+  if (pProxy)  {
     // proxy used
+    this->proxy = pProxy;
     if (proxy.find(scheme) == 0) {
       this->proxy = proxy.substr(scheme.size());
     }

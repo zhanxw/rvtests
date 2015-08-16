@@ -626,7 +626,7 @@ int main(int argc, char** argv) {
 
   ADD_PARAMETER_GROUP(pl, "Chromosome X Options")
   ADD_STRING_PARAMETER(pl, xLabel, "--xLabel",
-                       "Specify X chromosome label (default: 23|X")
+                       "Specify X chromosome label (default: 23|X)")
   ADD_STRING_PARAMETER(pl, xParRegion, "--xParRegion",
                        "Specify PAR region (default: hg19), can be build "
                        "number e.g. hg38, b37; or specify region, e.g. "

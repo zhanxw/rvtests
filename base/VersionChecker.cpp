@@ -5,6 +5,7 @@
 
 VersionChecker::VersionChecker(const std::string& urlToVersion) {
   Http http(urlToVersion);
+  http.enableQuiet();
   http.read(&this->remoteInformation);
 }
 

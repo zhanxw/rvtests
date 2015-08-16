@@ -90,7 +90,7 @@ int Http::read(std::vector<std::string>* content) {
       break;
     }
     if (ret == 0) {
-      // socket shutdown
+      // socket shutdown or timeout
       break;
     }
     for (int i = 0; i < ret; ++i) {
@@ -107,4 +107,15 @@ int Http::read(std::vector<std::string>* content) {
     content->push_back(s);
   }
   return ((int)content->size());
+}
+
+void Http::enableQuiet() {
+  if (this->socket) {
+    this->socket->enableQuiet();
+  }
+}
+void Http::disableQuiet() {
+  if (this->socket) {
+    this->socket->disableQuiet();
+  }
 }

@@ -488,6 +488,8 @@ class ParameterParser {
     std::string right;
     std::string rightItem;
 
+    std::vector<std::string> effectiveOptionVector;
+    std::string effectiveOption;
     for (size_t groupIndex = 0; groupIndex < this->groupNameFlagIndexMap.size();
          ++groupIndex) {
       std::string k;
@@ -496,11 +498,12 @@ class ParameterParser {
 
       // process group header
       left = k;
-      left += " :";
+      left += ":";
       right.clear();
 
       for (size_t i = 0; i < v.size();
            i++) {  // loop flags under the same param group
+        effectiveOption.clear();
         int idx = v[i];
         const std::string& flag = this->flagVec[idx];
         FlagInfo& fi = this->flagInfoMap[idx];
@@ -520,6 +523,8 @@ class ParameterParser {
           }
         }
         if (fi.isParsed) {
+          effectiveOption = "--";
+          effectiveOption += flag;
           switch (fi.pt) {
             case BOOL_TYPE:
               if (*(bool*)data) {
@@ -530,19 +535,26 @@ class ParameterParser {
               break;
             case INT_TYPE:
               rightItem += toString(*(int*)data);
+              effectiveOption += " ";
+              effectiveOption += toString(*(int*)data);
               break;
             case DOUBLE_TYPE:
               rightItem += toString(*(double*)data);
+              effectiveOption += " ";
+              effectiveOption += toString(*(double*)data);
               break;
             case STRING_TYPE:
               rightItem += *(std::string*)data;
+              effectiveOption += " ";
+              effectiveOption += *(std::string*)data;
               break;
             default:
               fprintf(
                   stderr,
-                  "ERROR: That should be a bug, report to zhanxw@gmail.com");
+                  "ERROR: Bug in Argumetn parsing, report to zhanxw@gmail.com");
               return;
           }
+          effectiveOptionVector.push_back(effectiveOption);
         }
         if (fi.pt != BOOL_TYPE || fi.isParsed) {
           rightItem += "]";
@@ -557,6 +569,13 @@ class ParameterParser {
       rightColumn.setContent(right);
       printTwoColumn(stderr, leftColumn, rightColumn, "");
     }
+
+    fprintf(stderr, "\nEffective Options\n");
+    for (size_t i = 0; i != effectiveOptionVector.size(); ++i) {
+      fprintf(stderr, "    %s\n", effectiveOptionVector[i].c_str());
+    }
+    fprintf(stderr, "\n");
+    
   }
   void Help() {
     LineBreaker leftColumn(FLAG_WIDTH);
@@ -583,7 +602,7 @@ class ParameterParser {
           left = "-";
           left += flag;
         }
-        left += " :";
+        left += ":";
 
         leftColumn.setContent(left);
         rightColumn.setContent(fi.doc);

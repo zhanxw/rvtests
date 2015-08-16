@@ -38,7 +38,14 @@ class LineBreaker {
     if (!line.empty()) {
       formatted.push_back(line);
     }
-  };
+  }
+  /**
+   * parse @param s from offset @param pos
+   * and stor results in @param word and @param space
+   * e.g. input word -> (parsed_word, parsed_space)
+   * 'word' -> ('word', '')
+   * 'word :' -> ('word :', '')
+   */
   bool getWord(const std::string& s, size_t pos, std::string* word,
                std::string* space) {
     word->clear();
@@ -56,7 +63,7 @@ class LineBreaker {
       beg++;
     }
     return true;
-  };
+  }
   void clear() { this->formatted.clear(); };
   size_t getWidth() const { return width; };
   size_t getHeight() const { return formatted.size(); };

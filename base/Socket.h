@@ -18,6 +18,8 @@ class Socket{
   int recv(void* buf, int len);
   int timedRecv(void* buf, int len, double seconds);
   bool isUsable() const {return this->usable;}
+  void enableQuiet() { this->quiet = true;}
+  void disableQuiet() { this->quiet = false;}
  private:
   struct addrinfo* servinfo;
   int fd;

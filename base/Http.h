@@ -13,6 +13,8 @@ class Http{
   Http(const std::string& url);
   virtual ~Http();
   int read(std::vector<std::string>* content);
+  void enableQuiet();
+  void disableQuiet();
  private:
   std::string domain;
   std::string path;
@@ -23,6 +25,7 @@ class Http{
   std::string proxy;
   int proxyPort;
   std::string request;
+  bool quiet;  
 };
 
 #endif /* HTTP_H */

@@ -36,7 +36,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: July 2015)
+(Updated: August 2015)
 
 # Introduction
 
@@ -279,9 +279,11 @@ It also worth to mention that our group offered another tool set for meta-analys
 **Explanation of outputs**
 
 - N_INFORMATIVE: Number of samples that are analyzed for association. 
-- AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by colon.
+- AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by a colon.
 - INFORMATIVE_ALT_AC: The number of alternative alleles in the analyzed samples.
-- HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by colon.
+- CALL_RATE: The fraction of non-missing alleles. For case-control study, we calculate call rate for all samples, case samples and control samples separated by a colon.
+- HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by a colon.
+- N_REF/N_HET/N_ALT: Number of samples carrying homozygous reference/heterozygous/homozygous alternative alleles. For case-control study, we calculate these three statistics for all samples, case samples and controls samples separated by a colon.
 - U_STAT, SQRT_V_STAT: U and V statistics are score statistics and their covariance matrix. Details can be found in [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html).
 - ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. We apply a new correction method when binary trait associations for
 related individuals are analyzed in standard linear mixed models. The log odds ratio is approximately correct for related individual analysis as well.
@@ -467,7 +469,8 @@ NOTE: you need to provide a pedigree file (PED) in the above case, as `vcf2kinsh
 
 * Does rvtests support binary traits of related-individuals?
 
-Not yet. It's a complex scenario and we have not found good solutions.
+Yes and no. Proper analyses of related-individual are supported in meta-analysis model as described in section (#meta-analysis-models).
+In many other association models, supporting binary traits for related individuals is complex and we have not found good solutions.
 
 * Can you provide a list of command line options?
 
@@ -490,9 +493,9 @@ However, this should rarely happen. Please contact us if you have further questi
 
 * Why SKAT Q-values reported by rvtests are different from the SKAT R package?
 
-We strictly follow the notations in the SKAT publication. However, in SKAT R package, its implementation is slightly different.
+We strictly follow the notations in the SKAT publication ([Wu et al. (2011) AJHG](http://www.hsph.harvard.edu/skat/)). However, in SKAT R package, its implementation is slightly different.
 For example, in quantitative trait anlaysis, Q is divided by (2 * \hat{sigma2}) in the R package, but not in rvtests.
-Although Q values can be different, the P-values from the two software packges should be comparable (minor differences exist due to numerical issues).
+Although Q values can be different, the P-values from the two software packges should match (only in rare cases, numerical accrucy may cause minor differences).
 
 # Feedback/Contact
 

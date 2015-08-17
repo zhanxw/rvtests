@@ -21,6 +21,10 @@ echo "Meta-analysis (generate summary statistics)"
 ## now use "--kinship" to specify kinship file
 ../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov --covar covar --covar-name c1,c2 --useResidualAsPhenotype --inverseNormal --kinship output.kinship --out out7
 ../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov,dominant,recessive --covar covar --covar-name c1,c2 --useResidualAsPhenotype --inverseNormal --kinship output.kinship --out out8
+## binary related individuals are supported, binary phenotypes are automatically recognized (e.g. `y4` is a binary trait)
+../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov --kinship output.kinship --pheno-name y4 --out out7b
+## NOTE RECOMMENDED, just for the demonstration purpuse, binary traits can be analyzed by treating it as quantitative traits using '--qtl'
+../executable/rvtest --pheno pheno --inVcf example.vcf --meta score,cov --kinship output.kinship --pheno-name y4 --qtl --out out7q
 
 echo "Rare-variant analysis"
 ../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --burden cmc,cmcWald,zeggini,zegginiWald --out out9

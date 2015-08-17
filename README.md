@@ -273,10 +273,14 @@ Covariance           |  cov        | B,Q  |     Y      |         R, U           
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
 The above models are suitable to generate summary statistics which can be later meta-analyzed (see [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html)).
-Rvtests implemented the above method and the results can be further analyzed in RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)).
-It also worth to mention that our group offered another tool set for meta-analysis ([link](http://genome.sph.umich.edu/wiki/Rare-Metal)).
+Rvtests implemented the above methods and the results can be further analyzed by RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)) for quantitative trait and RareMetals2 ([link](http://genome.sph.umich.edu/wiki/RareMETALS2)).
+It also worth to mention that our group offers another toolset for meta analysis ([link](http://genome.sph.umich.edu/wiki/Rare-Metal)).
 
 **Explanation of outputs**
+
+The meta-analysis results come as two files: summary score statistics files (prefix.MetaScore.assoc.gz) and covariance files (prefix.MetaCov.assoc.gz).
+
+In summary score statistics files, you will obtain these columns:
 
 - N_INFORMATIVE: Number of samples that are analyzed for association. 
 - AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by a colon.
@@ -288,10 +292,21 @@ It also worth to mention that our group offered another tool set for meta-analys
 - ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. We apply a new correction method when binary trait associations for
 related individuals are analyzed in standard linear mixed models. The log odds ratio is approximately correct for related individual analysis as well.
 
+The covariance files stores covariances in sliding windows. You will obtain these columns:
+
+- CHROM: the chromosome name
+- START_POS/END_POS: within one sliding window, the first/last variant chromosomal position.
+- NUM_MARKER: number of markers in one sliding window.
+- MARKER_POS: all chromosomal positions in the sliding window.
+- COV: covariances between markers. When the sliding window has markers G.1, G.2, ..., G.N, this column will store "covariances" of (G.1, G.1), (G.1, G.2), ..., (G.1, G.N);
+for binary outcomes, this column uses colons as separators and additionally stores covariances between N genotypes and K covariates (G.1, C.1), (G.1, C.2), ..., (G.1, C.K), as well as
+covariances between K covariates (C.1, C.1), (C.1, C.2), ... (C.1, C.K), (C.2, C.2), ..., (C.2, C.K), ..., (C.K, C.K).
+
+
 ## Utility models
 
 
-Rvtests has an usually option `--outputRaw`. When specify this, rvtests can output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files. These files can be imported into other software (e.g. R) for further analysis.
+Rvtests has an convinient option `--outputRaw`. When specifing this, rvtests can output genotypes, phenotype, covariates (if any) and collapsed genotype to tabular files. These files can be imported into other software (e.g. R) for further analyses.
 
 
 # Association test options

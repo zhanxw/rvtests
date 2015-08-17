@@ -3,34 +3,36 @@
 #include "TypeConversion.h"
 
 
-VersionChecker::VersionChecker(const std::string& urlToVersion) {
+int VersionChecker::retrieveRemoteVersion(const std::string& urlToVersion) {
   Http http(urlToVersion);
   http.enableQuiet();
-  http.read(&this->remoteInformation);
-}
-
-int VersionChecker::hasNewVersionThan(const std::string& currentVersion) {
-  int ver;
-  if (str2int(currentVersion, &ver)) {
-    return 0;
+  
+  if (http.read(&this->remoteInformation)) {
+    return -1;
   }
-  return this->hasNewVersionThan(ver);
-}
-
-int VersionChecker::hasNewVersionThan(int currentVersion) {
-  if (!this->remoteInformation.size()) {
-    return 0;
+  if (this->remoteInformation.size() < 1) {
+    return -1;
   }
-  int remoteVersion;
-  if (!str2int(remoteInformation[0], &remoteVersion)) return 0;
-  if (remoteVersion > currentVersion) return 1;
+  this->remoteVersion = this->remoteInformation[0];
   return 0;
 }
 
-void VersionChecker::printNewVersion() const {
-  if (!remoteInformation.size()) {
-    return;
-  }
+int VersionChecker::setLocalVersion(const std::string& currentVersion) {
+  this->localVersion = currentVersion;
+  return 0;
+}
+
+bool VersionChecker::isRemoteVersionNewer() const{
+  int local = 0;
+  int remote = 0;
+  if (str2int(this->localVersion, &local)) return false;
+  if (str2int(this->remoteVersion, &remote)) return false;
+  if (remote > local)
+    return true;
+  return false;
+}
+
+void VersionChecker::printRemoteContent() const {
   for (size_t i = 1; i != remoteInformation.size(); ++i) {
     fprintf(stderr, "%s\n", remoteInformation[i].c_str());
   }

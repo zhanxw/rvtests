@@ -6,15 +6,23 @@
 
 class VersionChecker {
  public:
-  VersionChecker(const std::string& urlToVersion);
+  /**
+   * @return 0 only if succeed 
+   */
+  int retrieveRemoteVersion(const std::string& urlToRemoteVersion);
+  int setLocalVersion(const std::string& localVersion);
+  bool isRemoteVersionNewer() const;
   /**
    * Check if remote version is newer than the @param currentVersion
-   * @return 1 if remote is newer; or 0 if not newer or if error occurs
+   * @return 1 if remote is newer; or 0 if not newer; or -1 if error occurs
    */
-  int hasNewVersionThan(const std::string& currentVersion);  
-  int hasNewVersionThan(int currentVersion);
-  void printNewVersion() const;
- protected:
+  const std::vector<std::string>& getRemoteContent() const {
+    return this->remoteInformation;
+  }
+  void printRemoteContent() const;
+ private:
+  std::string localVersion;
+  std::string remoteVersion;
   std::vector<std::string> remoteInformation;
 };
 

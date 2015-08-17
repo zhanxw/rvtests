@@ -770,6 +770,21 @@ int main(int argc, char** argv) {
   REQUIRE_STRING_PARAMETER(FLAG_inVcf,
                            "Please provide input file using: --inVcf");
 
+  // check new version
+  if (!FLAG_noweb) {
+    VersionChecker ver;
+    if (ver.retrieveRemoteVersion("http://zhanxw.com/rvtests/version")) {
+      fprintf(stderr, "Retrieve remote version failed, use '--noweb' to skip.\n");
+    } else {
+      ver.setLocalVersion(VERSION);
+      if (ver.isRemoteVersionNewer()) {
+        fprintf(stderr, "New version of rvtests is available:");
+        ver.printRemoteContent();
+      }
+    }
+  }
+  
+  // start logging
   Logger _logger((FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
   logger->info("Program version: %s", VERSION);
@@ -780,13 +795,6 @@ int main(int argc, char** argv) {
   logger->infoToFile("Parameters END");
   logger->sync();
 
-  // check new version
-  VersionChecker verChecker("http://zhanxw.com/rvtests/version");
-  if (!FLAG_noweb && verChecker.hasNewVersionThan(VERSION)) {
-    fprintf(stderr, "New version is available!\n");
-    verChecker.printNewVersion();
-  }
-  
   // start analysis
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());

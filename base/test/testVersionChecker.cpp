@@ -1,28 +1,34 @@
 #include "VersionChecker.h"
+#include <cassert>
 
 int main(int argc, char *argv[])
 {
   {
     fprintf(stderr, "Has new version\n");
-    VersionChecker ver("http://zhanxw.com/rvtests/version");
-    if (ver.hasNewVersionThan(-1)) {
-      ver.printNewVersion();
-    }
+    VersionChecker ver;
+    assert(ver.retrieveRemoteVersion("http://zhanxw.com/rvtests/version") == 0);
+    assert(ver.setLocalVersion("-1") == 0);
+    assert(ver.isRemoteVersionNewer());
+    fprintf(stderr, "-- Remote Content BEG --\n");
+    ver.printRemoteContent();
+    fprintf(stderr, "-- Remote Content END --\n");    
   }
   {
     fprintf(stderr, "No new version\n");
-    VersionChecker ver("http://zhanxw.com/rvtests/version");
-    if (ver.hasNewVersionThan(99999999)) {
-      ver.printNewVersion();
-    }
+    VersionChecker ver;
+    assert(ver.retrieveRemoteVersion("http://zhanxw.com/rvtests/version") == 0);
+    assert(ver.setLocalVersion("99999999") == 0);
+    assert(!ver.isRemoteVersionNewer());
   }
   {
     fprintf(stderr, "Wrong address\n")
         ;
-    VersionChecker ver("http://nonexist.zhanxw/rvtests/version");
-    if (ver.hasNewVersionThan(99999999)) {
-      ver.printNewVersion();
-    }
+    VersionChecker ver;
+    assert(ver.retrieveRemoteVersion("http://nonexist.zhanxw/rvtests/version"));
+    assert(!ver.isRemoteVersionNewer());
+    fprintf(stderr, "-- Remote Content BEG --\n");
+    ver.printRemoteContent();
+    fprintf(stderr, "-- Remote Content END --\n");    
   }
   return 0;
 }

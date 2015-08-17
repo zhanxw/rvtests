@@ -12,6 +12,9 @@ class Http{
   // http://domain[:port][/path]
   Http(const std::string& url);
   virtual ~Http();
+  /**
+   * @return lines of contents read from HTTP, or -1 if error occurs
+   */
   int read(std::vector<std::string>* content);
   void enableQuiet();
   void disableQuiet();

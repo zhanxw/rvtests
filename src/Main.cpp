@@ -773,7 +773,7 @@ int main(int argc, char** argv) {
   // check new version
   if (!FLAG_noweb) {
     VersionChecker ver;
-    if (ver.retrieveRemoteVersion("http://zhanxw.com/rvtests/version")) {
+    if (ver.retrieveRemoteVersion("http://zhanxw.com/rvtests/version") < 0) {
       fprintf(stderr, "Retrieve remote version failed, use '--noweb' to skip.\n");
     } else {
       ver.setLocalVersion(VERSION);

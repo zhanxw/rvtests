@@ -7,7 +7,7 @@ int VersionChecker::retrieveRemoteVersion(const std::string& urlToVersion) {
   Http http(urlToVersion);
   http.enableQuiet();
   
-  if (http.read(&this->remoteInformation)) {
+  if (http.read(&this->remoteInformation) < 0) {
     return -1;
   }
   if (this->remoteInformation.size() < 1) {

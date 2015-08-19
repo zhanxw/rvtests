@@ -1,6 +1,7 @@
 #include "Http.h"
 #include "Socket.h"
 #include "TypeConversion.h"
+#include "Utils.h"
 
 Http::Http(const std::string& url) {
   // url format:
@@ -29,7 +30,7 @@ Http::Http(const std::string& url) {
     this->port = atoi(this->domain.substr(sep + 1));
     this->domain = this->domain.substr(0, sep);
   }
-  
+
   // check if proxy is used
   char* pProxy = getenv("http_proxy");
   if (pProxy)  {
@@ -106,6 +107,19 @@ int Http::read(std::vector<std::string>* content) {
   if (!s.empty()) {
     content->push_back(s);
   }
+
+  // check header
+  // NOTE: HTTP header is optional
+  if (hasHeader(*content)) {
+    // get response code
+    if (getStatusCode(*content) != 200) {
+      return -1;
+    }
+    
+    // strip out head lines if any
+    stripHeader(content);
+  }
+
   return ((int)content->size());
 }
 
@@ -118,4 +132,40 @@ void Http::disableQuiet() {
   if (this->socket) {
     this->socket->disableQuiet();
   }
+}
+
+void Http::stripHeader(std::vector<std::string>* all) const {
+  std::vector<std::string>& content = *all;
+    size_t sep = 0;
+    for (size_t i = 1; i != content.size(); ++i) {
+      if (!content[i].size()) {
+        sep = i;
+        break;
+      }
+    }
+    if (sep > 0 ) {
+      size_t n = content.size() - sep - 1;
+      for (size_t i = 0; i != n; ++i) {
+        (content)[i] = content[i + sep + 1];
+      }
+      content.resize(n);
+    }
+}
+
+bool Http::hasHeader(const std::vector<std::string>& response) const{
+  if (response.size() && response[0].substr(0, 5) == "HTTP/") {
+    return true;
+  }
+  return false;
+}
+
+int Http::getStatusCode(const std::vector<std::string>& response) const{
+  const std::string& line = response[0];
+  std::vector<std::string> res;
+  if (stringNaturalTokenize(line, " \t", &res) < 2) {
+    return -1;
+  }
+  int code = -1;
+  if (str2int(res[1], &code)) return code;
+  return -1;
 }

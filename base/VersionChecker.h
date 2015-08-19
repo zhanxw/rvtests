@@ -19,7 +19,11 @@ class VersionChecker {
   const std::vector<std::string>& getRemoteContent() const {
     return this->remoteInformation;
   }
-  void printRemoteContent() const;
+  /**
+   * Print line 2 and onward that were retrieved earlier,
+   * as usually the line 1 is software version number.
+   */
+  void printRemoteContent(int startLine = 1) const;
  private:
   std::string localVersion;
   std::string remoteVersion;

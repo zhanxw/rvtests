@@ -13,11 +13,16 @@ class Http{
   Http(const std::string& url);
   virtual ~Http();
   /**
+   * Read everything and store on lines of contents to @param content
    * @return lines of contents read from HTTP, or -1 if error occurs
    */
   int read(std::vector<std::string>* content);
   void enableQuiet();
   void disableQuiet();
+ private:
+  void stripHeader(std::vector<std::string>* all) const;
+  bool hasHeader(const std::vector<std::string>& response) const;
+  int getStatusCode(const std::vector<std::string>& response) const;
  private:
   std::string domain;
   std::string path;

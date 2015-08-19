@@ -220,8 +220,8 @@ Exact CMC       |  exactCMC  |B     |     N      |         U           | Collaps
 CMC Wald        |  cmcWald   |B, Q  |     Y      |         U           | Collapsing and combine rare variants, then perform Wald test.
 RareCover       |  rarecover |B     |     N      |         U           | Find optimal grouping unit for rare variant tests by Thomas Hoffman.
 CMAT            |  cmat      |B     |     N      |         U           | Test non-coding variants by Matt Zawistowski.
-FamCMC          |  famcmc       |B, Q  |     Y      |         R           | Collapsing and combine rare variants extended to related samples.
-FamZeggini      |  famzeggini   |B, Q  |     Y      |         R           | Aggregate counts of rare variants extended to related samples.
+FamCMC          |  famcmc       |Q  |     Y      |         R           | Collapsing and combine rare variants extended to related samples.
+FamZeggini      |  famzeggini   |Q  |     Y      |         R           | Aggregate counts of rare variants extended to related samples.
 
 
 (#) Model columns list the recognized names in rvtests. For example, use `--burden cmc` will apply CMC test.

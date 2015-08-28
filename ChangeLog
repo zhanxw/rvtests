@@ -1,3 +1,8 @@
+2015-08-27  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Revise Price's VT implementation
+	* Clean up codes
+
 2015-08-14  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Add version checker for Linux version

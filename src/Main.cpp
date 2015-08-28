@@ -29,7 +29,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150812";
+const char* VERSION = "20150827";
 
 void banner(FILE* fp) {
   const char* string =

@@ -234,13 +234,13 @@ FamZeggini      |  famzeggini   |Q  |     Y      |         R           | Aggrega
 
 Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
-Variable threshold model by permutation     |  vt    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.
-Variable threshold model by analytic form   |  analyticVt    |B, Q  |     Y      |         U   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
+Variable threshold model by permutation     |  price    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.
+Variable threshold model by analytic form   |  analyticVt    | Q  |     Y      |         U,R   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
 
-(#) Model columns list the recognized names in rvtests. For example, use `--vt price` will apply score test.
+(#) Model columns list the recognized names in rvtests. For example, use `--vt price` will variable threshold test.
+NOTE: our implementatino of Price's test diffs from the original method descrbied in Price's publcation. We test every minor allele frequency cutoff (instead of reference allele counts) and this is a two-sided test (instead of one-sided test).
 
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
-
 
 
 ## Kernel models

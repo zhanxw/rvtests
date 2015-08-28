@@ -121,7 +121,7 @@ inline int extractColumn(Matrix& m, int col, Vector* v) {
  * calculate variance of @param m and @param idx th column
  */
 inline double getVariance(Matrix& m, int idx) {
-  if (m.rows == 0) return 0.;
+  if (m.rows <= 1) return 0.;
 
   double s = 0.;
   for (int i = 0; i < m.rows; ++i) {
@@ -133,6 +133,22 @@ inline double getVariance(Matrix& m, int idx) {
     s += (m[i][idx] - avg) * (m[i][idx] - avg);
   }
   s /= m.rows;
+  return s;
+}
+
+inline double getVariance(Vector& v) {
+  if (v.Length() <= 1) return 0.;
+  const int n = v.Length();
+  double s = 0.;
+  for (int i = 0; i < n; ++i) {
+    s += v[i];
+  }
+  double avg = s / n;
+  s = 0.;
+  for (int i = 0; i < n; ++i) {
+    s += (v[i] - avg) * (v[i] - avg);
+  }
+  s /= n;
   return s;
 }
 

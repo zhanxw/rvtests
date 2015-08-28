@@ -8,7 +8,9 @@
 //////////////////////////////////////////////////////////////////////
 // Implementation of various collpasing methods
 /**
- * @return Madson-Browning definition of alleleFrequency
+ * @return allele frequency
+ * NOTE: Madson-Browning definition of alleleFrequency is different
+ *       double freq = 1.0 * (ac + 1) / (an + 1);
  */
 double getMarkerFrequency(Matrix& in, int col) {
   int& numPeople = in.rows;
@@ -21,7 +23,6 @@ double getMarkerFrequency(Matrix& in, int col) {
     }
   }
   if (an == 0) return 0.0;
-  // double freq = 1.0 * (ac + 1) / (an + 1);
   double freq = ac / an;
   return freq;
 }
@@ -84,6 +85,7 @@ void cmcCollapse(Matrix& in, const std::vector<int>& index, Matrix* out,
   assert(out->cols > outIndex);
 
   for (int p = 0; p < numPeople; p++) {
+    (*out)[p][outIndex] = 0.0;
     for (size_t m = 0; m < index.size(); m++) {
       int g = (int)(in[p][index[m]]);
       if (g > 0) {
@@ -114,6 +116,24 @@ void zegginiCollapse(Matrix& in, Matrix* out) {
       }
     }
   }
+}
+
+void zegginiCollapse(Matrix& in, const std::vector<int>& index, Matrix* out,
+                 int outIndex) {
+  assert(out);
+  int numPeople = in.rows;
+  assert(out->rows == numPeople);
+  assert(out->cols > outIndex);
+
+  for (int p = 0; p < numPeople; p++) {
+    (*out)[p][outIndex] = 0.0;    
+    for (size_t m = 0; m < index.size(); m++) {
+      int g = (int)(in[p][index[m]]);
+      if (g > 0) {
+        (*out)[p][outIndex] += 1.0;
+      }
+    };
+  };
 }
 
 /**
@@ -223,7 +243,9 @@ void groupFrequency(const std::vector<double>& freq,
     double f = ceil(1000000. * freq[i]) / 1000000;
     (*group)[f].push_back(i);
   }
-};
+}
+
+#if 0
 
 /**
  * Collapsing @param in (people by marker) to @param out (people by marker),
@@ -259,30 +281,44 @@ void rearrangeGenotypeByFrequency(Matrix& in, const std::vector<double>& freqIn,
     ++idx;
   }
 }
+#endif
 
 void makeVariableThreshodlGenotype(
-    Matrix& in, const std::vector<double>& freqIn, Matrix* out,
+    Matrix& in,
+    const std::vector<double>& freqIn, Matrix* out,
     std::vector<double>* freqOut,
     void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int)) {
+  assert((int)freqIn.size() == in.cols);
+  assert(freqIn.size());
+  assert(out);
+  assert(freqOut);
+ 
   std::map<double, std::vector<int> > freqGroup;
   std::map<double, std::vector<int> >::const_iterator freqGroupIter;
-  if (freqIn.empty()) {
-    getMarkerFrequency(in, freqOut);
-    groupFrequency(*freqOut, &freqGroup);
-  } else {
-    groupFrequency(freqIn, &freqGroup);
-  }
 
+  groupFrequency(freqIn, &freqGroup);
+  
   Matrix& sortedGenotype = *out;
   sortedGenotype.Dimension(in.rows, freqGroup.size());
   sortedGenotype.Zero();
-  freqOut->clear();
+  freqOut->resize(freqGroup.size());
   int idx = 0;
+  std::vector<int> cumCols;
   for (freqGroupIter = freqGroup.begin(); freqGroupIter != freqGroup.end();
        freqGroupIter++) {
     (*freqOut)[idx] = freqGroupIter->first;
     const std::vector<int>& cols = freqGroupIter->second;
-    (*collapseFunc)(in, cols, out, idx);
+    for (size_t i = 0; i != cols.size(); ++i) {
+      cumCols.push_back(cols[i]);
+    }
+    (*collapseFunc)(in, cumCols, out, idx);
+
+#if 0
+    printf("In:\n");
+    print(in);
+    printf("Out:\n");
+    print(*out);
+#endif
     ++idx;
   }
 }
@@ -308,6 +344,17 @@ int obtainB(double alpha, double* out) {
   }
   *out = i.getResult();
   return 0;
+}
+
+void makeVariableThreshodlGenotype(
+    Matrix& in,
+    Matrix* out,
+    std::vector<double>* freqOut,
+    void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int)) {
+  std::vector<double> freqIn;
+  getMarkerFrequency(in, &freqIn);
+
+  makeVariableThreshodlGenotype(in, freqIn, out, freqOut, collapseFunc);
 }
 
 void MetaScoreTest::MetaFamBinary::calculateB() {

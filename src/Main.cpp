@@ -389,7 +389,7 @@ int loadGeneFile(const char* fn, const char* gene,
           "Skip %d line (short of columns) in gene file [ %s ], is gene file "
           "format correct?",
           lineNo, fn);
-      continue;
+      break;
     }
 
     std::string& geneName = fd[0];

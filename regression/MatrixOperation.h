@@ -67,7 +67,9 @@ inline void print(Vector& v) {
     fprintf(stderr, "[ %d ] = %g\n", i, v[i]);
   }
 };
-inline void print(Matrix& mat) {
+
+// print a matrix in the long format
+inline void print2(Matrix& mat) {
   int m = mat.rows;
   int n = mat.cols;
   fprintf(stderr, "dim = %d x %d\n", m, n);
@@ -78,6 +80,16 @@ inline void print(Matrix& mat) {
     fprintf(stderr, "\n");
   }
 };
+
+inline void print(Matrix& m) {
+  for (int i = 0; i < m.rows; ++i) {
+    for (int j = 0; j < m.cols; ++j) {
+      printf("%g\t", m[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n");  
+}
 
 inline void dumpToFile(Matrix& mat, FILE* fp) {
   const int m = mat.rows;

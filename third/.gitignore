@@ -5,4 +5,4 @@ bzip2*
 zlib*
 gsl*
 samtools*
-
+nlopt*

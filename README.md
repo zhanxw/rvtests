@@ -29,6 +29,7 @@
     - [Specify groups (e.g burden unit)](#specify-groups-eg-burden-unit)
 - [Sex chromosome analysis](#sex-chromosome-analysis)
 - [Kinship generation](#kinship-generation)
+- [Resources](#resources)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Feedback/Contact](#feedbackcontact)
 
@@ -479,6 +480,27 @@ To generate empirical kinship (`--inVcf`) on both autosomal region and X chromos
     vcf2kinship --inVcf input.vcf.gz --ped input.ped --bn --xHemi --out output
 
 NOTE: you need to provide a pedigree file (PED) in the above case, as `vcf2kinship` need the sex information of samples.
+
+# Resources
+
+## UCSC RefFlat Genes
+
+refFlat_hg19.txt.gz
+
+UCSC gene definition file in the refFlat format ([Details](http://genome.ucsc.edu/goldenpath/gbdDescriptionsOld.html#RefFlat)) in NCBI genome build 37 .
+
+File link: <http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat_hg19.txt.gz>
+
+
+## Gencode Genes
+
+refFlat.gencode.v19.gz
+
+Gencode gene definition version 19 in the refFlat format ([Details](http://www.gencodegenes.org/releases/19.html)). We have also previous versions of gene files and can provide upon request.
+
+File link: <http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat.gencode.v19.gz>
+
+
 
 # Frequently Asked Questions (FAQ)
 

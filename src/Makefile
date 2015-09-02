@@ -25,6 +25,8 @@ OBJ = Main.o \
       TabixUtil.o \
       ModelManager.o \
       Model.o \
+      GenotypeExtractor.o \
+      DataLoader.o
 
 $(DIR_EXEC)/$(EXEC):  $(LIBS) \
                       $(OBJ) \
@@ -67,6 +69,14 @@ ModelManager.o: ModelManager.cpp ModelManager.h
 
 -include Model.d
 Model.o: Model.cpp Model.h
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+
+-include GenotypeExtractor.d
+GenotypeExtractor.o: GenotypeExtractor.cpp GenotypeExtractor.h
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+
+-include DataLoader.d
+DataLoader.o: DataLoader.cpp DataLoader.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 ##################################################

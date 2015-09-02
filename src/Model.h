@@ -2032,6 +2032,7 @@ class AnalyticVT : public ModelFitter {
     this->type = type;
     if (type == UNRELATED) {
       this->modelName = "AnalyticVT";
+      this->familyModel = false;      
     } else {
       this->modelName = "FamAnalyticVT";
       this->familyModel = true;

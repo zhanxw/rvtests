@@ -37,7 +37,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: August 2015)
+(Updated: September 2015)
 
 # Introduction
 
@@ -234,8 +234,9 @@ FamZeggini      |  famzeggini   |Q  |     Y      |         R           | Aggrega
 
 Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
-Variable threshold model by permutation     |  vt    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.
-Variable threshold model by analytic form   |  analyticVt    |B, Q  |     Y      |         U   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
+Variable threshold model by permutation     |  price    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.
+Variable threshold model by analytic form   |  analytic    |B, Q  |     Y      |         U   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
+Variable threshold model by analytic form   |  famAnalytic    |B, Q  |     Y      |         R   | Every rare-variant frequency cutoffs are tests by Dajiang Liu.
 
 (#) Model columns list the recognized names in rvtests. For example, use `--vt price` will apply score test.
 
@@ -545,5 +546,5 @@ Goncalo Abecasis ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@u
 
 Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.
 
-Among rvtests users who have provided many valuable feedbacks or comments, we want to thank: Xueling Sim, Scott Verize, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, the GIANT consoritum and the GLGC consortium.
+We wawnt to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, and the GIANT consoritum and the GLGC consortium.
 

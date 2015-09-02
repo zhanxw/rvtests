@@ -10,18 +10,20 @@
 #include <vector>
 #include <algorithm>
 
-#include "Logger.h"
-#include "Utils.h"
-#include "VCFUtil.h"
-#include "MathVector.h"
-#include "MathMatrix.h"
+#include "base/Logger.h"
+#include "base/OrderedMap.h"
+#include "base/RangeList.h"
+#include "base/Utils.h"
+#include "libsrc/MathVector.h"
+#include "libsrc/MathMatrix.h"
 
 #include "CommonFunction.h"
 #include "DataLoader.h"
 #include "DataConsolidator.h"
+#include "GenotypeExtractor.h"
+#include "GitVersion.h"
 #include "ModelFitter.h"
 #include "ModelManager.h"
-#include "GitVersion.h"
 #include "Result.h"
 #include "base/Indexer.h"
 #include "base/VersionChecker.h"
@@ -46,322 +48,6 @@ void banner(FILE* fp) {
       "                                           \n";
   fputs(string, fp);
 };
-
-class GenotypeExtractor {
- public:
-  GenotypeExtractor(VCFExtractor* v)
-      : vin(*v),
-        freqMin(-1),
-        freqMax(-1),
-        GDmin(-1),
-        GDmax(-1),
-        needGD(false),
-        GQmin(-1),
-        GQmax(-1),
-        needGQ(false),
-        parRegion(NULL),
-        sex(NULL),
-        claytonCoding(true) {}
-  /**
-   * @param g, store people by marker matrix
-   * @return 0 for success
-   */
-  int extractMultipleGenotype(Matrix* g) {
-    Matrix m;
-    int row = 0;
-    std::vector<std::string> colNames;
-    std::string name;
-    this->hemiRegion.clear();
-    while (vin.readRecord()) {
-      VCFRecord& r = vin.getVCFRecord();
-      VCFPeople& people = r.getPeople();
-      VCFIndividual* indv;
-
-      m.Dimension(row + 1, people.size());
-
-      int genoIdx;
-      const bool useDose = (!this->doseTag.empty());
-      if (useDose) {
-        genoIdx = r.getFormatIndex(doseTag.c_str());
-      } else {
-        genoIdx = r.getFormatIndex("GT");
-      }
-      int GDidx = r.getFormatIndex("GD");
-      int GQidx = r.getFormatIndex("GQ");
-      assert(this->parRegion);
-      bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
-      // e.g.: Loop each (selected) people in the same order as in the VCF
-      const int numPeople = (int)people.size();
-      for (int i = 0; i < numPeople; i++) {
-        indv = people[i];
-        // get GT index. if you are sure the index will not change, call this
-        // function only once!
-        if (genoIdx >= 0) {
-          // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
-          // field of each individual
-          if (useDose) {
-            m[row][i] = indv->justGet(genoIdx).toDouble();
-          } else {
-            if (!hemiRegion) {
-              m[row][i] = indv->justGet(genoIdx).getGenotype();
-            } else {
-              if ((*sex)[i] == PLINK_MALE) {
-                m[row][i] = indv->justGet(genoIdx).getMaleNonParGenotype02();
-              } else if ((*sex)[i] == PLINK_FEMALE) {
-                m[row][i] = indv->justGet(genoIdx).getGenotype();
-              } else {
-                m[row][i] = MISSING_GENOTYPE;
-              }
-            }
-          }
-          if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
-            m[row][i] = MISSING_GENOTYPE;
-            continue;
-          }
-        } else {
-          logger->error("Cannot find %s field!",
-                        this->doseTag.empty() ? "GT" : doseTag.c_str());
-          return -1;
-        }
-      }
-
-      // check frequency cutoffs
-      int numNonMissingPeople = 0;
-      double maf = 0.;
-      for (int i = 0; i < numPeople; ++i) {
-        if (m[row][i] < 0) continue;
-        maf += m[row][i];
-        ++ numNonMissingPeople;
-      }
-      if (numNonMissingPeople) {
-        maf = maf / (2. * numNonMissingPeople);
-      } else {
-        maf = 0.0;
-      }
-      if (maf > .5) {
-        maf = 1.0 - maf;
-      }
-      if (this->freqMin > 0. && this->freqMin > maf) continue;
-      if (this->freqMax > 0. && this->freqMax < maf) continue;
-
-      name = r.getChrom();
-      name += ":";
-      name += r.getPosStr();
-      colNames.push_back(name);
-      ++row;
-
-      assert(this->parRegion);
-      if (this->parRegion &&
-          this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
-        this->hemiRegion.push_back(true);
-      } else {
-        this->hemiRegion.push_back(false);
-      }
-    }
-
-    // delete rows (ugly code here, as we may allocate extra row in previous
-    // loop)
-    m.Dimension(row, m.cols);
-
-    // now transpose (marker by people -> people by marker)
-    g->Transpose(m);
-    for (int i = 0; i < row; ++i) {
-      g->SetColumnLabel(i, colNames[i].c_str());
-    }
-    return 0;
-  }
-  /**
-   * @return 0 for success
-   * @return -2 for reach end.
-   * @param g: people by 1 matrix, where column name is like "chr:pos"
-   * @param b: extract information, e.g. "1\t100\tA\tC"
-   */
-  int extractSingleGenotype(Matrix* g, Result* b) {
-    Matrix& genotype = *g;
-    Result& buf = *b;
-
-    bool hasRead = vin.readRecord();
-    if (!hasRead) return FILE_END;
-
-    VCFRecord& r = vin.getVCFRecord();
-    VCFPeople& people = r.getPeople();
-    VCFIndividual* indv;
-
-    buf.updateValue("CHROM", r.getChrom());
-    buf.updateValue("POS", r.getPosStr());
-    buf.updateValue("REF", r.getRef());
-    buf.updateValue("ALT", r.getAlt());
-
-    genotype.Dimension(people.size(), 1);
-
-    // get GT index. if you are sure the index will not change, call this
-    // function only once!
-    const bool useDose = (!this->doseTag.empty());
-    int genoIdx;
-    if (useDose) {
-      genoIdx = r.getFormatIndex(doseTag.c_str());
-    } else {
-      genoIdx = r.getFormatIndex("GT");
-    }
-    // int GTidx = r.getFormatIndex("GT");
-    int GDidx = r.getFormatIndex("GD");
-    int GQidx = r.getFormatIndex("GQ");
-
-    bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
-    // e.g.: Loop each (selected) people in the same order as in the VCF
-    const int numPeople = (int)people.size();
-    for (int i = 0; i < numPeople; i++) {
-      indv = people[i];
-
-      if (genoIdx >= 0) {
-        // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
-        // field of each individual
-        if (useDose) {
-          genotype[i][0] = indv->justGet(genoIdx).toDouble();
-        } else {
-          if (!hemiRegion) {
-            genotype[i][0] = indv->justGet(genoIdx).getGenotype();
-          } else {
-            if ((*sex)[i] == PLINK_MALE) {
-              genotype[i][0] = indv->justGet(genoIdx).getMaleNonParGenotype02();
-            } else if ((*sex)[i] == PLINK_FEMALE) {
-              genotype[i][0] = indv->justGet(genoIdx).getGenotype();
-            } else {
-              genotype[i][0] = MISSING_GENOTYPE;
-            }
-          }
-        }
-        if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
-          genotype[i][0] = MISSING_GENOTYPE;
-          continue;
-        }
-        // logger->info("%d ", int(genotype[i][0]));
-      } else {
-        logger->error(
-            "Cannot find [ %s ] field when read individual information [ %s ]!",
-            this->doseTag.empty() ? "GT" : this->doseTag.c_str(),
-            indv->getSelf().toStr());
-        return ERROR;
-      }
-    }
-
-    // check frequency cutoffs
-    double maf = 0.;
-    for (int i = 0; i < numPeople; ++i) {
-      maf += genotype[i][0];
-    }
-    maf = maf / (2. * numPeople);
-    if (maf > .5) {
-      maf = 1.0 - maf;
-    }
-    if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
-    if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
-
-    std::string label = r.getChrom();
-    label += ':';
-    label += r.getPosStr();
-    genotype.SetColumnLabel(0, label.c_str());
-
-    this->hemiRegion.resize(1);
-    assert(this->parRegion);
-    if (this->parRegion &&
-        this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
-      this->hemiRegion[0] = true;
-    } else {
-      this->hemiRegion[0] = false;
-    }
-    return SUCCEED;
-  }
-
-  bool setSiteFreqMin(const double f) {
-    if (f < 0.0 || f > 1.0) {
-      return false;
-    }
-    this->freqMin = f - 1e-10;  // allow rounding error
-    return true;
-  }
-  bool setSiteFreqMax(const double f) {
-    if (f < 0.0 || f > 1.0) {
-      return false;
-    }
-    this->freqMax = f + 1e-10;  // allow rounding error
-    return true;
-  }
-  // @return true if GD is valid
-  // if GD is missing, we will take GD = 0
-  bool checkGD(VCFIndividual* indv, int gdIdx) {
-    if (!needGD) return true;
-    int gd = indv->justGet(gdIdx).toInt();
-    if (this->GDmin > 0 && gd < this->GDmin) return false;
-    if (this->GDmax > 0 && gd > this->GDmax) return false;
-    return true;
-  };
-  bool checkGQ(VCFIndividual* indv, int gqIdx) {
-    if (!needGQ) return true;
-    int gq = indv->justGet(gqIdx).toInt();
-    if (this->GQmin > 0 && gq < this->GQmin) return false;
-    if (this->GQmax > 0 && gq > this->GQmax) return false;
-    return true;
-  };
-  void setGDmin(int m) {
-    this->needGD = true;
-    this->GDmin = m;
-  };
-  void setGDmax(int m) {
-    this->needGD = true;
-    this->GDmax = m;
-  };
-  void setGQmin(int m) {
-    this->needGQ = true;
-    this->GQmin = m;
-  };
-  void setGQmax(int m) {
-    this->needGQ = true;
-    this->GQmax = m;
-  };
-  /**
-   * @return weigth, its length equals to # of markers
-   */
-  Vector& getWeight() { return this->weight; };
-  void setDosageTag(const std::string& tag) {
-    if (tag.empty()) return;
-    this->doseTag = tag;
-  }
-  void unsetDosageTag() { this->doseTag.clear(); }
-  void setParRegion(ParRegion* p) { this->parRegion = p; }
-  //      Sex (1=male; 2=female; other=unknown)
-  void setSex(const std::vector<int>* sex) { this->sex = sex; }
-  // coding male chromX as 0/2 instead of 0/1
-  // similarly, for dosage, just multiply 2.0 from original dosage
-  void enableClaytonCoding() { this->claytonCoding = true; }
-  void disableClaytonCoding() { this->claytonCoding = false; }
-
- public:
-  const static int SUCCEED = 0;
-  const static int ERROR = -1;
-  const static int FILE_END = -2;
-  const static int FAIL_FILTER = -3;
-
- private:
-  VCFExtractor& vin;
-  double freqMin;
-  double freqMax;
-  int GDmin;
-  int GDmax;
-  bool needGD;
-  int GQmin;
-  int GQmax;
-  bool needGQ;
-  Vector weight;
-  std::string doseTag;  // set if loading dose instead of genotype
-
-  // compensate sex chromosome
-  ParRegion* parRegion;
-  std::vector<bool>
-      hemiRegion;               // true: if the extracted variant in hemi region
-  const std::vector<int>* sex;  // external sex information
-  bool claytonCoding;  // code male hemi region genotype from 0/1 to 0/2
-};                     // class GenotypeExtractor
 
 /**
  * convert the vector @param v to column Matrix format @param m
@@ -459,58 +145,6 @@ int loadRangeFile(const char* fn, const char* givenRangeName,
   return m.size();
 };
 
-/**
- * @return 0 if succeed
- */
-int loadMarkerFromVCF(const std::string& fileName, const std::string& marker,
-                      std::vector<std::string>* rowLabel, Matrix* genotype) {
-  if (!rowLabel || !genotype) {
-    // invalid parameter
-    return -1;
-  }
-  Matrix& m = *genotype;
-  int col = 0;
-
-  VCFInputFile vin(fileName);
-  vin.setRangeList(marker);
-
-  while (vin.readRecord()) {
-    VCFRecord& r = vin.getVCFRecord();
-    VCFPeople& people = r.getPeople();
-    VCFIndividual* indv;
-
-    m.Dimension(people.size(), col + 1);
-
-    int GTidx = r.getFormatIndex("GT");
-    for (int i = 0; i < (int)people.size(); i++) {
-      indv = people[i];
-      // get GT index. if you are sure the index will not change,
-      // call this function only once!
-      if (GTidx >= 0) {
-        // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
-        // field of each individual
-        m[i][col] = indv->justGet(GTidx).getGenotype();
-      } else {
-        logger->error("Cannot find GT field!");
-        return -1;
-      }
-    }
-    if (col == 0) {
-      // set-up names
-      rowLabel->resize(people.size());
-      for (size_t i = 0; i < people.size(); ++i) {
-        (*rowLabel)[i] = people[i]->getName();
-      }
-    }
-    std::string colLabel = r.getChrom();
-    colLabel += ":";
-    colLabel += r.getPosStr();
-    m.SetColumnLabel(col, colLabel.c_str());
-    ++col;
-  }
-
-  return 0;
-}
 
 /**
  * Append @param genotype to @param covariate in the right order
@@ -554,16 +188,14 @@ int appendGenotype(Matrix* covariate,
  * and @param cov
  * @return 0 if succeed
  */
-int excludeSamplesByIndex(const std::vector<int>& index, VCFExtractor* vin,
+int excludeSamplesByIndex(const std::vector<int>& index, GenotypeExtractor* ge,
                           std::vector<std::string>* phenotypeNameInOrder,
                           std::vector<double>* phenotypeInOrder, Matrix* cov) {
-  if (!vin || !phenotypeNameInOrder || !phenotypeInOrder || !cov) {
+  if (!ge || !phenotypeNameInOrder || !phenotypeInOrder || !cov) {
     return -1;
   }
 
-  for (size_t i = 0; i < index.size(); ++i) {
-    vin->excludePeople((*phenotypeNameInOrder)[i].c_str());
-  }
+  ge->excludePeople( (*phenotypeNameInOrder), index);
   removeByIndex(index, phenotypeNameInOrder);
   removeByIndex(index, phenotypeInOrder);
   removeByRowIndex(index, cov);
@@ -688,8 +320,7 @@ int main(int argc, char** argv) {
                        "Burden tests, choose from: cmc, zeggini, mb, exactCMC, "
                        "rarecover, cmat, cmcWald")
   ADD_STRING_PARAMETER(pl, modelVT, "--vt",
-                       "Variable threshold tests, choose from: cmc, zeggini, "
-                       "mb, price, fastVt, famFastVt")
+                       "Variable threshold tests, choose from: price, analytic")
   ADD_STRING_PARAMETER(pl, modelKernel, "--kernel",
                        "Kernal-based tests, choose from: SKAT, KBAC, FamSKAT")
   ADD_STRING_PARAMETER(pl, modelMeta, "--meta",
@@ -799,37 +430,38 @@ int main(int argc, char** argv) {
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 
-  const char* fn = FLAG_inVcf.c_str();
-  VCFExtractor* pVin = new VCFExtractor(fn);
-  VCFExtractor& vin = *pVin;
+  // const char* fn = FLAG_inVcf.c_str();
+  // VCFExtractor* pVin = new VCFExtractor(fn);
+  // VCFExtractor& vin = *pVin;
+  GenotypeExtractor ge(FLAG_inVcf);
 
   // set range filters here
-  vin.setRangeList(FLAG_rangeList.c_str());
-  vin.setRangeFile(FLAG_rangeFile.c_str());
+  ge.setRangeList(FLAG_rangeList.c_str());
+  ge.setRangeFile(FLAG_rangeFile.c_str());
 
   // set people filters here
   if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
-    vin.excludeAllPeople();
-    vin.includePeople(FLAG_peopleIncludeID.c_str());
-    vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+    ge.excludeAllPeople();
+    ge.includePeople(FLAG_peopleIncludeID.c_str());
+    ge.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
   }
-  vin.excludePeople(FLAG_peopleExcludeID.c_str());
-  vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+  ge.excludePeople(FLAG_peopleExcludeID.c_str());
+  ge.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
 
   if (FLAG_siteDepthMin > 0) {
-    vin.setSiteDepthMin(FLAG_siteDepthMin);
+    ge.setSiteDepthMin(FLAG_siteDepthMin);
     logger->info("Set site depth minimum to %d", FLAG_siteDepthMin);
   }
   if (FLAG_siteDepthMax > 0) {
-    vin.setSiteDepthMax(FLAG_siteDepthMax);
+    ge.setSiteDepthMax(FLAG_siteDepthMax);
     logger->info("Set site depth maximum to %d", FLAG_siteDepthMax);
   }
   if (FLAG_siteMACMin > 0) {
-    vin.setSiteMACMin(FLAG_siteMACMin);
+    ge.setSiteMACMin(FLAG_siteMACMin);
     logger->info("Set site minimum MAC to %d", FLAG_siteDepthMin);
   }
   if (FLAG_annoType != "") {
-    vin.setAnnoType(FLAG_annoType.c_str());
+    ge.setAnnoType(FLAG_annoType.c_str());
     logger->info("Set annotype type filter to %s", FLAG_annoType.c_str());
   }
 
@@ -874,7 +506,8 @@ int main(int argc, char** argv) {
 
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;
-  vin.getVCFHeader()->getPeopleName(&vcfSampleNames);
+  /* (TO remove) vin.getVCFHeader()->getPeopleName(&vcfSampleNames); */
+  ge.getPeopleName(&vcfSampleNames);
   logger->info("Loaded [ %zu ] samples from VCF files", vcfSampleNames.size());
   std::vector<std::string> vcfSampleToDrop;
   std::vector<std::string> phenotypeNameInOrder;  // phenotype names (vcf sample
@@ -886,7 +519,7 @@ int main(int argc, char** argv) {
             &phenotypeInOrder, FLAG_imputePheno);
   if (vcfSampleToDrop.size()) {
     // exclude this sample from parsing VCF
-    vin.excludePeople(vcfSampleToDrop);
+    ge.excludePeople(vcfSampleToDrop);
     // output dropped samples
     for (size_t i = 0; i < vcfSampleToDrop.size(); ++i) {
       if (i == 0)
@@ -963,7 +596,7 @@ int main(int argc, char** argv) {
     for (std::set<std::string>::const_iterator iter =
              sampleToDropInCovariate.begin();
          iter != sampleToDropInCovariate.end(); ++iter) {
-      vin.excludePeople(iter->c_str());
+      ge.excludePeople(iter->c_str());
     }
   }
 
@@ -979,7 +612,7 @@ int main(int argc, char** argv) {
     int numMissing = findMissingSex(sex, &index);
     logger->info("Futher exclude %d samples with missing sex", numMissing);
     removeByIndex(index, &sex);
-    excludeSamplesByIndex(index, &vin, &phenotypeNameInOrder, &phenotypeInOrder,
+    excludeSamplesByIndex(index, &ge, &phenotypeNameInOrder, &phenotypeInOrder,
                           &covariate);
     appendToMatrix("Sex", sex, &covariate);
   }
@@ -1299,7 +932,7 @@ int main(int argc, char** argv) {
 
   // genotype will be extracted and stored
   Matrix genotype;
-  GenotypeExtractor ge(&vin);
+  // (TO remove) GenotypeExtractor ge(&vin);
   if (FLAG_freqUpper > 0) {
     ge.setSiteFreqMax(FLAG_freqUpper);
     logger->info("Set upper minor allele frequency limit to %g", FLAG_freqUpper);
@@ -1312,15 +945,6 @@ int main(int argc, char** argv) {
   // handle sex chromosome
   ge.setParRegion(&parRegion);
   ge.setSex(&sex);
-  // adjust for male chromosome X
-  // e.g. 0/1 will be coded as 0/2
-  // if (FLAG_xHemi) {
-  //   logger->info("Adjust male chromosome X genotype coding to 0/2.");
-  //   ge.setClaytonCoding(true);
-  //   vin.setExtractChromXHemiRegion();
-  // } else {
-  //   vin.setExtractChromXParRegion();
-  // }
 
   // use dosage instead G/T
   if (!FLAG_dosageTag.empty()) {
@@ -1421,7 +1045,7 @@ int main(int argc, char** argv) {
     int variantProcessed = 0;
     for (size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
-      vin.setRange(rangeList);
+      ge.setRange(rangeList);
 
       while (true) {
         buf.clearValue();
@@ -1472,10 +1096,10 @@ int main(int argc, char** argv) {
     std::string geneName;
     RangeList rangeList;
     int variantProcessed = 0;
-    vin.enableAutoMerge();
+    ge.enableAutoMerge();
     for (size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
-      vin.setRange(rangeList);
+      ge.setRange(rangeList);
 
       buf.clearValue();
       int ret = ge.extractMultipleGenotype(&genotype);
@@ -1515,7 +1139,6 @@ int main(int argc, char** argv) {
 
   // Resource cleaning up
   modelManager.close();
-  if (pVin) delete pVin;
   delete g_SummaryHeader;
 
   time_t endTime = time(0);

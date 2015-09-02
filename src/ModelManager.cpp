@@ -124,9 +124,9 @@ int ModelManager::create(const std::string& modelType,
       logger->error("Not yet implemented.");
     } else if (modelName == "mb") {
       logger->error("Not yet implemented.");
-    } else if (modelName == "analyticvt") {
+    } else if (modelName == "analytic") {
       model.push_back(new AnalyticVT(AnalyticVT::UNRELATED));
-    } else if (modelName == "famanalyticvt") {
+    } else if (modelName == "famanalytic") {
       model.push_back(new AnalyticVT(AnalyticVT::RELATED));
     } else if (modelName == "skat") {
       logger->error("Not yet implemented.");

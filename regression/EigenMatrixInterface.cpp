@@ -101,3 +101,18 @@ void CholeskyInverseMatrix(Matrix& in, Matrix* out) {
   res = x.ldlt().solve(Eigen::MatrixXf::Identity(n, n));
   Eigen_to_G(res, out);
 }
+
+double safeSum(const Eigen::MatrixXd& m) {
+  const int r = m.rows();
+  const int c = m.cols();
+  double s = 0.;
+  for (int i = 0; i < r; ++i) {
+    for (int j = 0; j < c; ++j) {
+      if (std::isfinite(m(i,j))) {
+        s += m(i,j);
+      }
+    }
+  }
+  return s;
+}
+

@@ -22,4 +22,7 @@ void cbind_G_to_Eigen(Matrix& GM1, Matrix& GM2, Eigen::MatrixXf* EigenM);
 
 void CholeskyInverseMatrix(Matrix& in, Matrix* out);
 
+// calculate sum from only finite elements of @param m
+double safeSum(const Eigen::MatrixXd& m);
+
 #endif /* _EIGENMATRIXINTERFACE_H_ */

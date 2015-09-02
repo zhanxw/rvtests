@@ -9,7 +9,7 @@
 //
 
 #include "LogisticRegression.h"
-#include <math.h>
+#include <cmath>  // std::isfinite
 #include "Eigen/Core"
 #include <Eigen/Cholesky>
 #include "EigenMatrixInterface.h"
@@ -78,12 +78,13 @@ double LogisticRegression::GetDeviance() {
 
   double ll = 0.0;
   if (this->w->y.size()) {
-    ll = ((this->w->y.array() * this->w->p.array().log()) +
-          ((1. - this->w->y.array()) * (1.0 - this->w->p.array()).log())).sum();
+    ll =
+        safeSum((this->w->y.array() * this->w->p.array().log()) +
+                ((1. - this->w->y.array()) * (1.0 - this->w->p.array()).log()));
   } else {
-    ll = ((this->w->succ.array() * this->w->p.array().log()) +
+    ll = safeSum((this->w->succ.array() * this->w->p.array().log()) +
           ((this->w->total - this->w->succ).array() *
-           (1.0 - this->w->p.array()).log())).sum();
+           (1.0 - this->w->p.array()).log()));
   }
 
   double deviance = -2.0 * ll;
@@ -97,8 +98,15 @@ double LogisticRegression::GetDeviance(Matrix& X, Vector& y) {
     double t = 0.0;
     for (int j = 0; j < X.cols; j++) t += B[j] * X[i][j];
     double yhat = 1 / (1 + exp(-t));
-
-    ll += y[i] == 1 ? log(yhat) : log(1 - yhat);
+    if (y[i] == 1.) {
+      if (yhat > 0.) {
+        ll += log(yhat);
+      }
+    } else {
+      if (yhat < 1.0) {
+        ll += log(1.0 - yhat);
+      }
+    }
   }
 
   double deviance = -2.0 * ll;
@@ -112,7 +120,12 @@ double LogisticRegression::GetDeviance(Matrix& X, Vector& succ, Vector& total) {
     for (int j = 0; j < X.cols; j++) t += B[j] * X[i][j];
     double yhat = 1 / (1 + exp(-t));
 
-    ll += succ[i] * log(yhat) + (total[i] - succ[i]) * log(1 - yhat);
+    if (yhat > 0.) {
+      ll += succ[i] * log(yhat);
+    }
+    if (yhat < 1.) {
+      ll += (total[i] - succ[i]) * log(1. - yhat);
+    }
   }
 
   double deviance = -2.0 * ll;
@@ -345,7 +358,8 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& y, int nrrounds) {
 }
 
 // result = W - (W Z)*(Z' W Z)^(-1) * (Z' W)
-int LogisticRegression::CalculateScaledWeight(Vector& w, Matrix& cov, Matrix* result) {
+int LogisticRegression::CalculateScaledWeight(Vector& w, Matrix& cov,
+                                              Matrix* result) {
   int n = w.Length();
 
   Eigen::VectorXf W;
@@ -354,15 +368,16 @@ int LogisticRegression::CalculateScaledWeight(Vector& w, Matrix& cov, Matrix* re
   G_to_Eigen(w, &W);
   G_to_Eigen(cov, &Z);
   // W = Wvec.asDiagonal();
-  
+
   Eigen::MatrixXf res;
   Eigen::MatrixXf zwz;
-  zwz.noalias() = (Z.transpose() * W.asDiagonal() * Z).eval().ldlt().solve(Eigen::MatrixXf::Identity(n, n));
+  zwz.noalias() = (Z.transpose() * W.asDiagonal() * Z).eval().ldlt().solve(
+      Eigen::MatrixXf::Identity(n, n));
   Eigen::MatrixXf wz;
   wz.noalias() = W.asDiagonal() * Z;
-  
-  //res = W - (W *Z) * tmp * Z.transpose() * W;
-  res = - wz * zwz * wz.transpose();
+
+  // res = W - (W *Z) * tmp * Z.transpose() * W;
+  res = -wz * zwz * wz.transpose();
   res.diagonal() += W;
   Eigen_to_G(res, result);
   return 0;

@@ -2,6 +2,7 @@
 
 	* Revise Price's VT implementation
 	* Clean up codes
+	* Include zlib
 
 2015-08-14  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

@@ -86,6 +86,7 @@
 </li>
 <li><a href="#sex-chromosome-analysis">Sex chromosome analysis</a></li>
 <li><a href="#kinship-generation">Kinship generation</a></li>
+<li><a href="#resources">Resources</a></li>
 <li><a href="#frequently-asked-questions-faq">Frequently Asked Questions (FAQ)</a></li>
 <li><a href="#feedbackcontact">Feedback/Contact</a></li>
 </ul>
@@ -94,7 +95,7 @@
 
 <p><a href="https://travis-ci.org/zhanxw/rvtests"><img src="https://travis-ci.org/zhanxw/rvtests.png?branch=master" alt="Build Status"></a></p>
 
-<p>(Updated: May 2015)</p>
+<p>(Updated: August 2015)</p>
 
 <h1>
 <a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h1>
@@ -105,7 +106,7 @@
 <a id="download" class="anchor" href="#download" aria-hidden="true"><span class="octicon octicon-link"></span></a>Download</h1>
 
 <p>Source files can be downloaded from <a href="https://github.com/zhanxw/rvtests/archive/master.zip">github</a> or <a href="https://github.com/zhanxw/rvtests">github page</a>.
-Executable binary files (for Linux 64bit) can be downloaded from <a href="https://github.com/zhanxw/rvtests/releases/download/v1.9.3/rvtests-20150509.tar.gz">here</a>.</p>
+Executable binary files (for Linux 64bit) can be downloaded from <a href="https://github.com/zhanxw/rvtests/releases">here</a>.</p>
 
 <h1>
 <a id="quick-tutorial" class="anchor" href="#quick-tutorial" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick tutorial</h1>
@@ -386,7 +387,7 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 <td align="left">Madsen-Browning</td>
 <td align="center">mb</td>
 <td align="center">B</td>
-<td align="center">N</td>
+<td align="center">Y</td>
 <td align="center">U</td>
 <td align="left">Up-weight rare variant using inverse frequency from controls by Madsen.</td>
 </tr>
@@ -394,7 +395,7 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 <td align="left">Fp</td>
 <td align="center">fp</td>
 <td align="center">B</td>
-<td align="center">N</td>
+<td align="center">Y</td>
 <td align="center">U</td>
 <td align="left">Up-weight rare variant using inverse frequency from controls by Danyu Lin.</td>
 </tr>
@@ -433,7 +434,7 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 <tr>
 <td align="left">FamCMC</td>
 <td align="center">famcmc</td>
-<td align="center">B, Q</td>
+<td align="center">Q</td>
 <td align="center">Y</td>
 <td align="center">R</td>
 <td align="left">Collapsing and combine rare variants extended to related samples.</td>
@@ -441,7 +442,7 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 <tr>
 <td align="left">FamZeggini</td>
 <td align="center">famzeggini</td>
-<td align="center">B, Q</td>
+<td align="center">Q</td>
 <td align="center">Y</td>
 <td align="center">R</td>
 <td align="left">Aggregate counts of rare variants extended to related samples.</td>
@@ -470,7 +471,7 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 <tbody>
 <tr>
 <td align="left">Variable threshold model by permutation</td>
-<td align="center">vt</td>
+<td align="center">price</td>
 <td align="center">B, Q</td>
 <td align="center">N</td>
 <td align="center">U</td>
@@ -479,15 +480,16 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 <tr>
 <td align="left">Variable threshold model by analytic form</td>
 <td align="center">analyticVt</td>
-<td align="center">B, Q</td>
+<td align="center">Q</td>
 <td align="center">Y</td>
-<td align="center">U</td>
+<td align="center">U,R</td>
 <td align="left">Every rare-variant frequency cutoffs are tests by Danyu Lin.</td>
 </tr>
 </tbody>
 </table>
 
-<p>(#) Model columns list the recognized names in rvtests. For example, use <code>--vt price</code> will apply score test.</p>
+<p>(#) Model columns list the recognized names in rvtests. For example, use <code>--vt price</code> will variable threshold test.
+NOTE: our implementatino of Price's test diffs from the original method descrbied in Price's publcation. We test every minor allele frequency cutoff (instead of reference allele counts) and this is a two-sided test (instead of one-sided test).</p>
 
 <p>(##) In trait column, B or Q stand for binary or quantitative trait, respectively.</p>
 
@@ -597,24 +599,43 @@ beta distribution parameters for up-weighting rare variants. Rvtests will output
 <p>(##) In trait column, B or Q stand for binary or quantitative trait, respectively.</p>
 
 <p>The above models are suitable to generate summary statistics which can be later meta-analyzed (see <a href="http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html">Dajiang Liu (2014) Nature Genetics</a>).
-Rvtests implemented the above method and the results can be further analyzed in RareMetals (<a href="http://genome.sph.umich.edu/wiki/RareMETALS">link</a>).
-It also worth to mention that our group offered another tool set for meta-analysis (<a href="http://genome.sph.umich.edu/wiki/Rare-Metal">link</a>).</p>
+Rvtests implemented the above methods and the results can be further analyzed by RareMetals (<a href="http://genome.sph.umich.edu/wiki/RareMETALS">link</a>) for quantitative trait and RareMetals2 (<a href="http://genome.sph.umich.edu/wiki/RareMETALS2">link</a>).
+It also worth to mention that our group offers another toolset for meta analysis (<a href="http://genome.sph.umich.edu/wiki/Rare-Metal">link</a>).</p>
 
 <p><strong>Explanation of outputs</strong></p>
 
+<p>The meta-analysis results come as two files: summary score statistics files (prefix.MetaScore.assoc.gz) and covariance files (prefix.MetaCov.assoc.gz).</p>
+
+<p>In summary score statistics files, you will obtain these columns:</p>
+
 <ul>
-<li>N_INFORMATIVE: Number of samples</li>
-<li>AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by colon.</li>
-<li>INFORMATIVE_ALT_AC: Number of samples carrying variants</li>
-<li>HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by colon.</li>
-<li>U_STAT, SQRT_V_STAT: U and V statistics are score statistics. Details can be found in <a href="http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html">Dajiang Liu (2014) Nature Genetics</a>.</li>
-<li>ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. </li>
+<li>N_INFORMATIVE: Number of samples that are analyzed for association. </li>
+<li>AF: allele frequency. For related individuals, we use BLUE estimator. For case-control study, we list overall frequency (adjusted by relatedness if possible), case frequency and control frequency separated by a colon.</li>
+<li>INFORMATIVE_ALT_AC: The number of alternative alleles in the analyzed samples.</li>
+<li>CALL_RATE: The fraction of non-missing alleles. For case-control study, we calculate call rate for all samples, case samples and control samples separated by a colon.</li>
+<li>HWE_PVALUE: Hardy-Weinberg equilibrium. For related individuals, this statistic can be inflated. For case-control study, we calculate HWE pvalues for all samples, case samples and controls samples separated by a colon.</li>
+<li>N_REF/N_HET/N_ALT: Number of samples carrying homozygous reference/heterozygous/homozygous alternative alleles. For case-control study, we calculate these three statistics for all samples, case samples and controls samples separated by a colon.</li>
+<li>U_STAT, SQRT_V_STAT: U and V statistics are score statistics and their covariance matrix. Details can be found in <a href="http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html">Dajiang Liu (2014) Nature Genetics</a>.</li>
+<li>ALT_EFFSIZE: for continuous outcome, this is the estimated effect size; for binary outcome, this is the estimated log odds-ratio. We apply a new correction method when binary trait associations for
+related individuals are analyzed in standard linear mixed models. The log odds ratio is approximately correct for related individual analysis as well.</li>
+</ul>
+
+<p>The covariance files stores covariances in sliding windows. You will obtain these columns:</p>
+
+<ul>
+<li>CHROM: the chromosome name</li>
+<li>START_POS/END_POS: within one sliding window, the first/last variant chromosomal position.</li>
+<li>NUM_MARKER: number of markers in one sliding window.</li>
+<li>MARKER_POS: all chromosomal positions in the sliding window.</li>
+<li>COV: covariances between markers. When the sliding window has markers G.1, G.2, ..., G.N, this column will store "covariances" of (G.1, G.1), (G.1, G.2), ..., (G.1, G.N);
+for binary outcomes, this column uses colons as separators and additionally stores covariances between N genotypes and K covariates (G.1, C.1), (G.1, C.2), ..., (G.1, C.K), as well as
+covariances between K covariates (C.1, C.1), (C.1, C.2), ... (C.1, C.K), (C.2, C.2), ..., (C.2, C.K), ..., (C.K, C.K).</li>
 </ul>
 
 <h2>
 <a id="utility-models" class="anchor" href="#utility-models" aria-hidden="true"><span class="octicon octicon-link"></span></a>Utility models</h2>
 
-<p>Rvtests has an usually option <code>--outputRaw</code>. When specify this, rvtests can output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files. These files can be imported into other software (e.g. R) for further analysis.</p>
+<p>Rvtests has an convinient option <code>--outputRaw</code>. When specifing this, rvtests can output genotypes, phenotype, covariates (if any) and collapsed genotype to tabular files. These files can be imported into other software (e.g. R) for further analyses.</p>
 
 <h1>
 <a id="association-test-options" class="anchor" href="#association-test-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Association test options</h1>
@@ -764,10 +785,10 @@ In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1
 
 <p><em>Genotype in the regression model</em>. For consistence, male genotypes are converted to 0 or 2.</p>
 
-<p><em>MetaScore results</em>. If specify <code>--meta score</code>, the output file <code>prefix.MetaScore.assoc.gz</code> includes PAR-region and non-PAR region analysis. 
-But in the non-PAR region, the difference is that Hardy-Weinberg P-value are calculated using female samples.</p>
+<p><em>MetaScore results</em>. If <code>--meta score</code> is specified, the output file <code>prefix.MetaScore.assoc.gz</code> includes PAR-region and non-PAR region analysis. 
+However, in the non-PAR region, the difference is that Hardy-Weinberg P-value and homeozygous-reference/heterzygous/homozygous-alternative sample sizes are calculated using female samples only.</p>
 
-<p><em>Related individuals</em>. Just append <code>--xHemi</code> to the <code>vcf2kinship</code> (more details in <a href="#kinship-generation">Kinship generation</a>) and <code>rvtest</code> command lines. Rvtests can recognize non-PAR region kinship and use it in the analysis.</p>
+<p><em>Related individuals</em>. Just append <code>--xHemi</code> to the <code>vcf2kinship</code> (more details in <a href="#kinship-generation">Kinship generation</a>) and <code>rvtest</code> command lines. Rvtests can recognize non-PAR region kinship file and use it in the analysis.</p>
 
 <p><em>PAR region</em>. PAR region is defined as two regions X:60001-2699520 and X:154931044-155260560. Use <code>--xLabel</code> can specify which chromosome has PAR region (default: 23 or X)
 and use <code>--xParRegion</code> to specify PAR region (default: hg19, meaning '60001-2699520,154931044-155260560' in the UCSC build hg19, specify "hg18" will use PAR region definition in the UCSC build hg18, or specify "hg38" will use UCSC build 38).</p>
@@ -803,13 +824,35 @@ For empirical kinship, you also need to specify the kinship model, either Baldin
 <p>NOTE: you need to provide a pedigree file (PED) in the above case, as <code>vcf2kinship</code> need the sex information of samples.</p>
 
 <h1>
+<a id="resources" class="anchor" href="#resources" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resources</h1>
+
+<h2>
+<a id="ucsc-refflat-genes" class="anchor" href="#ucsc-refflat-genes" aria-hidden="true"><span class="octicon octicon-link"></span></a>UCSC RefFlat Genes</h2>
+
+<p>refFlat_hg19.txt.gz</p>
+
+<p>UCSC gene definition file in the refFlat format (<a href="http://genome.ucsc.edu/goldenpath/gbdDescriptionsOld.html#RefFlat">Details</a>) in NCBI genome build 37 .</p>
+
+<p>File link: <a href="http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat_hg19.txt.gz">http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat_hg19.txt.gz</a></p>
+
+<h2>
+<a id="gencode-genes" class="anchor" href="#gencode-genes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Gencode Genes</h2>
+
+<p>refFlat.gencode.v19.gz</p>
+
+<p>Gencode gene definition version 19 in the refFlat format (<a href="http://www.gencodegenes.org/releases/19.html">Details</a>). We have also previous versions of gene files and can provide upon request.</p>
+
+<p>File link: <a href="http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat.gencode.v19.gz">http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat.gencode.v19.gz</a></p>
+
+<h1>
 <a id="frequently-asked-questions-faq" class="anchor" href="#frequently-asked-questions-faq" aria-hidden="true"><span class="octicon octicon-link"></span></a>Frequently Asked Questions (FAQ)</h1>
 
 <ul>
 <li>Does rvtests support binary traits of related-individuals?</li>
 </ul>
 
-<p>Not yet. It's a complex scenario and we have not found good solutions.</p>
+<p>Yes and no. Proper analyses of related-individual are supported in meta-analysis model as described in section (#meta-analysis-models).
+In many other association models, supporting binary traits for related individuals is complex and we have not found good solutions.</p>
 
 <ul>
 <li>Can you provide a list of command line options?</li>
@@ -838,15 +881,27 @@ For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta
 <p>If rvtests fails to fit using a certain model, it cannot calculate P-value reliably. Rvtests will print P-value as -1 instead of any number between 0 and 1 to indicate that an error occurred.
 However, this should rarely happen. Please contact us if you have further questions.</p>
 
+<ul>
+<li>Why SKAT Q-values reported by rvtests are different from the SKAT R package?</li>
+</ul>
+
+<p>We strictly follow the notations in the SKAT publication (<a href="http://www.hsph.harvard.edu/skat/">Wu et al. (2011) AJHG</a>). However, in SKAT R package, its implementation is slightly different.
+For example, in quantitative trait anlaysis, Q is divided by (2 * \hat{sigma2}) in the R package, but not in rvtests.
+Although Q values can be different, the P-values from the two software packges should match (only in rare cases, numerical accrucy may cause minor differences).</p>
+
 <h1>
 <a id="feedbackcontact" class="anchor" href="#feedbackcontact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Feedback/Contact</h1>
 
-<p>Questions and requests can be sent to Xiaowei Zhan
-(<a href="mailto:zhanxw@umich.edu" title="mailto:zhanxw@umich.edu">zhanxw@umich.edu</a>)
-or Goncalo Abecasis
-(<a href="mailto:goncalo@umich.edu" title="mailto:goncalo@umich.edu">goncalo@umich.edu</a>)</p>
+<p>Questions and requests can be sent to
+Xiaowei Zhan (<a href="mailto:zhanxw@umich.edu" title="mailto:zhanxw@umich.edu">zhanxw@umich.edu</a>)
+or
+Dajiang Liu (<a href="mailto:dajiang.liu@outlook.com" title="mailto:dajiang.liu@outlook.com">dajiang.liu@outlook.com</a>)
+or
+Goncalo Abecasis (<a href="mailto:goncalo@umich.edu" title="mailto:goncalo@umich.edu">goncalo@umich.edu</a>)</p>
 
-<p>Rvtests is a collaborative effort by Youna Hu, Bingshan Li and Dajiang Liu.</p>
+<p>Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.</p>
+
+<p>Among rvtests users who have provided many valuable feedbacks or comments, we want to thank: Xueling Sim, Scott Verize, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, the GIANT consoritum and the GLGC consortium.</p>
         </section>
 
         <aside id="sidebar">

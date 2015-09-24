@@ -11,6 +11,8 @@ $(GSL_INC) $(GSL_LIB):
 	$(MAKE) -C $(ROOT)/third gsl
 $(NLOPT_INC) $(NLOPT_LIB):
 	$(MAKE) -C $(ROOT)/third nlopt
+$(ZLIB_INC) $(ZLIB_LIB):
+	$(MAKE) -C $(ROOT)/third zlib 
 $(BZIP2_INC) $(BZIP2_LIB):
 	$(MAKE) -C $(ROOT)/third bzip2
 $(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):

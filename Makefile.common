@@ -14,6 +14,9 @@ PCRE_LIB = $(ROOT)/third/pcre/lib/libpcreposix.a $(ROOT)/third/pcre/lib/libpcre.
 GSL_INC = $(ROOT)/third/gsl/include
 GSL_LIB = $(ROOT)/third/gsl/lib/libgsl.a
 
+ZLIB_INC = $(ROOT)/third/zlib
+ZLIB_LIB = $(ROOT)/third/zlib/libz.a
+
 BZIP2_INC = $(ROOT)/third/bzip2
 BZIP2_LIB = $(ROOT)/third/bzip2/libbz2.a
 
@@ -26,8 +29,8 @@ BCF_LIB = $(ROOT)/third/samtools/bcftools/libbcf.a
 SAMTOOLS_INC = $(ROOT)/third/samtools
 SAMTOOLS_LIB = $(ROOT)/third/samtools/libbam.a
 
-THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(BZIP2_INC) $(NLOPT_INC)
-THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(BZIP2_LIB) $(NLOPT_LIB)
+THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC)
+THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(ZLIB_LIB) $(BZIP2_LIB) $(NLOPT_LIB)
 ##################################################
 ## Our libs.
 BASE_INC = $(ROOT)/base
@@ -55,8 +58,8 @@ INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
 LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
 LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I. -I$(ROOT)
-CXX_LIB = $(LIB) -lz -lm -lpthread
-CXX_LIB_DBG = $(LIB_DBG) -lz -lm -lpthread
+CXX_LIB = $(LIB) -lm -lpthread
+CXX_LIB_DBG = $(LIB_DBG) -lm -lpthread
 
 ##################################################
 ## Platform dependent variables

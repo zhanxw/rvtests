@@ -1,6 +1,6 @@
 # download all third party library and compile them
 
-LIB = tabix pcre eigen gsl bzip2 samtools
+LIB = tabix pcre eigen gsl bzip2 samtools zlib
 all: $(LIB)
 
 tabix: tabix-0.2.6.tar.bz2
@@ -24,6 +24,11 @@ eigen: eigen-3.2.5.tar.bz2
 	tar jvxf eigen-3.2.5.tar.bz2
 	-mv eigen-eigen-* eigen-3.2.5
 	ln -s -f eigen-3.2.5 eigen
+
+zlib: zlib-1.2.8.tar.gz
+	tar zvxf $<
+	ln -s -f zlib-1.2.8 zlib
+	(cd zlib; ./configure; make)
 
 bzip2: bzip2-1.0.6.tar.gz
 	tar zvxf $<
@@ -61,9 +66,14 @@ gsl-1.16.tar.gz:
 	echo "obtain GSL"
 	$(call DOWNLOAD,http://mirrors.kernel.org/gnu/gsl/gsl-1.16.tar.gz)
 
+zlib-1.2.8.tar.gz:
+	echo "obtain zlib library"
+	$(call DOWNLOAD,http://zlib.net/zlib-1.2.8.tar.gz)
+
 bzip2-1.0.6.tar.gz:
 	echo "obtain Bzip2 library"
 	$(call DOWNLOAD,http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz)
+
 nlopt-2.4.2.tar.gz:
 	echo "obtain nlopt library"
 	$(call DOWNLOAD,http://ab-initio.mit.edu/nlopt/nlopt-2.4.2.tar.gz)

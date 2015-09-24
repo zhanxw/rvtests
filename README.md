@@ -236,12 +236,12 @@ Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | De
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 Variable threshold model by permutation     |  price    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.
 Variable threshold model by analytic form   |  analytic    |B, Q  |     Y      |         U   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
-Variable threshold model by analytic form   |  famAnalytic    |B, Q  |     Y      |         R   | Every rare-variant frequency cutoffs are tests by Dajiang Liu.
+Variable threshold model by analytic form   |  famAnalytic    | Q  |     Y      |         R   | Every rare-variant frequency cutoffs are tests by Dajiang Liu.
 
-(#) Model columns list the recognized names in rvtests. For example, use `--vt price` will apply score test.
+(#) Model columns list the recognized names in rvtests. For example, use `--vt price` will variable threshold test.
+NOTE: our implementatino of Price's test diffs from the original method descrbied in Price's publcation. We test every minor allele frequency cutoff (instead of reference allele counts) and this is a two-sided test (instead of one-sided test).
 
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
-
 
 
 ## Kernel models

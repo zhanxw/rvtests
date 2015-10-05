@@ -37,7 +37,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: September 2015)
+(Updated: October 2015)
 
 # Introduction
 
@@ -361,9 +361,30 @@ It is supported to filter variant site by site depth, minor allele count or anno
                 --siteMACMin : Specify minimum Minor Allele Count(inclusive) to be included in analysis
                   --annoType : Specify annotation type that is followed by ANNO= in the VCF INFO field, regular expression is allowed
 
-*NOTE*: `--annoType Nonsynonymous` will only analyze non-synonymous variants where they have `ANNO=Nonsynonymous` in the INFO field. 
-VCF with annotating information are called annotated VCF here. And to annotate 
-a VCF file, you can use [ANNO](https://github.com/zhanxw/anno), a fast and accurate annotation software.
+*NOTE*: `--annoType` can filter variants based on regular expression.
+For example, `--annoType Nonsynonymous` will only analyze non-synonymous variants where they have `ANNO=Nonsynonymous` in the INFO field.
+To extract more than one annotation types, use `--annoType 'Start_Gain|Stop_Loss|Start_Loss|Essential_Splice_Site|Stop_Gain|Normal_Splice_Site|Synonymous|Nonsynonymous` will extract LOF (loss of function) mutations.
+To generate an annotated VCF file, please read on the next section [Annotation](#Annotation). 
+
+
+### Annotation
+
+We define a VCF file with annotating information as an annotated VCF here.
+The annotation step can be done using [ANNO](https://github.com/zhanxw/anno), a fast and accurate annotation software.
+At minimal, there are two steps to annotate a VCF file:
+
+1. Install ANNO and its resources files
+
+    git clone https://github.com/zhanxw/anno.git
+    cd anno; make
+    cd resources; ./download.sh
+
+2. Run the following script:
+
+    anno -i input.vcf -o output.vcf.gz -r anno/resources/hs37d5.fa -g anno/resources/refFlat_hg19.txt.gz -p anno/priority.txt -c anno/codon.txt --indexOutput
+
+You will then obtain an annotated VCF file `output.vcf.gz` and its tabix index `output.vcf.gz.tbi`.
+
 
 ## Genotype filters
 

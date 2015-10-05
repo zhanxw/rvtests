@@ -2,6 +2,9 @@
 
 	* Improve stability of logistic regression model
 	* Clean codes
+	* Revise documentations
+	* Support multi-allelic sites better
+	* Fix allele frequency calculations for dosages in meta models
 
 2015-08-27  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

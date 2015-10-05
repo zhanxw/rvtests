@@ -26,7 +26,7 @@ int loadMarkerFromVCF(const std::string& fileName, const std::string& marker,
 class GenotypeExtractor {
  public:
   explicit GenotypeExtractor(const std::string& fn);
-  ~GenotypeExtractor();
+  virtual ~GenotypeExtractor();
   /**
    * @param g, store people by marker matrix
    * @return 0 for success
@@ -78,9 +78,12 @@ class GenotypeExtractor {
   Vector& getWeight() { return this->weight; };
   void setDosageTag(const std::string& tag) {
     if (tag.empty()) return;
-    this->doseTag = tag;
+    this->dosageTag = tag;
   }
-  void unsetDosageTag() { this->doseTag.clear(); }
+  void unsetDosageTag() { this->dosageTag.clear(); }
+  bool isDosage() const {
+    return !this->dosageTag.empty();
+  }
   void setParRegion(ParRegion* p) { this->parRegion = p; }
   //      Sex (1=male; 2=female; other=unknown)
   void setSex(const std::vector<int>* sex) { this->sex = sex; }
@@ -94,7 +97,7 @@ class GenotypeExtractor {
   const static int ERROR = -1;
   const static int FILE_END = -2;
   const static int FAIL_FILTER = -3;
-
+  
  private:
   VCFExtractor* vin;
   double freqMin;
@@ -106,7 +109,7 @@ class GenotypeExtractor {
   int GQmax;
   bool needGQ;
   Vector weight;
-  std::string doseTag;  // set if loading dose instead of genotype
+  std::string dosageTag;  // set if loading dosage instead of genotype
 
   // compensate sex chromosome
   ParRegion* parRegion;

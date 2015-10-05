@@ -284,7 +284,12 @@ class DataConsolidator {
         continue;
       }
 
-      int g = (int)originalGenotype[i][columnIndex];
+      // to accomodate dosages, we will use these thresholds for dosages
+      // [0, 2/3)   => 0 homRef
+      // [2/3, 4/3) => 1 het
+      // [4/3, 2]   => 2 homAlt
+      int g = 1.5 * originalGenotype[i][columnIndex];
+      // fprintf(stderr, "orig = %g\tg = %d\n", originalGenotype[i][columnIndex], g);
       switch (g) {
         case 0:
           ++(*homRef);

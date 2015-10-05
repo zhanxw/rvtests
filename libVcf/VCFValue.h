@@ -68,7 +68,8 @@ class VCFValue {
   };
 
  public:
-  // try to convert to genotype
+  // return converted genotypes
+  // for multi-allelic genotype such as 0/2, missing will be reported
   int getGenotype() const {
     int g = 0;
     int p = beg;
@@ -80,6 +81,10 @@ class VCFValue {
       g += line[p] - '0';
     }
 
+    if (g > 1) {
+      // this is a multi-allelic site
+      return MISSING_GENOTYPE;
+    }
     p++;
     if (p == end) return g;
     if (line[p] != '|' && line[p] != '/') {
@@ -92,10 +97,16 @@ class VCFValue {
       return MISSING_GENOTYPE;
     }
     if (line[p] == '.') return MISSING_GENOTYPE;
-    if (line[p] < '0')
+    if (line[p] < '0') {
       REPORT("Wrong genotype detected. [2]");
-    else
-      g += line[p] - '0';
+    } else {
+      const int a2 = line[p] - '0';
+      if (a2 > 1) {
+        // this is a multi-allelic site
+        return MISSING_GENOTYPE;
+      }
+      g += a2;
+    }
 
     p++;
     if (p != end) {
@@ -142,7 +153,7 @@ class VCFValue {
   }
 
   /**
-   * @return 0 or 1 or 2 as genotype
+   * @return 0 or 1 or 2 or ... as genotype
    */
   int getAllele1() const {
     int g = 0;

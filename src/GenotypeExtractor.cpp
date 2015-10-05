@@ -33,7 +33,7 @@ GenotypeExtractor::~GenotypeExtractor() {
 }
 
 int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
-  Matrix m;
+  static Matrix m; // make it static to reduce memory allocation
   int row = 0;
   std::vector<std::string> colNames;
   std::string name;
@@ -46,9 +46,9 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     m.Dimension(row + 1, people.size());
 
     int genoIdx;
-    const bool useDose = (!this->doseTag.empty());
-    if (useDose) {
-      genoIdx = r.getFormatIndex(doseTag.c_str());
+    const bool useDosage = (!this->dosageTag.empty());
+    if (useDosage) {
+      genoIdx = r.getFormatIndex(dosageTag.c_str());
     } else {
       genoIdx = r.getFormatIndex("GT");
     }
@@ -65,7 +65,7 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
       if (genoIdx >= 0) {
         // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
         // field of each individual
-        if (useDose) {
+        if (useDosage) {
           m[row][i] = indv->justGet(genoIdx).toDouble();
         } else {
           if (!hemiRegion) {
@@ -86,7 +86,7 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
         }
       } else {
         logger->error("Cannot find %s field!",
-                      this->doseTag.empty() ? "GT" : doseTag.c_str());
+                      this->dosageTag.empty() ? "GT" : dosageTag.c_str());
         return -1;
       }
     }
@@ -157,10 +157,10 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
 
   // get GT index. if you are sure the index will not change, call this
   // function only once!
-  const bool useDose = (!this->doseTag.empty());
+  const bool useDosage = (!this->dosageTag.empty());
   int genoIdx;
-  if (useDose) {
-    genoIdx = r.getFormatIndex(doseTag.c_str());
+  if (useDosage) {
+    genoIdx = r.getFormatIndex(dosageTag.c_str());
   } else {
     genoIdx = r.getFormatIndex("GT");
   }
@@ -177,7 +177,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
     if (genoIdx >= 0) {
       // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
       // field of each individual
-      if (useDose) {
+      if (useDosage) {
         genotype[i][0] = indv->justGet(genoIdx).toDouble();
       } else {
         if (!hemiRegion) {
@@ -200,7 +200,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
     } else {
       logger->error(
           "Cannot find [ %s ] field when read individual information [ %s ]!",
-          this->doseTag.empty() ? "GT" : this->doseTag.c_str(),
+          this->dosageTag.empty() ? "GT" : this->dosageTag.c_str(),
           indv->getSelf().toStr());
       return ERROR;
     }

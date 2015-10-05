@@ -3014,6 +3014,7 @@ class MetaScoreTest : public ModelFitter {
     if (!model) return -1;
 
     // calculate site-based statistics
+    
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
@@ -3742,12 +3743,6 @@ class MetaCovTest : public ModelFitter {
 
     loci.pos.chrom = siteInfo["CHROM"];
     loci.pos.pos = atoi(siteInfo["POS"]);
-
-    if ((siteInfo["REF"]).size() != 1 ||
-        (siteInfo["ALT"]).size() != 1) {  // not snp
-      fitOK = false;
-      return -1;
-    }
 
     // assign loci.geno, and
     // check if this is a monomorphic site, if so, just skip it.

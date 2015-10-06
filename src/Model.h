@@ -73,9 +73,7 @@ void groupFrequency(const std::vector<double>& freq,
 void convertToReferenceAlleleCount(Matrix& in, Matrix* g);
 
 void makeVariableThreshodlGenotype(
-    Matrix& in,
-    Matrix* out,
-    std::vector<double>* freqOut,
+    Matrix& in, Matrix* out, std::vector<double>* freqOut,
     void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int));
 
 void appendHeritability(FileWriter* fp, const FastLMM& model);
@@ -449,7 +447,10 @@ class SingleVariantFisherExactTest : public ModelFitter {
     /* } */
     result.writeValueLine(fp);
   }
-  void reset() { model.reset(); }
+  void reset() {
+    ModelFitter::reset();
+    model.reset();
+  }
 
  private:
   Table2by2 model;
@@ -501,20 +502,20 @@ class SingleVariantFamilyScore : public ModelFitter {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK =
           (0 ==
-           model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
-                              *dc->getKinshipSForAuto())
-           ? true
-           : false);
+                   model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                      *dc->getKinshipSForAuto())
+               ? true
+               : false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
 
     fitOK = (0 ==
-             model.TestCovariate(cov, phenotype, genotype,
-                                 *dc->getKinshipUForAuto(),
-                                 *dc->getKinshipSForAuto())
-             ? true
-             : false);
+                     model.TestCovariate(cov, phenotype, genotype,
+                                         *dc->getKinshipUForAuto(),
+                                         *dc->getKinshipSForAuto())
+                 ? true
+                 : false);
     af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
     u = model.GetUStat();
     v = model.GetVStat();
@@ -595,10 +596,10 @@ class SingleVariantFamilyLRT : public ModelFitter {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK =
           (0 ==
-           model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
-                              *dc->getKinshipSForAuto())
-           ? true
-           : false);
+                   model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                      *dc->getKinshipSForAuto())
+               ? true
+               : false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
@@ -687,20 +688,20 @@ class SingleVariantFamilyGrammarGamma : public ModelFitter {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK =
           (0 ==
-           model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
-                              *dc->getKinshipSForAuto())
-           ? true
-           : false);
+                   model.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                      *dc->getKinshipSForAuto())
+               ? true
+               : false);
       if (!fitOK) return -1;
       needToFitNullModel = false;
     }
 
     fitOK = (0 ==
-             model.TestCovariate(cov, phenotype, genotype,
-                                 *dc->getKinshipUForAuto(),
-                                 *dc->getKinshipSForAuto())
-             ? true
-             : false);
+                     model.TestCovariate(cov, phenotype, genotype,
+                                         *dc->getKinshipUForAuto(),
+                                         *dc->getKinshipSForAuto())
+                 ? true
+                 : false);
     af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
     beta = model.GetBeta();
     betaVar = model.GetBetaVar();
@@ -1095,7 +1096,10 @@ class CMCFisherExactTest : public ModelFitter {
     }
     result.writeValueLine(fp);
   }
-  void reset() { model.reset(); }
+  void reset() {
+    ModelFitter::reset();
+    model.reset();
+  }
 
  private:
   Matrix collapsedGenotype;
@@ -1239,7 +1243,10 @@ class MadsonBrowningTest : public ModelFitter {
     }  // end permutation
     return (fitOK ? 0 : -1);
   }
-  void reset() { this->perm.reset(); }
+  void reset() {
+    ModelFitter::reset();
+    this->perm.reset();
+  }
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
@@ -1407,7 +1414,10 @@ class RareCoverTest : public ModelFitter {
     fitOK = true;
     return (fitOK ? 0 : -1);
   }
-  void reset() { this->perm.reset(); }
+  void reset() {
+    ModelFitter::reset();
+    this->perm.reset();
+  }
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
@@ -1564,7 +1574,10 @@ class CMATTest : public ModelFitter {
     fitOK = true;
     return (fitOK ? 0 : -1);
   }
-  void reset() { this->perm.reset(); }
+  void reset() {
+    ModelFitter::reset();
+    this->perm.reset();
+  }
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
@@ -1633,7 +1646,7 @@ class CMATTest : public ModelFitter {
     if (N_A + N_U == 0.0) return 0.0;
     int numMarker = genotype.cols;
     return (N_A + N_U) / (2 * N_A * N_U * numMarker) * (m_A * M_U - m_U * M_A) *
-        (m_A * M_U - m_U * M_A) / (m_A + m_U) / (M_A + M_U);
+           (m_A * M_U - m_U * M_A) / (m_A + m_U) / (M_A + M_U);
   }
 
  private:
@@ -1658,9 +1671,11 @@ class UStatTest{
 /**
  * Implementation of Alkes Price's VT with modifications
  *
- * 1. The original paper use reference allele counts and allele frequency threshold.
+ * 1. The original paper use reference allele counts and allele frequency
+ *threshold.
  *    We use minor allele frequency and minor allele frequency threshold.
- * 2. The original permutation test p value = (x + 1) / (P + 1) and x is the frequency
+ * 2. The original permutation test p value = (x + 1) / (P + 1) and x is the
+ *frequency
  *    of larger z from permutation, so it's a one-sided test.
  *    We use absolution value |z|, and we use a two-sided test.
  * 3. Original paper use 1000 permutation, but here we increase this number.
@@ -1690,21 +1705,23 @@ class VariableThresholdPrice : public ModelFitter {
     }
     if (weight.Length() != 0) {
       warnOnce(
-          "Price's Variable Threshold method cannot take weights at this moment. Unweighted results will be calculated.");
+          "Price's Variable Threshold method cannot take weights at this "
+          "moment. Unweighted results will be calculated.");
     }
 
     // calculate allele frequency
     makeVariableThreshodlGenotype(genotype, &this->sortedBurden, &this->freq,
                                   zegginiCollapse);
-    transposeInPlace(&this->sortedBurden);  // now each row is a collapsed genoype at
+    transposeInPlace(
+        &this->sortedBurden);  // now each row is a collapsed genoype at
     // certain frequency cutoff
     copyPhenotype(phenotype, &this->phenotype);
 
     this->zmax = -999.0;
     centerVector(&this->phenotype);
     // use unpermutated data
-    if (calculateZ(this->phenotype, this->sortedBurden, weight,
-                   &this->zmax, &this->optimalFreq)) {
+    if (calculateZ(this->phenotype, this->sortedBurden, weight, &this->zmax,
+                   &this->optimalFreq)) {
       fitOK = false;
       return -1;
     }
@@ -1716,10 +1733,8 @@ class VariableThresholdPrice : public ModelFitter {
 
     while (this->perm.next()) {
       permute(&this->phenotype);
-      if (calculateZ(this->phenotype,
-                     this->sortedBurden,
-                     weight,
-                     &zPerm, &optFreqPerm))
+      if (calculateZ(this->phenotype, this->sortedBurden, weight, &zPerm,
+                     &optFreqPerm))
         continue;
       this->perm.add(fabs(zPerm));
     }
@@ -1742,7 +1757,8 @@ class VariableThresholdPrice : public ModelFitter {
     // fprintf(fp, "\n");
   }
   void reset() {
-    fitOK = true;
+    fitOK = false;
+    ModelFitter::reset();
     this->perm.reset();
   }
 
@@ -1752,7 +1768,8 @@ class VariableThresholdPrice : public ModelFitter {
     g->Transpose(tmp);
   }
 
-  int calculateZ(Vector& pheno, Matrix& sortedBurden, Vector& weight, double* zmax, double* optimFreq) {
+  int calculateZ(Vector& pheno, Matrix& sortedBurden, Vector& weight,
+                 double* zmax, double* optimFreq) {
     assert(pheno.Length() == sortedBurden.cols);
     assert(sortedBurden.rows > 1);
     assert(weight.Length() == 0);
@@ -1761,8 +1778,8 @@ class VariableThresholdPrice : public ModelFitter {
     assert((int)this->freq.size() == sortedBurden.rows);
 
     for (int i = 0; i < sortedBurden.rows; ++i) {
-      const double z = calculateZthreshold(pheno, this->sortedBurden[i],
-                                           weight);
+      const double z =
+          calculateZthreshold(pheno, this->sortedBurden[i], weight);
       if (fabs(z) > *zmax || i == 0) {
         *zmax = fabs(z);
         *optimFreq = this->freq[i];
@@ -1922,8 +1939,7 @@ class VTCMC : public ModelFitter {
     // }
     // groupFrequency(freq, &freqGroup);
     freq.clear();
-    makeVariableThreshodlGenotype(geno, &sortedGenotype, &freq,
-                                  cmcCollapse);
+    makeVariableThreshodlGenotype(geno, &sortedGenotype, &freq, cmcCollapse);
 
     // rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     if (!isBinaryOutcome()) {
@@ -1975,7 +1991,10 @@ class VTCMC : public ModelFitter {
 
     result.writeValueLine(fp);
   }
-  void reset() { fitOK = true; }
+  void reset() {
+    ModelFitter::reset();
+    fitOK = false;
+  }
 
  private:
   int fitNullModel(DataConsolidator* dc) {
@@ -2032,7 +2051,7 @@ class AnalyticVT : public ModelFitter {
     this->type = type;
     if (type == UNRELATED) {
       this->modelName = "AnalyticVT";
-      this->familyModel = false;      
+      this->familyModel = false;
     } else {
       this->modelName = "FamAnalyticVT";
       this->familyModel = true;
@@ -2223,10 +2242,10 @@ class FamCMC : public ModelFitter {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK =
           (0 ==
-           lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
-                            *dc->getKinshipSForAuto())
-           ? true
-           : false);
+                   lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                    *dc->getKinshipSForAuto())
+               ? true
+               : false);
       if (!fitOK) {
         warnOnce(
             "CMC test (for related individuals) failed in fitting null model "
@@ -2341,10 +2360,10 @@ class FamZeggini : public ModelFitter {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK =
           (0 ==
-           lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
-                            *dc->getKinshipSForAuto())
-           ? true
-           : false);
+                   lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                    *dc->getKinshipSForAuto())
+               ? true
+               : false);
       if (!fitOK) {
         warnOnce(
             "Zeggini test (for related individuals) failed in fitting null "
@@ -2456,10 +2475,10 @@ class FamFp : public ModelFitter {
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
       fitOK =
           (0 ==
-           lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
-                            *dc->getKinshipSForAuto())
-           ? true
-           : false);
+                   lmm.FitNullModel(cov, phenotype, *dc->getKinshipUForAuto(),
+                                    *dc->getKinshipSForAuto())
+               ? true
+               : false);
       if (!fitOK) {
         warnOnce(
             "Fp test (for related individuals) failed in fitting null model "
@@ -2539,6 +2558,7 @@ class SkatTest : public ModelFitter {
     this->needToFitNullModel = true;
   }
   void reset() {
+    ModelFitter::reset();
     this->skat.Reset();
     this->perm.reset();
     stat = -9999;
@@ -2718,6 +2738,7 @@ class KBACTest : public ModelFitter {
   }
   void reset() {
     // clear_kbac_test();
+    ModelFitter::reset();
   }
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -2950,11 +2971,7 @@ class FamSkatTest : public ModelFitter {
 // need careful tests before any change
 class MetaScoreTest : public ModelFitter {
  public:
-  MetaScoreTest()
-      : model(NULL),
-        modelAuto(NULL),
-        modelX(NULL)
-  {
+  MetaScoreTest() : model(NULL), modelAuto(NULL), modelX(NULL) {
     this->modelName = "MetaScore";
     nSample = nCase = nCtrl = -1;
     af = afFromCase = afFromControl = -1.;
@@ -3007,14 +3024,14 @@ class MetaScoreTest : public ModelFitter {
       model = modelAuto;
       if (!model) {
         model = modelAuto =
-                createModel(this->useFamilyModel, isBinaryOutcome());
+            createModel(this->useFamilyModel, isBinaryOutcome());
         model->hemiRegion = false;
       }
     }
     if (!model) return -1;
 
     // calculate site-based statistics
-    
+
     dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
     // dc->getResult().writeValueLine(stderr);
     // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
@@ -3763,7 +3780,7 @@ class MetaCovTest : public ModelFitter {
       model = modelAuto;
       if (!model) {
         model = modelAuto =
-                createModel(this->useFamilyModel, isBinaryOutcome());
+            createModel(this->useFamilyModel, isBinaryOutcome());
         model->hemiRegion = false;
       }
     }

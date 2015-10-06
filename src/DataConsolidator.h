@@ -288,23 +288,15 @@ class DataConsolidator {
       // [0, 2/3)   => 0 homRef
       // [2/3, 4/3) => 1 het
       // [4/3, 2]   => 2 homAlt
-      int g = 1.5 * originalGenotype[i][columnIndex];
-      // fprintf(stderr, "orig = %g\tg = %d\n", originalGenotype[i][columnIndex], g);
-      switch (g) {
-        case 0:
-          ++(*homRef);
-          break;
-        case 1:
-          ++(*het);
-          break;
-        case 2:
-          ++(*homAlt);
-          break;
-        default:
-          if (originalGenotype[i][columnIndex] < 0) {
-            ++(*missing);
-          }
-          break;
+      const double g = originalGenotype[i][columnIndex];
+      if (g < 0) {
+        ++(*missing);
+      } else if (g < 2.0 / 3) {
+        ++(*homRef);        
+      } else if (g < 4.0 / 3) {
+        ++(*het);        
+      } else if (g <= 2.0) {
+          ++(*homAlt);        
       }
     }
     return 0;  // success

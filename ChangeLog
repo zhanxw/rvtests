@@ -5,6 +5,7 @@
 	* Revise documentations
 	* Support multi-allelic sites better
 	* Fix allele frequency calculations for dosages in meta models
+	* Fix reset function so that results are resetted each time
 
 2015-08-27  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

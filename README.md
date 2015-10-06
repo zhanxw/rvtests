@@ -1,4 +1,4 @@
-<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc/generate-toc again -->
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
 **Table of Contents**
 
 - [Introduction](#introduction)
@@ -24,12 +24,15 @@
 - [Association test options](#association-test-options)
     - [Sample inclusion/exclusion](#sample-inclusionexclusion)
     - [Variant site filters](#variant-site-filters)
+        - [Annotation](#annotation)
     - [Genotype filters](#genotype-filters)
     - [Handle missing genotypes and phenotypes](#handle-missing-genotypes-and-phenotypes)
     - [Specify groups (e.g burden unit)](#specify-groups-eg-burden-unit)
 - [Sex chromosome analysis](#sex-chromosome-analysis)
 - [Kinship generation](#kinship-generation)
 - [Resources](#resources)
+    - [UCSC RefFlat Genes](#ucsc-refflat-genes)
+    - [Gencode Genes](#gencode-genes)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Feedback/Contact](#feedbackcontact)
 
@@ -555,6 +558,12 @@ However, this should rarely happen. Please contact us if you have further questi
 We strictly follow the notations in the SKAT publication ([Wu et al. (2011) AJHG](http://www.hsph.harvard.edu/skat/)). However, in SKAT R package, its implementation is slightly different.
 For example, in quantitative trait anlaysis, Q is divided by (2 * \hat{sigma2}) in the R package, but not in rvtests.
 Although Q values can be different, the P-values from the two software packges should match (only in rare cases, numerical accrucy may cause minor differences).
+
+* How rvtests handle multi-allelic variants?
+
+In rvtests, we focus on bi-allelic, and thus treat multi-allelic variants as bi-allelic variants. Any genotype that includes other than reference allele and the first alternative allele will be treated as missing.
+For example, genotyep '0/2' will be treated as missing.
+
 
 # Feedback/Contact
 

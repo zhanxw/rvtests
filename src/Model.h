@@ -3820,10 +3820,7 @@ class MetaCovTest : public ModelFitter {
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     this->fout = fp;
     while (queue.size() && getWindowSize(queue, loci) > windowSize) {
-      if (fitOK) {
-        // TODO: need better way to handle
-        printCovariance(fout, queue, isBinaryOutcome());
-      }
+      printCovariance(fout, queue, isBinaryOutcome());
       queue.pop_front();
     }
     if (fitOK) {

@@ -1,3 +1,7 @@
+2015-10-07  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix a bug when generating covariance matrix
+
 2015-09-02  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve stability of logistic regression model

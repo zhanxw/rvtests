@@ -31,7 +31,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20150902";
+const char* VERSION = "20151007";
 
 void banner(FILE* fp) {
   const char* string =
@@ -42,7 +42,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      September 2015                    | \n"
+      "|      October 2015                      | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -145,7 +145,6 @@ int loadRangeFile(const char* fn, const char* givenRangeName,
   return m.size();
 };
 
-
 /**
  * Append @param genotype to @param covariate in the right order
  * @param phenotypeNameInOrder is the row names for @param covariate
@@ -195,7 +194,7 @@ int excludeSamplesByIndex(const std::vector<int>& index, GenotypeExtractor* ge,
     return -1;
   }
 
-  ge->excludePeople( (*phenotypeNameInOrder), index);
+  ge->excludePeople((*phenotypeNameInOrder), index);
   removeByIndex(index, phenotypeNameInOrder);
   removeByIndex(index, phenotypeInOrder);
   removeByRowIndex(index, cov);
@@ -375,7 +374,7 @@ int main(int argc, char** argv) {
                        "Specify markers to be conditions (specify range)")
 
   ADD_PARAMETER_GROUP(pl, "Auxiliary Functions")
-  ADD_BOOL_PARAMETER(pl, noweb, "--noweb", "Skip checking new version")      
+  ADD_BOOL_PARAMETER(pl, noweb, "--noweb", "Skip checking new version")
   ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
   END_PARAMETER_LIST(pl);
 
@@ -405,7 +404,8 @@ int main(int argc, char** argv) {
   if (!FLAG_noweb) {
     VersionChecker ver;
     if (ver.retrieveRemoteVersion("http://zhanxw.com/rvtests/version") < 0) {
-      fprintf(stderr, "Retrieve remote version failed, use '--noweb' to skip.\n");
+      fprintf(stderr,
+              "Retrieve remote version failed, use '--noweb' to skip.\n");
     } else {
       ver.setLocalVersion(VERSION);
       if (ver.isRemoteVersionNewer()) {
@@ -414,7 +414,7 @@ int main(int argc, char** argv) {
       }
     }
   }
-  
+
   // start logging
   Logger _logger((FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
@@ -753,7 +753,7 @@ int main(int argc, char** argv) {
   if (binaryPhenotype) {
     modelManager.setBinaryOutcome();
   } else {
-    modelManager.setQuantitativeOutcome();    
+    modelManager.setQuantitativeOutcome();
   }
   // create models
   modelManager.create("single", FLAG_modelSingle);
@@ -909,7 +909,7 @@ int main(int argc, char** argv) {
         "Family-based model not specified. \"--kinship\" option was specified "
         "but ignored here.");
   }
-  
+
   // set imputation method
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");
@@ -935,11 +935,13 @@ int main(int argc, char** argv) {
   // (TO remove) GenotypeExtractor ge(&vin);
   if (FLAG_freqUpper > 0) {
     ge.setSiteFreqMax(FLAG_freqUpper);
-    logger->info("Set upper minor allele frequency limit to %g", FLAG_freqUpper);
+    logger->info("Set upper minor allele frequency limit to %g",
+                 FLAG_freqUpper);
   }
   if (FLAG_freqLower > 0) {
     ge.setSiteFreqMin(FLAG_freqLower);
-    logger->info("Set lower minor allele frequency limit to %g", FLAG_freqLower);
+    logger->info("Set lower minor allele frequency limit to %g",
+                 FLAG_freqLower);
   }
 
   // handle sex chromosome
@@ -1128,7 +1130,6 @@ int main(int argc, char** argv) {
         model[m]->fit(&dc);
         model[m]->writeOutput(fOuts[m], buf);
       }
-
     }
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions",
                  variantProcessed, (int)geneRange.size());

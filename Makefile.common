@@ -29,7 +29,9 @@ BCF_LIB = $(ROOT)/third/samtools/bcftools/libbcf.a
 SAMTOOLS_INC = $(ROOT)/third/samtools
 SAMTOOLS_LIB = $(ROOT)/third/samtools/libbam.a
 
-THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC)
+RAPIDJSON_INC = $(ROOT)/third/rapidjson/include
+
+THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC) $(RAPIDJSON_INC)
 THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(ZLIB_LIB) $(BZIP2_LIB) $(NLOPT_LIB)
 ##################################################
 ## Our libs.

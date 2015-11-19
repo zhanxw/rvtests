@@ -1,6 +1,6 @@
 # download all third party library and compile them
 
-LIB = tabix pcre eigen gsl bzip2 samtools zlib
+LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson
 all: $(LIB)
 
 tabix: tabix-0.2.6.tar.bz2
@@ -44,6 +44,11 @@ nlopt: nlopt-2.4.2.tar.gz
 	tar zvxf $<
 	-(DIR=`pwd`; cd nlopt-2.4.2; ./configure --prefix="$${DIR}"/nlopt; make -j; make install)
 
+rapidjson: rapidjson-1.0.2.tar.gz
+	tar zvxf $<
+	ln -s -f rapidjson-1.0.2 rapidjson
+	sh -c '# no need to compile, just need its header'
+
 ######################################################################
 # download sources
 UNAME_S := $(shell uname -s)
@@ -77,6 +82,12 @@ bzip2-1.0.6.tar.gz:
 nlopt-2.4.2.tar.gz:
 	echo "obtain nlopt library"
 	$(call DOWNLOAD,http://ab-initio.mit.edu/nlopt/nlopt-2.4.2.tar.gz)
+
+rapidjson-1.0.2.tar.gz:
+	echo "obtain rapidjson"
+	$(call DOWNLOAD,https://github.com/miloyip/rapidjson/archive/v1.0.2.tar.gz)
+	mv v1.0.2.tar.gz rapidjson-1.0.2.tar.gz
+
 clean:
 	-rm -rf $(LIB)
 deepclean:
@@ -87,3 +98,4 @@ deepclean:
 	-rm -rf eigen-3.1.4
 	-rm -rf bzip2-1.0.6
 	-rm -rf samtools-0.1.19
+	-rm -rf rapidjson-1.0.2

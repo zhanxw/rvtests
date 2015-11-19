@@ -264,7 +264,8 @@ beta distribution parameters for up-weighting rare variants. Rvtests will output
     [INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)
 
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
-(###) SKAT-O implementation may have slightly different results compared with SKAT R package due to numerical stability.
+
+(###) SKAT-O implementation may have slightly different results compared with outputs from SKAT R package. That's probably due to numerical stability.
 
 ## Meta-analysis models
 

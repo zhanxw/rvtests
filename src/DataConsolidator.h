@@ -1,11 +1,13 @@
 #ifndef _DATACONSOLIDATOR_H_
 #define _DATACONSOLIDATOR_H_
 
-#include "Result.h"
 #include "base/Logger.h"
 #include "base/ParRegion.h"
-#include "MathMatrix.h"
-#include "Random.h"
+#include "libsrc/MathMatrix.h"
+#include "libsrc/Random.h"
+
+#include "KinshipHolder.h"
+#include "Result.h"
 
 extern Logger* logger;
 
@@ -110,7 +112,7 @@ inline bool hasMissingMarker(Matrix& genotype, int col) {
  * Remove columns of markers in @param genotype (people by marker) where there
  * are missing genotypes
  */
-void removeMissingMarker(Matrix* genotype); 
+void removeMissingMarker(Matrix* genotype);
 
 /**
  * @return true if markers on @param col of @param genotype (people by marker)
@@ -130,6 +132,68 @@ void removeMonomorphicMarker(Matrix* genotype);
 void convertToMinorAlleleCount(Matrix& in, Matrix* g);
 
 /**
+ * This class counts either hard genotype calls or dosage
+ */
+class GenotypeCounter {
+ public:
+  GenotypeCounter() { reset(); }
+  void reset() {
+    nHomRef = nHet = nHomAlt = nMissing = nSample = 0;
+    sumAC = 0.;
+  }
+  void add(const double g) {
+    // to accomodate dosage (g), we will use these thresholds for dosages
+    // 0 <= g < 1  => (1 - g) homRef and (g) het
+    // 1 <= g < 2  => (2 - g) het and (g - 1) homAlt
+    if (g < 0) {
+      ++(nMissing);
+    }
+    if (g < 2.0 / 3) {
+      ++(nHomRef);
+      sumAC += g;
+    } else if (g < 4.0 / 3) {
+      ++(nHet);
+      sumAC += g;
+    } else if (g <= 2.0) {
+      ++(nHomAlt);
+      sumAC += g;
+    } else {
+      ++(nMissing);
+    }
+    ++nSample;
+  }
+  int getNumHomRef() const { return this->nHomRef; }
+  int getNumHet() const { return this->nHet; }
+  int getNumHomAlt() const { return this->nHomAlt; }
+  int getNumMissing() const { return this->nMissing; }
+  int getNumSample() const { return this->nSample; }
+  double getCallRate() const {
+    double callRate = 0.0;
+    if (nSample) {
+      callRate = 1.0 - 1.0 * nMissing / nSample;
+    }
+    return callRate;
+  }
+  double getAF() const {
+    double af = -1.0;
+    if (nSample) {
+      af = 0.5 * sumAC / nSample; 
+    }
+    return af;
+  }
+  // total alternative allele counts
+  double getAC() const { return sumAC; }
+  double getHWE() const;
+
+ private:
+  int nHomRef;
+  int nHet;
+  int nHomAlt;
+  int nMissing;
+  int nSample;
+  double sumAC;
+};
+/**
  * This class is in charge of cleanning data before fitting in model
  * The cleaning step includes:
  *  remove monomorphic sites
@@ -144,6 +208,8 @@ class DataConsolidator {
   const static int IMPUTE_MEAN = 1;
   const static int IMPUTE_HWE = 2;
   const static int DROP = 3;
+  const static int KINSHIP_AUTO = 0;
+  const static int KINSHIP_X = 1;
   typedef enum { ANY_SEX = -1, MALE = 1, FEMALE = 2 } PLINK_SEX;
   typedef enum { ANY_PHENO = -1, CTRL = 1, CASE = 2 } PLINK_PHENOTYPE;
 
@@ -166,7 +232,7 @@ class DataConsolidator {
     copyColName(cov, &this->covariate);
     copyColName(geno, &this->genotype);
     copyColName(geno, &this->originalGenotype);
-    
+
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(&this->genotype);
@@ -263,9 +329,9 @@ class DataConsolidator {
    * any)
    * @return 0 if succeed
    */
-  int countRawGenotype(int columnIndex, int* homRef, int* het, int* homAlt,
-                       int* missing, const PLINK_SEX sex,
-                       const PLINK_PHENOTYPE phenotype) const {
+  int countRawGenotype(int columnIndex, const PLINK_SEX sex,
+                       const PLINK_PHENOTYPE phenotype,
+                       GenotypeCounter* counter) const {
     if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
       return -1;
     }
@@ -273,117 +339,63 @@ class DataConsolidator {
     if (sex > 0 && (int)this->sex->size() != originalGenotype.rows) return -3;
     if (phenotype > 0 && phenotype != CTRL && phenotype != CASE) return -2;
 
-    (*homRef) = (*het) = (*homAlt) = (*missing) = 0;
     for (int i = 0; i < originalGenotype.rows; ++i) {
       if (sex > 0 && (*this->sex)[i] != sex) {
         continue;
       }
       // + 1: PLINK use 1 and 2 as ctrl and case, but
-      // internally, we use 0 and 1. 
+      // internally, we use 0 and 1.
       if (phenotype > 0 && (int)(this->phenotype[i][0] + 1) != phenotype) {
         continue;
       }
 
-      // to accomodate dosages, we will use these thresholds for dosages
-      // [0, 2/3)   => 0 homRef
-      // [2/3, 4/3) => 1 het
-      // [4/3, 2]   => 2 homAlt
-      const double g = originalGenotype[i][columnIndex];
-      if (g < 0) {
-        ++(*missing);
-      } else if (g < 2.0 / 3) {
-        ++(*homRef);        
-      } else if (g < 4.0 / 3) {
-        ++(*het);        
-      } else if (g <= 2.0) {
-          ++(*homAlt);        
-      }
+      const double& g = originalGenotype[i][columnIndex];
+      counter->add(g);
     }
+
     return 0;  // success
   }
-  int countRawGenotypeFromCase(int columnIndex, int* homRef, int* het,
-                               int* homAlt, int* missing) const {
-    return countRawGenotype(columnIndex, homRef, het, homAlt, missing,
+
+  int countRawGenotypeFromCase(int columnIndex,
+                               GenotypeCounter* counter) const {
+    return countRawGenotype(columnIndex,
                             ANY_SEX,  // PLINK male
-                            CASE);
+                            CASE, counter);
   }
 
-  int countRawGenotypeFromControl(int columnIndex, int* homRef, int* het,
-                                  int* homAlt, int* missing) const {
-    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, ANY_SEX,
-                            CTRL  // any phenotype
-                            );
+  int countRawGenotypeFromControl(int columnIndex,
+                                  GenotypeCounter* counter) const {
+    return countRawGenotype(columnIndex, ANY_SEX,
+                            CTRL,  // any phenotype
+                            counter);
   }
 
-  int countRawGenotype(int columnIndex, int* homRef, int* het, int* homAlt,
-                       int* missing) const {
-    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, ANY_SEX,
-                            ANY_PHENO  // any phenotype
-                            );
+  int countRawGenotype(int columnIndex, GenotypeCounter* counter) const {
+    return countRawGenotype(columnIndex, ANY_SEX,
+                            ANY_PHENO,  // any phenotype
+                            counter);
   }
-  int countRawGenotypeFromFemale(int columnIndex, int* homRef, int* het,
-                                 int* homAlt, int* missing) const {
-    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, FEMALE,
-                            ANY_PHENO  // any phenotype
-                            );
+  int countRawGenotypeFromFemale(int columnIndex,
+                                 GenotypeCounter* counter) const {
+    return countRawGenotype(columnIndex, FEMALE,
+                            ANY_PHENO,  // any phenotype
+                            counter);
   }
-  int countRawGenotypeFromFemaleCase(int columnIndex, int* homRef, int* het,
-                                     int* homAlt, int* missing) const {
-    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, FEMALE,
-                            CASE);
+  int countRawGenotypeFromFemaleCase(int columnIndex,
+                                     GenotypeCounter* counter) const {
+    return countRawGenotype(columnIndex, FEMALE, CASE, counter);
   }
-  int countRawGenotypeFromFemaleControl(int columnIndex, int* homRef, int* het,
-                                        int* homAlt, int* missing) const {
-    return countRawGenotype(columnIndex, homRef, het, homAlt, missing, FEMALE,
-                            CTRL);
+  int countRawGenotypeFromFemaleControl(int columnIndex,
+                                        GenotypeCounter* counter) const {
+    return countRawGenotype(columnIndex, FEMALE, CTRL, counter);
   }
+
   bool isPhenotypeUpdated() const { return this->phenotypeUpdated; }
   bool isCovariateUpdated() const { return this->covariateUpdated; }
-  bool needToUpdateKinship() const;
-
-  /**
-   * Load kinship file @param fn, load samples given by @param names
-   * Store results to @param pKinship, @param pKinshipU, @param pKinshipS
-   */
-  int loadKinshipFile(const std::string& fn,
-                      const std::vector<std::string>& names,
-                      EigenMatrix** pKinship, EigenMatrix** pKinshipU,
-                      EigenMatrix** pKinshipS, bool* pKinshipLoaded);
-
-  int loadKinshipFileForAuto(const std::string& fn,
-                             const std::vector<std::string>& names) {
-    return loadKinshipFile(fn, names, &kinshipForAuto, &kinshipUForAuto,
-                           &kinshipSForAuto, &kinshipLoadedForAuto);
-  }
-  int loadKinshipFileForX(const std::string& fn,
-                          const std::vector<std::string>& names) {
-    return loadKinshipFile(fn, names, &kinshipForX, &kinshipUForX,
-                           &kinshipSForX, &kinshipLoadedForX);
-  }
-  /**
-   * will decompose original kinship matrix and release the memory of original
-   * kinship upon successful decomposition
-   * Kinship = U * S * U'  where S is diagonal matrix from smallest to largest
-   */
-  int decomposeKinshipForAuto();
-  const EigenMatrix* getKinshipForAuto() const;
-  const EigenMatrix* getKinshipUForAuto() const;
-  const EigenMatrix* getKinshipSForAuto() const;
-  bool hasKinshipForAuto() const { return this->kinshipLoadedForAuto; };
-
-  int decomposeKinshipForX();
-  const EigenMatrix* getKinshipForX() const;
-  const EigenMatrix* getKinshipUForX() const;
-  const EigenMatrix* getKinshipSForX() const;
-  bool hasKinshipForX() const { return this->kinshipLoadedForX; };
-
-  bool hasKinship() const {
-    return this->hasKinshipForAuto() || this->hasKinshipForX();
-  }
 
   void setParRegion(ParRegion* p) { this->parRegion = p; }
 
-  //      Sex (1=male; 2=female; other=unknown)
+  // Sex (1=male; 2=female; other=unknown)
   void setSex(const std::vector<int>* sex) { this->sex = sex; };
   /**
    * Check if genotype matrix column @param columnIndex is a chromosome X.
@@ -396,13 +408,6 @@ class DataConsolidator {
     std::string chrom = chromPos.substr(0, posColon);
     int pos = atoi(chromPos.substr(posColon + 1));
     return this->parRegion->isHemiRegion(chrom, pos);
-#if 0
-    bool checkSex = ( (strncmp(chromPos, "X:", 2) == 0 ||
-                       strncmp(chromPos, "23:", 3) == 0) && // 23 is PLINK coding for X
-                      this->sex &&
-                      (int)this->sex->size() == genotype.rows);
-    return checkSex;
-#endif
   }
 
   void codeGenotypeForDominantModel(Matrix* geno) {
@@ -488,6 +493,47 @@ class DataConsolidator {
     }
   }
 
+ public:
+  // codes to check before regression
+  int preRegressionCheck(Matrix& pheno, Matrix& cov);
+  int checkColinearity(Matrix& cov);
+  int checkPredictor(Matrix& pheno, Matrix& cov);  
+
+ public:
+  // codes related to kinship
+  int setKinshipSample(const std::vector<std::string>& samples);
+  int setKinshipFile(int kinshipType, const std::string& fileName);
+  int setKinshipEigenFile(int kinshipType, const std::string& fileName);
+  int loadKinship(int kinshipType);
+
+  const EigenMatrix* getKinshipForAuto() const {
+    return this->kinship[KINSHIP_AUTO].getK();
+  }
+  const EigenMatrix* getKinshipUForAuto() const {
+    return this->kinship[KINSHIP_AUTO].getU();
+  }
+  const EigenMatrix* getKinshipSForAuto() const {
+    return this->kinship[KINSHIP_AUTO].getS();
+  }
+  bool hasKinshipForAuto() const {
+    return this->kinship[KINSHIP_AUTO].isLoaded();
+  }
+
+  const EigenMatrix* getKinshipForX() const {
+    return this->kinship[KINSHIP_X].getK();
+  }
+  const EigenMatrix* getKinshipUForX() const {
+    return this->kinship[KINSHIP_X].getU();
+  }
+  const EigenMatrix* getKinshipSForX() const {
+    return this->kinship[KINSHIP_X].getS();
+  }
+  bool hasKinshipForX() const { return this->kinship[KINSHIP_X].isLoaded(); }
+
+  bool hasKinship() const {
+    return this->hasKinshipForAuto() || this->hasKinshipForX();
+  }
+
  private:
   // don't copy
   DataConsolidator(const DataConsolidator&);
@@ -508,17 +554,7 @@ class DataConsolidator {
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
 
-  // Kinship for related indvidual on autosomal
-  // K = U %*% S %*%* t(U)
-  EigenMatrix* kinshipForAuto;
-  EigenMatrix* kinshipUForAuto;
-  EigenMatrix* kinshipSForAuto;  // n by 1 column matrix
-  bool kinshipLoadedForAuto;
-  // Kinship for related indvidual for chrom X hemi region
-  EigenMatrix* kinshipForX;
-  EigenMatrix* kinshipUForX;
-  EigenMatrix* kinshipSForX;  // n by 1 column matrix
-  bool kinshipLoadedForX;
+  KinshipHolder kinship[2];  // 2: include both AUTO and X kinships
 
   // sex chromosome adjustment
   const std::vector<int>* sex;

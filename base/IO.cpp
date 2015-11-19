@@ -10,7 +10,8 @@ AbstractFileReader* AbstractFileReader::open(const char* fileName) {
   }
 
 #ifdef _USE_KNETFILE
-  if (strstr(fileName, "ftp://") == fileName || strstr(fileName, "http://") == fileName) {
+  if (strstr(fileName, "ftp://") == fileName ||
+      strstr(fileName, "http://") == fileName) {
     fr = new KnetFileReader(fileName);
     // fprintf(stderr, "open knetfile %s\n", fileName);
     return fr;
@@ -123,3 +124,13 @@ int BGZipFileWriter::writeLine(const char* s) {
   ret += bgzf_write(this->fp, "\n", 1);
   return (ret);
 };
+
+bool fileExists(std::string fn) {
+  FILE* fp = fopen(fn.c_str(), "r");
+  if (fp != NULL) {
+    fclose(fp);
+    return true;
+  }
+
+  return false;
+}

@@ -1,6 +1,7 @@
 #include "EigenMatrixInterface.h"
 
 #include <Eigen/Cholesky>
+#include <Eigen/LU>
 
 void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* _EigenM) {
   Eigen::MatrixXf& EigenM = *_EigenM;
@@ -108,11 +109,17 @@ double safeSum(const Eigen::MatrixXd& m) {
   double s = 0.;
   for (int i = 0; i < r; ++i) {
     for (int j = 0; j < c; ++j) {
-      if (std::isfinite(m(i,j))) {
-        s += m(i,j);
+      if (std::isfinite(m(i, j))) {
+        s += m(i, j);
       }
     }
   }
   return s;
 }
 
+int matrixRank(Matrix& in) {
+  Eigen::MatrixXf x;
+  G_to_Eigen(in, &x);
+
+  return x.fullPivLu().rank();
+}

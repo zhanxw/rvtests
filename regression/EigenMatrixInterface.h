@@ -20,9 +20,13 @@ void G_to_Eigen(Matrix& GM, Eigen::MatrixXd* EigenM);
 // EigenM = cbind( GM1, GM2 )
 void cbind_G_to_Eigen(Matrix& GM1, Matrix& GM2, Eigen::MatrixXf* EigenM);
 
+// Suppose @param in is a positive definite matrix,
+// return @param out = inverse(in)
 void CholeskyInverseMatrix(Matrix& in, Matrix* out);
 
 // calculate sum from only finite elements of @param m
 double safeSum(const Eigen::MatrixXd& m);
 
+// calculate rank based on LU decomposition
+int matrixRank(Matrix& in);
 #endif /* _EIGENMATRIXINTERFACE_H_ */

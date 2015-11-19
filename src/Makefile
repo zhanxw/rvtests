@@ -26,7 +26,8 @@ OBJ = Main.o \
       ModelManager.o \
       Model.o \
       GenotypeExtractor.o \
-      DataLoader.o
+      DataLoader.o \
+      KinshipHolder.o
 
 $(DIR_EXEC)/$(EXEC):  $(LIBS) \
                       $(OBJ) \
@@ -77,6 +78,10 @@ GenotypeExtractor.o: GenotypeExtractor.cpp GenotypeExtractor.h
 
 -include DataLoader.d
 DataLoader.o: DataLoader.cpp DataLoader.h
+	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
+
+-include KinshipHolder.d
+KinshipHolder.o: KinshipHolder.cpp KinshipHolder.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 ##################################################

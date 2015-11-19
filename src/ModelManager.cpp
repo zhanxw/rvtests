@@ -54,6 +54,8 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new SingleVariantScoreTest);
     } else if (modelName == "exact") {
       model.push_back(new SingleVariantFisherExactTest);
+    } else if (modelName == "dominantexact") {
+      model.push_back(new SingleVariantDominantFisherExactTest);
     } else if (modelName == "famscore") {
       model.push_back(new SingleVariantFamilyScore);
     } else if (modelName == "famlrt") {

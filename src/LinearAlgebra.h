@@ -64,6 +64,14 @@ inline void centerMatrix(Matrix* v) {
   }
 }
 
+inline void toVector(Matrix& m, int col, Vector* vec) {
+  Vector& v = *vec;
+  v.Dimension(m.rows);
+  for (int i = 0; i < m.rows; ++i) {
+    v[i] = m[i][col];
+  }
+}
+
 /*
  *@return -1: if error happen
  */
@@ -99,6 +107,27 @@ inline int corr(Vector& v1, Vector& v2, double* ret) {
   };
   return 0;
 }
+
+/*
+ *@return -1: if error happen
+ */
+inline int corr(Matrix& m1, int col1, Vector& v2, double* ret) {
+  Vector v1;
+  toVector(m1, col1, &v1);
+  return(corr(v1, v2, ret));
+}
+
+/*
+ *@return -1: if error happen
+ */
+inline int corr(Matrix& m1, int col1, Matrix& m2, int col2, double* ret) {
+  Vector v1;  
+  toVector(m1, col1, &v1);
+  Vector v2;  
+  toVector(m2, col2, &v2);
+  return(corr(v1, v2, ret));
+}
+  
 
 /**
  * copy m[,col] to @param v

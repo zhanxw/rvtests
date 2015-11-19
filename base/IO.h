@@ -925,4 +925,6 @@ class FileWriter {
   int bufLen;
 };  // end class FileWriter
 
+bool fileExists(std::string fn);
+
 #endif /* _IO_H_ */

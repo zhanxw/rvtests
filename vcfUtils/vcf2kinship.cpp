@@ -393,7 +393,7 @@ int output( const std::vector<std::string>& famName,
             const std::string& outPrefix);
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20150318"
+#define VERSION "20151110"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s)\n", PROGRAM, VERSION);
@@ -931,6 +931,11 @@ int output( const std::vector<std::string>& famName,
     return -1;
   }
 
+  if (mat.nrow() == 0) {
+    logger->error("There are not enough variants to create kinship matrix.");
+    return -1;
+  }
+  
   if (mat.nrow() != mat.ncol() || mat.nrow() != (int)indvName.size()) {
     return -1;
   }
@@ -983,7 +988,7 @@ int output( const std::vector<std::string>& famName,
         fprintf(out, "%s\t%s", famName[i].c_str(), indvName[i].c_str());
         fprintf(out, "\t%g", V(famName.size() - 1 - i));
         for (size_t j = 0; j < famName.size(); ++j) {
-          fprintf(out, "\t%g", U(famName.size() - 1 - i, j));
+          fprintf(out, "\t%g", U(i, famName.size() - 1 - j));
         }
         fprintf(out, "\n");
       }

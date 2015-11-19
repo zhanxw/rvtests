@@ -1,18 +1,10 @@
 #include "DataConsolidator.h"
 
-#include "third/eigen/Eigen/Core"
-#include "third/eigen/Eigen/Eigenvalues"
+#include "base/CommonFunction.h"
+#include "regression/EigenMatrixInterface.h"
 
-#include "CommonFunction.h"
-#include "regression/EigenMatrix.h"
-#include "IO.h"
-
-#undef DEBUG
-//#define DEBUG
-#ifdef DEBUG
-#include <iostream>
-#include <fstream>
-#endif
+#include "LinearAlgebra.h"
+#include "snp_hwe.c"
 
 void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
   Matrix& m = *g;
@@ -40,23 +32,21 @@ void removeMissingMarker(Matrix* genotype) {
   Matrix& g = *genotype;
   // 1. find first nonmissing marker
   int missingCol = 0;
-  for (missingCol = 0; missingCol < g.cols; ++ missingCol) {
-    if (hasMissingMarker(g, missingCol))
-      break;
+  for (missingCol = 0; missingCol < g.cols; ++missingCol) {
+    if (hasMissingMarker(g, missingCol)) break;
   }
-  if (missingCol == g.cols) return; // no missing markers
+  if (missingCol == g.cols) return;  // no missing markers
 
   // 2. move non-missing sites to overwrite missing sites
-  for (int col = missingCol + 1;
-       col < g.cols; ++col) {
+  for (int col = missingCol + 1; col < g.cols; ++col) {
     if (hasMissingMarker(g, col)) {
       ++col;
     }
 
-    for (int r = 0; r < g.rows; ++r ){
+    for (int r = 0; r < g.rows; ++r) {
       g[r][missingCol] = g[r][col];
     }
-    missingCol ++;
+    missingCol++;
   }
   g.Dimension(g.rows, missingCol);
 }
@@ -87,13 +77,13 @@ bool isMonomorphicMarker(Matrix& genotype, int col) {
 void removeMonomorphicMarker(Matrix* genotype) {
   Matrix& g = *genotype;
   // 1. find first monomorhpic site
-  int monoCol  = 0;
+  int monoCol = 0;
   for (monoCol = 0; monoCol < g.cols; ++monoCol) {
     if (isMonomorphicMarker(g, monoCol)) {
       break;
     }
   }
-  if (monoCol == g.cols) return; // no monomorphic site
+  if (monoCol == g.cols) return;  // no monomorphic site
 
   // 2. move polymorphic sites to overwrite monomorphic sites
   for (int col = monoCol + 1; col < g.cols; ++col) {
@@ -105,226 +95,131 @@ void removeMonomorphicMarker(Matrix* genotype) {
     for (int r = 0; r < g.rows; ++r) {
       g[r][monoCol] = g[r][col];
     }
-    monoCol ++;
+    monoCol++;
   }
   g.Dimension(g.rows, monoCol);
+}
+
+double GenotypeCounter::getHWE() const {
+  double hweP = 0.0;
+  if (nHomRef + nHet + nHomAlt == 0 || (nHet < 0 || nHomRef < 0 || nHomAlt < 0)) {
+    hweP = 0.0;
+  } else {
+    hweP = SNPHWE(nHet, nHomRef, nHomAlt);
+  }
+  return hweP;
 }
 
 DataConsolidator::DataConsolidator()
     : strategy(DataConsolidator::UNINITIALIZED),
       phenotypeUpdated(true),
       covariateUpdated(true),
-      kinshipForAuto(NULL),
-      kinshipUForAuto(NULL),
-      kinshipSForAuto(NULL),
-      kinshipLoadedForAuto(false),
-      kinshipForX(NULL),
-      kinshipUForX(NULL),
-      kinshipSForX(NULL),
-      kinshipLoadedForX(false),
       sex(NULL),
       parRegion(NULL) {}
 
 DataConsolidator::~DataConsolidator() {
-  if (kinshipForAuto) delete kinshipForAuto;
-  if (kinshipUForAuto) delete kinshipUForAuto;
-  if (kinshipSForAuto) delete kinshipSForAuto;
-  if (kinshipForX) delete kinshipForX;
-  if (kinshipUForX) delete kinshipUForX;
-  if (kinshipSForX) delete kinshipSForX;
 }
 
-/**
- * Load kinship file @param fn, load samples given by @param names
- * Store results to @param pKinship, @param pKinshipU, @param pKinshipS
- */
-int DataConsolidator::loadKinshipFile(const std::string& fn,
-                                      const std::vector<std::string>& names,
-                                      EigenMatrix** pKinship,
-                                      EigenMatrix** pKinshipU,
-                                      EigenMatrix** pKinshipS,
-                                      bool* pKinshipLoaded) {
-  if (fn.empty()) {
-    return -1;
-  }
-  if (!isUnique(names)) {
+int DataConsolidator::preRegressionCheck(Matrix& pheno, Matrix& cov) {
+  if (this->checkColinearity(cov)) {
+    logger->warn("The covariates is rank deficient and may suffer from colinearity!");
     return -1;
   }
 
-  EigenMatrix*& kinship = *pKinship;
-  EigenMatrix*& kinshipU = *pKinshipU;
-  EigenMatrix*& kinshipS = *pKinshipS;
-  bool& kinshipLoaded = *pKinshipLoaded;
-
-  if (!kinship) {
-    kinship = new EigenMatrix;
-    kinshipU = new EigenMatrix;
-    kinshipS = new EigenMatrix;
+  if (this->checkPredictor(pheno, cov)) {
+    
+    return -1;
   }
-  if (fn == "IDENTITY" || fn == "UNRELATED") {
-    kinship->mat.resize(names.size(), names.size());
-    kinship->mat.setZero();
-    kinship->mat.diagonal().setOnes();
-    kinship->mat.diagonal() *= 0.5;
-    return 0;
-  }
-
-  LineReader lr(fn);
-  int lineNo = 0;
-  int fieldLen = 0;
-  std::vector<std::string> fd;
-  std::vector<int> columnToExtract;
-  std::vector<std::string> header;  // kinship header line
-  Eigen::MatrixXf& mat = kinship->mat;
-  std::map<std::string, int> nameMap;
-  makeMap(names, &nameMap);
-
-  while (lr.readLineBySep(&fd, "\t ")) {
-    ++lineNo;
-    if (lineNo == 1) {  // check header
-      header = fd;
-      fieldLen = fd.size();
-      if (fieldLen < 2) {
-        logger->error(
-            "Insufficient column number (<2) in the first line of kinsihp "
-            "file!");
-        return -1;
-      };
-      if (tolower(fd[0]) != "fid" || tolower(fd[1]) != "iid") {
-        logger->error("Kinship file header should begin with \"FID IID\"!");
-        return -1;
-      }
-      std::map<std::string, int> headerMap;
-      makeMap(fd, &headerMap);
-      if (fd.size() != headerMap.size()) {
-        logger->error("Kinship file have duplicated header!");
-        return -1;
-      }
-      for (size_t i = 0; i < names.size(); ++i) {
-        if (headerMap.count(names[i]) == 0) {
-          logger->error(
-              "The PID [ %s ] you specified cannot be found from kinship file!",
-              names[i].c_str());
-          return -1;
-        }
-        columnToExtract.push_back(headerMap[names[i]]);
-      }
-      mat.resize(columnToExtract.size(), columnToExtract.size());
-      continue;
-    }
-    // body lines
-    if ((int)fd.size() != fieldLen) {
-      logger->error(
-          "Inconsistent column number [ %zu ] (used to be [ %d ])in kinship "
-          "file line [ %d ] - skip this file!",
-          fd.size(), fieldLen, lineNo);
-      return -1;
-    }
-    if (fd[1] != header[lineNo]) {  // PID in line i (1-based) should matched
-                                    // the (i+1) (1-based) column in the header
-      logger->error(
-          "Inconsistent PID names in kinship file line [ %d ], file corrupted!",
-          lineNo);
-      return -1;
-    }
-    int row;
-    if (nameMap.find(fd[1]) == nameMap.end()) {
-      continue;
-    }
-    row = nameMap[fd[1]];
-    for (size_t i = 0; i < columnToExtract.size(); ++i) {
-      double d;
-      if (str2double(fd[columnToExtract[i]], &d)) {
-        mat(row, i) = d;
-      } else {
-        // unable to read, then set it to zero
-        mat(row, i) = 0.0;
-      }
-    }
-  }
-#ifdef DEBUG
-  std::string tmp = fn;
-  tmp += ".tmp";
-  std::ofstream ofs(tmp.c_str(), std::ofstream::out);
-  ofs << mat;
-  ofs.close();
-#endif
-
-  // fprintf(stderr, "Kinship matrix [ %d x %d ] loaded", (int)mat.rows(),
-  // (int)mat.cols());
-  kinshipLoaded = true;
   return 0;
 }
 
-/**
- * Decompose autosomal kinship matrix and release its memory
- * K = U * S * U'
- * @return 0 if success
- */
-int DataConsolidator::decomposeKinshipForAuto() {
-  if (!this->kinshipForAuto) return -1;
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->kinshipForAuto->mat);
-  if (es.info() == Eigen::Success) {
-    (this->kinshipUForAuto->mat) = es.eigenvectors();
-    (this->kinshipSForAuto->mat) = es.eigenvalues();
+int DataConsolidator::checkColinearity(Matrix& cov) {
+  int r = matrixRank(cov);
+  int m = (cov.rows > cov.cols) ? cov.cols : cov.rows;
+  // fprintf(stderr, "rank of cov is %d, and min(r,c) = %d\n", r, m);
+  if (m != r) {
+    return -1;
+  }
+  return 0;
+}
 
-    if (this->kinshipForAuto) {
-      delete this->kinshipForAuto;
-      this->kinshipForAuto = NULL;
+int DataConsolidator::checkPredictor(Matrix& pheno, Matrix& cov) {
+  Matrix& y = pheno;
+  double r = 0.0;
+  for (int i = 0; i < cov.cols; ++i) {
+    if (corr(cov, i, y, 0, &r)) {
+      logger->warn("Failed to calculate correlation between covariate [ %s ] and phenotype", cov.GetColumnLabel(i));
+      return -1;
     }
-    return 0;
+    if ( fabs(r) > 0.999) {
+      logger->warn("Covariate [ %s ] has strong correlation [ r^2 = %g ] with the response!", cov.GetColumnLabel(i), r*r);
+      return -1;
+    }
+  }
+  return 0;
+}
+
+
+//////////////////////////////////////////////////
+// codes related to kinship
+int DataConsolidator::setKinshipSample(
+    const std::vector<std::string>& samples) {
+  if (samples.empty()) {
+    logger->warn("There are no samples for the kinship");
+    return -1;
+  }
+  this->kinship[KINSHIP_AUTO].setSample(samples);
+  this->kinship[KINSHIP_X].setSample(samples);
+  return 0;
+}
+
+int DataConsolidator::setKinshipFile(int kinshipType,
+                                     const std::string& fileName) {
+  if (kinshipType == KINSHIP_AUTO) {
+    return this->kinship[kinshipType].setFile(fileName);
+  }
+  if (kinshipType == KINSHIP_X) {
+    if (fileName.size()) {
+      return this->kinship[KINSHIP_X].setFile(fileName);
+    }
+    // infer xHemi kinship file name
+    std::string fn = this->kinship[KINSHIP_AUTO].getFileName();
+    fn = fn.substr(0, fn.size() - 8);  // strip ".kinship"
+    fn += ".xHemi.kinship";
+    if (fileExists(fn)) {
+      logger->info(
+          "Kinship file [ %s ] detected and will be used for for X "
+          "chromosome analysis",
+          fn.c_str());
+      return this->kinship[KINSHIP_X].setFile(fn);      
+    } 
   }
   return -1;
 }
-
-int DataConsolidator::decomposeKinshipForX() {
-  if (!this->kinshipForX) return -1;
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->kinshipForX->mat);
-  if (es.info() == Eigen::Success) {
-    (this->kinshipUForX->mat) = es.eigenvectors();
-    (this->kinshipSForX->mat) = es.eigenvalues();
-
-    if (this->kinshipForX) {
-      delete this->kinshipForX;
-      this->kinshipForX = NULL;
+int DataConsolidator::setKinshipEigenFile(int kinshipType,
+                                          const std::string& fileName) {
+  if (kinshipType == KINSHIP_AUTO) {
+    return this->kinship[kinshipType].setEigenFile(fileName);
+  }
+  if (kinshipType == KINSHIP_X) {
+    if (fileName.size()) {
+      return this->kinship[KINSHIP_X].setEigenFile(fileName);
     }
-    return 0;
+    // infer xHemi kinship file name
+    std::string fn = this->kinship[KINSHIP_AUTO].getEigenFileName();
+    fn = fn.substr(0, fn.size() - 6);  // strip ".eigen"
+    fn += ".xHemi.eigen";
+    if (fileExists(fn)) {
+      logger->info(
+          "Kinship eigen-decomposition file [ %s ] detected and will be used "
+          "for for X "
+          "chromosome analysis",
+          fn.c_str());
+    }
+    return this->kinship[KINSHIP_X].setEigenFile(fn);
   }
   return -1;
 }
-
-const EigenMatrix* DataConsolidator::getKinshipForAuto() const {
-  if (!this->kinshipForAuto) return NULL;
-  return this->kinshipForAuto;
+int DataConsolidator::loadKinship(int kinshipType) {
+  return this->kinship[kinshipType].load();
 }
-const EigenMatrix* DataConsolidator::getKinshipUForAuto() const {
-  if (!this->kinshipUForAuto) return NULL;
-  return this->kinshipUForAuto;
-}
-const EigenMatrix* DataConsolidator::getKinshipSForAuto() const {
-  if (!this->kinshipSForAuto) return NULL;
-  return this->kinshipSForAuto;
-}
-
-const EigenMatrix* DataConsolidator::getKinshipForX() const {
-  if (!this->kinshipForX) return NULL;
-  return this->kinshipForX;
-}
-const EigenMatrix* DataConsolidator::getKinshipUForX() const {
-  if (!this->kinshipUForX) return NULL;
-  return this->kinshipUForX;
-}
-const EigenMatrix* DataConsolidator::getKinshipSForX() const {
-  if (!this->kinshipSForX) return NULL;
-  return this->kinshipSForX;
-}
-
-#if 0
-  if (!this->kinshipLoadedForX) {
-    this->kinshipForAutoAsKinshipForX = true;
-    this->kinshipForAuto = this->kinshipForX;
-    this->kinshipUForAuto = this->kinshipUForX;
-    this->kinshipSForAuto = this->kinshipSForX;
-    this->kinshipLoadedForX = true;
-  }
-#endif

@@ -33,7 +33,7 @@ GenotypeExtractor::~GenotypeExtractor() {
 }
 
 int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
-  static Matrix m; // make it static to reduce memory allocation
+  static Matrix m;  // make it static to reduce memory allocation
   int row = 0;
   std::vector<std::string> colNames;
   std::string name;
@@ -66,7 +66,15 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
         // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
         // field of each individual
         if (useDosage) {
-          m[row][i] = indv->justGet(genoIdx).toDouble();
+          if (!hemiRegion) {
+            m[row][i] = indv->justGet(genoIdx).toDouble();
+          } else {
+            // for male hemi region, imputated dosage is usually between 0 and 1
+            // need to multiply by 2.0
+            if ((*sex)[i] == PLINK_MALE) {
+              m[row][i] = indv->justGet(genoIdx).toDouble() * 2.0;
+            }
+          }
         } else {
           if (!hemiRegion) {
             m[row][i] = indv->justGet(genoIdx).getGenotype();
@@ -299,8 +307,12 @@ bool GenotypeExtractor::setSiteFreqMax(const double f) {
   return true;
 }
 
-void GenotypeExtractor::setSiteDepthMin(int d) { this->vin->setSiteDepthMin(d); }
-void GenotypeExtractor::setSiteDepthMax(int d) { this->vin->setSiteDepthMax(d); }
+void GenotypeExtractor::setSiteDepthMin(int d) {
+  this->vin->setSiteDepthMin(d);
+}
+void GenotypeExtractor::setSiteDepthMax(int d) {
+  this->vin->setSiteDepthMax(d);
+}
 
 // @return true if GD is valid
 // if GD is missing, we will take GD = 0
@@ -341,9 +353,7 @@ int GenotypeExtractor::setAnnoType(const std::string& s) {
   return this->vin->setAnnoType(s.c_str());
 }
 
-void GenotypeExtractor::setRange(const RangeList& l) {
-  this->vin->setRange(l);
-}
+void GenotypeExtractor::setRange(const RangeList& l) { this->vin->setRange(l); }
 void GenotypeExtractor::setRangeList(const std::string& l) {
   this->vin->setRangeList(l);
 }

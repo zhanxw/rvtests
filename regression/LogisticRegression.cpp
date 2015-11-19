@@ -292,31 +292,6 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& y, int nrrounds) {
 
     this->w->delta_beta = this->w->D.eval().llt().solve(this->w->r);
 
-// // output different norms, see which works
-// fprintf(stderr, "norm[1] = %g\n", (this->w->D * this->w->delta_beta -
-// this->w->r).norm());
-// fprintf(stderr, "norm[2] = %s\n", (this->w->D *
-// this->w->delta_beta).isApprox(this->w->r, 1e-3) ? "true": "false");
-// fprintf(stderr, "norm[2] = %s\n", (this->w->D *
-// this->w->delta_beta).isApprox(this->w->r, 1e-6) ? "true": "false");
-
-// const double rel = (this->w->D * this->w->delta_beta - this->w->r).norm() /
-// this->w->r.norm();
-// fprintf(stderr, "rel = %g, norm1 = %g, norm2 = %g\n", rel, (this->w->D *
-// this->w->delta_beta - this->w->r).norm(), this->w->r.norm());
-
-// if ( this->w->r.norm() >0 && rel > 1e-6) {
-//   // cannot inverse
-//   // return false;
-// }
-#if 0
-    // D = X' V X (positive definite), so cholesky decomposition should always work
-    double norm = (this->w->D * this->w->delta_beta - this->w->r).norm();
-    if (norm > 1e-3 * nSample) { // very practical choice...
-      // cannot inverse
-      return false;
-    }
-#endif
     this->w->beta += this->w->delta_beta;
     currentDeviance = this->GetDeviance();
 

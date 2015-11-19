@@ -23,6 +23,9 @@ class ModelManager {
    * Resource clean up
    */
   void close();
+  /**
+   * Set attributes
+   */
   void setBinaryOutcome() { this->binaryOutcome = true; }
   void setQuantitativeOutcome() { this->binaryOutcome = false; }  
   

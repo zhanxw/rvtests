@@ -31,7 +31,6 @@
 #include "LinearAlgebra.h"
 #include "ModelUtil.h"
 #include "ModelParser.h"
-#include "snp_hwe.c"
 #include "Result.h"
 #include "Summary.h"
 #include "Permutation.h"
@@ -337,6 +336,18 @@ class SingleVariantFisherExactTest : public ModelFitter {
     caseAC = caseAN = ctrlAC = ctrlAN = 0;
     fitOK = false;
   }
+  virtual void countGenotype(int geno, int pheno) {
+    if (geno == 0) {
+      model.Increment(0, pheno);
+      model.Increment(0, pheno);
+    } else if (geno == 1) {
+      model.Increment(0, pheno);
+      model.Increment(1, pheno);
+    } else if (geno == 2) {
+      model.Increment(1, pheno);
+      model.Increment(1, pheno);
+    }
+  }
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeHeaderTab(fp);
@@ -396,10 +407,7 @@ class SingleVariantFisherExactTest : public ModelFitter {
         ctrlAN += 2;
       }
 
-      if (geno == 0)
-        model.Increment(0, pheno);
-      else
-        model.Increment(1, pheno);
+      countGenotype(geno, pheno);
     }
 
     // step 2, calculate pvalue
@@ -413,38 +421,25 @@ class SingleVariantFisherExactTest : public ModelFitter {
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     siteInfo.writeValueTab(fp);
     if (fitOK) {
-      /* fprintf(fp, "%d\t", model.Get00()); */
-      /* fprintf(fp, "%d\t", model.Get01()); */
-      /* fprintf(fp, "%d\t", model.Get10()); */
-      /* fprintf(fp, "%d\t", model.Get11()); */
       result.updateValue("N00", model.Get00());
       result.updateValue("N01", model.Get01());
       result.updateValue("N10", model.Get10());
       result.updateValue("N11", model.Get11());
 
       if (ctrlAN == 0) {
-        // fprintf(fp, "0\t");
         result.updateValue("CtrlAF", 0);
       } else {
-        // fprintf(fp, "%g\t", 1.0 * ctrlAC / ctrlAN);
         result.updateValue("CtrlAF", 1.0 * ctrlAC / ctrlAN);
       }
       if (caseAN == 0) {
-        // fprintf(fp, "0\t");
         result.updateValue("CaseAF", 0);
       } else {
-        // fprintf(fp, "%g\t", 1.0 * caseAC / caseAN);
         result.updateValue("CaseAF", 1.0 * caseAC / caseAN);
       }
-      /* fprintf(fp, "%lf\t"  , model.getPExactTwoSided()); */
-      /* fprintf(fp, "%lf\t"  , model.getPExactOneSidedLess()); */
-      /* fprintf(fp, "%lf\n"  , model.getPExactOneSidedGreater()); OB*/
       result.updateValue("PvalueTwoSide", model.getPExactTwoSided());
       result.updateValue("PvalueLess", model.getPExactOneSidedLess());
       result.updateValue("PvalueGreater", model.getPExactOneSidedGreater());
-    } /* else { */
-    /*   fprintf(fp, "0\t0\t0\t0\tNA\tNA\tNA\n"); */
-    /* } */
+    }
     result.writeValueLine(fp);
   }
   void reset() {
@@ -452,8 +447,10 @@ class SingleVariantFisherExactTest : public ModelFitter {
     model.reset();
   }
 
- private:
+ protected:
   Table2by2 model;
+
+ private:
   int caseAC;
   int caseAN;
   int ctrlAC;
@@ -461,6 +458,22 @@ class SingleVariantFisherExactTest : public ModelFitter {
 
   bool fitOK;
 };  // SingleVariantFisherExactTest
+
+class SingleVariantDominantFisherExactTest
+    : public SingleVariantFisherExactTest {
+ public:
+  SingleVariantDominantFisherExactTest() : SingleVariantFisherExactTest() {
+    this->modelName = "DominantFisherExact";
+  }
+
+ public:
+  virtual void countGenotype(int geno, int pheno) {
+    if (geno == 0)
+      model.Increment(0, pheno);
+    else if (geno > 0)
+      model.Increment(1, pheno);
+  }
+};
 
 class SingleVariantFamilyScore : public ModelFitter {
  public:
@@ -2973,14 +2986,8 @@ class MetaScoreTest : public ModelFitter {
  public:
   MetaScoreTest() : model(NULL), modelAuto(NULL), modelX(NULL) {
     this->modelName = "MetaScore";
-    nSample = nCase = nCtrl = -1;
-    af = afFromCase = afFromControl = -1.;
+    af = -1.;
     fitOK = false;
-    homRef = het = homAlt = missing = -1;
-    homRefCase = hetCase = homAltCase = missingCase = -1;
-    homRefCtrl = hetCtrl = homAltCtrl = missingCtrl = -1;
-    hweP = hwePvalueFromCase = hwePvalueFromControl = -1.;
-    callRate = -1.;
     useFamilyModel = false;
     isHemiRegion = false;
     headerOutputted = false;
@@ -3006,8 +3013,6 @@ class MetaScoreTest : public ModelFitter {
     return this->fitWithGivenGenotype(genotype, dc);
   }
   int fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
-    // Matrix& phenotype = dc->getPhenotype();
-    // Matrix& covariate = dc->getCovariate();
     this->useFamilyModel = dc->hasKinship();
 
     // check column name for hemi region
@@ -3030,77 +3035,26 @@ class MetaScoreTest : public ModelFitter {
     }
     if (!model) return -1;
 
-    // calculate site-based statistics
-
-    dc->countRawGenotype(0, &homRef, &het, &homAlt, &missing);
-    // dc->getResult().writeValueLine(stderr);
-    // fprintf(stderr, "%d\t%d\t%d\t%d\n", homRef, het, homAlt, missing);
-    nSample = (homRef + het + homAlt + missing);
-    if (nSample) {
-      callRate = 1.0 - 1.0 * missing / nSample;
-    } else {
-      callRate = 0.0;
-    }
-    // use all samples to get af
-    if (nSample) {
-      af = 0.5 * (het + 2. * homAlt) / (homRef + het + homAlt);
-    } else {
-      af = -1.0;
-    }
-    // fprintf(stderr, "af = %g\n", af);
-    // use female info to get HWE
+    // calculate site-based statise
     if (isHemiRegion) {
-      dc->countRawGenotypeFromFemale(0, &homRef, &het, &homAlt, &missing);
-    }
-    if (homRef + het + homAlt == 0 || (het < 0 || homRef < 0 || homAlt < 0)) {
-      hweP = 0.0;
-      hwePvalueFromCase = 0.0;
-      hwePvalueFromControl = 0.0;
-      // af = 0.0;
-      // afFromCase = 0.0;
-      // afFromControl = 0.0;
+      // use female only
+      dc->countRawGenotypeFromFemale(0, &counter);
     } else {
-      hweP = SNPHWE(het, homRef, homAlt);
-      // af = 0.5 * (het + 2*homAlt) / (homRef + het + homAlt);
+      dc->countRawGenotype(0, &counter);
     }
+    af = counter.getAF();
 
-    // handle binary cases
+    // for binary trait, also count by case and controls
     if (isBinaryOutcome()) {
-      if (!isHemiRegion) {
-        dc->countRawGenotypeFromCase(0, &homRefCase, &hetCase, &homAltCase,
-                                     &missingCase);
-        dc->countRawGenotypeFromControl(0, &homRefCtrl, &hetCtrl, &homAltCtrl,
-                                        &missingCtrl);
+      if (isHemiRegion) {
+        // use female only
+        dc->countRawGenotypeFromFemaleCase(0, &caseCounter);
+        dc->countRawGenotypeFromFemaleControl(0, &ctrlCounter);
       } else {
-        dc->countRawGenotypeFromFemaleCase(0, &homRefCase, &hetCase,
-                                           &homAltCase, &missingCase);
-        nCase = (homRefCase + hetCase + homAltCase + missingCase);
-        dc->countRawGenotypeFromFemaleControl(0, &homRefCtrl, &hetCtrl,
-                                              &homAltCtrl, &missingCtrl);
-        nCtrl = (homRefCtrl + hetCtrl + homAltCtrl + missingCtrl);
-      }
-
-      if (homRefCase + hetCase + homAltCase == 0 ||
-          (hetCase < 0 || homRefCase < 0 || homAltCase < 0)) {
-        hwePvalueFromCase = 0.0;
-        afFromCase = 0.0;
-      } else {
-        hwePvalueFromCase = SNPHWE(hetCase, homRefCase, homAltCase);
-        afFromCase = 0.5 * (hetCase + 2 * homAltCase) /
-                     (homRefCase + hetCase + homAltCase);
-      }
-
-      if (homRefCtrl + hetCtrl + homAltCtrl == 0 ||
-          (hetCtrl < 0 || homRefCtrl < 0 || homAltCtrl < 0)) {
-        hwePvalueFromControl = 0.0;
-        afFromControl = 0.0;
-      } else {
-        hwePvalueFromControl = SNPHWE(hetCtrl, homRefCtrl, homAltCtrl);
-        afFromControl = 0.5 * (hetCtrl + 2 * homAltCtrl) /
-                        (homRefCtrl + hetCtrl + homAltCtrl);
+        dc->countRawGenotypeFromCase(0, &caseCounter);
+        dc->countRawGenotypeFromControl(0, &ctrlCounter);
       }
     }
-
     // place this after calculate site statistics e.g. AF
     // fit null model
     if (model->needToFitNullModel || dc->isPhenotypeUpdated() ||
@@ -3173,7 +3127,7 @@ class MetaScoreTest : public ModelFitter {
     }
 
     siteInfo.writeValueTab(fp);
-    int informativeAC = het + 2 * homAlt;
+    // int informativeAC = het + 2 * homAlt;
 
     result.clearValue();
     if (af >= 0.0) {
@@ -3181,40 +3135,43 @@ class MetaScoreTest : public ModelFitter {
         result.updateValue("AF", af);
       } else {
         static char afString[128];
-        snprintf(afString, 128, "%g:%g:%g", af, afFromCase, afFromControl);
+        snprintf(afString, 128, "%g:%g:%g", af, caseCounter.getAF(),
+                 ctrlCounter.getAF());
         result.updateValue("AF", afString);
       }
     }
 
     if (!isBinaryOutcome()) {
-      result.updateValue("INFORMATIVE_ALT_AC", informativeAC);
-      result.updateValue("CALL_RATE", callRate);
-      result.updateValue("HWE_PVALUE", hweP);
-      result.updateValue("N_REF", homRef);
-      result.updateValue("N_HET", het);
-      result.updateValue("N_ALT", homAlt);
+      result.updateValue("INFORMATIVE_ALT_AC", counter.getAC());
+      result.updateValue("CALL_RATE", counter.getCallRate());
+      result.updateValue("HWE_PVALUE", counter.getHWE());
+      result.updateValue("N_REF", counter.getNumHomRef());
+      result.updateValue("N_HET", counter.getNumHet());
+      result.updateValue("N_ALT", counter.getNumHomAlt());
     } else {
       static const int buffLen = 128;
       static char buff[buffLen];
 
-      snprintf(buff, 128, "%d:%d:%d", informativeAC, hetCase + 2 * homAltCase,
-               hetCtrl + 2 * homAltCtrl);
+      snprintf(buff, 128, "%g:%g:%g", counter.getAC(), caseCounter.getAC(),
+               ctrlCounter.getAC());
       result.updateValue("INFORMATIVE_ALT_AC", buff);
 
-      snprintf(buff, 128, "%g:%g:%g", callRate,
-               nCase == 0 ? 0.0 : 1.0 - 1.0 * missingCase / nCase,
-               nCtrl == 0 ? 0.0 : 1.0 - 1.0 * missingCtrl / nCtrl);
+      snprintf(buff, 128, "%g:%g:%g", counter.getCallRate(),
+               caseCounter.getCallRate(), ctrlCounter.getCallRate());
       result.updateValue("CALL_RATE", buff);
 
-      snprintf(buff, 128, "%g:%g:%g", hweP, hwePvalueFromCase,
-               hwePvalueFromControl);
+      snprintf(buff, 128, "%g:%g:%g", counter.getHWE(), caseCounter.getHWE(),
+               ctrlCounter.getHWE());
       result.updateValue("HWE_PVALUE", buff);
 
-      snprintf(buff, 128, "%d:%d:%d", homRef, homRefCase, homRefCtrl);
+      snprintf(buff, 128, "%d:%d:%d", counter.getNumHomRef(),
+               caseCounter.getNumHomRef(), ctrlCounter.getNumHomRef());
       result.updateValue("N_REF", buff);
-      snprintf(buff, 128, "%d:%d:%d", het, hetCase, hetCtrl);
+      snprintf(buff, 128, "%d:%d:%d", counter.getNumHet(),
+               caseCounter.getNumHet(), ctrlCounter.getNumHet());
       result.updateValue("N_HET", buff);
-      snprintf(buff, 128, "%d:%d:%d", homAlt, homAltCase, homAltCtrl);
+      snprintf(buff, 128, "%d:%d:%d", counter.getNumHomAlt(),
+               caseCounter.getNumHomAlt(), ctrlCounter.getNumHomAlt());
       result.updateValue("N_ALT", buff);
     }
 
@@ -3612,38 +3569,25 @@ class MetaScoreTest : public ModelFitter {
     return ret;
   }
 
+  void reset() {
+    ModelFitter::reset();
+    counter.reset();
+    caseCounter.reset();
+    ctrlCounter.reset();
+  }
+
  private:
   MetaBase* model;
   MetaBase* modelAuto;
   MetaBase* modelX;
 
-  int nSample;
-  int nCase;
-  int nCtrl;
-
-  double af;
-  double afFromCase;
-  double afFromControl;
+  double af;  // overall af (unadjust or adjusted by family structure)
 
   bool fitOK;
 
-  int homRef;
-  int het;
-  int homAlt;
-  int missing;
-  int homRefCase;
-  int hetCase;
-  int homAltCase;
-  int missingCase;
-  int homRefCtrl;
-  int hetCtrl;
-  int homAltCtrl;
-  int missingCtrl;
-
-  double hweP;
-  double hwePvalueFromCase;
-  double hwePvalueFromControl;
-  double callRate;
+  GenotypeCounter counter;
+  GenotypeCounter caseCounter;
+  GenotypeCounter ctrlCounter;
 
   bool useFamilyModel;
   bool isHemiRegion;  // is the variant tested in hemi region?
@@ -3752,7 +3696,7 @@ class MetaCovTest : public ModelFitter {
       nSample = genotype.rows;
     }
     if (nSample != genotype.rows) {
-      fprintf(stderr, "Sample size changed at [ %s:%s ]",
+      fprintf(stderr, "Sample size changed at [ %s:%s ]\n",
               siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
       fitOK = false;
       return -1;
@@ -4401,7 +4345,7 @@ class MetaSkewTest: public ModelFitter{
       weight.Dimension(nSample);
     } else {
       if (nSample != genotype.rows){
-        fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+        fprintf(stderr, "Sample size changed at [ %s:%s ]\n", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
         fitOK = false;
         return -1;
       }
@@ -4719,7 +4663,7 @@ class MetaKurtTest: public ModelFitter{
       weight.Dimension(nSample);
     } else {
       if (nSample != genotype.rows){
-        fprintf(stderr, "Sample size changed at [ %s:%s ]", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
+        fprintf(stderr, "Sample size changed at [ %s:%s ]\n", siteInfo["CHROM"].c_str(), siteInfo["POS"].c_str());
         fitOK = false;
         return -1;
       }

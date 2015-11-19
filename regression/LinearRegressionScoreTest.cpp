@@ -156,7 +156,7 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y) {
 bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
                                               Matrix& Xcol) {
   if (Xnull.rows != y.Length() || y.Length() != Xcol.rows) {
-    fprintf(stderr, "Incompatible dimensino.\n");
+    fprintf(stderr, "Incompatible dimension.\n");
     return false;
   }
   if (Xcol.cols == 0) return false;

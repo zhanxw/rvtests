@@ -31,7 +31,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20151007";
+const char* VERSION = "20151105";
 
 void banner(FILE* fp) {
   const char* string =
@@ -42,7 +42,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      October 2015                      | \n"
+      "|      November 2015                     | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -333,6 +333,12 @@ int main(int argc, char** argv) {
                        "vcf2kinship to generate")
   ADD_STRING_PARAMETER(pl, xHemiKinship, "--xHemiKinship",
                        "Provide kinship for the chromosome X hemizygote region")
+  ADD_STRING_PARAMETER(pl, kinshipEigen, "--kinshipEigen",
+                       "Specify eigen decomposition results of a kinship file "
+                       "for autosomal analysis")
+  ADD_STRING_PARAMETER(
+      pl, xHemiKinshipEigen, "--xHemiKinshipEigen",
+      "Specify eigen decomposition results of a kinship file for X analysis")
 
   ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
   ADD_STRING_PARAMETER(pl, geneFile, "--geneFile",
@@ -506,13 +512,11 @@ int main(int argc, char** argv) {
 
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;
-  /* (TO remove) vin.getVCFHeader()->getPeopleName(&vcfSampleNames); */
   ge.getPeopleName(&vcfSampleNames);
   logger->info("Loaded [ %zu ] samples from VCF files", vcfSampleNames.size());
   std::vector<std::string> vcfSampleToDrop;
-  std::vector<std::string> phenotypeNameInOrder;  // phenotype names (vcf sample
-                                                  // names) arranged in the same
-                                                  // order as in VCF
+  // phenotype names (vcf sample names) arranged in the same order as in VCF
+  std::vector<std::string> phenotypeNameInOrder;
   std::vector<double>
       phenotypeInOrder;  // phenotype arranged in the same order as in VCF
   rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeNameInOrder,
@@ -737,8 +741,7 @@ int main(int argc, char** argv) {
 
   logger->info("Analysis begins with [ %zu ] samples...",
                phenotypeInOrder.size());
-
-  ////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
   // prepare each model
   bool singleVariantMode = FLAG_modelSingle.size() || FLAG_modelMeta.size();
   bool groupVariantMode = (FLAG_modelBurden.size() || FLAG_modelVT.size() ||
@@ -826,88 +829,36 @@ int main(int argc, char** argv) {
   DataConsolidator dc;
   dc.setSex(&sex);
 
-  // load kinshp if needed
+  // load kinshp if needed by family models
   if (modelManager.hasFamilyModel() ||
       (!FLAG_modelMeta.empty() && !FLAG_kinship.empty())) {
     logger->info("Family-based model specified. Loading kinship file...");
-    if (FLAG_kinship.empty()) {
+
+    // process auto kinship
+    if (dc.setKinshipSample(phenotypeNameInOrder) ||
+        dc.setKinshipFile(DataConsolidator::KINSHIP_AUTO, FLAG_kinship) ||
+        dc.setKinshipEigenFile(DataConsolidator::KINSHIP_AUTO,
+                               FLAG_kinshipEigen) ||
+        dc.loadKinship(DataConsolidator::KINSHIP_AUTO)) {
       logger->error(
-          "To use family based method, you need to use --kinship to specify a "
-          "kinship file (you use vcf2kinship to generate one).");
+          "Failed to load autosomal kinship (you may use vcf2kinship to "
+          "generate one).");
       exit(1);
     }
 
-    // load autosomal kinship
-    clock_t start;
-    double diff;
-    start = clock();
-    if (dc.loadKinshipFileForAuto(FLAG_kinship, phenotypeNameInOrder)) {
-      logger->error("Failed to load kinship file [ %s ]", FLAG_kinship.c_str());
-      exit(1);
-    }
-    diff = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    logger->info(
-        "DONE: Loaded kinship file [ %s ] successfully in [ %.1f ] seconds.",
-        FLAG_kinship.c_str(), diff);
-
-    start = clock();
-    if (dc.decomposeKinshipForAuto()) {
-      logger->error("Failed to decompose kinship matrix");
-      exit(1);
-    }
-    diff = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    logger->info(
-        "DONE: Spectral decomposition of the kinship matrix succeeded in [ "
-        "%.1f ] seconds.",
-        diff);
-
-    // load hemi kinship
-    if (FLAG_xHemiKinship.empty()) {
-      // guess hemi kinshp file name
-      std::string fn = FLAG_kinship;
-      fn = fn.substr(0, fn.size() - 8);  // strip ".kinship"
-      fn += ".xHemi.kinship";
-      FILE* fp = fopen(fn.c_str(), "r");
-      if (fp != NULL) {
-        FLAG_xHemiKinship = fn;
-        logger->info(
-            "Kinship file [ %s ] detected and will be used for for X "
-            "chromosome analysis",
-            fn.c_str());
-        fclose(fp);
-      }
-    }
-    if (FLAG_xHemiKinship.empty()) {
+    if (dc.setKinshipFile(DataConsolidator::KINSHIP_X, FLAG_xHemiKinship) ||
+        dc.setKinshipEigenFile(DataConsolidator::KINSHIP_X,
+                               FLAG_xHemiKinshipEigen) ||
+        dc.loadKinship(DataConsolidator::KINSHIP_X)) {
       logger->warn(
           "Autosomal kinship loaded, but no hemizygote region kinship "
           "provided, some sex chromosome tests will be skipped.");
-    } else {
-      start = clock();
-      if (dc.loadKinshipFileForX(FLAG_xHemiKinship, phenotypeNameInOrder)) {
-        logger->error("Failed to load kinship file [ %s ]",
-                      FLAG_xHemiKinship.c_str());
-        exit(1);
-      }
-      diff = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-      logger->info(
-          "DONE: Loaded kinship file [ %s ] successfully in [ %.1f ] seconds.",
-          FLAG_xHemiKinship.c_str(), diff);
-
-      start = clock();
-      if (dc.decomposeKinshipForX()) {
-        logger->error("Failed to decompose kinship matrix");
-        exit(1);
-      }
-      diff = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-      logger->info(
-          "DONE: Spectral decomposition of the kinship matrix succeeded in [ "
-          "%.1f ] seconds.",
-          diff);
+      // keep the program going
     }
   } else if (!FLAG_kinship.empty() && FLAG_modelMeta.empty()) {
     logger->info(
-        "Family-based model not specified. \"--kinship\" option was specified "
-        "but ignored here.");
+        "Family-based model not specified. Options related to kinship will be "
+        "ignored here.");
   }
 
   // set imputation method
@@ -932,7 +883,6 @@ int main(int argc, char** argv) {
 
   // genotype will be extracted and stored
   Matrix genotype;
-  // (TO remove) GenotypeExtractor ge(&vin);
   if (FLAG_freqUpper > 0) {
     ge.setSiteFreqMax(FLAG_freqUpper);
     logger->info("Set upper minor allele frequency limit to %g",
@@ -972,6 +922,8 @@ int main(int argc, char** argv) {
                  FLAG_indvQualMin);
   }
 
+  dc.preRegressionCheck(phenotypeMatrix, covariate);
+  
   logger->info("Analysis started");
   // std::string buf; // we put site sinformation here
   // buf.resize(1024);
@@ -1030,7 +982,7 @@ int main(int argc, char** argv) {
     logger->info("Analyzed [ %d ] variants", variantProcessed);
   } else if (rangeMode != "Single" &&
              singleVariantMode) {  // read by gene/range model, single variant
-                                   // test
+    // test
     buf.addHeader(rangeMode);
     buf.addHeader("CHROM");
     buf.addHeader("POS");
@@ -1072,7 +1024,7 @@ int main(int argc, char** argv) {
         dc.consolidate(phenotypeMatrix, covariate, genotype);
 
         buf.updateValue(rangeMode, geneName);
-        buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
+        buf.updateValue("N_INFORMATIVE", genotype.rows);
 
         // #pragma omp parallel for
         for (size_t m = 0; m != numModel; m++) {
@@ -1085,12 +1037,14 @@ int main(int argc, char** argv) {
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions",
                  variantProcessed, (int)geneRange.size());
   } else if (rangeMode != "Single" &&
-             groupVariantMode) {  // read by gene/range mode, group variant test
+             groupVariantMode) {  // read by gene/range mode, group variant
+                                  // test
     buf.addHeader(rangeMode);
     buf.addHeader("RANGE");
     buf.addHeader("N_INFORMATIVE");
     buf.addHeader("NumVar");
-
+    buf.addHeader("NumPolyVar");
+    
     // output headers
     for (size_t m = 0; m < numModel; m++) {
       model[m]->writeHeader(fOuts[m], buf);
@@ -1119,9 +1073,10 @@ int main(int argc, char** argv) {
 
       buf.updateValue(rangeMode, geneName);
       buf.updateValue("RANGE", rangeList.toString());
-      buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
-      buf.updateValue("NumVar", toString(genotype.cols));
-
+      buf.updateValue("N_INFORMATIVE", genotype.rows);
+      buf.updateValue("NumVar", genotype.cols);
+      buf.updateValue("NumPolyVar", dc.getFlippedToMinorPolymorphicGenotype().cols);
+      
       // #ifdef _OPENMP
       // #pragma omp parallel for
       // #endif
@@ -1134,7 +1089,7 @@ int main(int argc, char** argv) {
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions",
                  variantProcessed, (int)geneRange.size());
   } else {
-    logger->error("Unsupported reading mode and test modes!");
+    logger->error("Unsupported reading mode and test modes! (need more parameters?)");
     exit(1);
   }
 

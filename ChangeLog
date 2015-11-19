@@ -1,3 +1,8 @@
+2015-11-10  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Improve kinship calculation (--kinshipEigen) and clean codes
+	* Improve dosage supports for both autosomes and X chromosomes
+
 2015-10-07  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix a bug when generating covariance matrix

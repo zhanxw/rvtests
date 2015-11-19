@@ -47,6 +47,9 @@ void process_mem_usage(double& vm_usage, double& resident_set)
    resident_set = rss * page_size_kb;
 }
 
+/**
+ * Print VM (unit: MB) and RSS (unit: MB) in stderr
+ */
 void printRss(){
    double vm, rss;
 

@@ -14,7 +14,7 @@
 #include "base/SimpleTimer.h"
 #include "base/TypeConversion.h"
 
-#include "third/rapidjson/internal/dtoa.h"
+#include "third/rapidjson/include/rapidjson/internal/dtoa.h" // for 
 
 #undef DEBUG
 //#define DEBUG
@@ -430,13 +430,10 @@ int KinshipHolder::saveDecomposed() {
   for (int i = 0; i < nSample; ++i) {
     fw.write(names[i].c_str());
     fw.write("\t");
-    // fw.printf("%g", matS->mat(nSample - 1 - i));
     char* p = rapidjson::internal::dtoa(matS->mat(nSample - 1 - i), buffer);
     *p = '\0';
     fw.write(buffer);
     for (int j = 0; j < nSample; ++j) {
-      /// fw.printf("\t%g", matU->mat(i, nSample - 1 - j));
-
       char* p =
           rapidjson::internal::dtoa(matU->mat(i, nSample - 1 - j), buffer);
       *p = '\0';
@@ -447,83 +444,3 @@ int KinshipHolder::saveDecomposed() {
   }
   return 0;
 }
-
-#if 0
-
-/**
- * Decompose autosomal kinship matrix and release its memory
- * K = U * S * U'
- * @return 0 if success
- */
-int DataConsolidator::decomposeKinshipForAuto() {
-  if (!this->kinshipForAuto) return -1;
-  // load cache if possible
-  
-  // eigen decomposition
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->kinshipForAuto->mat);
-  if (es.info() == Eigen::Success) {
-    (this->kinshipUForAuto->mat) = es.eigenvectors();
-    (this->kinshipSForAuto->mat) = es.eigenvalues();
-
-    if (this->kinshipForAuto) {
-      delete this->kinshipForAuto;
-      this->kinshipForAuto = NULL;
-    }
-    return 0;
-  }
-  return -1;
-}
-
-int DataConsolidator::decomposeKinshipForX() {
-  if (!this->kinshipForX) return -1;
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->kinshipForX->mat);
-  if (es.info() == Eigen::Success) {
-    (this->kinshipUForX->mat) = es.eigenvectors();
-    (this->kinshipSForX->mat) = es.eigenvalues();
-
-    if (this->kinshipForX) {
-      delete this->kinshipForX;
-      this->kinshipForX = NULL;
-    }
-    return 0;
-  }
-  return -1;
-}
-
-const EigenMatrix* DataConsolidator::getKinshipForAuto() const {
-  if (!this->kinshipForAuto) return NULL;
-  return this->kinshipForAuto;
-}
-const EigenMatrix* DataConsolidator::getKinshipUForAuto() const {
-  if (!this->kinshipUForAuto) return NULL;
-  return this->kinshipUForAuto;
-}
-const EigenMatrix* DataConsolidator::getKinshipSForAuto() const {
-  if (!this->kinshipSForAuto) return NULL;
-  return this->kinshipSForAuto;
-}
-
-const EigenMatrix* DataConsolidator::getKinshipForX() const {
-  if (!this->kinshipForX) return NULL;
-  return this->kinshipForX;
-}
-const EigenMatrix* DataConsolidator::getKinshipUForX() const {
-  if (!this->kinshipUForX) return NULL;
-  return this->kinshipUForX;
-}
-const EigenMatrix* DataConsolidator::getKinshipSForX() const {
-  if (!this->kinshipSForX) return NULL;
-  return this->kinshipSForX;
-}
-
-#if 0
-  if (!this->kinshipLoadedForX) {
-    this->kinshipForAutoAsKinshipForX = true;
-    this->kinshipForAuto = this->kinshipForX;
-    this->kinshipUForAuto = this->kinshipUForX;
-    this->kinshipSForAuto = this->kinshipSForX;
-    this->kinshipLoadedForX = true;
-  }
-#endif
-
-#endif

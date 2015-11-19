@@ -25,7 +25,7 @@ class Skat {
    */
   int Fit(Vector& res_G,  // residual under NULL -- may change when permuting
           Vector& v_G,    // variance under NULL -- may change when permuting
-          Matrix& X_G,    // covariance
+          Matrix& X_G,    // covariate
           Matrix& G_G,    // genotype
           Vector& w_G);   // weight
 

@@ -5,14 +5,13 @@
 #include <Eigen/Eigenvalues>
 #include <vector>
 
-#include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
-#include "gsl/gsl_randist.h" // gsl_ran_chisq_pdf
+#include "gsl/gsl_cdf.h"      // use gsl_cdf_chisq_Q
+#include "gsl/gsl_randist.h"  // gsl_ran_chisq_pdf
 
 #include "EigenMatrixInterface.h"
 #include "GSLIntegration.h"
 #include "MathMatrix.h"
 #include "MixtureChiSquare.h"
-
 
 #define DEBUG
 // #undef DEBUG
@@ -45,20 +44,28 @@ double integrandLiu(double x, void* param);
 class SkatO::SkatOImpl {
  public:
   SkatOImpl() {
-    for(int i = 0; i <= 10; ++i) {
+    for (int i = 0; i <= 10; ++i) {
       rhos.push_back(1.0 * i / 10);
     }
     this->nRho = rhos.size();
     // cap max(rho) to 0.999 to avoid rank-deficiency
-    for(int i = 0; i < nRho; ++i) {
+    for (int i = 0; i < nRho; ++i) {
       if (rhos[i] > 0.999) {
         rhos[i] = 0.999;
       }
     }
   }
   void Reset() { this->pValue = -999.0; };
-  int Fit(Vector& res_G,  // residual under NULL -- may change when permuting
-          Vector& v_G,    // variance under NULL -- may change when permuting
+  void setBinaryOutcome() {
+    this->binaryOutcome = true;
+  }
+  void setQuantitativeOutcome() {
+    this->binaryOutcome = false;
+  }
+  bool isBinary() { return binaryOutcome; }
+  
+  int Fit(Vector& res_G,  // residual under NULL
+          Vector& v_G,    // variance under NULL
           Matrix& X_G,    // covariance
           Matrix& G_G,    // genotype
           Vector& w_G)    // weight
@@ -82,10 +89,10 @@ class SkatO::SkatOImpl {
       getRrho(rhos[i], &R_rhos[i], G.cols());
     }
 
-    float s2;
+    double s2;
     if (isBinary()) {
       s2 = 1;
-    } else { // continuous trait
+    } else {  // continuous trait
       s2 = res.norm();
       s2 = (s2 * s2) / (nPeople - 1);
     }
@@ -93,59 +100,65 @@ class SkatO::SkatOImpl {
     // calculate Q
     Qs.resize(nRho);
     for (int i = 0; i < nRho; ++i) {
-      Eigen::MatrixXf v = res.transpose() * G;
+      Eigen::MatrixXd v = res.transpose() * G;
       Qs[i] = (v * R_rhos[i] * v.transpose())(0, 0);
       Qs[i] /= s2;
-      Qs[i] /= 2.0; // follow SKAT R package convention (divides 2)
+      Qs[i] /= 2.0;  // follow SKAT R package convention (divides 2)
     }
 
     // calculate Z1
     if (!isBinary()) {
       Z1 = G - X * (X.transpose() * X).ldlt().solve(X.transpose() * G);
     } else {
-      Eigen::VectorXf v_sqrt = v.cwiseSqrt();
-      Z1 = v_sqrt.asDiagonal() * G - v_sqrt.asDiagonal() * X * ( X.transpose() * v_sqrt.asDiagonal() * X ).ldlt().solve(X.transpose() * v_sqrt.asDiagonal() * G);
+      Eigen::VectorXd v_sqrt = v.cwiseSqrt();
+      Z1 = v_sqrt.asDiagonal() * G -
+           v_sqrt.asDiagonal() * X *
+               (X.transpose() * v_sqrt.asDiagonal() * X).ldlt().solve(
+                   X.transpose() * v_sqrt.asDiagonal() * G);
     }
-    Z1 = Z1 /sqrt(2); // follow SKAT R package convention (divides sqrt{2})
-
+    Z1 = Z1 / sqrt(2);  // follow SKAT R package convention (divides sqrt{2})
 
     // calculate labmda.rho
     lambdas.resize(nRho);
     for (int i = 0; i < nRho; ++i) {
-      Eigen::LDLT<Eigen::MatrixXf> chol;
-      chol.compute(R_rhos[i]); // R_rhos[i] = L * L^T
-      Eigen::MatrixXf Z2 = Z1 * chol.matrixL();
-      Eigen::MatrixXf K = Z2.transpose() * Z2;
+      Eigen::LLT<Eigen::MatrixXd> chol;
+      chol.compute(R_rhos[i]);  // R_rhos[i] = L * L^T
+      Eigen::MatrixXd Z2 = Z1 * chol.matrixL();
+      Eigen::MatrixXd K = Z2.transpose() * Z2;
       getEigen(K, &lambdas[i]);
 
       if (i == 1) {
-        Eigen::MatrixXf L = chol.matrixL();
+        Eigen::MatrixXd L = chol.matrixL();
         dumpEigen("R_rhos", R_rhos[i]);
         dumpEigen("chol.L", L);
-        dumpEigen("Z2", Z2);        
+        dumpEigen("Z2", Z2);
         dumpEigen("K", K);
       }
     }
 
     // calculate some parameters (for Z(I-M)Z part)
-    Eigen::MatrixXf z_bar = Z1.rowwise().sum() / Z1.cols();
+    Eigen::MatrixXd z_bar = Z1.rowwise().sum() / Z1.cols();
     double z_norm = z_bar.squaredNorm();
-    Eigen::MatrixXf ZMZ = z_bar.transpose() * Z1;
+    Eigen::MatrixXd ZMZ = z_bar.transpose() * Z1;
     ZMZ = (ZMZ.transpose() * ZMZ) / z_norm;
-    Eigen::MatrixXf ZIMZ = Z1.transpose() * Z1 - ZMZ; // Z(I-M)Z' = ZZ' - ZMZ'
+    Eigen::MatrixXd ZIMZ = Z1.transpose() * Z1 - ZMZ;  // Z(I-M)Z' = ZZ' - ZMZ'
     getEigen(ZIMZ, &this->lambda);
-    this->VarZeta  = 4.0 * (ZMZ.array() * ZIMZ.array()).sum();
+    this->VarZeta = 4.0 * (ZMZ.array() * ZIMZ.array()).sum();
     this->MuQ = lambda.sum();
-    this->VarQ = 2.0 * (lambda.array() * lambda.array()).sum()  + VarZeta;
+    this->VarQ = 2.0 * (lambda.array() * lambda.array()).sum() + VarZeta;
 
-    double temp = (lambda.array() * lambda.array()) .sum() ;
-    double KerQ = (lambda.array() * lambda.array() * lambda.array() * lambda.array()).sum() /  temp / temp * 12;
-    this->Df = 12/ KerQ;
+    double temp = (lambda.array() * lambda.array()).sum();
+    double KerQ = (lambda.array() * lambda.array() * lambda.array() *
+                   lambda.array()).sum() /
+                  temp / temp * 12;
+    this->Df = 12 / KerQ;
 
     // calculate tau
     taus.resize(nRho);
     for (int i = 0; i < nRho; ++i) {
-      taus[i] = nMarker * nMarker * rhos[i] * z_norm + (1.0 - rhos[i]) * (z_bar.transpose() * Z1).array().square().sum() / z_norm;
+      taus[i] = nMarker * nMarker * rhos[i] * z_norm +
+                (1.0 - rhos[i]) *
+                    (z_bar.transpose() * Z1).array().square().sum() / z_norm;
     }
 
     // calculate moments
@@ -154,24 +167,24 @@ class SkatO::SkatOImpl {
       getMoment(lambdas[i], &moments[i]);
     }
 
-    // calculate min p
-    double minP;
-    int minIndex;
+    // calculate p for each rho
+    pvals.resize(nRho);
     for (int i = 0; i < nRho; ++i) {
-      if (i == 0) {
-        minP = getPvalByMoment(Qs[i], moments[i]);
+      pvals[i] = getPvalByMoment(Qs[i], moments[i]);
+    }
+
+    // calculat min p
+    double minP = pvals[0];
+    int minIndex = 0;
+    for (int i = 1; i < nRho; ++i) {
+      if (pvals[i] < minP) {
+        minP = pvals[i];
         minIndex = i;
-      } else {
-        double p = getPvalByMoment(Qs[i], moments[i]);
-        if (p < minP) {
-          minP = p;
-          minIndex = i;
-        }
       }
     }
     this->rho = rhos[minIndex];
     this->Q = Qs[minIndex];
-    
+
     // calculate Q_minP
     Qs_minP.resize(nRho);
     for (int i = 0; i < nRho; ++i) {
@@ -180,18 +193,41 @@ class SkatO::SkatOImpl {
 
     // integrate
     Integration integration;
+    integration.setEpsAbs(1e-25);
+    integration.setEpsRel(0.0001220703);  // this is R defaults for epsrel =
+                                          // .Machine$double.eps^0.25
     gsl_function F;
     F.function = integrandDavies;
     F.params = this;
-    if (integration.integrate(F)) {
+    if (integration.integrateLU(F, 0., 40.)) {
       fprintf(stderr, "%s:%d integration failed\n", __FILE__, __LINE__);
     };
     this->pValue = 1.0 - integration.getResult();
 
+    // verify p-values
+    // SKAT R: "Since SKAT-O is between burden and SKAT, SKAT-O p-value should
+    // be <= min(p-values) * 2
+    // To correct conservatively, we use min(p-values) * 3"
+    const int multi = (nRho < 3) ? 2 : 3;
+    if (nRho)
+      if (this->pValue <= 0) {
+        double p = minP * multi;
+        if (pValue < p) {
+          pValue = p;
+        }
+      }
+    if (this->pValue == 0.0) {  // for some i, pvals[i] == 0.0
+      pValue = pvals[0];
+      for (int i = 1; i < nRho; ++i) {
+        if (pvals[i] > 0 && pvals[i] < pValue) {
+          pValue = pvals[i];
+        }
+      }
+    }
     return 0;
   }
 
-  double getPvalDavies(double Q, const Eigen::MatrixXf& lambda) {
+  double getPvalDavies(double Q, const Eigen::MatrixXd& lambda) {
     double pval = 0.0;
     this->mixChiSq.reset();
     for (int i = 0; i < lambda.rows(); ++i) {
@@ -201,7 +237,7 @@ class SkatO::SkatOImpl {
     return pval;
   }
 
-  double getPvalLiu(double Q, const Eigen::MatrixXf& lambda) {
+  double getPvalLiu(double Q, const Eigen::MatrixXd& lambda) {
     double pval = 0.0;
     this->mixChiSq.reset();
     for (int i = 0; i < lambda.rows(); ++i) {
@@ -212,9 +248,12 @@ class SkatO::SkatOImpl {
   }
 
   double computeIntegrandDavies(double x) {
-    double kappa = DBL_MAX;
+    double kappa;
     for (int i = 0; i < nRho; ++i) {
-      double v = (Qs_minP[i] - taus[i]) / (1.0 - rhos[i]);
+      double v = (Qs_minP[i] - taus[i] * x) / (1.0 - rhos[i]);
+      if (i == 0) {
+        kappa = v;
+      }
       if (v < kappa) {
         kappa = v;
       }
@@ -223,7 +262,7 @@ class SkatO::SkatOImpl {
     if (kappa > lambda.sum() * 10000) {
       temp = 0.0;
     } else {
-      double Q = (kappa - MuQ) * sqrt (VarQ - VarZeta) / sqrt(VarQ) + MuQ;
+      double Q = (kappa - MuQ) * sqrt(VarQ - VarZeta) / sqrt(VarQ) + MuQ;
       temp = getPvalDavies(Q, lambda);
       if (temp <= 0.0 || temp == 1.0) {
         temp = getPvalLiu(Q, lambda);
@@ -235,7 +274,7 @@ class SkatO::SkatOImpl {
   double computeIntegrandLiu(double x) {
     double kappa = DBL_MAX;
     for (int i = 0; i < nRho; ++i) {
-      double v = (Qs_minP[i] - taus[i]) / (1.0 - rhos[i]);
+      double v = (Qs_minP[i] - taus[i] * x) / (1.0 - rhos[i]);
       if (v < kappa) {
         kappa = v;
       }
@@ -245,35 +284,32 @@ class SkatO::SkatOImpl {
   }
   double GetPvalue() const { return this->pValue; };
   double GetQ() const { return this->Q; };
-  double GetRho() const {return this->rho;}
+  double GetRho() const { return this->rho; }
 
  private:
-  bool isBinary() {
-    return false;
-  }
-  int getRrho(double rho, Eigen::MatrixXf* R, int dim) {
+  int getRrho(double rho, Eigen::MatrixXd* R, int dim) {
     (*R).setConstant(dim, dim, rho);
     for (int i = 0; i < dim; ++i) {
-      (*R)(i,i) = 1.0;
+      (*R)(i, i) = 1.0;
     }
     return 0;
   }
-  int getEigen(Eigen::MatrixXf& k, Eigen::MatrixXf* lambda) {
+  int getEigen(Eigen::MatrixXd& k, Eigen::MatrixXd* lambda) {
     es.compute(k);
-    Eigen::VectorXf values = es.eigenvalues();
+    Eigen::VectorXd values = es.eigenvalues();
     int n = values.size();
     int numNonZero = 0;
-    float sumNonZero = 0.;
+    double sumNonZero = 0.;
     for (int i = 0; i < n; ++i) {
       if (values(i) > 0) {
-        ++ numNonZero ;
+        ++numNonZero;
         sumNonZero += values(i);
       }
     }
     if (numNonZero == 0) {
       return -1;
     }
-    float t = sumNonZero / numNonZero / 100000;
+    double t = sumNonZero / numNonZero / 100000;
     int numKeep = n;
     for (int i = 0; i < n; ++i) {
       // values are in increase order, so we can stop early
@@ -283,25 +319,25 @@ class SkatO::SkatOImpl {
         break;
       }
     }
-    
+
     (*lambda).resize(numKeep, 1);
     for (int i = 0; i < numKeep; ++i) {
-      (*lambda)(i , 0) =  values(n - 1 - i) ;
+      (*lambda)(i, 0) = values(n - 1 - i);
     }
-    
+
     return 0;
   }
-  int getMoment(const Eigen::MatrixXf& lambda, Moment* moment) {
+  int getMoment(const Eigen::MatrixXd& lambda, Moment* moment) {
     Moment& m = *moment;
     double c[4];
-    Eigen::ArrayXf la = lambda.array();
+    Eigen::ArrayXd la = lambda.array();
     c[0] = la.sum();
-    c[1] = (la * la).sum();
-    c[2] = (la * la * la).sum();
-    c[3] = (la * la* la* la).sum();
+    c[1] = (la.square()).sum();
+    c[2] = (la.square() * la).sum();
+    c[3] = (la.square().square()).sum();
 
     m.muQ = c[0];
-    double sigmaQ = sqrt(2 *c[1]);
+    double sigmaQ = sqrt(2 * c[1]);
     double s1 = c[2] / c[1] / sqrt(c[1]);
     double s2 = c[3] / (c[1] * c[1]);
 
@@ -309,13 +345,13 @@ class SkatO::SkatOImpl {
     // double beta2 = 12*s2;
 
     double a, d, l;
-    if(s1 * s1 > s2){
-      a = 1/(s1 - sqrt(s1*s1 - s2));
-      d = (s1 * a - 1.0 *a*a);
-      l = a*a - 2*d;
+    if (s1 * s1 > s2) {
+      a = 1 / (s1 - sqrt(s1 * s1 - s2));
+      d = (s1 * a - 1.0 * a * a);
+      l = a * a - 2 * d;
     } else {
       // type1 = 1;
-      l = 1./s2;
+      l = 1. / s2;
       a = sqrt(l);
       d = 0;
     }
@@ -324,7 +360,6 @@ class SkatO::SkatOImpl {
     m.varQ = sigmaQ * sigmaQ;
     m.df = l;
     return 0;
-
   }
 
   double getPvalByMoment(double Q, const Moment& moment) {
@@ -332,33 +367,37 @@ class SkatO::SkatOImpl {
     double varQ = moment.varQ;
     double df = moment.df;
     double Q_Norm = (Q - muQ) / sqrt(varQ) * sqrt(2. * df) + df;
-    double pval = gsl_cdf_chisq_Q(Q_Norm,  df);
+    double pval = gsl_cdf_chisq_Q(Q_Norm, df);
     return pval;
   }
 
   double getQvalByMoment(double min_pval, const Moment& moment) {
-    double  muQ  = moment.muQ;
-    double  varQ = moment.varQ;
-    double  df   = moment.df;
-    double  q_org = gsl_cdf_chisq_Qinv(min_pval, df);
-    double  q = (q_org - df) / sqrt(2. * df) * sqrt(varQ) + muQ;
+    double muQ = moment.muQ;
+    double varQ = moment.varQ;
+    double df = moment.df;
+    double q_org = gsl_cdf_chisq_Qinv(min_pval, df);
+    double q = (q_org - df) / sqrt(2. * df) * sqrt(varQ) + muQ;
     return q;
   }
- private:
-  Eigen::VectorXf res;     // residual
-  Eigen::VectorXf v;
-  Eigen::MatrixXf X;
-  Eigen::MatrixXf G;
-  Eigen::VectorXf w;     // residual
 
-  Eigen::MatrixXf Z1;
-  std::vector< float> rhos;
-  std::vector< Eigen::MatrixXf > R_rhos;
-  std::vector< Eigen::MatrixXf > lambdas;
+ private:
+  bool binaryOutcome;
+  
+  Eigen::VectorXd res;  // residual
+  Eigen::VectorXd v;
+  Eigen::MatrixXd X;
+  Eigen::MatrixXd G;
+  Eigen::VectorXd w;  // residual
+
+  Eigen::MatrixXd Z1;
+  std::vector<double> rhos;
+  std::vector<Eigen::MatrixXd> R_rhos;
+  std::vector<Eigen::MatrixXd> lambdas;
   std::vector<Moment> moments;
-  std::vector<float> Qs;
-  std::vector<float> Qs_minP;
-  std::vector<float> taus;
+  std::vector<double> Qs;
+  std::vector<double> Qs_minP;
+  std::vector<double> taus;
+  std::vector<double> pvals;
 
   int nPeople;
   int nMarker;
@@ -366,13 +405,13 @@ class SkatO::SkatOImpl {
   int nRho;
 
   MixtureChiSquare mixChiSq;
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
 
   double MuQ;
   double VarQ;
   double VarZeta;
   double Df;
-  Eigen::MatrixXf lambda;
+  Eigen::MatrixXd lambda;
 
   double pValue;
   double Q;
@@ -383,12 +422,24 @@ SkatO::~SkatO() { delete this->skatoImpl; }
 void SkatO::Reset() { this->skatoImpl->Reset(); }
 
 int SkatO::Fit(
-    Vector& res_G,  // residual under NULL -- may change when permuting
-    Vector& v_G,    // variance under NULL -- may change when permuting
-    Matrix& X_G,    // covariance
-    Matrix& G_G,    // genotype
-    Vector& w_G)    // weight
-{
+    Vector& res_G,    // residual under NULL
+    Vector& v_G,      // variance under NULL
+    Matrix& X_G,      // covariance
+    Matrix& G_G,      // genotype
+    Vector& w_G,      // weight
+    const char* type  // response type
+    ) {
+  if (!type) return -1;
+  switch(type[0]) {
+    case 'D':
+      this->skatoImpl->setBinaryOutcome();
+      break;
+    case 'C':
+      this->skatoImpl->setQuantitativeOutcome();
+      break;
+    default:
+      return -1;
+  }
   return this->skatoImpl->Fit(res_G, v_G, X_G, G_G, w_G);
 };
 
@@ -399,10 +450,10 @@ double SkatO::GetQ() const { return this->skatoImpl->GetQ(); }
 double SkatO::GetRho() const { return this->skatoImpl->GetRho(); }
 
 double integrandDavies(double x, void* param) {
-  SkatO::SkatOImpl* p = (SkatO::SkatOImpl*) param;
+  SkatO::SkatOImpl* p = (SkatO::SkatOImpl*)param;
   return p->computeIntegrandDavies(x);
 }
 double integrandLiu(double x, void* param) {
-  SkatO::SkatOImpl* p = (SkatO::SkatOImpl*) param;
+  SkatO::SkatOImpl* p = (SkatO::SkatOImpl*)param;
   return p->computeIntegrandLiu(x);
 }

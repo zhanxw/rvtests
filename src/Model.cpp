@@ -367,6 +367,11 @@ void MetaCovTest::MetaCovFamBinary::calculateB() {
   return;
 }
 
+void MetaScoreTest::MetaUnrelatedBinary::calculateB() {
+  obtainB(this->alpha, &this->b);
+  return;
+}
+
 #if 0
 void appendHeritability(FileWriter* fp, const FastLMM& model) {
   return;

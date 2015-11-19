@@ -7,6 +7,7 @@ class Vector;
 class SkatO {
  public:
   class SkatOImpl;
+
  private:
   SkatOImpl* skatoImpl;
 
@@ -16,24 +17,25 @@ class SkatO {
   void Reset();
   /**
    * _G suffix: Data structure for Goncalo
-   * y phenotype
-   * y0 nul model fitted phenotype
-   * X covariate
+   * res residual of the phenotype
    * v variance
+   * X covariate
    * G genotype
    * w weight for G
+   * type "C": continuous response; "D": binary response
    * @return 0 when success
    */
-  int Fit(Vector& res_G,  // residual under NULL -- may change when permuting
-          Vector& v_G,    // variance under NULL -- may change when permuting
-          Matrix& X_G,    // covariate
-          Matrix& G_G,    // genotype
-          Vector& w_G);   // weight
-
+  int Fit(Vector& res_G,    // residual under NULL -- may change when permuting
+          Vector& v_G,      // variance under NULL -- may change when permuting
+          Matrix& X_G,      // covariate
+          Matrix& G_G,      // genotype
+          Vector& w_G,      // weight
+          const char* type  // response type
+          );
 
   double GetPvalue() const;
   double GetQ() const;
-  double GetRho() const; 
+  double GetRho() const;
 
  private:
   // don't copy

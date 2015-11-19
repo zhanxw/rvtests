@@ -16,6 +16,7 @@
 #include "regression/LinearRegressionScoreTest.h"
 #include "regression/LinearRegressionVT.h"
 #include "regression/Skat.h"
+#include "regression/SkatO.h"
 #include "regression/Table2by2.h"
 #include "regression/kbac_interface.h"
 #include "regression/FastLMM.h"
@@ -2720,6 +2721,122 @@ class SkatTest : public ModelFitter {
   Permutation perm;
 };  // SkatTest
 
+class SkatOTest : public ModelFitter {
+ public:
+  SkatOTest(double beta1, double beta2) : fitOK(false) {
+    this->beta1 = beta1;
+    this->beta2 = beta2;
+    this->modelName = "SkatO";
+    this->needToFitNullModel = true;
+  }
+  void reset() {
+    ModelFitter::reset();
+    this->skato.Reset();
+  }
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc->getPhenotype();
+    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    Matrix& covariate = dc->getCovariate();
+    Vector& weight = dc->getWeight();
+
+    if (genotype.cols == 0) {
+      fitOK = false;
+      return -1;
+    }
+    // fill it weight
+    weight.Dimension(genotype.cols);
+    for (int i = 0; i < weight.Length(); i++) {
+      double freq = getMarkerFrequency(genotype, i);
+      // fprintf(stderr, "freq[%d] = %g\n", i, freq);
+      if (freq > 0.5) {  // convert to MAF
+        freq = 1.0 - freq;
+      }
+      if (freq > 1e-30) {  // avoid dividing zero
+        weight[i] = gsl_ran_beta_pdf(
+            freq, this->beta1,
+            this->beta2);  /// default SKAT use beta(MAF, 1, 25)
+      } else {
+        weight[i] = 0.0;
+      }
+    }
+
+    Vector phenoVec;
+    copyPhenotype(phenotype, &phenoVec);
+
+    // ynull is the mean of y (removing genotypes) in the model:
+    // Ynull ~ X (aka Ynull ~ X + 0.0 * G )
+    Matrix cov;
+    copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+
+    // this part caluclate null model, only need to do once
+    if (needToFitNullModel || dc->isPhenotypeUpdated() ||
+        dc->isCovariateUpdated()) {
+      if (isBinaryOutcome()) {
+        fitOK = logistic.FitLogisticModel(cov, phenoVec, 100);
+        if (!fitOK) {
+          warnOnce("SKAT test failed in fitting null model (logistic model).");
+          return -1;
+        }
+        ynull = logistic.GetPredicted();
+        v = logistic.GetVariance();
+      } else {
+        fitOK = linear.FitLinearModel(cov, phenoVec);
+        if (!fitOK) {
+          warnOnce("SKAT test failed in fitting null model (linear model).");
+          return -1;
+        }
+        ynull = linear.GetPredicted();
+        v.Dimension(genotype.rows);
+        for (int i = 0; i < genotype.rows; ++i) {
+          v[i] = linear.GetSigma2();
+        }
+      }
+      this->res.Dimension(ynull.Length());
+      for (int i = 0; i < this->ynull.Length(); ++i) {
+        this->res[i] = phenoVec[i] - this->ynull[i];
+      }
+      needToFitNullModel = false;
+    }
+
+    // perform calculation
+    if (!isBinaryOutcome()) {
+      fitOK = skato.Fit(res, v, cov, genotype, weight, "C") == 0;
+    } else {
+      fitOK = skato.Fit(res, v, cov, genotype, weight, "D") == 0;
+    }
+    return 0;
+  }
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    fp->write("Q\trho\tPvalue\n");
+  }
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
+    if (!fitOK) {
+      fp->write("NA\tNA\tNA\n");
+    } else {
+      fp->printf("%g\t%g\t%g\n", this->skato.GetQ(), this->skato.GetRho(),
+                 this->skato.GetPvalue());
+    }
+  }
+
+ private:
+  bool needToFitNullModel;
+  double beta1;
+  double beta2;
+  Vector v;
+  Vector weight;
+  LogisticRegression logistic;
+  LinearRegression linear;
+  Vector ynull;
+  Vector res;  // residual under the null
+  SkatO skato;
+  bool fitOK;
+};  // SkatOTest
+
 class KBACTest : public ModelFitter {
  public:
   KBACTest(int nPerm, double alpha)
@@ -3483,39 +3600,62 @@ class MetaScoreTest : public ModelFitter {
   };
   class MetaUnrelatedBinary : public MetaBase {
    public:
+    MetaUnrelatedBinary() : useMLE(false) {}
     int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
       Matrix& phenotype = dc->getPhenotype();
       Matrix& covariate = dc->getCovariate();
 
       copyCovariateAndIntercept(genotype.rows, covariate, &this->cov);
       copyPhenotype(phenotype, &this->pheno);
+
+      if (!useMLE) {
+        // calculate alpha, b
+        int nCase = 0;
+        int nCtrl = 0;
+        for (int i = 0; i < phenotype.rows; ++i) {
+          if (phenotype[i][0] == 1) {
+            ++nCase;
+          } else if (phenotype[i][0] == 0) {
+            ++nCtrl;
+          }
+        }
+        if (nCtrl > 0) {
+          alpha = log(1.0 * nCase / nCtrl);
+        } else {
+          alpha = 500.;
+        }
+        calculateB();
+      }
+      // fit null model
       bool fitOK = logistic.FitNullModel(cov, pheno, 100);
       if (!fitOK) return -1;
       needToFitNullModel = false;
       return 0;
     }
     int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
-      // Matrix& phenotype = dc->getPhenotype();
-      Matrix& covariate = dc->getCovariate();
-
       bool fitOK = logistic.TestCovariate(cov, pheno, genotype);
       if (!fitOK) return -1;
-      // fit alternative model
-      if (covariate.cols) {
-        copyGenotypeWithCovariateAndIntercept(genotype, covariate, &this->X);
-      } else {
-        copyGenotypeWithIntercept(genotype, &this->X);
-      }
-      Vector& b_null = logistic.GetNullCovEst();
-      Vector b(b_null.Length() + 1);
-      for (int i = 0; i < b_null.Length(); ++i) {
-        b[i] = b_null[i];
-      }
-      b[b_null.Length()] = 0.0;
 
-      logisticAlt.SetInitialCovEst(b);
-      fitOK = logisticAlt.FitLogisticModel(this->X, this->pheno, 100);
-      if (!fitOK) return -1;
+      if (useMLE) {
+        // this part may be optimized by using approximations
+        // fit alternative model
+        Matrix& covariate = dc->getCovariate();
+        if (covariate.cols) {
+          copyGenotypeWithCovariateAndIntercept(genotype, covariate, &this->X);
+        } else {
+          copyGenotypeWithIntercept(genotype, &this->X);
+        }
+        Vector& b_null = logistic.GetNullCovEst();
+        Vector b(b_null.Length() + 1);
+        for (int i = 0; i < b_null.Length(); ++i) {
+          b[i] = b_null[i];
+        }
+        b[b_null.Length()] = 0.0;
+
+        logisticAlt.SetInitialCovEst(b);
+        fitOK = logisticAlt.FitLogisticModel(this->X, this->pheno, 100);
+        if (!fitOK) return -1;
+      }
       return 0;
     }
     double GetAF(Matrix& geno, DataConsolidator* dc) {
@@ -3542,14 +3682,30 @@ class MetaScoreTest : public ModelFitter {
     }
     double GetU() { return logistic.GetU()[0][0]; }
     double GetV() { return logistic.GetV()[0][0]; }
-    double GetEffect() { return logisticAlt.GetCovEst()[1]; }
+    double GetEffect() {
+      if (!useMLE) {
+        if (logistic.GetU()[0][0] != 0.0 && this->b != 0.0) {
+          return logistic.GetU()[0][0] / logistic.GetV()[0][0] / b;
+        }
+      } else {
+        return logisticAlt.GetCovEst()[1];
+      }
+      return 0.0;
+    }
     double GetPvalue() { return logistic.GetPvalue(); }
 
    private:
+    void calculateB();
+
+   private:
     LogisticRegressionScoreTest logistic;
-    LogisticRegression logisticAlt;
     Vector pheno;
     Matrix X;  // intercept, cov(optional) and genotype
+    double alpha;
+    double b;
+
+    bool useMLE;
+    LogisticRegression logisticAlt;
   };
 
   MetaBase* createModel(bool familyModel, bool binaryOutcome) {

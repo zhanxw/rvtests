@@ -40,7 +40,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: October 2015)
+(Updated: November 2015)
 
 # Introduction
 
@@ -201,7 +201,8 @@ Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | De
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 Score test     |  score    |B, Q  |     Y      |         U           | Only null model is used to performed the test
 Wald  test     |  wald     |B, Q  |     Y      |         U           | Only fit alternative model, and effect size will be estimated
-Exact test     |  exact    |B     |     N      |         U           | Fisher's test
+Exact test     |  exact    |B     |     N      |         U           | Fisher's test (allelic test)
+Dominant Exact test     |  dominantExact    |B     |     N      |         U           | Fisher's test (dominant codings)
 Fam LRT        |  famLRT   |Q     |     Y      |         R, U        | Fast-LMM model
 Fam Score      |  famScore |Q     |     Y      |         R, U        | Fast-LMM model style likelihood ratio test
 Grammar-gamma  |famGrammarGamma| Q     |     Y      |         R, U        | Grammar-gamma method
@@ -252,6 +253,7 @@ NOTE: our implementatino of Price's test diffs from the original method descrbie
 Kernel | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 SKAT     |  skat    |B, Q  |     Y      |         U           | Sequencing kernel association test by Shawn Lee.
+SKATO     |  skato    |B, Q  |     Y      |         U           | Optimal sequencing kernel association test (SKAT-O) by Shawn Lee. (###)
 KBAC     |  kbac     |B  |     N      |         U           | Kernel-based adaptive clustering model by Dajiang Liu.
 FamSKAT     |  famSkat    |Q  |     Y      |         R           | Sequencing kernel association test extended to related individuals by Han Chen.
 
@@ -262,7 +264,7 @@ beta distribution parameters for up-weighting rare variants. Rvtests will output
     [INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)
 
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
-
+(###) SKAT-O implementation may have slightly different results compared with SKAT R package due to numerical stability.
 
 ## Meta-analysis models
 

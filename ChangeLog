@@ -1,7 +1,18 @@
+2015-11-18  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+
+	* Add analytic SKAT-O model
+	* Clean codes
+
 2015-11-10  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
-	* Improve kinship calculation (--kinshipEigen) and clean codes
+	* Improve kinship calculation (--kinshipEigen)
 	* Improve dosage supports for both autosomes and X chromosomes
+	* Improve logistic regression speed in meta analysis
+	* Add allelic Fisher's exact test
+	* Add NumPolyVar in gene/set based tests
+	* Add pre-regression checkings
+	* Avoid SegFault when the data files are inaccessible
+	* Clean codes
 
 2015-10-07  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

@@ -115,7 +115,8 @@ void VCFInputFile::init(const char* fn) {
   FILE* fp = fopen(fn, "rb");
   if (!fp) {
     fprintf(stderr, "[ERROR] Cannot open file [ %s ]\n", fn);
-    return;
+    // quit to avoid segfault in the future
+    exit(1);
   }
   fclose(fp);
 

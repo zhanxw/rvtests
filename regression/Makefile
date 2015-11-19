@@ -24,6 +24,7 @@ BASE = LogisticRegression \
        MultivariateVT \
        FamSkat \
        cdflib \
+       SkatO \
 
 OBJ = $(BASE:%=%.o)
 

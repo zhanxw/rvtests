@@ -348,6 +348,8 @@ class BufferedReader : public AbstractFileReader {
     if (!this->fp) {
       fprintf(stderr, "Canont open file %s\n", fileName);
       this->fp = NULL;
+      // need to quit to prevent further actions
+      exit(1);
     }
   }
   virtual ~BufferedReader() { this->close(); }

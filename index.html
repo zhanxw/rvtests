@@ -78,7 +78,13 @@
 
 <ul>
 <li><a href="#sample-inclusionexclusion">Sample inclusion/exclusion</a></li>
-<li><a href="#variant-site-filters">Variant site filters</a></li>
+<li>
+<a href="#variant-site-filters">Variant site filters</a>
+
+<ul>
+<li><a href="#annotation">Annotation</a></li>
+</ul>
+</li>
 <li><a href="#genotype-filters">Genotype filters</a></li>
 <li><a href="#handle-missing-genotypes-and-phenotypes">Handle missing genotypes and phenotypes</a></li>
 <li><a href="#specify-groups-eg-burden-unit">Specify groups (e.g burden unit)</a></li>
@@ -86,7 +92,14 @@
 </li>
 <li><a href="#sex-chromosome-analysis">Sex chromosome analysis</a></li>
 <li><a href="#kinship-generation">Kinship generation</a></li>
-<li><a href="#resources">Resources</a></li>
+<li>
+<a href="#resources">Resources</a>
+
+<ul>
+<li><a href="#ucsc-refflat-genes">UCSC RefFlat Genes</a></li>
+<li><a href="#gencode-genes">Gencode Genes</a></li>
+</ul>
+</li>
 <li><a href="#frequently-asked-questions-faq">Frequently Asked Questions (FAQ)</a></li>
 <li><a href="#feedbackcontact">Feedback/Contact</a></li>
 </ul>
@@ -95,7 +108,7 @@
 
 <p><a href="https://travis-ci.org/zhanxw/rvtests"><img src="https://travis-ci.org/zhanxw/rvtests.png?branch=master" alt="Build Status"></a></p>
 
-<p>(Updated: August 2015)</p>
+<p>(Updated: November 2015)</p>
 
 <h1>
 <a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h1>
@@ -311,7 +324,15 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 <td align="center">B</td>
 <td align="center">N</td>
 <td align="center">U</td>
-<td align="left">Fisher's test</td>
+<td align="left">Fisher's test (allelic test)</td>
+</tr>
+<tr>
+<td align="left">Dominant Exact test</td>
+<td align="center">dominantExact</td>
+<td align="center">B</td>
+<td align="center">N</td>
+<td align="center">U</td>
+<td align="left">Fisher's test (dominant codings)</td>
 </tr>
 <tr>
 <td align="left">Fam LRT</td>
@@ -479,11 +500,19 @@ P5 P5 0 0 1 2.512 -3.085 -2.579 1
 </tr>
 <tr>
 <td align="left">Variable threshold model by analytic form</td>
-<td align="center">analyticVt</td>
+<td align="center">analytic</td>
+<td align="center">B, Q</td>
+<td align="center">Y</td>
+<td align="center">U</td>
+<td align="left">Every rare-variant frequency cutoffs are tests by Danyu Lin.</td>
+</tr>
+<tr>
+<td align="left">Variable threshold model by analytic form</td>
+<td align="center">famAnalytic</td>
 <td align="center">Q</td>
 <td align="center">Y</td>
-<td align="center">U,R</td>
-<td align="left">Every rare-variant frequency cutoffs are tests by Danyu Lin.</td>
+<td align="center">R</td>
+<td align="left">Every rare-variant frequency cutoffs are tests by Dajiang Liu.</td>
 </tr>
 </tbody>
 </table>
@@ -517,6 +546,14 @@ NOTE: our implementatino of Price's test diffs from the original method descrbie
 <td align="left">Sequencing kernel association test by Shawn Lee.</td>
 </tr>
 <tr>
+<td align="left">SKATO</td>
+<td align="center">skato</td>
+<td align="center">B, Q</td>
+<td align="center">Y</td>
+<td align="center">U</td>
+<td align="left">Optimal sequencing kernel association test (SKAT-O) by Shawn Lee. (###)</td>
+</tr>
+<tr>
 <td align="left">KBAC</td>
 <td align="center">kbac</td>
 <td align="center">B</td>
@@ -543,6 +580,8 @@ beta distribution parameters for up-weighting rare variants. Rvtests will output
 </code></pre>
 
 <p>(##) In trait column, B or Q stand for binary or quantitative trait, respectively.</p>
+
+<p>(###) SKAT-O implementation may have slightly different results compared with outputs from SKAT R package. That's probably due to numerical stability.</p>
 
 <h2>
 <a id="meta-analysis-models" class="anchor" href="#meta-analysis-models" aria-hidden="true"><span class="octicon octicon-link"></span></a>Meta-analysis models</h2>
@@ -694,9 +733,34 @@ Alternatively, use a separate file, <code>range.txt</code>, and <code>--rangeFil
               --annoType : Specify annotation type that is followed by ANNO= in the VCF INFO field, regular expression is allowed
 </code></pre>
 
-<p><em>NOTE</em>: <code>--annoType Nonsynonymous</code> will only analyze non-synonymous variants where they have <code>ANNO=Nonsynonymous</code> in the INFO field. 
-VCF with annotating information are called annotated VCF here. And to annotate 
-a VCF file, you can use <a href="https://github.com/zhanxw/anno">ANNO</a>, a fast and accurate annotation software.</p>
+<p><em>NOTE</em>: <code>--annoType</code> can filter variants based on regular expression.
+For example, <code>--annoType Nonsynonymous</code> will only analyze non-synonymous variants where they have <code>ANNO=Nonsynonymous</code> in the INFO field.
+To extract more than one annotation types, use <code>--annoType 'Start_Gain|Stop_Loss|Start_Loss|Essential_Splice_Site|Stop_Gain|Normal_Splice_Site|Synonymous|Nonsynonymous</code> will extract LOF (loss of function) mutations.
+To generate an annotated VCF file, please read on the next section <a href="#Annotation">Annotation</a>. </p>
+
+<h3>
+<a id="annotation" class="anchor" href="#annotation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Annotation</h3>
+
+<p>We define a VCF file with annotating information as an annotated VCF here.
+The annotation step can be done using <a href="https://github.com/zhanxw/anno">ANNO</a>, a fast and accurate annotation software.
+At minimal, there are two steps to annotate a VCF file:</p>
+
+<ol>
+<li>
+<p>Install ANNO and its resources files</p>
+
+<p>git clone <a href="https://github.com/zhanxw/anno.git">https://github.com/zhanxw/anno.git</a>
+cd anno; make
+cd resources; ./download.sh</p>
+</li>
+<li>
+<p>Run the following script:</p>
+
+<p>anno -i input.vcf -o output.vcf.gz -r anno/resources/hs37d5.fa -g anno/resources/refFlat_hg19.txt.gz -p anno/priority.txt -c anno/codon.txt --indexOutput</p>
+</li>
+</ol>
+
+<p>You will then obtain an annotated VCF file <code>output.vcf.gz</code> and its tabix index <code>output.vcf.gz.tbi</code>.</p>
 
 <h2>
 <a id="genotype-filters" class="anchor" href="#genotype-filters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Genotype filters</h2>
@@ -889,6 +953,13 @@ However, this should rarely happen. Please contact us if you have further questi
 For example, in quantitative trait anlaysis, Q is divided by (2 * \hat{sigma2}) in the R package, but not in rvtests.
 Although Q values can be different, the P-values from the two software packges should match (only in rare cases, numerical accrucy may cause minor differences).</p>
 
+<ul>
+<li>How rvtests handle multi-allelic variants?</li>
+</ul>
+
+<p>In rvtests, we focus on bi-allelic, and thus treat multi-allelic variants as bi-allelic variants. Any genotype that includes other than reference allele and the first alternative allele will be treated as missing.
+For example, genotyep '0/2' will be treated as missing.</p>
+
 <h1>
 <a id="feedbackcontact" class="anchor" href="#feedbackcontact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Feedback/Contact</h1>
 
@@ -901,7 +972,7 @@ Goncalo Abecasis (<a href="mailto:goncalo@umich.edu" title="mailto:goncalo@umich
 
 <p>Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.</p>
 
-<p>Among rvtests users who have provided many valuable feedbacks or comments, we want to thank: Xueling Sim, Scott Verize, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, the GIANT consoritum and the GLGC consortium.</p>
+<p>We wawnt to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, and the GIANT consoritum and the GLGC consortium.</p>
         </section>
 
         <aside id="sidebar">

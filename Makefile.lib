@@ -17,6 +17,8 @@ $(BZIP2_INC) $(BZIP2_LIB):
 	$(MAKE) -C $(ROOT)/third bzip2
 $(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
 	$(MAKE) -C $(ROOT)/third samtools
+$(RAPIDJSON_INC):
+	$(MAKE) -C $(ROOT)/third rapidjson
 
 ## our libs
 $(BASE_LIB):

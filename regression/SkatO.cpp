@@ -56,14 +56,10 @@ class SkatO::SkatOImpl {
     }
   }
   void Reset() { this->pValue = -999.0; };
-  void setBinaryOutcome() {
-    this->binaryOutcome = true;
-  }
-  void setQuantitativeOutcome() {
-    this->binaryOutcome = false;
-  }
+  void setBinaryOutcome() { this->binaryOutcome = true; }
+  void setQuantitativeOutcome() { this->binaryOutcome = false; }
   bool isBinary() { return binaryOutcome; }
-  
+
   int Fit(Vector& res_G,  // residual under NULL
           Vector& v_G,    // variance under NULL
           Matrix& X_G,    // covariance
@@ -113,8 +109,8 @@ class SkatO::SkatOImpl {
       Eigen::VectorXd v_sqrt = v.cwiseSqrt();
       Z1 = v_sqrt.asDiagonal() * G -
            v_sqrt.asDiagonal() * X *
-               (X.transpose() * v_sqrt.asDiagonal() * X).ldlt().solve(
-                   X.transpose() * v_sqrt.asDiagonal() * G);
+               (X.transpose() * v.asDiagonal() * X).ldlt().solve(
+                   X.transpose() * v.asDiagonal() * G);
     }
     Z1 = Z1 / sqrt(2);  // follow SKAT R package convention (divides sqrt{2})
 
@@ -126,14 +122,6 @@ class SkatO::SkatOImpl {
       Eigen::MatrixXd Z2 = Z1 * chol.matrixL();
       Eigen::MatrixXd K = Z2.transpose() * Z2;
       getEigen(K, &lambdas[i]);
-
-      if (i == 1) {
-        Eigen::MatrixXd L = chol.matrixL();
-        dumpEigen("R_rhos", R_rhos[i]);
-        dumpEigen("chol.L", L);
-        dumpEigen("Z2", Z2);
-        dumpEigen("K", K);
-      }
     }
 
     // calculate some parameters (for Z(I-M)Z part)
@@ -194,8 +182,9 @@ class SkatO::SkatOImpl {
     // integrate
     Integration integration;
     integration.setEpsAbs(1e-25);
-    integration.setEpsRel(0.0001220703);  // this is R defaults for epsrel =
-                                          // .Machine$double.eps^0.25
+    integration.setEpsRel(
+        0.0001220703);  // this is the default value of epsrel in R
+                        // .Machine$double.eps^0.25
     gsl_function F;
     F.function = integrandDavies;
     F.params = this;
@@ -382,7 +371,7 @@ class SkatO::SkatOImpl {
 
  private:
   bool binaryOutcome;
-  
+
   Eigen::VectorXd res;  // residual
   Eigen::VectorXd v;
   Eigen::MatrixXd X;
@@ -421,16 +410,15 @@ SkatO::SkatO() { this->skatoImpl = new SkatOImpl; }
 SkatO::~SkatO() { delete this->skatoImpl; }
 void SkatO::Reset() { this->skatoImpl->Reset(); }
 
-int SkatO::Fit(
-    Vector& res_G,    // residual under NULL
-    Vector& v_G,      // variance under NULL
-    Matrix& X_G,      // covariance
-    Matrix& G_G,      // genotype
-    Vector& w_G,      // weight
-    const char* type  // response type
-    ) {
+int SkatO::Fit(Vector& res_G,    // residual under NULL
+               Vector& v_G,      // variance under NULL
+               Matrix& X_G,      // covariance
+               Matrix& G_G,      // genotype
+               Vector& w_G,      // weight
+               const char* type  // response type
+               ) {
   if (!type) return -1;
-  switch(type[0]) {
+  switch (type[0]) {
     case 'D':
       this->skatoImpl->setBinaryOutcome();
       break;

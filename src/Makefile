@@ -81,7 +81,7 @@ DataLoader.o: DataLoader.cpp DataLoader.h
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 -include KinshipHolder.d
-KinshipHolder.o: KinshipHolder.cpp KinshipHolder.h
+KinshipHolder.o: KinshipHolder.cpp KinshipHolder.h $(RAPIDJSON_INC)
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
 ##################################################

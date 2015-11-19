@@ -29,3 +29,13 @@ int Integration::integrate(gsl_function F) {
   }
   return ret;
 }
+
+int Integration::integrateLU(gsl_function F, double lb, double ub) {
+  // https://www.gnu.org/software/gsl/manual/html_node/QAGI-adaptive-integration-on-infinite-intervals.html#QAGI-adaptive-integration-on-infinite-intervals
+  int ret = gsl_integration_qags(&F, lb, ub, epsabs, epsrel, limit, workspace,
+                                 &result, &abserr);
+  if (ret) {
+    fprintf(stderr, "Integration failed with error [ %s ]", gsl_strerror(ret));
+  }
+  return ret;
+}

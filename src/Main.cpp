@@ -1068,6 +1068,7 @@ int main(int argc, char** argv) {
         logger->info("Gene %s has 0 variants, skipping", geneName.c_str());
         continue;
       }
+
       variantProcessed += genotype.cols;  // genotype is people by marker
       dc.consolidate(phenotypeMatrix, covariate, genotype);
 

@@ -45,21 +45,48 @@ class SkatO::SkatOImpl {
  public:
   SkatOImpl() {
     for (int i = 0; i <= 10; ++i) {
-      rhos.push_back(1.0 * i / 10);
+      rhosOriginal.push_back(1.0 * i / 10);
     }
-    this->nRho = rhos.size();
-    // cap max(rho) to 0.999 to avoid rank-deficiency
-    for (int i = 0; i < nRho; ++i) {
-      if (rhos[i] > 0.999) {
-        rhos[i] = 0.999;
-      }
-    }
+    this->nRho = rhosOriginal.size();
   }
+
   void Reset() { this->pValue = -999.0; };
   void setBinaryOutcome() { this->binaryOutcome = true; }
   void setQuantitativeOutcome() { this->binaryOutcome = false; }
   bool isBinary() { return binaryOutcome; }
 
+  int FitSKAT(Eigen::VectorXd res,  // residual under NULL
+              Eigen::VectorXd v,    // variance under NULL
+              Eigen::MatrixXd X,    // covariance
+              Eigen::MatrixXd G,    // genotype
+              Eigen::VectorXd w)    // weight
+  {
+    this->rho = 0;
+
+    G = G * w.asDiagonal();
+    Eigen::MatrixXd temp = res.transpose() * G;
+    this->Q = (temp * temp.transpose())(0, 0);
+
+    if (!isBinary()) {
+      double s2 = res.squaredNorm() / (nPeople - 1);
+      this->Q /= s2;
+    }
+    this->Q /= 2.;
+
+    // SKAT R:
+    // W.1 = t(Z) %*% Z - (t(Z) %*% X1)%*%solve(t(X1) %*% X1) %*% *(t(X1) %*% Z) # t (Z) P0 Z
+    // calculate Z1
+    if (!isBinary()) {
+      W = G.transpose() * G - (G.transpose() * X) * (X.transpose() * X).ldlt().solve(X.transpose() * G);
+    } else {
+      W = G.transpose() * v.asDiagonal() * G - (G.transpose()* v.asDiagonal() * X) * (X.transpose() * v.asDiagonal()* X).ldlt().solve(X.transpose() * v.asDiagonal()* G);
+    }
+    W = W / 2; // follow SKAT R package convension to divide 2 here.
+    getEigen(W, &lambda);
+    this->pValue = getPvalDavies(Q, lambda);
+    return 0;
+  }
+  
   int Fit(Vector& res_G,  // residual under NULL
           Vector& v_G,    // variance under NULL
           Matrix& X_G,    // covariance
@@ -77,6 +104,12 @@ class SkatO::SkatOImpl {
     G_to_Eigen(G_G, &this->G);
     G_to_Eigen(w_G, &this->w);
 
+    if (G.cols() == 1) {
+      return FitSKAT(res, v, X, G, w);
+    }
+    // avoid rho = 1.0
+    capRhos();
+    
     G = G * w.asDiagonal();
 
     // set up R_rho
@@ -213,6 +246,8 @@ class SkatO::SkatOImpl {
         }
       }
     }
+
+    uncapRhos();
     return 0;
   }
 
@@ -369,6 +404,27 @@ class SkatO::SkatOImpl {
     return q;
   }
 
+  void capRhos() {
+    // cap max(rho) to 0.999 to avoid rank-deficiency
+    rhos.resize(nRho);
+    for (int i = 0; i < nRho; ++i) {
+      if (rhosOriginal[i] > 0.999) {
+        rhos[i] = 0.999;
+      } else {
+        rhos[i] = rhosOriginal[i];
+      }
+    }
+  }
+  void uncapRhos() {
+    // cap max(rho) to 0.999 to avoid rank-deficiency
+    for (int i = 0; i < nRho; ++i) {
+      rhos[i] = rhosOriginal[i];
+    }
+    if (this->rho >= 0.999) {
+      this->rho = 1.;
+    }
+  }
+  
  private:
   bool binaryOutcome;
 
@@ -378,8 +434,10 @@ class SkatO::SkatOImpl {
   Eigen::MatrixXd G;
   Eigen::VectorXd w;  // residual
 
+  Eigen::MatrixXd W;  // for SKAT calculation
   Eigen::MatrixXd Z1;
   std::vector<double> rhos;
+  std::vector<double> rhosOriginal;  
   std::vector<Eigen::MatrixXd> R_rhos;
   std::vector<Eigen::MatrixXd> lambdas;
   std::vector<Moment> moments;

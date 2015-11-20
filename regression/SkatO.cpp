@@ -189,7 +189,16 @@ class SkatO::SkatOImpl {
     F.function = integrandDavies;
     F.params = this;
     if (integration.integrateLU(F, 0., 40.)) {
+#ifdef DEBUG
       fprintf(stderr, "%s:%d integration failed\n", __FILE__, __LINE__);
+#endif
+      F.function = integrandLiu;
+      F.params = this;
+      if (integration.integrateLU(F, 0., 40.)) {
+#ifdef DEBUG
+        fprintf(stderr, "%s:%d integration failed\n", __FILE__, __LINE__);
+#endif
+      }
     };
     this->pValue = 1.0 - integration.getResult();
 

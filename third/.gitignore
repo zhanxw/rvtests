@@ -6,3 +6,4 @@ zlib*
 gsl*
 samtools*
 nlopt*
+rapidjson*

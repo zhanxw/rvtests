@@ -74,19 +74,25 @@ class SkatO::SkatOImpl {
     this->Q /= 2.;
 
     // SKAT R:
-    // W.1 = t(Z) %*% Z - (t(Z) %*% X1)%*%solve(t(X1) %*% X1) %*% *(t(X1) %*% Z) # t (Z) P0 Z
+    // W.1 = t(Z) %*% Z - (t(Z) %*% X1)%*%solve(t(X1) %*% X1) %*% *(t(X1) %*% Z)
+    // # t (Z) P0 Z
     // calculate Z1
     if (!isBinary()) {
-      W = G.transpose() * G - (G.transpose() * X) * (X.transpose() * X).ldlt().solve(X.transpose() * G);
+      W = G.transpose() * G -
+          (G.transpose() * X) *
+              (X.transpose() * X).ldlt().solve(X.transpose() * G);
     } else {
-      W = G.transpose() * v.asDiagonal() * G - (G.transpose()* v.asDiagonal() * X) * (X.transpose() * v.asDiagonal()* X).ldlt().solve(X.transpose() * v.asDiagonal()* G);
+      W = G.transpose() * v.asDiagonal() * G -
+          (G.transpose() * v.asDiagonal() * X) *
+              (X.transpose() * v.asDiagonal() * X).ldlt().solve(
+                  X.transpose() * v.asDiagonal() * G);
     }
-    W = W / 2; // follow SKAT R package convension to divide 2 here.
+    W = W / 2;  // follow SKAT R package convension to divide 2 here.
     getEigen(W, &lambda);
     this->pValue = getPvalDavies(Q, lambda);
     return 0;
   }
-  
+
   int Fit(Vector& res_G,  // residual under NULL
           Vector& v_G,    // variance under NULL
           Matrix& X_G,    // covariance
@@ -109,7 +115,7 @@ class SkatO::SkatOImpl {
     }
     // avoid rho = 1.0
     capRhos();
-    
+
     G = G * w.asDiagonal();
 
     // set up R_rho
@@ -433,7 +439,7 @@ class SkatO::SkatOImpl {
       this->rho = 1.;
     }
   }
-  
+
  private:
   bool binaryOutcome;
 
@@ -446,7 +452,7 @@ class SkatO::SkatOImpl {
   Eigen::MatrixXd W;  // for SKAT calculation
   Eigen::MatrixXd Z1;
   std::vector<double> rhos;
-  std::vector<double> rhosOriginal;  
+  std::vector<double> rhosOriginal;
   std::vector<Eigen::MatrixXd> R_rhos;
   std::vector<Eigen::MatrixXd> lambdas;
   std::vector<Moment> moments;

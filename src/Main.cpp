@@ -252,8 +252,6 @@ int main(int argc, char** argv) {
   ADD_PARAMETER_GROUP(pl, "Specify Genotype")
   ADD_STRING_PARAMETER(pl, dosageTag, "--dosage",
                        "Specify which dosage tag to use. (e.g. EC or DS)")
-  // ADD_STRING_PARAMETER(pl, glTag, "--gl", "Specify which genotype likelihood
-  // tag to use. (e.g. GL)")
 
   ADD_PARAMETER_GROUP(pl, "Chromosome X Options")
   ADD_STRING_PARAMETER(pl, xLabel, "--xLabel",
@@ -291,8 +289,6 @@ int main(int argc, char** argv) {
   ADD_INT_PARAMETER(
       pl, siteDepthMax, "--siteDepthMax",
       "Specify maximum depth(inclusive) to be included in analysis")
-  // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum
-  // Minor Allele Frequency to be included in analysis")
   ADD_INT_PARAMETER(pl, siteMACMin, "--siteMACMin",
                     "Specify minimum Minor Allele Count(inclusive) to be "
                     "included in analysis")
@@ -436,9 +432,6 @@ int main(int argc, char** argv) {
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 
-  // const char* fn = FLAG_inVcf.c_str();
-  // VCFExtractor* pVin = new VCFExtractor(fn);
-  // VCFExtractor& vin = *pVin;
   GenotypeExtractor ge(FLAG_inVcf);
 
   // set range filters here
@@ -470,10 +463,6 @@ int main(int argc, char** argv) {
     ge.setAnnoType(FLAG_annoType.c_str());
     logger->info("Set annotype type filter to %s", FLAG_annoType.c_str());
   }
-
-  // add filters. e.g. put in VCFInputFile is a good method
-  // site: DP, MAC, MAF (T3, T5)
-  // indv: GD, GQ
 
   std::map<std::string, double> phenotype;
   if (FLAG_pheno.empty()) {
@@ -687,11 +676,6 @@ int main(int argc, char** argv) {
         Vector pheno;
         Matrix covAndInt;
         copy(phenotypeInOrder, &pheno);
-        // centerVector(&phenotypeInOrder);
-        // pheno.Dimension(phenotypeInOrder.size());
-        // for (size_t i = 0; i < phenotypeInOrder.size(); ++i){
-        //   pheno[(int)i] = phenotypeInOrder[i];
-        // }
         copyCovariateAndIntercept(covariate.rows, covariate, &covAndInt);
         if (!lr.FitLinearModel(covAndInt, pheno)) {
           logger->error(
@@ -724,9 +708,6 @@ int main(int argc, char** argv) {
       logger->info("Now applying inverse normalize transformation.");
       inverseNormalizeLikeMerlin(&phenotypeInOrder);
       g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
-      // g_SummaryHeader->recordPhenotype("TransformedTrait", phenotypeInOrder);
-      // standardize(&phenotypeInOrder);
-      // logger->info("DONE: centering to 0.0 and scaling to 1.0 finished.");
       logger->info("DONE: inverse normal transformation finished.");
     }
   }
@@ -736,8 +717,6 @@ int main(int argc, char** argv) {
     logger->fatal("There are 0 samples with valid phenotypes, quitting...");
     exit(1);
   }
-
-  // g_SummaryHeader->fitModel(phenotypeInOrder, binaryPhenotype, covariate);
 
   logger->info("Analysis begins with [ %zu ] samples...",
                phenotypeInOrder.size());
@@ -925,8 +904,6 @@ int main(int argc, char** argv) {
   dc.preRegressionCheck(phenotypeMatrix, covariate);
   
   logger->info("Analysis started");
-  // std::string buf; // we put site sinformation here
-  // buf.resize(1024);
   Result& buf = dc.getResult();
 
   // we have three modes:

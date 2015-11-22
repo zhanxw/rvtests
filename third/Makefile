@@ -85,8 +85,7 @@ nlopt-2.4.2.tar.gz:
 
 rapidjson-1.0.2.tar.gz:
 	echo "obtain rapidjson"
-	$(call DOWNLOAD,https://github.com/miloyip/rapidjson/archive/v1.0.2.tar.gz)
-	mv v1.0.2.tar.gz rapidjson-1.0.2.tar.gz
+	$(call DOWNLOAD_RENAME,https://github.com/miloyip/rapidjson/archive/v1.0.2.tar.gz,$@)
 
 clean:
 	-rm -rf $(LIB)

@@ -13,8 +13,8 @@
 #include "MathMatrix.h"
 #include "MixtureChiSquare.h"
 
-#define DEBUG
-// #undef DEBUG
+// #define DEBUG
+#undef DEBUG
 #ifdef DEBUG
 #include <fstream>
 template <class T>
@@ -25,7 +25,7 @@ void dumpEigen(const char* fn, T& m) {
 }
 template <class T>
 void printEigen(T& m) {
-  std::ostream k;
+  std::ofstream k;
   k << m;
 }
 #endif

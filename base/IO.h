@@ -86,7 +86,8 @@ class PlainFileReader : public AbstractFileReader {
   FILE* open(const char* fileName) {
     this->fp = fopen(fileName, "r");
     if (!this->fp) {
-      fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
+      fprintf(stderr, "ERROR: Cannot open file %s\n", fileName);
+      this->close();
     }
     return this->fp;
   }
@@ -131,7 +132,8 @@ class GzipFileReader : public AbstractFileReader {
   gzFile open(const char* fileName) {
     this->fp = gzopen(fileName, "r");
     if (!this->fp) {
-      fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
+      fprintf(stderr, "ERROR: Cannot open gzip file %s\n", fileName);
+      this->close();
     }
     return this->fp;
   }
@@ -186,14 +188,16 @@ class Bzip2FileReader : public AbstractFileReader {
   BZFILE* open(const char* fileName) {
     this->fp = fopen(fileName, "rb");
     if (!this->fp) {
-      fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
+      fprintf(stderr, "ERROR: Cannot open file %s\n", fileName);
+      this->close();
       return NULL;
     }
     this->bzp = BZ2_bzReadOpen(&this->bzerror, this->fp, 0, 0, NULL, 0);
 
     if (this->bzerror != BZ_OK) {
       BZ2_bzReadClose(&bzerror, this->bzp);
-      fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
+      fprintf(stderr, "ERROR: Cannot open bzip2 file %s\n", fileName);
+      this->close();
       return NULL;
     }
     return this->bzp;
@@ -241,14 +245,23 @@ class KnetFileReader : public AbstractFileReader {
 
   // get a char, if EOF, return EOF
   int getc() {
-    if (bgzfMode)
-      return bgzf_getc(this->bgzf_fp);
+    if (bgzfMode) return bgzf_getc(this->bgzf_fp);
     char c;
     knet_read(this->knet_fp, &c, 1);
     return c;
   }
   // check eof
   bool isEof() {
+    if (bgzfMode) {
+      if (!this->bgzf_fp) {
+        return true;
+      }
+    } else {
+      if (!knet_fp) {
+        return true;
+      }
+    }
+
     // this is always false, as we don't know the exact file size
     return false;
 
@@ -261,21 +274,24 @@ class KnetFileReader : public AbstractFileReader {
     size_t l = strlen(fileName);
     if (l > 3 && !strcmp(fileName + l - 3, ".gz")) {
       bgzfMode = true;
-    }  else {
+    } else {
       bgzfMode = false;
     }
 
     if (bgzfMode) {
       this->bgzf_fp = bgzf_open(fileName, "r");
       if (!this->bgzf_fp) {
-        fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
+        fprintf(stderr, "ERROR: Cannot open knetfile in bgzf mode: %s\n",
+                fileName);
+        this->close();
       }
       return this->bgzf_fp;
     }
 
     this->knet_fp = knet_open(fileName, "r");
     if (!this->knet_fp) {
-      fprintf(stderr, "ERROR: Cannot open %s\n", fileName);
+      fprintf(stderr, "ERROR: Cannot open knetfile: %s\n", fileName);
+      this->close();
     }
     return this->knet_fp;
   }
@@ -293,9 +309,8 @@ class KnetFileReader : public AbstractFileReader {
     }
   }
   int read(void* buf, int len) {
-    if (bgzfMode)
-      return bgzf_read(this->bgzf_fp, buf, len);
-    return knet_read(this->knet_fp, buf,len);
+    if (bgzfMode) return bgzf_read(this->bgzf_fp, buf, len);
+    return knet_read(this->knet_fp, buf, len);
   }
 
  private:
@@ -365,6 +380,7 @@ class BufferedReader : public AbstractFileReader {
       return EOF;
   }
   bool isEof() {
+    // fp reaches the end and read buffer reaches the end
     if (this->fp && this->fp->isEof() && this->bufPtr == this->bufEnd) {
       return true;
     }
@@ -721,7 +737,8 @@ class BufferedFileWriter : public AbstractFileWriter {
     this->buf = new char[bufLen + 1];  // last char in the buffer is always '\0'
     // that help to use fputs()
     if (!this->buf) {
-      fprintf(stderr, "%s:%d Cannot create BufferedFileWriter\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s:%d Cannot create BufferedFileWriter\n", __FILE__,
+              __LINE__);
       exit(1);
     }
     this->buf[bufLen] = '\0';
@@ -916,7 +933,8 @@ class FileWriter {
     delete[] this->buf;
     this->buf = new char[newBufLen];
     if (!this->buf) {
-      fprintf(stderr, "%s:%d Cannot increase printf buffer for FileWriter.\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s:%d Cannot increase printf buffer for FileWriter.\n",
+              __FILE__, __LINE__);
       exit(1);
     }
     this->bufLen = newBufLen;

@@ -10,7 +10,7 @@
 #include "base/CommonFunction.h"
 #include "base/IO.h"
 #include "base/Logger.h"
-#define _USE_CXX11
+#define _USE_CXX11  // use C++11 timer
 #include "base/SimpleTimer.h"
 #include "base/TypeConversion.h"
 
@@ -106,7 +106,7 @@ int KinshipHolder::load() {
   // load kinship eigen file
   bool isDecomposed = false;
   if (this->eigenFileName.size() && fileExists(this->eigenFileName)) {
-    timer.restart();
+    timer.start();
     ret = loadDecomposed();
     if (!ret) {
       logger->info(
@@ -121,7 +121,7 @@ int KinshipHolder::load() {
     }
   }
   if (!isDecomposed) {
-    timer.restart();
+    timer.start();
     ret = decompose();
 
     if (ret) {
@@ -136,7 +136,7 @@ int KinshipHolder::load() {
   }
 
   if (!fileExists(this->eigenFileName) && this->eigenFileName.size()) {
-    timer.restart();
+    timer.start();
     ret = saveDecomposed();
     if (ret) {
       logger->error("Cannot store spectral decomposition results [ %s ]",

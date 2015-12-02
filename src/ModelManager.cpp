@@ -78,8 +78,8 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new MadsonBrowningTest(nPerm, alpha));
       logger->info(
           "MadsonBrowning test significance will be evaluated using %d "
-          "permutations",
-          nPerm);
+          "permutations at alpha = %g",
+          nPerm, alpha);
     } else if (modelName == "exactcmc") {
       model.push_back(new CMCFisherExactTest);
     } else if (modelName == "fp") {
@@ -89,14 +89,15 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new RareCoverTest(nPerm, alpha));
       logger->info(
           "Rare cover test significance will be evaluated using %d "
-          "permutations",
-          nPerm);
+          "permutations at alpha = %g",
+          nPerm, alpha);
     } else if (modelName == "cmat") {
       parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
       model.push_back(new CMATTest(nPerm, alpha));
       logger->info(
-          "cmat test significance will be evaluated using %d permutations",
-          nPerm);
+          "cmat test significance will be evaluated using %d permutations at "
+          "alpha = %g",
+          nPerm, alpha);
     } else if (modelName == "cmcwald") {
       model.push_back(new CMCWaldTest);
     } else if (modelName == "zegginiwald") {
@@ -119,8 +120,8 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new VariableThresholdPrice(nPerm, alpha));
       logger->info(
           "Price's VT test significance will be evaluated using %d "
-          "permutations",
-          nPerm);
+          "permutations at alpha = %g",
+          nPerm, alpha);
     } else if (modelName == "zeggini") {
       // TODO
       logger->error("Not yet implemented.");
@@ -160,14 +161,16 @@ int ModelManager::create(const std::string& modelType,
       parser.assign("nPerm", &nPerm, 10000).assign("alpha", &alpha, 0.05);
       model.push_back(new KBACTest(nPerm, alpha));
       logger->info(
-          "KBAC test significance will be evaluated using %d permutations",
-          nPerm);
+          "KBAC test significance will be evaluated using %d permutations at "
+          "alpha = %g",
+          nPerm, alpha);
     } else if (modelName == "famskat") {
       double beta1, beta2;
       parser.assign("beta1", &beta1, 1.0).assign("beta2", &beta2, 25.0);
       model.push_back(new FamSkatTest(beta1, beta2));
       logger->info(
-          "SKAT test significance will be evaluated using weight = Beta(beta1 "
+          "FamSKAT test significance will be evaluated using weight = "
+          "Beta(beta1 "
           "= %.2f, beta2 = %.2f)",
           beta1, beta2);
     } else {

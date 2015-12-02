@@ -280,6 +280,7 @@ class SingleVariantScoreTest : public ModelFitter {
           warnOnce("Single variant score test failed in fitting null model.");
           return -1;
         }
+        calculateConstant(phenotype);
         needToFitNullModel = false;
       }
       fitOK = logistic.TestCovariate(cov, pheno, genotype);
@@ -289,14 +290,14 @@ class SingleVariantScoreTest : public ModelFitter {
 
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
-    /* if (g_SummaryHeader) { */
-    /*   g_SummaryHeader->outputHeader(fp); */
-    /* } */
     siteInfo.writeHeaderTab(fp);
-    // fprintf(fp, "AF\tStat\tDirection\tPvalue\n");
     result.addHeader("AF");
+    result.addHeader("U");
+    result.addHeader("V");
     result.addHeader("STAT");
     result.addHeader("DIRECTION");
+    result.addHeader("EFFECT");
+    result.addHeader("SE");
     result.addHeader("PVALUE");
     result.writeHeaderLine(fp);
   }
@@ -307,19 +308,41 @@ class SingleVariantScoreTest : public ModelFitter {
     result.updateValue("AF", af);
     if (fitOK) {
       if (!isBinaryOutcome()) {
+        const double u = linear.GetU()[0][0];
+        const double v = linear.GetV()[0][0];
+        result.updateValue("U", u);
+        result.updateValue("V", v);
         result.updateValue("STAT", linear.GetStat());
-        result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" : "-");
+        if (u != 0) {
+          result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" : "-");
+        }
+        if (v > 0) {
+          result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+          result.updateValue("SE", 1.0 / sqrt(v));
+        }
         result.updateValue("PVALUE", linear.GetPvalue());
       } else {
+        const double u = logistic.GetU()[0][0];
+        const double v = logistic.GetV()[0][0];
+        result.updateValue("U", u);
+        result.updateValue("V", v);
         result.updateValue("STAT", logistic.GetStat());
-        result.updateValue("DIRECTION", logistic.GetU()[0][0] > 0 ? "+" : "-");
+        if (u != 0) {
+          result.updateValue("DIRECTION",
+                             logistic.GetU()[0][0] > 0 ? "+" : "-");
+        }
+        if (v > 0 && b > 0) {
+          result.updateValue("EFFECT", u / v / b);
+          result.updateValue("SE", 1.0 / sqrt(v) / b);  // need to verify
+        }
         result.updateValue("PVALUE", logistic.GetPvalue());
       }
     }
     result.writeValueLine(fp);
   }
-
+  void calculateConstant(Matrix& phenotype);
  private:
+  double b; // a constant
   double af;
   int nSample;
   Vector pheno;
@@ -1934,7 +1957,6 @@ class VTCMC : public ModelFitter {
     Matrix& covariate = dc->getCovariate();
 
     copy(phenotype, &this->pheno);
-    // Vector& weight = dc->getWeight();
 
     if (genotype.cols == 0) {
       fitOK = false;
@@ -2582,8 +2604,9 @@ class SkatTest : public ModelFitter {
     Matrix& phenotype = dc->getPhenotype();
     Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
-    Vector& weight = dc->getWeight();
-
+    // not use dc->getWeight(), but use model specific weight
+    // Vector& weight = dc->getWeight();
+    
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -2738,7 +2761,8 @@ class SkatOTest : public ModelFitter {
     Matrix& phenotype = dc->getPhenotype();
     Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
-    Vector& weight = dc->getWeight();
+    // not use dc->getWeight(), but use model specific weight
+    // Vector& weight = dc->getWeight();
 
     if (genotype.cols == 0) {
       fitOK = false;
@@ -3008,7 +3032,8 @@ class FamSkatTest : public ModelFitter {
     Matrix& phenotype = dc->getPhenotype();
     Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
-    Vector& weight = dc->getWeight();
+    // not use dc->getWeight(), but use model specific weight
+    // Vector& weight = dc->getWeight();
 
     if (genotype.cols == 0) {
       fitOK = false;
@@ -3081,6 +3106,7 @@ class FamSkatTest : public ModelFitter {
   }
 
  private:
+  Vector weight;
   bool needToFitNullModel;
   double beta1;
   double beta2;
@@ -3109,6 +3135,7 @@ class MetaScoreTest : public ModelFitter {
     isHemiRegion = false;
     headerOutputted = false;
     indexResult = true;
+    outputSE = false;
   }
   virtual ~MetaScoreTest() {
     if (modelAuto) {
@@ -3122,6 +3149,7 @@ class MetaScoreTest : public ModelFitter {
   }
   virtual int setParameter(const ModelParser& parser) {
     this->outputGwama = parser.hasTag("gwama");
+    this->outputSE = parser.hasTag("se");
     return 0;
   }
   // fitting model
@@ -3217,6 +3245,9 @@ class MetaScoreTest : public ModelFitter {
     result.addHeader("U_STAT");
     result.addHeader("SQRT_V_STAT");
     result.addHeader("ALT_EFFSIZE");
+    if (outputSE) {
+      result.addHeader("ALT_EFFSIZE_SE");
+    }
     result.addHeader("PVALUE");
     return;
   }
@@ -3244,7 +3275,6 @@ class MetaScoreTest : public ModelFitter {
     }
 
     siteInfo.writeValueTab(fp);
-    // int informativeAC = het + 2 * homAlt;
 
     result.clearValue();
     if (af >= 0.0) {
@@ -3293,9 +3323,14 @@ class MetaScoreTest : public ModelFitter {
     }
 
     if (fitOK) {
-      result.updateValue("U_STAT", model->GetU());
-      result.updateValue("SQRT_V_STAT", sqrt(model->GetV()));
+      const double u = model->GetU();
+      const double v = model->GetV();
+      result.updateValue("U_STAT", u);
+      result.updateValue("SQRT_V_STAT", sqrt(v));
       result.updateValue("ALT_EFFSIZE", model->GetEffect());
+      if (outputSE && v > 0.) {
+        result.updateValue("ALT_EFFSIZE_SE", 1.0 / sqrt(v));        
+      }
       result.updateValue("PVALUE", model->GetPvalue());
     }
     result.writeValueLine(fp);
@@ -3749,6 +3784,7 @@ class MetaScoreTest : public ModelFitter {
   bool isHemiRegion;  // is the variant tested in hemi region?
   bool headerOutputted;
   bool outputGwama;
+  bool outputSE;
 };  // MetaScoreTest
 
 class MetaDominantTest : public MetaScoreTest {
@@ -4131,27 +4167,12 @@ class MetaCovTest : public ModelFitter {
       Matrix& covariate = dc->getCovariate();
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
-      const int nSample = genotype.rows;
-      double s = 0;
-      double s2 = 0;
-      for (int i = 0; i < nSample; ++i) {
-        s += phenotype[i][0];
-        s2 += phenotype[i][0] * phenotype[i][0];
+      bool fitOK = linear.FitLinearModel(cov, phenotype);
+      if (!fitOK) {
+        return -1;
       }
-      this->sigma2 = (s2 - s * s / nSample) / nSample;
-      // fprintf(stderr, "sigma2 = %g\n", sigma2);
 
-      // if (sigma2 != 0) {
-      //   for (int i = 0; i < nSample; ++i) {
-      //     weight[i] = 1.0 / sigma2;  // mleVarY
-      //   }
-      // } else {
-      //   fprintf(stderr, "sigma2 = 0.0 for the phenotype!\n");
-      //   for (int i = 0; i < nSample; ++i) {
-      //     weight[i] = 1.0;
-      //   }
-      // }
-
+      sigma2 = linear.GetSigma2();
       return 0;
     }
     int transformGenotype(Genotype* out, DataConsolidator* dc) {
@@ -4164,7 +4185,7 @@ class MetaCovTest : public ModelFitter {
         sum += out->at(i);
       }
       const double avg = sum / out->size();
-      for (size_t i = 0; i < out->size(); ++i) {
+      for (size_t i = 0; i != out->size(); ++i) {
         (*out)[i] -= avg;
       }
       return 0;
@@ -4212,6 +4233,7 @@ class MetaCovTest : public ModelFitter {
     }
 
    private:
+    LinearRegression linear;
     double sigma2;
   };  // end MetaCovUnrelatedQtl
   class MetaCovFamBinary : public MetaCovBase {

@@ -119,14 +119,14 @@ void zegginiCollapse(Matrix& in, Matrix* out) {
 }
 
 void zegginiCollapse(Matrix& in, const std::vector<int>& index, Matrix* out,
-                 int outIndex) {
+                     int outIndex) {
   assert(out);
   int numPeople = in.rows;
   assert(out->rows == numPeople);
   assert(out->cols > outIndex);
 
   for (int p = 0; p < numPeople; p++) {
-    (*out)[p][outIndex] = 0.0;    
+    (*out)[p][outIndex] = 0.0;
     for (size_t m = 0; m < index.size(); m++) {
       int g = (int)(in[p][index[m]]);
       if (g > 0) {
@@ -284,20 +284,19 @@ void rearrangeGenotypeByFrequency(Matrix& in, const std::vector<double>& freqIn,
 #endif
 
 void makeVariableThreshodlGenotype(
-    Matrix& in,
-    const std::vector<double>& freqIn, Matrix* out,
+    Matrix& in, const std::vector<double>& freqIn, Matrix* out,
     std::vector<double>* freqOut,
     void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int)) {
   assert((int)freqIn.size() == in.cols);
   assert(freqIn.size());
   assert(out);
   assert(freqOut);
- 
+
   std::map<double, std::vector<int> > freqGroup;
   std::map<double, std::vector<int> >::const_iterator freqGroupIter;
 
   groupFrequency(freqIn, &freqGroup);
-  
+
   Matrix& sortedGenotype = *out;
   sortedGenotype.Dimension(in.rows, freqGroup.size());
   sortedGenotype.Zero();
@@ -325,10 +324,10 @@ void makeVariableThreshodlGenotype(
 
 double fIntegrand(double x, void* param) {
   if (x > 500 || x < -500) return 0.0;
-  const double alpha = * ((double*) param);
+  const double alpha = *((double*)param);
   const double tmp = exp(alpha + x);
   const double k = 1.0 / sqrt(2.0 * 3.1415926535897);
-  const double ret = tmp / (1. + tmp) / (1. + tmp) * k * exp(- x * x * 0.5);
+  const double ret = tmp / (1. + tmp) / (1. + tmp) * k * exp(-x * x * 0.5);
   // fprintf(stderr, "alpha = %g\tx = %g\t ret = %g\n", alpha, x, ret);
   return ret;
 }
@@ -347,16 +346,31 @@ int obtainB(double alpha, double* out) {
 }
 
 void makeVariableThreshodlGenotype(
-    Matrix& in,
-    Matrix* out,
-    std::vector<double>* freqOut,
+    Matrix& in, Matrix* out, std::vector<double>* freqOut,
     void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int)) {
   std::vector<double> freqIn;
   getMarkerFrequency(in, &freqIn);
 
   makeVariableThreshodlGenotype(in, freqIn, out, freqOut, collapseFunc);
 }
-
+void SingleVariantScoreTest::calculateConstant(Matrix& phenotype) {
+  int nCase = 0;
+  int nCtrl = 0;
+  for (int i = 0; i < phenotype.rows; ++i) {
+    if (phenotype[i][0] == 1) {
+      ++nCase;
+    } else if (phenotype[i][0] == 0) {
+      ++nCtrl;
+    }
+  }
+  double alpha;
+  if (nCtrl > 0) {
+    alpha = log(1.0 * nCase / nCtrl);
+  } else {
+    alpha = 500.;
+  }
+  obtainB(alpha, &this->b);
+}
 void MetaScoreTest::MetaFamBinary::calculateB() {
   obtainB(this->alpha, &this->b);
   // fprintf(stderr, "alpha = %g, b = %g\n", alpha, b);

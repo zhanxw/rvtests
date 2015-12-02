@@ -31,7 +31,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20151118";
+const char* VERSION = "20151201";
 
 void banner(FILE* fp) {
   const char* string =
@@ -42,7 +42,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      November 2015                     | \n"
+      "|      December 2015                     | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -317,7 +317,7 @@ int main(int argc, char** argv) {
   ADD_STRING_PARAMETER(pl, modelVT, "--vt",
                        "Variable threshold tests, choose from: price, analytic")
   ADD_STRING_PARAMETER(pl, modelKernel, "--kernel",
-                       "Kernal-based tests, choose from: SKAT, KBAC, FamSKAT")
+                       "Kernal-based tests, choose from: SKAT, KBAC, FamSKAT, SKATO")
   ADD_STRING_PARAMETER(pl, modelMeta, "--meta",
                        "Meta-analysis related functions to generate summary "
                        "statistics, choose from: score, cov, dominant, "

@@ -5,21 +5,17 @@
 
 class SimpleTimer {
  public:
-  SimpleTimer() {
-    _elapsed = 0.;
-    start();
-  };
-  void start() { _start = time(0); }
+  SimpleTimer() { start(); };
+  void start() {
+    _start = time(0);
+    _elapsed = 0;
+  }
   double stop() {
     _stop = time(0);
-    _elapsed += (int)(_stop - _start);
+    _elapsed = (int)(_stop - _start);
     return _elapsed;
   }
-  void restart() { _start = time(0); }
-  double getSeconds() {
-    stop();
-    return _elapsed;
-  }
+  double getSeconds() const { return _elapsed; }
 
  private:
   time_t _start;
@@ -48,29 +44,24 @@ class AccurateTimer : public SimpleTimer {};
 
 class AccurateTimer {
  public:
-  AccurateTimer() {
-    start();
+  AccurateTimer() { start(); }
+  void start() {
+    _start = std::chrono::high_resolution_clock::now();
     _elapsed = 0.;
   }
-  void start() { _start = std::chrono::high_resolution_clock::now(); }
   double stop() {
     _stop = std::chrono::high_resolution_clock::now();
-    _elapsed +=
+    _elapsed =
         0.001 *
         (std::chrono::duration_cast<std::chrono::milliseconds>(_stop - _start))
             .count();
     return _elapsed;
   }
-  void restart() { _start = std::chrono::high_resolution_clock::now(); }
-  double getSeconds() {
-    stop();
-    return _elapsed;
-  }
+  double getSeconds() const { return _elapsed; }
 
  private:
   std::chrono::high_resolution_clock::time_point _start;
   std::chrono::high_resolution_clock::time_point _stop;
-
   double _elapsed;
 };
 #endif
@@ -84,22 +75,18 @@ class AccurateTimer {
 
 class AccurateTimer {
  public:
-  AccurateTimer() {
-    start();
+  AccurateTimer() { start(); }
+  void start() {
+    clock_gettime(&_start);
     _elapsed = 0.;
   }
-  void start() { clock_gettime(&_start); }
   double stop() {
     clock_gettime(&_end);
-    _elapsed += (_end.tv_sec - _start.tv_sec) +
-                1.0e-9 * (_end.tv_nsec - _start.tv_nsec);
+    _elapsed = (_end.tv_sec - _start.tv_sec) +
+               1.0e-9 * (_end.tv_nsec - _start.tv_nsec);
     return _elapsed;
   }
-  void restart() { clock_gettime(&_start); }
-  double getSeconds() {
-    stop();
-    return _elapsed;
-  }
+  double getSeconds() const { return _elapsed; }
 
  private:
   void clock_gettime(struct timespec* ts) {
@@ -115,7 +102,6 @@ class AccurateTimer {
  private:
   struct timespec _start;
   struct timespec _end;
-
   double _elapsed;
 };
 
@@ -128,19 +114,18 @@ class AccurateTimer {
 
 class AccurateTimer {
  public:
-  AccurateTimer() {
-    start();
+  AccurateTimer() { start(); }
+  void start() {
+    clock_gettime(CLOCK_MONOTONIC, &_start);
     _elapsed = 0.;
   }
-  void start() { clock_gettime(CLOCK_MONOTONIC, &_start); }
   double stop() {
     clock_gettime(CLOCK_MONOTONIC, &_end);
-    _elapsed += (_end.tv_sec - _start.tv_sec) +
-                1.0e-9 * (_end.tv_nsec - _start.tv_nsec);
+    _elapsed = (_end.tv_sec - _start.tv_sec) +
+               1.0e-9 * (_end.tv_nsec - _start.tv_nsec);
     return _elapsed;
   }
-  void restart() { clock_gettime(CLOCK_MONOTONIC, &_start); }
-  double getSeconds() { return _elapsed; }
+  double getSeconds() const { return _elapsed; }
 
  private:
   struct timespec _start;
@@ -161,13 +146,11 @@ class AccurateTimer {
 
 class AccurateTimer {
  public:
-  AccurateTimer() {
-    start();
-    _elapsed = 0.;
-  }
+  AccurateTimer() { start(); }
   void start() {
     QueryPerformanceFrequency(&_freq);
     QueryPerformanceCounter(&_start);
+    _elapsed = 0.;
   }
   double stop() {
     QueryPerformanceCounter(&_end);
@@ -175,11 +158,7 @@ class AccurateTimer {
     _elapsed /= _freq.QuadPart;
     return _elapsed;
   }
-  void restart() { QueryPerformanceCounter(&_start); }
-  double getSeconds() {
-    stop();
-    return _elapsed;
-  }
+  double getSeconds() const { return _elapsed; }
 
  private:
   LARGE_INTEGER _start;

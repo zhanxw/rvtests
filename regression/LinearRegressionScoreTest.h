@@ -25,10 +25,10 @@ class LinearRegressionScoreTest {
    */
   bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
 
-  // fit y~1+ beta*x  (no covariate)
+  // fit y ~ 1 + beta*x  (no covariate)
   bool TestCovariate(Vector& x, Vector& y);
   /**
-   * Test y~ 1 + \beta * X (no covariate)
+   * Test y ~ 1 + \beta * X (no covariate)
    */
   bool TestCovariate(Matrix& x, Vector& y);
 

@@ -263,6 +263,8 @@ beta distribution parameters for up-weighting rare variants. Rvtests will output
 
     [INFO]  SKAT test significance will be evaluated using 10000 permutations at alpha = 0.001 (beta1 = 1.00, beta2 = 20.00)
 
+Tip: When specifying beta1=1 and beta2 = 1, the associate test is equivalent to an unweighted SKAT test.
+
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
 (###) SKAT-O implementation may have slightly different results compared with outputs from SKAT R package. That's probably due to numerical stability.
@@ -331,7 +333,7 @@ Rvtests can flexibly specify which sample(s) to include or exclude:
 `--peopleIncludeID` and `--peopleExcludeID` are used to include/exclude samples from command line. 
 For example, specify `--peopleIncludeID A,B,C` will include A, B and C sample from the VCF files if they exists.
 `--peopleIncludeID` and `--peopleExcludeID` followed by a file name will include or exclude the IDs in the file.
-So to include sample A, B and C, you can provide a file, `people.txt`, looks like:
+So to include sample A, B and C, you can provide a file, `people.txt`, which looks like:
 
     A
     B
@@ -381,8 +383,8 @@ At minimal, there are two steps to annotate a VCF file:
 
 1. Install ANNO and its resources files
 
-    git clone https://github.com/zhanxw/anno.git
-    cd anno; make
+    git clone https://github.com/zhanxw/anno.git;
+    cd anno; make;
     cd resources; ./download.sh
 
 2. Run the following script:
@@ -472,10 +474,10 @@ Below we will describe the details about how rvtests handles non-PAR region.
 *Prepare data*. According to VCF standard, male genotype needs to coded as 0 or 1. For compatibility, rvtests also support 0/0 or 1/1 coding. 
 In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1/1". All other genotypes will be treated as missing.
 
-*Genotype in the regression model*. For consistence, male genotypes are converted to 0 or 2.
+*Genotype in regression models*. For consistence, male genotypes are converted to 0 or 2. When male dosages are provided, we expect the values in the VCF file are between 0.0 and 1.0, and then will model them as twice the value.
 
-*MetaScore results*. If `--meta score` is specified, the output file `prefix.MetaScore.assoc.gz` includes PAR-region and non-PAR region analysis. 
-However, in the non-PAR region, the difference is that Hardy-Weinberg P-value and homeozygous-reference/heterzygous/homozygous-alternative sample sizes are calculated using female samples only.
+*MetaScore results*. If `--meta score` is specified, the output file `prefix.MetaScore.assoc.gz` includes both PAR-region and non-PAR region analysis. 
+However, in the non-PAR region, the difference is that Hardy-Weinberg P-value and homeozygous-reference/heterzygous/homozygous-alternative sample sizes are calculated **using female samples only**.
 
 *Related individuals*. Just append `--xHemi` to the `vcf2kinship` (more details in [Kinship generation](#kinship-generation)) and `rvtest` command lines. Rvtests can recognize non-PAR region kinship file and use it in the analysis.
 
@@ -534,8 +536,9 @@ File link: <http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat.gencode.v19.gz>
 
 * Does rvtests support binary traits of related-individuals?
 
-Yes and no. Proper analyses of related-individual are supported in meta-analysis model as described in section (#meta-analysis-models).
-In many other association models, supporting binary traits for related individuals is complex and we have not found good solutions.
+Yes for meta-anlaysis models and no for most other models.
+Proper analyses of related-individual are supported in meta-analysis model. You can refer to section #meta-analysis-tests.
+For many other association models, we notice that supporting binary traits for related individuals is complex and at current stage we have not found good solutions.
 
 * Can you provide a list of command line options?
 
@@ -564,8 +567,8 @@ Although Q values can be different, the P-values from the two software packges s
 
 * How rvtests handle multi-allelic variants?
 
-In rvtests, we focus on bi-allelic, and thus treat multi-allelic variants as bi-allelic variants. Any genotype that includes other than reference allele and the first alternative allele will be treated as missing.
-For example, genotyep '0/2' will be treated as missing.
+In rvtests, we focus on bi-allelic variants, and thus treat multi-allelic variants as bi-allelic variants. Any genotype that includes other than reference allele and the first alternative allele will be treated as missing.
+For example, when reference allele is 'A' and alternative alleles are 'T/G', genotype '0/2' will be treated as a missing genotype.
 
 
 # Feedback/Contact
@@ -579,5 +582,5 @@ Goncalo Abecasis ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@u
 
 Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.
 
-We wawnt to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, and the GIANT consoritum and the GLGC consortium.
+We wawnt to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, the GIANT consoritum, the GLGC consortium and the GSCAN consortium.
 

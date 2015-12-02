@@ -40,7 +40,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: November 2015)
+(Updated: December 2015)
 
 # Introduction
 
@@ -537,7 +537,7 @@ File link: <http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat.gencode.v19.gz>
 * Does rvtests support binary traits of related-individuals?
 
 Yes for meta-anlaysis models and no for most other models.
-Proper analyses of related-individual are supported in meta-analysis model. You can refer to section #meta-analysis-tests.
+Proper analyses of related-individual are supported in meta-analysis model. You can refer to section [Meta-analysis tests](#meta-analysis-tests).
 For many other association models, we notice that supporting binary traits for related individuals is complex and at current stage we have not found good solutions.
 
 * Can you provide a list of command line options?

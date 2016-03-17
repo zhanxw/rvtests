@@ -1,4 +1,11 @@
-2015-11-18  Xiaowei Zhan  <zhanxw@dumbo.csgstat.sph.umich.edu>
+2015-12-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix a bug in meta covariance file (happens only when: unrelated individuals, has covariates, residual variance not one)
+	* Improve single variant score test (--single score)
+	* Add (optionally) SE for score test in meta-analysis models (e.g. --meta score[se])
+	* Clean codes
+
+2015-11-18  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Add analytic SKAT-O model
 	* Clean codes

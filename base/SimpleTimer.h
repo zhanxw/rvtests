@@ -15,7 +15,7 @@ class SimpleTimer {
     _elapsed = (int)(_stop - _start);
     return _elapsed;
   }
-  double getSeconds() const { return _elapsed; }
+  // double getSeconds() const { return _elapsed; }
 
  private:
   time_t _start;
@@ -57,7 +57,6 @@ class AccurateTimer {
             .count();
     return _elapsed;
   }
-  double getSeconds() const { return _elapsed; }
 
  private:
   std::chrono::high_resolution_clock::time_point _start;
@@ -86,7 +85,7 @@ class AccurateTimer {
                1.0e-9 * (_end.tv_nsec - _start.tv_nsec);
     return _elapsed;
   }
-  double getSeconds() const { return _elapsed; }
+  // double getSeconds() const { return _elapsed; }
 
  private:
   void clock_gettime(struct timespec* ts) {
@@ -125,7 +124,6 @@ class AccurateTimer {
                1.0e-9 * (_end.tv_nsec - _start.tv_nsec);
     return _elapsed;
   }
-  double getSeconds() const { return _elapsed; }
 
  private:
   struct timespec _start;
@@ -158,7 +156,6 @@ class AccurateTimer {
     _elapsed /= _freq.QuadPart;
     return _elapsed;
   }
-  double getSeconds() const { return _elapsed; }
 
  private:
   LARGE_INTEGER _start;

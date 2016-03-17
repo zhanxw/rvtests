@@ -2,6 +2,7 @@
 **Table of Contents**
 
 - [Introduction](#introduction)
+- [Citation](#citation)
 - [Download](#download)
 - [Quick tutorial](#quick-tutorial)
     - [Single variant tests](#single-variant-tests)
@@ -40,13 +41,19 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: December 2015)
+(Updated: March 2016)
 
 # Introduction
 
 Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrelated individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf] format as genotype input file and takes PLINK format phenotype file and covariate file. From our practice, it is capable to analyze 8,000 related individuals using less than 400 Mb memory. 
 
 [vcf]: http://www.1000genomes.com/
+
+# Citation
+
+Xiaowei Zhan, Youna Hu, Bingshan Li, Goncalo R. Abecasis, and Dajiang J. Liu
+RVTESTS: An Efficient and Comprehensive Tool for Rare Variant Association Analysis Using Sequence Data
+Bioinformatics first published online February 15, 2016 doi:10.1093/bioinformatics/btw079
 
 # Download
 
@@ -569,6 +576,13 @@ Although Q values can be different, the P-values from the two software packges s
 
 In rvtests, we focus on bi-allelic variants, and thus treat multi-allelic variants as bi-allelic variants. Any genotype that includes other than reference allele and the first alternative allele will be treated as missing.
 For example, when reference allele is 'A' and alternative alleles are 'T/G', genotype '0/2' will be treated as a missing genotype.
+
+* How to adjust for multiple comparisons?
+
+Rvtests does not provide multiple comparison adjustment.
+However, users can use p.adjust() function provided in R to calculate adjust p-values for multiple comparisons.
+For example, users can choose "bonferroni" or "BH" (Benjamini and Hochberg).
+For advanced users, qvalues can be calculated from the qvalue package provided by BioConductor.
 
 
 # Feedback/Contact

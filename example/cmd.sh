@@ -33,3 +33,5 @@ echo "Rare-variant analysis"
 ../executable/rvtest --pheno pheno --inVcf example.vcf.gz --setFile setFile --kernel kbac,skat --pheno-name y4 --out out12
 
 echo "Documentation of the examples can be found in README.md or https://github.com/zhanxw/rvtests/blob/master/README.md ."
+../executable/rvtest --pheno pheno --inVcf example.ds.vcf --meta score,cov --kinship output.kinship --pheno-name y4 --qtl --out out7q --dosage DS
+../executable/dbg/vcf2kinship --inVcf example.ds.x.vcf --bn --out output --xHemi --ped pheno --minMAF 0.001

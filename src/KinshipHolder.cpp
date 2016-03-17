@@ -101,7 +101,7 @@ int KinshipHolder::load() {
   }
   logger->info(
       "DONE: Loaded kinship file [ %s ] successfully in [ %.1f ] seconds.",
-      this->fileName.c_str(), timer.getSeconds());
+      this->fileName.c_str(), timer.stop());
 
   // load kinship eigen file
   bool isDecomposed = false;
@@ -112,7 +112,7 @@ int KinshipHolder::load() {
       logger->info(
           "DONE: Loaded spectral decomposition result file [ %s ] succeeded "
           "in [ %.1f ] seconds.",
-          this->eigenFileName.c_str(), timer.getSeconds());
+          this->eigenFileName.c_str(), timer.stop());
       isDecomposed = true;
     } else {
       logger->warn(
@@ -131,7 +131,7 @@ int KinshipHolder::load() {
     logger->info(
         "DONE: Spectral decomposition of the kinship matrix succeeded in [ "
         "%.1f ] seconds.",
-        timer.getSeconds());
+        timer.stop());
     this->loaded = true;
   }
 
@@ -199,7 +199,7 @@ int KinshipHolder::loadK() {
       for (size_t i = 0; i < names.size(); ++i) {
         if (headerMap.count(names[i]) == 0) {
           logger->error(
-              "The PID [ %s ] you specified cannot be found from kinship file!",
+              "Cannot find sample [ %s ] from the kinship file!",
               names[i].c_str());
           return -1;
         }

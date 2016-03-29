@@ -1,24 +1,21 @@
-# UNAME := $(shell uname)
-# ifeq ($(UNAME), Linux)
-#    HOME = /home/zhanxw
-# endif
-# ifeq ($(UNAME), Darwin)
-#    HOME = /Users/zhanxw
-# endif
+.PHONY: all release debug
+all: release
+
+ROOT?=..
+include $(ROOT)/Makefile.common
+include $(ROOT)/Makefile.lib
 
 LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship Profiler VersionChecker \
        Socket Http
-OBJ = $(BASE:%=%.o)
+OBJ = $(BASE:%=%.o) 
 
-DEFAULT_CXXFLAGS = -std=c++0x -I. -I../third/tabix -I../third/pcre/include -I../third/bzip2
+DEFAULT_CXXFLAGS = -std=c++0x -I. $(addprefix -I, $(THIRD_INC))
 # enable read over HTTP and FTP
 DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 
-.PHONY: all release debug
-all: release
 
 # 'make release' will: clean current build; build with -O4 flags; backup executable files to release/ folder
 # NOTE: don't use -j flag!
@@ -40,7 +37,7 @@ define BUILD_each
   TAR := $(1).o
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): $$(SRC) 
+  $$(TAR): $$(SRC) | $$(THIRD_INC)
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< $$(CXXFLAGS)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))

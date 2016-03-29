@@ -4,6 +4,8 @@
 
 /**
  * @return 0: success
+ *
+ * will read row names and column names.
  */
 int SimpleMatrix::readFile(const char* f) {
   LineReader lr(f);
@@ -21,6 +23,12 @@ int SimpleMatrix::readFile(const char* f) {
   return 0;
 };
 
+
+/**
+ * @return 0: success
+ *
+ * will write row names and column names.
+ */
 int SimpleMatrix::writeFile(const char* f) {
   FileWriter fw(f);
   for (unsigned int i = 0; i < mat.size(); i++) {

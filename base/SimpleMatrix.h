@@ -7,13 +7,14 @@
 
 /**
  * This matrix class is for convenient store matrix class.
+ *
+ * Row/column names are by default r1, r2, ... (c1, c2, ...),
+ * and they automatically grow/shrink with data, unless specified otherwise
  */
 class SimpleMatrix {
  public:
   SimpleMatrix(){};
   SimpleMatrix(int nr, int nc) { this->resize(nr, nc); }
-  /* const static int COLUMN_HEADER = 0x1; */
-  /* const static int ROW_HEADER = 0x2; */
   int readFile(const char* f);
   int writeFile(const char* f);
   std::vector<double>& operator[](int i) { return mat[i]; }
@@ -29,6 +30,9 @@ class SimpleMatrix {
       return -1;
     }
     mat.push_back(d);
+    
+    rowName.push_back("r");
+    rowName[rowName.size() - 1] += toString(rowName.size());
     return 0;
   };
   int appendCol(const std::vector<double>& d) {
@@ -39,11 +43,12 @@ class SimpleMatrix {
         return -1;
       }
     }
-
     mat.resize(d.size());
     for (size_t i = 0; i < d.size(); i++) {
       mat[i].push_back(d[i]);
     }
+    colName.push_back("c");
+    colName[colName.size() - 1] += toString(colName.size());
     return 0;
   }
   int deleteRow(int i) {
@@ -62,7 +67,11 @@ class SimpleMatrix {
     }
     return 0;
   }
-  void clear() { mat.clear(); }
+  void clear() {
+    mat.clear();
+    rowName.clear();
+    colName.clear();
+  }
   void zero() {
     for (unsigned int i = 0; i < mat.size(); i++) {
       for (unsigned int j = 0; j < mat[i].size(); j++) {

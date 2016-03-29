@@ -8,6 +8,24 @@
 
 class AccurateTimer;
 
+/**
+ * A simple profiler class
+ * has 3 level granularity
+ *
+ * 1) function (PROFILE_FUNCTION)
+ * 2) scope (PROFILE_SCOPE(text))
+ * 3) customized regions (PROFILE_NAME_START(text), PROFILE_NAME_STOP(text))
+ *
+ * Get the final reports using: PROFILE_DUMP
+ *
+ * e.g.
+ * void f() {
+ *   PROFILE_FUNCTION
+ * }
+ * int main() {
+ *   PROFILE_DUMP();
+ * }
+ */
 class Profiler {
  public:
   Profiler();

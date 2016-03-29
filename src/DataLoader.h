@@ -10,31 +10,7 @@
 #include "libsrc/MathVector.h"
 #include "libsrc/MathMatrix.h"
 
-class DataLoader {
- public:
-  typedef enum { COVARIATE_IMPUTE, COVARIATE_DROP } HandleMissingCov;
-
- public:
-  int loadPhenotype(const std::string& pheno, const std::string& mpheno,
-                    const std::string& phenoName);
-  int arrangePhenotype(const std::vector<std::string>& names,
-                       std::vector<std::string>* droppedNames);
-
-  int loadCovariate(const std::string& covar, const std::string& covName,
-                    bool imputeCov);
-  int arrangeCovariate(const std::vector<std::string>& names,
-                       std::vector<std::string>* droppedNames);
-  
-  int loadSex(const std::string pheno);
-  int loadMarkerAsCovariate(const std::string marker);
-  int checkConstantCovariate();
-  int useResidualAsPhenotype();
-  int inverseNormalizePhenotype();
-
-  private:
-  Matrix phenotype;  // sample by traits
-  Matrix covariate;  // sample by covariates
-};
+typedef enum { COVARIATE_IMPUTE, COVARIATE_DROP } HandleMissingCov;
 
 /**
  * Extract covaraite from file @param fn.
@@ -65,7 +41,7 @@ int extractCovariate(const std::string& fn,
  * the following anaylysis
  * @return number of samples have covariates.
  * Example:
- * includedSample = [A, B, C] and in covariate file we have [B, C, C, D]
+ * includedSample = [A, B, C] and in covaraite file we have [B, C, C, D]
  * then output covariate have 3 rows corresponding to [A, B, C]
  * row C filled by the last C in covariate file
  * sample D will be in sampleToDrop
@@ -105,7 +81,7 @@ int loadPedPhenotypeByHeader(const char* fn, std::map<std::string, double>* p,
  * @return true if @param phenotype is either:  1: unaffected, 2: affected,  -9,
  * 0: missing
  */
-bool isBinaryPhenotype(const std::vector<double>& phenotype);
+bool isBinaryPhenotype(const std::vector<double>& phenotype); 
 
 /**
  * Convert binary phenotype 1,2 (PLINK format) to 0,1 (logistic regression)
@@ -124,7 +100,7 @@ void rearrange(const std::map<std::string, double>& phenotype,
                std::vector<std::string>* vcfSampleToDrop,
                std::vector<std::string>* phenotypeNameInOrder,
                std::vector<double>* phenotypeValueInOrder,
-               bool imputePhenotype);
+               bool imputePhenotype) ;
 
 int loadSex(const std::string& fn,
             const std::vector<std::string>& includedSample,
@@ -135,7 +111,7 @@ int loadSex(const std::string& fn,
  * put its index to @param index
  * @return number of missing elements
  */
-int findMissingSex(const std::vector<int>& sex, std::vector<int>* index);
+int findMissingSex(const std::vector<int>& sex, std::vector<int>* index) ;
 
 /**
  * Remove i th element from @param val where i is stored in @param index
@@ -173,7 +149,7 @@ int removeByIndex(const std::vector<int>& index, std::vector<T, A>* val) {
  * Remove i th element from @param val where i is stored in @param index
  * @return number of elements removed
  */
-int removeByRowIndex(const std::vector<int>& index, Matrix* val);
+int removeByRowIndex(const std::vector<int>& index, Matrix* val) ;
 
 /**
  * append a column @param val to the right of @param mat,
@@ -181,6 +157,6 @@ int removeByRowIndex(const std::vector<int>& index, Matrix* val);
  * @return 0 if success
  */
 int appendToMatrix(const std::string& label, const std::vector<int> val,
-                   Matrix* mat);
+                   Matrix* mat) ;
 
 #endif /* _DATALOADER_H_ */

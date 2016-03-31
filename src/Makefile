@@ -84,6 +84,13 @@ DataLoader.o: DataLoader.cpp DataLoader.h
 KinshipHolder.o: KinshipHolder.cpp KinshipHolder.h $(RAPIDJSON_INC)
 	$(CXX) -MMD -c -o $@ $(CXX_FLAGS) $< $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 
+
+##################################################
+## format
+##################################################
+.PHONY: format
+format: *.cpp *.h
+	clang-format -i -style google $^
 ##################################################
 ## clean
 ##################################################

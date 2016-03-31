@@ -102,7 +102,8 @@ void removeMonomorphicMarker(Matrix* genotype) {
 
 double GenotypeCounter::getHWE() const {
   double hweP = 0.0;
-  if (nHomRef + nHet + nHomAlt == 0 || (nHet < 0 || nHomRef < 0 || nHomAlt < 0)) {
+  if (nHomRef + nHet + nHomAlt == 0 ||
+      (nHet < 0 || nHomRef < 0 || nHomAlt < 0)) {
     hweP = 0.0;
   } else {
     hweP = SNPHWE(nHet, nHomRef, nHomAlt);
@@ -117,17 +118,16 @@ DataConsolidator::DataConsolidator()
       sex(NULL),
       parRegion(NULL) {}
 
-DataConsolidator::~DataConsolidator() {
-}
+DataConsolidator::~DataConsolidator() {}
 
 int DataConsolidator::preRegressionCheck(Matrix& pheno, Matrix& cov) {
   if (this->checkColinearity(cov)) {
-    logger->warn("The covariates is rank deficient and may suffer from colinearity!");
+    logger->warn(
+        "The covariates is rank deficient and may suffer from colinearity!");
     return -1;
   }
 
   if (this->checkPredictor(pheno, cov)) {
-    
     return -1;
   }
   return 0;
@@ -148,17 +148,22 @@ int DataConsolidator::checkPredictor(Matrix& pheno, Matrix& cov) {
   double r = 0.0;
   for (int i = 0; i < cov.cols; ++i) {
     if (corr(cov, i, y, 0, &r)) {
-      logger->warn("Failed to calculate correlation between covariate [ %s ] and phenotype", cov.GetColumnLabel(i));
+      logger->warn(
+          "Failed to calculate correlation between covariate [ %s ] and "
+          "phenotype",
+          cov.GetColumnLabel(i));
       return -1;
     }
-    if ( fabs(r) > 0.999) {
-      logger->warn("Covariate [ %s ] has strong correlation [ r^2 = %g ] with the response!", cov.GetColumnLabel(i), r*r);
+    if (fabs(r) > 0.999) {
+      logger->warn(
+          "Covariate [ %s ] has strong correlation [ r^2 = %g ] with the "
+          "response!",
+          cov.GetColumnLabel(i), r * r);
       return -1;
     }
   }
   return 0;
 }
-
 
 //////////////////////////////////////////////////
 // codes related to kinship
@@ -191,8 +196,8 @@ int DataConsolidator::setKinshipFile(int kinshipType,
           "Kinship file [ %s ] detected and will be used for for X "
           "chromosome analysis",
           fn.c_str());
-      return this->kinship[KINSHIP_X].setFile(fn);      
-    } 
+      return this->kinship[KINSHIP_X].setFile(fn);
+    }
   }
   return -1;
 }

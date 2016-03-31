@@ -14,7 +14,7 @@
 #include "base/SimpleTimer.h"
 #include "base/TypeConversion.h"
 
-#include "third/rapidjson/include/rapidjson/internal/dtoa.h" // for 
+#include "third/rapidjson/include/rapidjson/internal/dtoa.h"  // for
 
 #undef DEBUG
 //#define DEBUG
@@ -198,9 +198,8 @@ int KinshipHolder::loadK() {
       }
       for (size_t i = 0; i < names.size(); ++i) {
         if (headerMap.count(names[i]) == 0) {
-          logger->error(
-              "Cannot find sample [ %s ] from the kinship file!",
-              names[i].c_str());
+          logger->error("Cannot find sample [ %s ] from the kinship file!",
+                        names[i].c_str());
           return -1;
         }
         columnToExtract.push_back(headerMap[names[i]]);

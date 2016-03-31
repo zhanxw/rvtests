@@ -114,20 +114,19 @@ inline int corr(Vector& v1, Vector& v2, double* ret) {
 inline int corr(Matrix& m1, int col1, Vector& v2, double* ret) {
   Vector v1;
   toVector(m1, col1, &v1);
-  return(corr(v1, v2, ret));
+  return (corr(v1, v2, ret));
 }
 
 /*
  *@return -1: if error happen
  */
 inline int corr(Matrix& m1, int col1, Matrix& m2, int col2, double* ret) {
-  Vector v1;  
+  Vector v1;
   toVector(m1, col1, &v1);
-  Vector v2;  
+  Vector v2;
   toVector(m2, col2, &v2);
-  return(corr(v1, v2, ret));
+  return (corr(v1, v2, ret));
 }
-  
 
 /**
  * copy m[,col] to @param v

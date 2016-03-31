@@ -3,7 +3,7 @@
 #include "CommonFunction.h"
 #include "Indexer.h"
 #include "GenotypeExtractor.h"
-#include "ModelUtil.h"          //copy
+#include "ModelUtil.h"  //copy()
 
 #include "base/IO.h"
 #include "base/Logger.h"
@@ -27,9 +27,7 @@ void extractMap(const std::map<Key, Val>& input, std::vector<Key>* key,
   }
 }
 
-DataLoader::DataLoader() {
-  binaryPhenotype = false;
-}
+DataLoader::DataLoader() { binaryPhenotype = false; }
 
 int DataLoader::loadPhenotype(const std::string& pheno,
                               const std::string& mpheno,
@@ -103,7 +101,8 @@ int DataLoader::arrangePhenotype(const std::vector<std::string>& names,
 
   rearrange(phenoDict, names, droppedNames, &phenotypeNameInOrder,
             &phenotypeValueInOrder, FLAG_imputePheno);
-  // rearrange(phenoDict, vcfSampleNames, &vcfSampleToDrop, &phenotypeNameInOrder,
+  // rearrange(phenoDict, vcfSampleNames, &vcfSampleToDrop,
+  // &phenotypeNameInOrder,
   //           &phenotypeInOrder, FLAG_imputePheno);
 
   phenotype.resize(phenotypeNameInOrder.size(), 1);
@@ -150,8 +149,8 @@ int DataLoader::loadCovariate(const std::string& covar,
   // (TODO) remove columnNamesInCovariate
   // std::set<std::string> sampleToDropInCovariate;
   int ret = _loadCovariate(FLAG_cov.c_str(), phenotype.getRowName(),
-                          FLAG_covName.c_str(), handleMissingCov, &covariate,
-                          &columnNamesInCovariate, &sampleToDropInCovariate);
+                           FLAG_covName.c_str(), handleMissingCov, &covariate,
+                           &columnNamesInCovariate, &sampleToDropInCovariate);
   if (ret < 0) {
     logger->error("Load covariate file failed !");
     exit(1);
@@ -197,10 +196,10 @@ int DataLoader::arrangeCovariate(const std::vector<std::string>& names,
 
   // reuse results
   std::set<std::string>::const_iterator it = sampleToDropInCovariate.begin();
-  for (; it !=   sampleToDropInCovariate.end();++it) {
+  for (; it != sampleToDropInCovariate.end(); ++it) {
     droppedNames->push_back(*it);
   }
-  
+
   return 0;
 }
 
@@ -400,8 +399,8 @@ int DataLoader::setTraitType(PhenotypeType t) {
 int extractCovariate(const std::string& fn,
                      const std::vector<std::string>& sampleToInclude,
                      const std::vector<std::string>& covNameToUse,
-                     DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* mat,
-                     std::set<std::string>* sampleToDrop) {
+                     DataLoader::HandleMissingCov handleMissingCov,
+                     SimpleMatrix* mat, std::set<std::string>* sampleToDrop) {
   std::set<std::string> includeSampleSet;
   makeSet(sampleToInclude, &includeSampleSet);
   if (includeSampleSet.size() != sampleToInclude.size()) {
@@ -609,11 +608,11 @@ int extractCovariate(const std::string& fn,
  * sample D will be in sampleToDrop
  */
 int _loadCovariate(const std::string& fn,
-                  const std::vector<std::string>& includedSample,
-                  const std::vector<std::string>& covNameToUse,
-                  DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* covariate,
-                  std::vector<std::string>* colNames,
-                  std::set<std::string>* sampleToDrop) {
+                   const std::vector<std::string>& includedSample,
+                   const std::vector<std::string>& covNameToUse,
+                   DataLoader::HandleMissingCov handleMissingCov,
+                   SimpleMatrix* covariate, std::vector<std::string>* colNames,
+                   std::set<std::string>* sampleToDrop) {
   // load covariate
   SimpleMatrix mat;
   int ret = extractCovariate(fn, includedSample, covNameToUse, handleMissingCov,
@@ -651,11 +650,11 @@ int _loadCovariate(const std::string& fn,
 }  // end _loadCovariate
 
 int _loadCovariate(const std::string& fn,
-                  const std::vector<std::string>& includedSample,
-                  const std::string& covNameToUse,
-                  DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* covariate,
-                  std::vector<std::string>* colNames,
-                  std::set<std::string>* sampleToDrop) {
+                   const std::vector<std::string>& includedSample,
+                   const std::string& covNameToUse,
+                   DataLoader::HandleMissingCov handleMissingCov,
+                   SimpleMatrix* covariate, std::vector<std::string>* colNames,
+                   std::set<std::string>* sampleToDrop) {
   std::vector<std::string> fd;
   stringTokenize(covNameToUse, ',', &fd);
   if (!isUnique(fd)) {
@@ -667,7 +666,7 @@ int _loadCovariate(const std::string& fn,
     return -1;
   }
   return _loadCovariate(fn, includedSample, fd, handleMissingCov, covariate,
-                       colNames, sampleToDrop);
+                        colNames, sampleToDrop);
 }
 
 /**
@@ -837,8 +836,8 @@ bool _isBinaryPhenotype(const std::vector<double>& phenotype) {
         return false;
     }
   }
-  logger->info("Loaded %d cases, %d controls, and %d missing phenotypes",
-               nCase, nControl, nMissing);
+  logger->info("Loaded %d cases, %d controls, and %d missing phenotypes", nCase,
+               nControl, nMissing);
   if (nCase == 0) {
     logger->warn("There are no case!");
   }
@@ -947,8 +946,8 @@ void rearrange(const std::map<std::string, double>& phenotype,
 };
 
 int _loadSex(const std::string& fn,
-            const std::vector<std::string>& includedSample,
-            std::vector<int>* sex) {
+             const std::vector<std::string>& includedSample,
+             std::vector<int>* sex) {
   Indexer index(includedSample);
   if (index.hasDuplication()) {
     return -1;

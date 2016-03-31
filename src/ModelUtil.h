@@ -102,7 +102,7 @@ inline void copyCovariateAndIntercept(int n, Matrix& cov, Matrix* o) {
 inline void copyCovariateAndIntercept(int n, SimpleMatrix& cov, Matrix* o) {
   const int nr = cov.nrow();
   const int nc = cov.ncol();
-  
+
   if (nc == 0) {
     (*o).Dimension(n, 1);
     for (int i = 0; i < n; ++i) {
@@ -113,7 +113,7 @@ inline void copyCovariateAndIntercept(int n, SimpleMatrix& cov, Matrix* o) {
   if (n != nr) {
     return;
   }
-  
+
   (*o).Dimension(n, 1 + nc);
   for (int i = 0; i < n; ++i) {
     (*o)[i][0] = 1.0;

@@ -143,7 +143,7 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     g->SetColumnLabel(i, colNames[i].c_str());
   }
   return SUCCEED;
-} // end GenotypeExtractor
+}  // end GenotypeExtractor
 
 int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   Matrix& genotype = *g;
@@ -240,7 +240,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
     this->hemiRegion[0] = false;
   }
   return SUCCEED;
-} // end extractSingleGenotype()
+}  // end extractSingleGenotype()
 
 int loadMarkerFromVCF(const std::string& fileName, const std::string& marker,
                       std::vector<std::string>* rowLabel, Matrix* genotype) {

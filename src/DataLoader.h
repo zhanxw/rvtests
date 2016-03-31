@@ -12,15 +12,22 @@
 
 class DataLoader {
  public:
-  typedef enum { COVARIATE_IMPUTE, COVARIATE_DROP, COVARIATE_KEEP } HandleMissingCov;
-  typedef enum { PHENOTYPE_QTL, PHENOTYPE_BINARY, PHENOTYPE_UNKNOWN } PhenotypeType;
+  typedef enum {
+    COVARIATE_IMPUTE,
+    COVARIATE_DROP,
+    COVARIATE_KEEP
+  } HandleMissingCov;
+  typedef enum {
+    PHENOTYPE_QTL,
+    PHENOTYPE_BINARY,
+    PHENOTYPE_UNKNOWN
+  } PhenotypeType;
 
  public:
   DataLoader();
   // phenotypes related
   int loadPhenotype(const std::string& pheno, const std::string& mpheno,
-                    const std::string& phenoName,
-                    const bool imputePheno);
+                    const std::string& phenoName, const bool imputePheno);
   int arrangePhenotype(const std::vector<std::string>& names,
                        std::vector<std::string>* droppedNames);
 
@@ -30,7 +37,7 @@ class DataLoader {
                     bool imputeCov);
   int arrangeCovariate(const std::vector<std::string>& names,
                        std::vector<std::string>* droppedNames);
-  
+
   int loadSex();
   int useSexAsCovariate();
   int loadMarkerAsCovariate(const std::string& inVcf,
@@ -38,7 +45,7 @@ class DataLoader {
 
   // sanity check
   int checkConstantCovariate();
-  
+
   // transformations
   int useResidualAsPhenotype();
   int inverseNormalizePhenotype();
@@ -46,18 +53,19 @@ class DataLoader {
   // phenotype-related utilities
   PhenotypeType detectPhenotypeType() const;
   int setTraitType(PhenotypeType t);
-  bool isBinaryPhenotype() const {return binaryPhenotype;};
-  
+  bool isBinaryPhenotype() const { return binaryPhenotype; };
+
   // getters
-  const SimpleMatrix& getPhenotype() {return this->phenotype;};
-  const SimpleMatrix& getCovariate() {return this->covariate;};
-  const std::vector<int>& getSex() {return this->sex;};
+  const SimpleMatrix& getPhenotype() { return this->phenotype; };
+  const SimpleMatrix& getCovariate() { return this->covariate; };
+  const std::vector<int>& getSex() { return this->sex; };
+
  private:
   SimpleMatrix phenotype;  // sample by traits
   SimpleMatrix covariate;  // sample by covariates
-  bool binaryPhenotype;    
-  std::vector<int> sex;    // plink coded genders
-  
+  bool binaryPhenotype;
+  std::vector<int> sex;  // plink coded genders
+
   // external parameters
   std::string FLAG_pheno;
   std::string FLAG_mpheno;
@@ -70,9 +78,9 @@ class DataLoader {
 
   std::string FLAG_inVcf;
   std::string FLAG_condition;
-  
+
   // intermediate values
-  std::set<std::string> sampleToDropInCovariate;  
+  std::set<std::string> sampleToDropInCovariate;
 };
 
 /**
@@ -90,8 +98,8 @@ class DataLoader {
 int extractCovariate(const std::string& fn,
                      const std::vector<std::string>& sampleToInclude,
                      const std::vector<std::string>& covNameToUse,
-                     DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* mat,
-                     std::set<std::string>* sampleToDrop);
+                     DataLoader::HandleMissingCov handleMissingCov,
+                     SimpleMatrix* mat, std::set<std::string>* sampleToDrop);
 
 /**
  * Load covariate from @param fn, using specified @param covNameToUse, for given
@@ -110,18 +118,18 @@ int extractCovariate(const std::string& fn,
  * sample D will be in sampleToDrop
  */
 int _loadCovariate(const std::string& fn,
-                  const std::vector<std::string>& includedSample,
-                  const std::vector<std::string>& covNameToUse,
-                  DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* covariate,
-                  std::vector<std::string>* colNames,
-                  std::set<std::string>* sampleToDrop);
+                   const std::vector<std::string>& includedSample,
+                   const std::vector<std::string>& covNameToUse,
+                   DataLoader::HandleMissingCov handleMissingCov,
+                   SimpleMatrix* covariate, std::vector<std::string>* colNames,
+                   std::set<std::string>* sampleToDrop);
 
 int _loadCovariate(const std::string& fn,
-                  const std::vector<std::string>& includedSample,
-                  const std::string& covNameToUse,
-                  DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* covariate,
-                  std::vector<std::string>* colNames,
-                  std::set<std::string>* sampleToDrop);
+                   const std::vector<std::string>& includedSample,
+                   const std::string& covNameToUse,
+                   DataLoader::HandleMissingCov handleMissingCov,
+                   SimpleMatrix* covariate, std::vector<std::string>* colNames,
+                   std::set<std::string>* sampleToDrop);
 
 /**
  * @return number of phenotypes read. -1 if errors
@@ -166,8 +174,8 @@ void rearrange(const std::map<std::string, double>& phenotype,
                bool imputePhenotype);
 
 int _loadSex(const std::string& fn,
-            const std::vector<std::string>& includedSample,
-            std::vector<int>* sex);
+             const std::vector<std::string>& includedSample,
+             std::vector<int>* sex);
 
 /**
  * when @param sex does not equal to 1 (male) or 2 (female),

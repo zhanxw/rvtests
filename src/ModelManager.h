@@ -27,8 +27,8 @@ class ModelManager {
    * Set attributes
    */
   void setBinaryOutcome() { this->binaryOutcome = true; }
-  void setQuantitativeOutcome() { this->binaryOutcome = false; }  
-  
+  void setQuantitativeOutcome() { this->binaryOutcome = false; }
+
  private:
   void createIndex();
 

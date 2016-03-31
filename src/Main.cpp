@@ -449,7 +449,8 @@ int main(int argc, char** argv) {
   }
 
   DataLoader dataLoader;
-  dataLoader.loadPhenotype(FLAG_pheno, FLAG_mpheno, FLAG_phenoName, FLAG_imputePheno);
+  dataLoader.loadPhenotype(FLAG_pheno, FLAG_mpheno, FLAG_phenoName,
+                           FLAG_imputePheno);
 
   // // load phenotypes
   // std::map<std::string, double> phenotype;
@@ -673,10 +674,10 @@ int main(int argc, char** argv) {
     logger->info("-- Force quantitative trait mode -- ");
   } else {
     if (dataLoader.detectPhenotypeType() == DataLoader::PHENOTYPE_BINARY) {
-      logger->warn("-- Enabling binary phenotype mode -- ");      
+      logger->warn("-- Enabling binary phenotype mode -- ");
       dataLoader.setTraitType(DataLoader::PHENOTYPE_BINARY);
     } else {
-      dataLoader.setTraitType(DataLoader::PHENOTYPE_QTL);      
+      dataLoader.setTraitType(DataLoader::PHENOTYPE_QTL);
     }
     // binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
     // if (binaryPhenotype) {

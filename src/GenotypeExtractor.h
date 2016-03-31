@@ -43,9 +43,9 @@ class GenotypeExtractor {
   /* Site filters */
   bool setSiteFreqMin(const double f);
   bool setSiteFreqMax(const double f);
-  void setSiteDepthMin(int d) ;
-  void setSiteDepthMax(int d) ;
-// @return true if GD is valid
+  void setSiteDepthMin(int d);
+  void setSiteDepthMax(int d);
+  // @return true if GD is valid
   // if GD is missing, we will take GD = 0
   bool checkGD(VCFIndividual* indv, int gdIdx);
   bool checkGQ(VCFIndividual* indv, int gqIdx);
@@ -54,25 +54,25 @@ class GenotypeExtractor {
   void setGQmin(int m);
   void setGQmax(int m);
 
-  void setSiteQualMin(int q) ;
-  void setSiteMACMin(int n) ;
-  int  setAnnoType(const std::string& s) ;
+  void setSiteQualMin(int q);
+  void setSiteMACMin(int n);
+  int setAnnoType(const std::string& s);
 
-  void setRange(const RangeList& l) ;  
-  void setRangeList(const std::string& l) ;
-  void setRangeFile(const std::string& fn) ;
-  void includePeople(const std::string& v) ;
-  void includePeople(const std::vector<std::string>& v) ;  
-  void includePeopleFromFile(const std::string& fn) ;
-  void excludePeople(const std::string& v) ;
-  void excludePeopleFromFile(const std::string& fn) ;
-  void excludePeople(const std::vector<std::string>& sample) ;  
+  void setRange(const RangeList& l);
+  void setRangeList(const std::string& l);
+  void setRangeFile(const std::string& fn);
+  void includePeople(const std::string& v);
+  void includePeople(const std::vector<std::string>& v);
+  void includePeopleFromFile(const std::string& fn);
+  void excludePeople(const std::string& v);
+  void excludePeopleFromFile(const std::string& fn);
+  void excludePeople(const std::vector<std::string>& sample);
   void excludePeople(const std::vector<std::string>& sample,
                      const std::vector<int>& index);
-  void excludeAllPeople() ;
-  void enableAutoMerge() ;
+  void excludeAllPeople();
+  void enableAutoMerge();
   void getPeopleName(std::vector<std::string>* p);
-  
+
   /**
    * @return weigth, its length equals to # of markers
    */
@@ -82,9 +82,7 @@ class GenotypeExtractor {
     this->dosageTag = tag;
   }
   void unsetDosageTag() { this->dosageTag.clear(); }
-  bool isDosage() const {
-    return !this->dosageTag.empty();
-  }
+  bool isDosage() const { return !this->dosageTag.empty(); }
   void setParRegion(ParRegion* p) { this->parRegion = p; }
   //      Sex (1=male; 2=female; other=unknown)
   void setSex(const std::vector<int>* sex) { this->sex = sex; }
@@ -98,7 +96,7 @@ class GenotypeExtractor {
   const static int ERROR = -1;
   const static int FILE_END = -2;
   const static int FAIL_FILTER = -3;
-  
+
  private:
   VCFExtractor* vin;
   double freqMin;

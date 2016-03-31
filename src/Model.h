@@ -341,8 +341,9 @@ class SingleVariantScoreTest : public ModelFitter {
     result.writeValueLine(fp);
   }
   void calculateConstant(Matrix& phenotype);
+
  private:
-  double b; // a constant
+  double b;  // a constant
   double af;
   int nSample;
   Vector pheno;
@@ -2606,7 +2607,7 @@ class SkatTest : public ModelFitter {
     Matrix& covariate = dc->getCovariate();
     // not use dc->getWeight(), but use model specific weight
     // Vector& weight = dc->getWeight();
-    
+
     if (genotype.cols == 0) {
       fitOK = false;
       return -1;
@@ -3329,7 +3330,7 @@ class MetaScoreTest : public ModelFitter {
       result.updateValue("SQRT_V_STAT", sqrt(v));
       result.updateValue("ALT_EFFSIZE", model->GetEffect());
       if (outputSE && v > 0.) {
-        result.updateValue("ALT_EFFSIZE_SE", 1.0 / sqrt(v));        
+        result.updateValue("ALT_EFFSIZE_SE", 1.0 / sqrt(v));
       }
       result.updateValue("PVALUE", model->GetPvalue());
     }

@@ -2,7 +2,7 @@
 #define _SUMMARY_H_
 
 #include "base/IO.h"
-#include "base/CommonFunction.h" // calculateMean, calculateSampleSD
+#include "base/CommonFunction.h"  // calculateMean, calculateSampleSD
 #include "base/SimpleMatrix.h"
 #include <algorithm>
 #include <vector>

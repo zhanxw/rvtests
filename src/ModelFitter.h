@@ -47,7 +47,7 @@ class ModelFitter {
   // virtual void needFittingCovariate();
   bool isBinaryOutcome() const { return this->binaryOutcome; }
   void setBinaryOutcome() { this->binaryOutcome = true; }
-  void setQuantitativeOutcome() { this->binaryOutcome = false; }  
+  void setQuantitativeOutcome() { this->binaryOutcome = false; }
   bool isFamilyModel() const { return this->familyModel; }
   bool needToIndexResult() const { return this->indexResult; }
   void setContinuousOutcome() { this->binaryOutcome = false; }
@@ -56,6 +56,7 @@ class ModelFitter {
   void setPrefix(const std::string& p) { this->outputPrefix = p; }
   std::string getPrefix() const { return this->outputPrefix; }
   void warnOnce(const std::string& msg);
+
  protected:
   // specify this for sub-classes
   std::string modelName;

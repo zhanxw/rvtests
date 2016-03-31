@@ -177,7 +177,7 @@ class GenotypeCounter {
   double getAF() const {
     double af = -1.0;
     if (nSample) {
-      af = 0.5 * sumAC / nSample; 
+      af = 0.5 * sumAC / nSample;
     }
     return af;
   }
@@ -497,7 +497,7 @@ class DataConsolidator {
   // codes to check before regression
   int preRegressionCheck(Matrix& pheno, Matrix& cov);
   int checkColinearity(Matrix& cov);
-  int checkPredictor(Matrix& pheno, Matrix& cov);  
+  int checkPredictor(Matrix& pheno, Matrix& cov);
 
  public:
   // codes related to kinship

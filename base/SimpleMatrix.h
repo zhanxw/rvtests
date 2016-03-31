@@ -21,12 +21,12 @@ class SimpleMatrix {
   std::vector<double>& operator[](int i) { return mat[i]; }
   const std::vector<double>& operator[](int i) const { return mat[i]; }
   void resize(int nrow, int ncol);
-  template <typename T>  
+  template <typename T>
   int appendRow(const std::vector<T>& d, const std::string& label = "");
   template <typename T>
-  int appendCol(const std::vector<T>& d, const std::string& label = ""); 
-  int deleteRow(int i) ;
-  int deleteCol(int i) ;
+  int appendCol(const std::vector<T>& d, const std::string& label = "");
+  int deleteRow(int i);
+  int deleteCol(int i);
   void clear() {
     mat.clear();
     rowName.clear();
@@ -56,19 +56,20 @@ class SimpleMatrix {
    */
   int dropRow(const std::set<std::string>& rowNameSet);
   int dropRow(const std::vector<int>& index);
-  
+
   /**
    * Assign row @param from to row @param to
    */
   int assignRow(const int to, const int from);
 
   void extractCol(int col, std::vector<double>* v) const;
-  std::vector<double> extractCol(int col) const;  
+  std::vector<double> extractCol(int col) const;
   int setCol(int col, const std::vector<double>& v);
 
  private:
   void resetRowName();
-  void resetColName();  
+  void resetColName();
+
  private:
   std::vector<std::string> rowName;
   std::vector<std::string> colName;

@@ -5,7 +5,7 @@
 #include <vector>
 
 class Socket;
-class Http{
+class Http {
  public:
   // Make a connect to @param url
   // @param url must be in the format of:
@@ -19,10 +19,12 @@ class Http{
   int read(std::vector<std::string>* content);
   void enableQuiet();
   void disableQuiet();
+
  private:
   void stripHeader(std::vector<std::string>* all) const;
   bool hasHeader(const std::vector<std::string>& response) const;
   int getStatusCode(const std::vector<std::string>& response) const;
+
  private:
   std::string domain;
   std::string path;
@@ -33,7 +35,7 @@ class Http{
   std::string proxy;
   int proxyPort;
   std::string request;
-  bool quiet;  
+  bool quiet;
 };
 
 #endif /* HTTP_H */

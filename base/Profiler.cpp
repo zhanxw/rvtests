@@ -18,7 +18,7 @@ void Profiler::deleteTimer(const char* func) {
   m.timer.stop();
 }
 
-struct FlatMetric{
+struct FlatMetric {
   FlatMetric(const std::string& func, int nHits, double elapsed) {
     this->func = func;
     this->nHits = nHits;
@@ -32,21 +32,20 @@ struct FlatMetric{
 };
 
 void Profiler::dump() {
-  std::vector< FlatMetric > v;
+  std::vector<FlatMetric> v;
   for (std::unordered_map<std::string, Metric>::iterator it = data.begin();
-       it != data.end();
-       ++it) {
-    v.push_back(FlatMetric(it->first, it->second.nHits, it->second.timer.getSeconds()));
+       it != data.end(); ++it) {
+    v.push_back(
+        FlatMetric(it->first, it->second.nHits, it->second.timer.getSeconds()));
   }
   std::sort(v.begin(), v.end(),
-            [](const FlatMetric& a, const FlatMetric& b) -> bool {
-              return a.avgElapsed > b.avgElapsed;
-            });
+            [](const FlatMetric& a, const FlatMetric& b)
+                -> bool { return a.avgElapsed > b.avgElapsed; });
   for (size_t i = 0; i != v.size(); ++i) {
     const FlatMetric& x = v[i];
-    fprintf(
-        stderr,
-        "Function [ %s ] hit [ %d ] times, total elapsed time [ %g ] seconds, avg elapsed time [ %g ] seconds\n",
-        x.func.c_str(), x.nHits, x.totalElapsed, x.avgElapsed);
+    fprintf(stderr,
+            "Function [ %s ] hit [ %d ] times, total elapsed time [ %g ] "
+            "seconds, avg elapsed time [ %g ] seconds\n",
+            x.func.c_str(), x.nHits, x.totalElapsed, x.avgElapsed);
   }
 }

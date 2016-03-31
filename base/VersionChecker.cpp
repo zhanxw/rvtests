@@ -2,11 +2,10 @@
 #include "Http.h"
 #include "TypeConversion.h"
 
-
 int VersionChecker::retrieveRemoteVersion(const std::string& urlToVersion) {
   Http http(urlToVersion);
   http.enableQuiet();
-  
+
   if (http.read(&this->remoteInformation) < 0) {
     return -1;
   }
@@ -22,13 +21,12 @@ int VersionChecker::setLocalVersion(const std::string& currentVersion) {
   return 0;
 }
 
-bool VersionChecker::isRemoteVersionNewer() const{
+bool VersionChecker::isRemoteVersionNewer() const {
   int local = 0;
   int remote = 0;
   if (!str2int(this->localVersion, &local)) return false;
   if (!str2int(this->remoteVersion, &remote)) return false;
-  if (remote > local)
-    return true;
+  if (remote > local) return true;
   return false;
 }
 

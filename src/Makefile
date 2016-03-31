@@ -86,12 +86,6 @@ KinshipHolder.o: KinshipHolder.cpp KinshipHolder.h $(RAPIDJSON_INC)
 
 
 ##################################################
-## format
-##################################################
-.PHONY: format
-format: *.cpp *.h
-	clang-format -i -style google $^
-##################################################
 ## clean
 ##################################################
 clean: 

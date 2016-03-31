@@ -21,9 +21,7 @@ class Profiler {
       this->func = func;
       Profiler::addTimer(func);
     }
-    ~Timer() {
-      Profiler::deleteTimer(func);
-    }
+    ~Timer() { Profiler::deleteTimer(func); }
     const char* func;
   };
 
@@ -41,10 +39,7 @@ class Profiler {
 #define CURRENT_FUNCTION() __PRETTY_FUNCTION__
 #define PROFILE_FUNCTION() \
   Profiler::Timer tempProfilerTimer(CURRENT_FUNCTION());
-#define PROFILE_SCOPE(text) \
-  Profiler::Timer tempProfilerTimer##__LINE__(text);
-#define PROFILE_NAME_START(text) \
-  Profiler::addTimer(text)
-#define PROFILE_NAME_STOP(text) \
-  Profiler::deleteTimer(text)  
+#define PROFILE_SCOPE(text) Profiler::Timer tempProfilerTimer##__LINE__(text);
+#define PROFILE_NAME_START(text) Profiler::addTimer(text)
+#define PROFILE_NAME_STOP(text) Profiler::deleteTimer(text)
 #endif /* _PROFILER_H_ */

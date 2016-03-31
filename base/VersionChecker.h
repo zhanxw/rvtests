@@ -7,7 +7,7 @@
 class VersionChecker {
  public:
   /**
-   * @return 0 only if succeed 
+   * @return 0 only if succeed
    */
   int retrieveRemoteVersion(const std::string& urlToRemoteVersion);
   int setLocalVersion(const std::string& localVersion);
@@ -24,6 +24,7 @@ class VersionChecker {
    * as usually the line 1 is software version number.
    */
   void printRemoteContent(int startLine = 1) const;
+
  private:
   std::string localVersion;
   std::string remoteVersion;

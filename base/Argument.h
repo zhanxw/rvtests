@@ -575,7 +575,6 @@ class ParameterParser {
       fprintf(stderr, "    %s\n", effectiveOptionVector[i].c_str());
     }
     fprintf(stderr, "\n");
-    
   }
   void Help() {
     LineBreaker leftColumn(FLAG_WIDTH);

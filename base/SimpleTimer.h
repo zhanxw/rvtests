@@ -8,7 +8,7 @@
  *
  * As time() returns the seconds since the Epoch,
  * the precision here is second
- * 
+ *
  */
 class SimpleTimer {
  public:
@@ -65,7 +65,7 @@ class AccurateTimer {
     return _elapsed;
   }
   double getSeconds() const { return _elapsed; }
-  
+
  private:
   std::chrono::high_resolution_clock::time_point _start;
   std::chrono::high_resolution_clock::time_point _stop;
@@ -133,7 +133,7 @@ class AccurateTimer {
     return _elapsed;
   }
   double getSeconds() const { return _elapsed; }
-  
+
  private:
   struct timespec _start;
   struct timespec _end;
@@ -166,7 +166,7 @@ class AccurateTimer {
     return _elapsed;
   }
   double getSeconds() const { return _elapsed; }
-  
+
  private:
   LARGE_INTEGER _start;
   LARGE_INTEGER _end;

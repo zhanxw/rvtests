@@ -883,6 +883,7 @@ class FileWriter {
     return this->fp->write(s);
   }
   int write(const char* s) { return this->fp->write(s); }
+  int write(const std::string& s) { return this->fp->write(s.c_str()); }  
   int writeLine(const char* s) {
     int ret = this->fp->write(s);
     this->fp->write("\n");

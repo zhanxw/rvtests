@@ -2,8 +2,10 @@
 #define _SUMMARY_H_
 
 #include "base/IO.h"
-#include "base/CommonFunction.h"
-#include "ModelUtil.h"
+#include "base/CommonFunction.h" // calculateMean, calculateSampleSD
+#include "base/SimpleMatrix.h"
+#include <algorithm>
+#include <vector>
 
 inline void assign(const std::vector<double>& in, Vector* out) {
   if (!out) return;
@@ -61,28 +63,42 @@ class SummaryHeader {
   }
   void setInverseNormalize(bool b) { this->inverseNormalized = b; }
 
-  void recordCovariateColumn(Matrix& m, int col) {
-    int nr = m.rows;
-
-    std::vector<double> v(nr);
-    for (int i = 0; i < m.rows; ++i) {
-      v[i] = m[i][col];
-    }
-
+  void recordCovariateColumn(const SimpleMatrix& m, int col) {
     Summary s;
-    s.add(v);
+    s.add(m.extractCol(col));
     this->cov.push_back(s);
   }
-  void recordCovariate(Matrix& m) {
-    // int nr = m.rows;
-    int nc = m.cols;
-    this->covLabel.clear();
+  // void recordCovariateColumn(Matrix& m, int col) {
+  //   int nr = m.rows;
+
+  //   std::vector<double> v(nr);
+  //   for (int i = 0; i < m.rows; ++i) {
+  //     v[i] = m[i][col];
+  //   }
+
+  //   Summary s;
+  //   s.add(v);
+  //   this->cov.push_back(s);
+  // }
+
+  void recordCovariate(const SimpleMatrix& m) {
+    int nc = m.ncol();
+    this->covLabel = m.getColName();
     this->cov.clear();
     for (int i = 0; i < nc; ++i) {
-      this->covLabel.push_back(m.GetColumnLabel(i));
       this->recordCovariateColumn(m, i);
     }
   }
+  // void recordCovariate(Matrix& m) {
+  //   // int nr = m.rows;
+  //   int nc = m.cols;
+  //   this->covLabel.clear();
+  //   this->cov.clear();
+  //   for (int i = 0; i < nc; ++i) {
+  //     this->covLabel.push_back(m.GetColumnLabel(i));
+  //     this->recordCovariateColumn(m, i);
+  //   }
+  // }
   void outputHeader(FileWriter* fp) {
     // write summaries
     int nSample = pheno.size() ? pheno[0].n : 0;

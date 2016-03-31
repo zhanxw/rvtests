@@ -10,7 +10,70 @@
 #include "libsrc/MathVector.h"
 #include "libsrc/MathMatrix.h"
 
-typedef enum { COVARIATE_IMPUTE, COVARIATE_DROP } HandleMissingCov;
+class DataLoader {
+ public:
+  typedef enum { COVARIATE_IMPUTE, COVARIATE_DROP, COVARIATE_KEEP } HandleMissingCov;
+  typedef enum { PHENOTYPE_QTL, PHENOTYPE_BINARY, PHENOTYPE_UNKNOWN } PhenotypeType;
+
+ public:
+  DataLoader();
+  // phenotypes related
+  int loadPhenotype(const std::string& pheno, const std::string& mpheno,
+                    const std::string& phenoName,
+                    const bool imputePheno);
+  int arrangePhenotype(const std::vector<std::string>& names,
+                       std::vector<std::string>* droppedNames);
+
+  // covariates related
+  void setImputeCovariate();
+  int loadCovariate(const std::string& covar, const std::string& covName,
+                    bool imputeCov);
+  int arrangeCovariate(const std::vector<std::string>& names,
+                       std::vector<std::string>* droppedNames);
+  
+  int loadSex();
+  int useSexAsCovariate();
+  int loadMarkerAsCovariate(const std::string& inVcf,
+                            const std::string& marker);
+
+  // sanity check
+  int checkConstantCovariate();
+  
+  // transformations
+  int useResidualAsPhenotype();
+  int inverseNormalizePhenotype();
+
+  // phenotype-related utilities
+  PhenotypeType detectPhenotypeType() const;
+  int setTraitType(PhenotypeType t);
+  bool isBinaryPhenotype() const {return binaryPhenotype;};
+  
+  // getters
+  const SimpleMatrix& getPhenotype() {return this->phenotype;};
+  const SimpleMatrix& getCovariate() {return this->covariate;};
+  const std::vector<int>& getSex() {return this->sex;};
+ private:
+  SimpleMatrix phenotype;  // sample by traits
+  SimpleMatrix covariate;  // sample by covariates
+  bool binaryPhenotype;    
+  std::vector<int> sex;    // plink coded genders
+  
+  // external parameters
+  std::string FLAG_pheno;
+  std::string FLAG_mpheno;
+  std::string FLAG_phenoName;
+  bool FLAG_imputePheno;
+
+  std::string FLAG_cov;
+  std::string FLAG_covName;
+  bool FLAG_imputeCov;
+
+  std::string FLAG_inVcf;
+  std::string FLAG_condition;
+  
+  // intermediate values
+  std::set<std::string> sampleToDropInCovariate;  
+};
 
 /**
  * Extract covaraite from file @param fn.
@@ -27,7 +90,7 @@ typedef enum { COVARIATE_IMPUTE, COVARIATE_DROP } HandleMissingCov;
 int extractCovariate(const std::string& fn,
                      const std::vector<std::string>& sampleToInclude,
                      const std::vector<std::string>& covNameToUse,
-                     HandleMissingCov handleMissingCov, SimpleMatrix* mat,
+                     DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* mat,
                      std::set<std::string>* sampleToDrop);
 
 /**
@@ -41,22 +104,22 @@ int extractCovariate(const std::string& fn,
  * the following anaylysis
  * @return number of samples have covariates.
  * Example:
- * includedSample = [A, B, C] and in covaraite file we have [B, C, C, D]
+ * includedSample = [A, B, C] and in covariate file we have [B, C, C, D]
  * then output covariate have 3 rows corresponding to [A, B, C]
  * row C filled by the last C in covariate file
  * sample D will be in sampleToDrop
  */
-int loadCovariate(const std::string& fn,
+int _loadCovariate(const std::string& fn,
                   const std::vector<std::string>& includedSample,
                   const std::vector<std::string>& covNameToUse,
-                  HandleMissingCov handleMissingCov, Matrix* covariate,
+                  DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* covariate,
                   std::vector<std::string>* colNames,
                   std::set<std::string>* sampleToDrop);
 
-int loadCovariate(const std::string& fn,
+int _loadCovariate(const std::string& fn,
                   const std::vector<std::string>& includedSample,
                   const std::string& covNameToUse,
-                  HandleMissingCov handleMissingCov, Matrix* covariate,
+                  DataLoader::HandleMissingCov handleMissingCov, SimpleMatrix* covariate,
                   std::vector<std::string>* colNames,
                   std::set<std::string>* sampleToDrop);
 
@@ -81,7 +144,7 @@ int loadPedPhenotypeByHeader(const char* fn, std::map<std::string, double>* p,
  * @return true if @param phenotype is either:  1: unaffected, 2: affected,  -9,
  * 0: missing
  */
-bool isBinaryPhenotype(const std::vector<double>& phenotype); 
+bool _isBinaryPhenotype(const std::vector<double>& phenotype);
 
 /**
  * Convert binary phenotype 1,2 (PLINK format) to 0,1 (logistic regression)
@@ -100,9 +163,9 @@ void rearrange(const std::map<std::string, double>& phenotype,
                std::vector<std::string>* vcfSampleToDrop,
                std::vector<std::string>* phenotypeNameInOrder,
                std::vector<double>* phenotypeValueInOrder,
-               bool imputePhenotype) ;
+               bool imputePhenotype);
 
-int loadSex(const std::string& fn,
+int _loadSex(const std::string& fn,
             const std::vector<std::string>& includedSample,
             std::vector<int>* sex);
 
@@ -111,45 +174,13 @@ int loadSex(const std::string& fn,
  * put its index to @param index
  * @return number of missing elements
  */
-int findMissingSex(const std::vector<int>& sex, std::vector<int>* index) ;
+int findMissingSex(const std::vector<int>& sex, std::vector<int>* index);
 
 /**
  * Remove i th element from @param val where i is stored in @param index
  * @return number of elements removed
  */
-/**
- * Remove i th element from @param val where i is stored in @param index
- * @return number of elements removed
- *
- * NOTE: template function should not be in .cpp files
- */
-template <typename T, typename A>
-int removeByIndex(const std::vector<int>& index, std::vector<T, A>* val) {
-  if (index.empty()) return 0;
-
-  std::set<int> idx(index.begin(), index.end());
-
-  int nRemoved = 0;
-  size_t last = 0;
-  for (size_t i = 0; i < idx.size(); ++i) {
-    if (idx.count(i)) {
-      ++nRemoved;
-      continue;
-    }
-    if (last != i) {
-      (*val)[last] = (*val)[i];
-    }
-    ++last;
-  }
-  val->resize(last);
-  return nRemoved;
-}
-
-/**
- * Remove i th element from @param val where i is stored in @param index
- * @return number of elements removed
- */
-int removeByRowIndex(const std::vector<int>& index, Matrix* val) ;
+int removeByRowIndex(const std::vector<int>& index, Matrix* val);
 
 /**
  * append a column @param val to the right of @param mat,
@@ -157,6 +188,6 @@ int removeByRowIndex(const std::vector<int>& index, Matrix* val) ;
  * @return 0 if success
  */
 int appendToMatrix(const std::string& label, const std::vector<int> val,
-                   Matrix* mat) ;
+                   Matrix* mat);
 
 #endif /* _DATALOADER_H_ */

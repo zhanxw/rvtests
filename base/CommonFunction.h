@@ -231,7 +231,7 @@ inline void makeMap(const std::vector<std::string>& in,
 }
 
 /**
- * Test whether x contain unique elements
+ * Test whether all elements in @param x are unique
  */
 inline bool isUnique(const std::vector<std::string>& x) {
   std::set<std::string> s;
@@ -242,6 +242,34 @@ inline bool isUnique(const std::vector<std::string>& x) {
     }
   }
   return true;
+}
+
+/**
+ * Remove i th element from @param val where i is stored in @param index
+ * @return number of elements removed
+ *
+ * NOTE: unless static function, template functions should not be in .cpp files
+ */
+template <typename T, typename A>
+int removeByIndex(const std::vector<int>& index, std::vector<T, A>* val) {
+  if (index.empty()) return 0;
+
+  std::set<int> idx(index.begin(), index.end());
+
+  int nRemoved = 0;
+  size_t last = 0;
+  for (size_t i = 0; i < idx.size(); ++i) {
+    if (idx.count(i)) {
+      ++nRemoved;
+      continue;
+    }
+    if (last != i) {
+      (*val)[last] = (*val)[i];
+    }
+    ++last;
+  }
+  val->resize(last);
+  return nRemoved;
 }
 
 #endif /* _COMMONFUNCTION_H_ */

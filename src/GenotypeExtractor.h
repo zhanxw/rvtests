@@ -62,6 +62,7 @@ class GenotypeExtractor {
   void setRangeList(const std::string& l) ;
   void setRangeFile(const std::string& fn) ;
   void includePeople(const std::string& v) ;
+  void includePeople(const std::vector<std::string>& v) ;  
   void includePeopleFromFile(const std::string& fn) ;
   void excludePeople(const std::string& v) ;
   void excludePeopleFromFile(const std::string& fn) ;

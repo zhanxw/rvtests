@@ -2,67 +2,36 @@
 #define _SIMPLEMATRIX_H_
 
 #include <vector>
+#include <set>
 #include <string>
 #include <stdio.h>
 
 /**
  * This matrix class is for convenient store matrix class.
+ *
+ * Row (column) names are by default r1, r2, ... (c1, c2, ...),
+ * and they automatically grow/shrink with data, unless specified otherwise
  */
 class SimpleMatrix {
  public:
   SimpleMatrix(){};
   SimpleMatrix(int nr, int nc) { this->resize(nr, nc); }
-  /* const static int COLUMN_HEADER = 0x1; */
-  /* const static int ROW_HEADER = 0x2; */
   int readFile(const char* f);
   int writeFile(const char* f);
   std::vector<double>& operator[](int i) { return mat[i]; }
   const std::vector<double>& operator[](int i) const { return mat[i]; }
-  void resize(int nrow, int ncol) {
-    if (nrow < 0 || ncol < 0) return;
-    mat.resize(nrow);
-    for (int i = 0; i < nrow; i++) mat[i].resize(ncol);
-  };
-  int appendRow(const std::vector<double>& d) {
-    if (mat.size() && mat[0].size() != d.size()) {
-      fprintf(stderr, "Row size does not match!\n");
-      return -1;
-    }
-    mat.push_back(d);
-    return 0;
-  };
-  int appendCol(const std::vector<double>& d) {
-    if (mat.size()) {
-      // no empty
-      if (mat.size() != d.size()) {
-        fprintf(stderr, "Col size does not match!\n");
-        return -1;
-      }
-    }
-
-    mat.resize(d.size());
-    for (size_t i = 0; i < d.size(); i++) {
-      mat[i].push_back(d[i]);
-    }
-    return 0;
+  void resize(int nrow, int ncol);
+  template <typename T>  
+  int appendRow(const std::vector<T>& d, const std::string& label = "");
+  template <typename T>
+  int appendCol(const std::vector<T>& d, const std::string& label = ""); 
+  int deleteRow(int i) ;
+  int deleteCol(int i) ;
+  void clear() {
+    mat.clear();
+    rowName.clear();
+    colName.clear();
   }
-  int deleteRow(int i) {
-    if (i < 0 || (size_t)i > mat.size()) return -1;
-    mat.erase(mat.begin() + i);
-    if (!rowName.empty()) rowName.erase(rowName.begin() + i);
-    return 0;
-  }
-  int deleteCol(int i) {
-    if (i < 0 || i > ncol()) return -1;
-    for (size_t nr = 0; nr < mat.size(); ++nr) {
-      mat[nr].erase(mat[nr].begin() + i);
-    }
-    if (!colName.empty()) {
-      colName.erase(colName.begin() + i);
-    }
-    return 0;
-  }
-  void clear() { mat.clear(); }
   void zero() {
     for (unsigned int i = 0; i < mat.size(); i++) {
       for (unsigned int j = 0; j < mat[i].size(); j++) {
@@ -74,22 +43,32 @@ class SimpleMatrix {
   int ncol() const {
     if (mat.size() == 0) return 0;
     return mat[0].size();
-  };
+  }
   const std::vector<std::string>& getRowName() const { return this->rowName; };
   const std::vector<std::string>& getColName() const { return this->colName; };
-  int setRowName(const int idx, const std::string& s) {
-    if (idx < 0 || idx >= nrow()) return -1;
-    rowName.resize(nrow());
-    rowName[idx] = s;
-    return 0;
-  }
-  int setColName(const int idx, const std::string& s) {
-    if (idx < 0 || idx >= ncol()) return -1;
-    colName.resize(ncol());
-    colName[idx] = s;
-    return 0;
-  }
+  int setRowName(const int idx, const std::string& s);
+  int setColName(const int idx, const std::string& s);
+  int setRowName(const std::vector<std::string>& name);
+  int setColName(const std::vector<std::string>& name);
 
+  /**
+   * Remove rows in which their row names are in @param rowNamSet
+   */
+  int dropRow(const std::set<std::string>& rowNameSet);
+  int dropRow(const std::vector<int>& index);
+  
+  /**
+   * Assign row @param from to row @param to
+   */
+  int assignRow(const int to, const int from);
+
+  void extractCol(int col, std::vector<double>* v) const;
+  std::vector<double> extractCol(int col) const;  
+  int setCol(int col, const std::vector<double>& v);
+
+ private:
+  void resetRowName();
+  void resetColName();  
  private:
   std::vector<std::string> rowName;
   std::vector<std::string> colName;

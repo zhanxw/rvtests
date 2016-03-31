@@ -3,6 +3,13 @@
 
 #include <ctime>
 
+/**
+ * A simple timer
+ *
+ * As time() returns the seconds since the Epoch,
+ * the precision here is second
+ * 
+ */
 class SimpleTimer {
  public:
   SimpleTimer() { start(); };
@@ -15,7 +22,7 @@ class SimpleTimer {
     _elapsed = (int)(_stop - _start);
     return _elapsed;
   }
-  // double getSeconds() const { return _elapsed; }
+  double getSeconds() const { return _elapsed; }
 
  private:
   time_t _start;
@@ -57,7 +64,8 @@ class AccurateTimer {
             .count();
     return _elapsed;
   }
-
+  double getSeconds() const { return _elapsed; }
+  
  private:
   std::chrono::high_resolution_clock::time_point _start;
   std::chrono::high_resolution_clock::time_point _stop;
@@ -85,7 +93,7 @@ class AccurateTimer {
                1.0e-9 * (_end.tv_nsec - _start.tv_nsec);
     return _elapsed;
   }
-  // double getSeconds() const { return _elapsed; }
+  double getSeconds() const { return _elapsed; }
 
  private:
   void clock_gettime(struct timespec* ts) {
@@ -124,7 +132,8 @@ class AccurateTimer {
                1.0e-9 * (_end.tv_nsec - _start.tv_nsec);
     return _elapsed;
   }
-
+  double getSeconds() const { return _elapsed; }
+  
  private:
   struct timespec _start;
   struct timespec _end;
@@ -156,7 +165,8 @@ class AccurateTimer {
     _elapsed /= _freq.QuadPart;
     return _elapsed;
   }
-
+  double getSeconds() const { return _elapsed; }
+  
  private:
   LARGE_INTEGER _start;
   LARGE_INTEGER _end;

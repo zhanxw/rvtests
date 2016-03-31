@@ -27,11 +27,10 @@
 #include "Result.h"
 #include "base/Indexer.h"
 #include "base/VersionChecker.h"
-#include "regression/LinearRegression.h"
 
 Logger* logger = NULL;
 
-const char* VERSION = "20151201";
+const char* VERSION = "20160326";
 
 void banner(FILE* fp) {
   const char* string =
@@ -42,7 +41,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      December 2015                     | \n"
+      "|      March 2016                        | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -56,6 +55,23 @@ void toMatrix(const std::vector<double>& v, Matrix* m) {
   m->Dimension(v.size(), 1);
   for (size_t i = 0; i < v.size(); i++) {
     (*m)[i][0] = v[i];
+  }
+};
+
+void toMatrix(const SimpleMatrix& from, Matrix* to) {
+  const int nr = from.nrow();
+  const int nc = from.ncol();
+  to->Dimension(nr, nc);
+
+  // copy value
+  for (int i = 0; i < nr; ++i) {
+    for (int j = 0; j < nc; ++j) {
+      (*to)[i][j] = from[i][j];
+    }
+  }
+  // copy col labels
+  for (int i = 0; i < nc; ++i) {
+    (*to).SetColumnLabel(i, from.getColName()[i].c_str());
   }
 };
 
@@ -145,60 +161,27 @@ int loadRangeFile(const char* fn, const char* givenRangeName,
   return m.size();
 };
 
-/**
- * Append @param genotype to @param covariate in the right order
- * @param phenotypeNameInOrder is the row names for @param covariate
- * @param rowLabel is the row names for @param geno
- * return 0 if succeed
- */
-int appendGenotype(Matrix* covariate,
-                   const std::vector<std::string>& phenotypeNameInOrder,
-                   Matrix& geno, const std::vector<std::string>& rowLabel) {
-  if (!covariate) {
-    return -1;
-  }
-  Matrix& m = *covariate;
-  int baseCols = m.cols;
-  m.Dimension(phenotypeNameInOrder.size(), m.cols + geno.cols);
-
-  Indexer indexer(rowLabel);
-  if (indexer.hasDuplication()) {
-    return -1;
-  }
-  for (size_t i = 0; i < phenotypeNameInOrder.size(); ++i) {
-    for (int j = 0; j < m.cols; ++j) {
-      int index = indexer[phenotypeNameInOrder[i]];
-      if (index < 0) {  // did not find a person
-        return -1;
+int excludeVcfSamples(GenotypeExtractor& ge,
+                      const std::vector<std::string>& vcfSampleToDrop,
+                      const char* reason = "unknown reasons") {
+  if (vcfSampleToDrop.size()) {
+    // exclude this sample from parsing VCF
+    ge.excludePeople(vcfSampleToDrop);
+    // output dropped samples
+    for (size_t i = 0; i < vcfSampleToDrop.size(); ++i) {
+      if (i == 0)
+        logger->warn(
+            "Total [ %zu ] samples are dropped from VCF file due to %s.",
+            vcfSampleToDrop.size(), reason);
+      if (i >= 10) {
+        logger->warn("Skip outputting additional [ %d ] samples due to %s.",
+                     ((int)vcfSampleToDrop.size() - 10), reason);
+        break;
       }
-      m[i][baseCols + j] = geno[index][j];
-
-      if (i == 0) {
-        m.SetColumnLabel(baseCols + j, geno.GetColumnLabel(j));
-      }
+      logger->warn("Drop sample [ %s ] from VCF file due to %s",
+                   (vcfSampleToDrop)[i].c_str(), reason);
     }
   }
-  return 0;
-}
-
-/**
- * Exclude i th sample where i is index stored in @param index
- * from @param vin, @param phenotypeNameInOrder, @param phenotypeInOrder
- * and @param cov
- * @return 0 if succeed
- */
-int excludeSamplesByIndex(const std::vector<int>& index, GenotypeExtractor* ge,
-                          std::vector<std::string>* phenotypeNameInOrder,
-                          std::vector<double>* phenotypeInOrder, Matrix* cov) {
-  if (!ge || !phenotypeNameInOrder || !phenotypeInOrder || !cov) {
-    return -1;
-  }
-
-  ge->excludePeople((*phenotypeNameInOrder), index);
-  removeByIndex(index, phenotypeNameInOrder);
-  removeByIndex(index, phenotypeInOrder);
-  removeByRowIndex(index, cov);
-
   return 0;
 }
 
@@ -316,8 +299,9 @@ int main(int argc, char** argv) {
                        "rarecover, cmat, cmcWald")
   ADD_STRING_PARAMETER(pl, modelVT, "--vt",
                        "Variable threshold tests, choose from: price, analytic")
-  ADD_STRING_PARAMETER(pl, modelKernel, "--kernel",
-                       "Kernal-based tests, choose from: SKAT, KBAC, FamSKAT, SKATO")
+  ADD_STRING_PARAMETER(
+      pl, modelKernel, "--kernel",
+      "Kernal-based tests, choose from: SKAT, KBAC, FamSKAT, SKATO")
   ADD_STRING_PARAMETER(pl, modelMeta, "--meta",
                        "Meta-analysis related functions to generate summary "
                        "statistics, choose from: score, cov, dominant, "
@@ -464,262 +448,315 @@ int main(int argc, char** argv) {
     logger->info("Set annotype type filter to %s", FLAG_annoType.c_str());
   }
 
-  std::map<std::string, double> phenotype;
-  if (FLAG_pheno.empty()) {
-    logger->error("Cannot do association when phenotype is missing!");
-    return -1;
-  }
+  DataLoader dataLoader;
+  dataLoader.loadPhenotype(FLAG_pheno, FLAG_mpheno, FLAG_phenoName, FLAG_imputePheno);
 
-  // check if alternative phenotype columns are used
-  if (!FLAG_mpheno.empty() && !FLAG_phenoName.empty()) {
-    logger->error("Please specify either --mpheno or --pheno-name");
-    return -1;
-  }
-  if (!FLAG_mpheno.empty()) {
-    int col = atoi(FLAG_mpheno);
-    int ret = loadPedPhenotypeByColumn(FLAG_pheno.c_str(), &phenotype, col);
-    if (ret < 0) {
-      logger->error("Loading phenotype failed!");
-      return -1;
-    }
-  } else if (!FLAG_phenoName.empty()) {
-    int ret = loadPedPhenotypeByHeader(FLAG_pheno.c_str(), &phenotype,
-                                       FLAG_phenoName.c_str());
-    if (ret < 0) {
-      logger->error("Loading phenotype failed!");
-      return -1;
-    }
-  } else {
-    int col = 1;  // default use the first phenotype
-    int ret = loadPedPhenotypeByColumn(FLAG_pheno.c_str(), &phenotype, col);
-    if (ret < 0) {
-      logger->error("Loading phenotype failed!");
-      return -1;
-    }
-  }
-  logger->info("Loaded [ %zu ] sample pheontypes.", phenotype.size());
+  // // load phenotypes
+  // std::map<std::string, double> phenotype;
+  // if (FLAG_pheno.empty()) {
+  //   logger->error("Cannot do association when phenotype is missing!");
+  //   return -1;
+  // }
+
+  // // check if alternative phenotype columns are used
+  // if (!FLAG_mpheno.empty() && !FLAG_phenoName.empty()) {
+  //   logger->error("Please specify either --mpheno or --pheno-name");
+  //   return -1;
+  // }
+  // if (!FLAG_mpheno.empty()) {
+  //   int col = atoi(FLAG_mpheno);
+  //   int ret = loadPedPhenotypeByColumn(FLAG_pheno.c_str(), &phenotype, col);
+  //   if (ret < 0) {
+  //     logger->error("Loading phenotype failed!");
+  //     return -1;
+  //   }
+  // } else if (!FLAG_phenoName.empty()) {
+  //   int ret = loadPedPhenotypeByHeader(FLAG_pheno.c_str(), &phenotype,
+  //                                      FLAG_phenoName.c_str());
+  //   if (ret < 0) {
+  //     logger->error("Loading phenotype failed!");
+  //     return -1;
+  //   }
+  // } else {
+  //   int col = 1;  // default use the first phenotype
+  //   int ret = loadPedPhenotypeByColumn(FLAG_pheno.c_str(), &phenotype, col);
+  //   if (ret < 0) {
+  //     logger->error("Loading phenotype failed!");
+  //     return -1;
+  //   }
+  // }
+  // logger->info("Loaded [ %zu ] sample pheontypes.", phenotype.size());
 
   // rearrange phenotypes
   std::vector<std::string> vcfSampleNames;
   ge.getPeopleName(&vcfSampleNames);
   logger->info("Loaded [ %zu ] samples from VCF files", vcfSampleNames.size());
+
+  // drop samples from phenotype or vcf
   std::vector<std::string> vcfSampleToDrop;
-  // phenotype names (vcf sample names) arranged in the same order as in VCF
-  std::vector<std::string> phenotypeNameInOrder;
-  std::vector<double>
-      phenotypeInOrder;  // phenotype arranged in the same order as in VCF
-  rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop, &phenotypeNameInOrder,
-            &phenotypeInOrder, FLAG_imputePheno);
-  if (vcfSampleToDrop.size()) {
-    // exclude this sample from parsing VCF
-    ge.excludePeople(vcfSampleToDrop);
-    // output dropped samples
-    for (size_t i = 0; i < vcfSampleToDrop.size(); ++i) {
-      if (i == 0)
-        logger->warn(
-            "Total [ %zu ] samples are dropped from VCF file due to missing "
-            "phenotype",
-            vcfSampleToDrop.size());
-      if (i >= 10) {
-        logger->warn(
-            "Skip outputting additional [ %d ] samples with missing "
-            "phenotypes.",
-            ((int)vcfSampleToDrop.size() - 10));
-        break;
-      }
-      logger->warn("Drop sample [ %s ] from VCF file due to missing phenotype",
-                   (vcfSampleToDrop)[i].c_str());
-    }
-    // logger->warn("Drop %zu sample from VCF file since we don't have their
-    // phenotypes", vcfSampleToDrop.size());
-  }
-  if (phenotypeInOrder.size() != phenotype.size()) {
-    logger->warn(
-        "Drop [ %d ] samples from phenotype file due to missing genotypes from "
-        "VCF files",
-        (int)(phenotype.size() - phenotypeInOrder.size()));
-    // We may output these samples by comparing keys of phenotype and
-    // phenotypeNameInOrder
-  }
+  dataLoader.arrangePhenotype(vcfSampleNames, &vcfSampleToDrop);
+  excludeVcfSamples(ge, vcfSampleToDrop, "missing phenotype");
 
-  // load covariate
-  Matrix covariate;
-  HandleMissingCov handleMissingCov = COVARIATE_DROP;
-  if (FLAG_imputeCov) {
-    handleMissingCov = COVARIATE_IMPUTE;
-  }
+  // // phenotype names (vcf sample names) arranged in the same order as in VCF
+  // std::vector<std::string> phenotypeNameInOrder;
+  // std::vector<double>
+  //     phenotypeInOrder;  // phenotype arranged in the same order as in VCF
+  // rearrange(phenotype, vcfSampleNames, &vcfSampleToDrop,
+  // &phenotypeNameInOrder,
+  //           &phenotypeInOrder, FLAG_imputePheno);
+  // if (vcfSampleToDrop.size()) {
+  //   // exclude this sample from parsing VCF
+  //   ge.excludePeople(vcfSampleToDrop);
+  //   // output dropped samples
+  //   for (size_t i = 0; i < vcfSampleToDrop.size(); ++i) {
+  //     if (i == 0)
+  //       logger->warn(
+  //           "Total [ %zu ] samples are dropped from VCF file due to missing "
+  //           "phenotype",
+  //           vcfSampleToDrop.size());
+  //     if (i >= 10) {
+  //       logger->warn(
+  //           "Skip outputting additional [ %d ] samples with missing "
+  //           "phenotypes.",
+  //           ((int)vcfSampleToDrop.size() - 10));
+  //       break;
+  //     }
+  //     logger->warn("Drop sample [ %s ] from VCF file due to missing
+  //     phenotype",
+  //                  (vcfSampleToDrop)[i].c_str());
+  //   }
+  //   // logger->warn("Drop %zu sample from VCF file since we don't have their
+  //   // phenotypes", vcfSampleToDrop.size());
+  // }
+  // if (phenotypeInOrder.size() != phenotype.size()) {
+  //   logger->warn(
+  //       "Drop [ %d ] samples from phenotype file due to missing genotypes
+  //       from "
+  //       "VCF files",
+  //       (int)(phenotype.size() - phenotypeInOrder.size()));
+  //   // We may output these samples by comparing keys of phenotype and
+  //   // phenotypeNameInOrder
+  // }
 
-  if (FLAG_cov.empty() && !FLAG_covName.empty()) {
-    logger->info("Use phenotype file as covariate file [ %s ]",
-                 FLAG_pheno.c_str());
-    FLAG_cov = FLAG_pheno;
-  }
-  if (!FLAG_cov.empty()) {
-    logger->info("Begin to read covariate file.");
-    std::vector<std::string> columnNamesInCovariate;
-    std::set<std::string> sampleToDropInCovariate;
-    int ret = loadCovariate(FLAG_cov.c_str(), phenotypeNameInOrder,
-                            FLAG_covName.c_str(), handleMissingCov, &covariate,
-                            &columnNamesInCovariate, &sampleToDropInCovariate);
-    if (ret < 0) {
-      logger->error("Load covariate file failed !");
-      exit(1);
-    }
+  dataLoader.loadCovariate(FLAG_cov, FLAG_covName, FLAG_imputeCov);
+  dataLoader.arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
+  excludeVcfSamples(ge, vcfSampleToDrop, "missing covariate");
+  // // load covariate
+  // Matrix covariate;
+  // HandleMissingCov handleMissingCov = COVARIATE_DROP;
+  // if (FLAG_imputeCov) {
+  //   handleMissingCov = COVARIATE_IMPUTE;
+  // }
+  // if (FLAG_cov.empty() && !FLAG_covName.empty()) {
+  //   logger->info("Use phenotype file as covariate file [ %s ]",
+  //                FLAG_pheno.c_str());
+  //   FLAG_cov = FLAG_pheno;
+  // }
+  // if (!FLAG_cov.empty()) {
+  //   logger->info("Begin to read covariate file.");
+  //   std::vector<std::string> columnNamesInCovariate;
+  //   std::set<std::string> sampleToDropInCovariate;
+  //   int ret = loadCovariate(FLAG_cov.c_str(), phenotypeNameInOrder,
+  //                           FLAG_covName.c_str(), handleMissingCov,
+  //                           &covariate,
+  //                           &columnNamesInCovariate,
+  //                           &sampleToDropInCovariate);
+  //   if (ret < 0) {
+  //     logger->error("Load covariate file failed !");
+  //     exit(1);
+  //   }
 
-    // drop phenotype samples
-    if (!sampleToDropInCovariate.empty()) {
-      int idx = 0;
-      int n = phenotypeNameInOrder.size();
-      for (int i = 0; i < n; ++i) {
-        if (sampleToDropInCovariate.count(phenotypeNameInOrder[i]) !=
-            0) {  // need to drop
-          continue;
-        }
-        phenotypeNameInOrder[idx] = phenotypeNameInOrder[i];
-        phenotypeInOrder[idx] = phenotypeInOrder[i];
-        idx++;
-      }
-      phenotypeNameInOrder.resize(idx);
-      phenotypeInOrder.resize(idx);
-      logger->warn(
-          "[ %zu ] sample phenotypes are dropped due to lacking covariates.",
-          sampleToDropInCovariate.size());
-    }
-    // drop vcf samples;
-    for (std::set<std::string>::const_iterator iter =
-             sampleToDropInCovariate.begin();
-         iter != sampleToDropInCovariate.end(); ++iter) {
-      ge.excludePeople(iter->c_str());
-    }
-  }
+  //   // drop phenotype samples
+  //   if (!sampleToDropInCovariate.empty()) {
+  //     int idx = 0;
+  //     int n = phenotypeNameInOrder.size();
+  //     for (int i = 0; i < n; ++i) {
+  //       if (sampleToDropInCovariate.count(phenotypeNameInOrder[i]) !=
+  //           0) {  // need to drop
+  //         continue;
+  //       }
+  //       phenotypeNameInOrder[idx] = phenotypeNameInOrder[i];
+  //       phenotypeInOrder[idx] = phenotypeInOrder[i];
+  //       idx++;
+  //     }
+  //     phenotypeNameInOrder.resize(idx);
+  //     phenotypeInOrder.resize(idx);
+  //     logger->warn(
+  //         "[ %zu ] sample phenotypes are dropped due to lacking covariates.",
+  //         sampleToDropInCovariate.size());
+  //   }
+  //   // drop vcf samples;
+  //   for (std::set<std::string>::const_iterator iter =
+  //            sampleToDropInCovariate.begin();
+  //        iter != sampleToDropInCovariate.end(); ++iter) {
+  //     ge.excludePeople(iter->c_str());
+  //   }
+  // }
 
-  // load sex
-  std::vector<int> sex;
-  if (loadSex(FLAG_pheno, phenotypeNameInOrder, &sex)) {
-    logger->error("Cannot load sex of samples from phenotype file");
-    exit(1);
+  dataLoader.loadSex();
+  if (FLAG_sex) {
+    dataLoader.useSexAsCovariate();
+    dataLoader.arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
+    excludeVcfSamples(ge, vcfSampleToDrop, "missing sex");
   }
+  // // load sex
+  // std::vector<int> sex;
+  // if (loadSex(FLAG_pheno, phenotypeNameInOrder, &sex)) {
+  //   logger->error("Cannot load sex of samples from phenotype file");
+  //   exit(1);
+  // }
 
-  if (FLAG_sex) {            // append sex in covariate
-    std::vector<int> index;  // mark missing samples
-    int numMissing = findMissingSex(sex, &index);
-    logger->info("Futher exclude %d samples with missing sex", numMissing);
-    removeByIndex(index, &sex);
-    excludeSamplesByIndex(index, &ge, &phenotypeNameInOrder, &phenotypeInOrder,
-                          &covariate);
-    appendToMatrix("Sex", sex, &covariate);
-  }
+  // if (FLAG_sex) {            // append sex in covariate
+  //   std::vector<int> index;  // mark missing samples
+  //   int numMissing = findMissingSex(sex, &index);
+  //   logger->info("Futher exclude %d samples with missing sex", numMissing);
+  //   removeByIndex(index, &sex);
+  //   excludeSamplesByIndex(index, &ge, &phenotypeNameInOrder,
+  //   &phenotypeInOrder,
+  //                         &covariate);
+  //   appendToMatrix("Sex", sex, &covariate);
+  // }
 
-  // load conditional markers
   if (!FLAG_condition.empty()) {
-    Matrix geno;
-    std::vector<std::string> rowLabel;
-    if (loadMarkerFromVCF(FLAG_inVcf, FLAG_condition, &rowLabel, &geno) < 0) {
-      logger->error("Load conditional markers [ %s ] from [ %s ] failed.",
-                    FLAG_condition.c_str(), FLAG_inVcf.c_str());
-      exit(1);
-    }
-    if (appendGenotype(&covariate, phenotypeNameInOrder, geno, rowLabel) < 0) {
-      logger->error(
-          "Failed to combine conditional markers [ %s ] from [ %s ] failed.",
-          FLAG_condition.c_str(), FLAG_inVcf.c_str());
-      exit(1);
-    }
+    dataLoader.loadMarkerAsCovariate(FLAG_inVcf, FLAG_condition);
   }
+  // // load conditional markers
+  // if (!FLAG_condition.empty()) {
+  //   Matrix geno;
+  //   std::vector<std::string> rowLabel;
+  //   if (loadMarkerFromVCF(FLAG_inVcf, FLAG_condition, &rowLabel, &geno) < 0)
+  //   {
+  //     logger->error("Load conditional markers [ %s ] from [ %s ] failed.",
+  //                   FLAG_condition.c_str(), FLAG_inVcf.c_str());
+  //     exit(1);
+  //   }
+  //   if (appendGenotype(&covariate, phenotypeNameInOrder, geno, rowLabel) < 0)
+  //   {
+  //     logger->error(
+  //         "Failed to combine conditional markers [ %s ] from [ %s ] failed.",
+  //         FLAG_condition.c_str(), FLAG_inVcf.c_str());
+  //     exit(1);
+  //   }
+  // }
 
-  // check if some covariates are unique for all samples
-  // e.g. user may include covariate "1" in addition to intercept
-  //      in such case, we will give a fatal error
-  for (int i = 0; i < covariate.cols; ++i) {
-    std::set<double> s;
-    s.clear();
-    for (int j = 0; j < covariate.rows; ++j) {
-      s.insert(covariate[j][i]);
-    }
-    if (s.size() == 1) {
-      logger->error(
-          "Covariate [ %s ] equals [ %g ] for all samples, cannot fit "
-          "model...\n",
-          covariate.GetColumnLabel(i), *s.begin());
-      exit(1);
-    }
-  }
+  dataLoader.checkConstantCovariate();
+  // // check if some covariates are constant for all samples
+  // // e.g. user may include covariate "1" in addition to intercept
+  // //      in such case, we will give a fatal error
+  // for (int i = 0; i < covariate.cols; ++i) {
+  //   std::set<double> s;
+  //   s.clear();
+  //   for (int j = 0; j < covariate.rows; ++j) {
+  //     s.insert(covariate[j][i]);
+  //   }
+  //   if (s.size() == 1) {
+  //     logger->error(
+  //         "Covariate [ %s ] equals [ %g ] for all samples, cannot fit "
+  //         "model...\n",
+  //         covariate.GetColumnLabel(i), *s.begin());
+  //     exit(1);
+  //   }
+  // }
 
   g_SummaryHeader = new SummaryHeader;
-  g_SummaryHeader->recordCovariate(covariate);
+  g_SummaryHeader->recordCovariate(dataLoader.getCovariate());
 
   // record raw phenotype
-  g_SummaryHeader->recordPhenotype("Trait", phenotypeInOrder);
+  g_SummaryHeader->recordPhenotype("Trait",
+                                   dataLoader.getPhenotype().extractCol(0));
 
   // adjust phenotype
-  bool binaryPhenotype;
+  // bool binaryPhenotype;
   if (FLAG_qtl) {
-    binaryPhenotype = false;
+    // binaryPhenotype = false;
+    dataLoader.setTraitType(DataLoader::PHENOTYPE_QTL);
     logger->info("-- Force quantitative trait mode -- ");
   } else {
-    binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
-    if (binaryPhenotype) {
-      logger->warn("-- Enabling binary phenotype mode -- ");
-      convertBinaryPhenotype(&phenotypeInOrder);
+    if (dataLoader.detectPhenotypeType() == DataLoader::PHENOTYPE_BINARY) {
+      logger->warn("-- Enabling binary phenotype mode -- ");      
+      dataLoader.setTraitType(DataLoader::PHENOTYPE_BINARY);
+    } else {
+      dataLoader.setTraitType(DataLoader::PHENOTYPE_QTL);      
     }
+    // binaryPhenotype = isBinaryPhenotype(phenotypeInOrder);
+    // if (binaryPhenotype) {
+    //   logger->warn("-- Enabling binary phenotype mode -- ");
+    //   convertBinaryPhenotype(&phenotypeInOrder);
+    // }
   }
 
-  // use residual as phenotype
   if (FLAG_useResidualAsPhenotype) {
-    if (binaryPhenotype) {
-      logger->warn(
-          "WARNING: Skip transforming binary phenotype, although you want to "
-          "use residual as phenotype!");
-    } else {
-      if (covariate.cols > 0) {
-        LinearRegression lr;
-        Vector pheno;
-        Matrix covAndInt;
-        copy(phenotypeInOrder, &pheno);
-        copyCovariateAndIntercept(covariate.rows, covariate, &covAndInt);
-        if (!lr.FitLinearModel(covAndInt, pheno)) {
-          logger->error(
-              "Cannot fit model: [ phenotype ~ 1 + covariates ], now use the "
-              "original phenotype");
-        } else {
-          const int n = lr.GetResiduals().Length();
-          for (int i = 0; i < n; ++i) {
-            phenotypeInOrder[i] = lr.GetResiduals()[i];
-          }
-          covariate.Dimension(0, 0);
-          logger->info(
-              "DONE: Fit model [ phenotype ~ 1 + covariates ] and model "
-              "residuals will be used as responses.");
-        }
-      } else {  // no covaraites
-        centerVector(&phenotypeInOrder);
-        logger->info("DONE: Use residual as phenotype by centerng it");
-      }
-    }
+    dataLoader.useResidualAsPhenotype();
   }
+  // // use residual as phenotype
+  // if (FLAG_useResidualAsPhenotype) {
+  //   if (binaryPhenotype) {
+  //     logger->warn(
+  //         "WARNING: Skip transforming binary phenotype, although you want to
+  //         "
+  //         "use residual as phenotype!");
+  //   } else {
+  //     if (covariate.cols > 0) {
+  //       LinearRegression lr;
+  //       Vector pheno;
+  //       Matrix covAndInt;
+  //       copy(phenotypeInOrder, &pheno);
+  //       copyCovariateAndIntercept(covariate.rows, covariate, &covAndInt);
+  //       if (!lr.FitLinearModel(covAndInt, pheno)) {
+  //         logger->error(
+  //             "Cannot fit model: [ phenotype ~ 1 + covariates ], now use the
+  //             "
+  //             "original phenotype");
+  //       } else {
+  //         const int n = lr.GetResiduals().Length();
+  //         for (int i = 0; i < n; ++i) {
+  //           phenotypeInOrder[i] = lr.GetResiduals()[i];
+  //         }
+  //         covariate.Dimension(0, 0);
+  //         logger->info(
+  //             "DONE: Fit model [ phenotype ~ 1 + covariates ] and model "
+  //             "residuals will be used as responses.");
+  //       }
+  //     } else {  // no covaraites
+  //       centerVector(&phenotypeInOrder);
+  //       logger->info("DONE: Use residual as phenotype by centerng it");
+  //     }
+  //   }
+  // }
 
-  // phenotype transformation
   if (FLAG_inverseNormal) {
-    if (binaryPhenotype) {
-      logger->warn(
-          "WARNING: Skip transforming binary phenotype, although you required "
-          "inverse normalization!");
-    } else {
-      logger->info("Now applying inverse normalize transformation.");
-      inverseNormalizeLikeMerlin(&phenotypeInOrder);
-      g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
-      logger->info("DONE: inverse normal transformation finished.");
-    }
+    dataLoader.inverseNormalizePhenotype();
+    g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
   }
-  g_SummaryHeader->recordPhenotype("AnalyzedTrait", phenotypeInOrder);
+  // // phenotype transformation
+  // if (FLAG_inverseNormal) {
+  //   if (binaryPhenotype) {
+  //     logger->warn(
+  //         "WARNING: Skip transforming binary phenotype, although you required
+  //         "
+  //         "inverse normalization!");
+  //   } else {
+  //     logger->info("Now applying inverse normalize transformation.");
+  //     inverseNormalizeLikeMerlin(&phenotypeInOrder);
+  //     g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
+  //     logger->info("DONE: inverse normal transformation finished.");
+  //   }
+  // }
 
-  if (phenotypeInOrder.empty()) {
+  g_SummaryHeader->recordPhenotype("AnalyzedTrait",
+                                   dataLoader.getPhenotype().extractCol(0));
+
+  if (dataLoader.getPhenotype().ncol() == 0) {
     logger->fatal("There are 0 samples with valid phenotypes, quitting...");
     exit(1);
   }
+  // if (phenotypeInOrder.empty()) {
+  //   logger->fatal("There are 0 samples with valid phenotypes, quitting...");
+  //   exit(1);
+  // }
 
-  logger->info("Analysis begins with [ %zu ] samples...",
-               phenotypeInOrder.size());
+  logger->info("Analysis begins with [ %d ] samples...",
+               dataLoader.getPhenotype().nrow());
   //////////////////////////////////////////////////////////////////////////////
   // prepare each model
   bool singleVariantMode = FLAG_modelSingle.size() || FLAG_modelMeta.size();
@@ -732,7 +769,7 @@ int main(int argc, char** argv) {
 
   ModelManager modelManager(FLAG_outPrefix);
   // set up models in qtl/binary modes
-  if (binaryPhenotype) {
+  if (dataLoader.isBinaryPhenotype()) {
     modelManager.setBinaryOutcome();
   } else {
     modelManager.setQuantitativeOutcome();
@@ -752,7 +789,9 @@ int main(int argc, char** argv) {
   const size_t numModel = model.size();
 
   Matrix phenotypeMatrix;
-  toMatrix(phenotypeInOrder, &phenotypeMatrix);
+  Matrix covariate;
+  toMatrix(dataLoader.getPhenotype(), &phenotypeMatrix);
+  toMatrix(dataLoader.getCovariate(), &covariate);
 
   // determine VCF file reading pattern
   // current support:
@@ -806,7 +845,7 @@ int main(int argc, char** argv) {
   }
 
   DataConsolidator dc;
-  dc.setSex(&sex);
+  dc.setSex(&dataLoader.getSex());
 
   // load kinshp if needed by family models
   if (modelManager.hasFamilyModel() ||
@@ -814,7 +853,7 @@ int main(int argc, char** argv) {
     logger->info("Family-based model specified. Loading kinship file...");
 
     // process auto kinship
-    if (dc.setKinshipSample(phenotypeNameInOrder) ||
+    if (dc.setKinshipSample(dataLoader.getPhenotype().getRowName()) ||
         dc.setKinshipFile(DataConsolidator::KINSHIP_AUTO, FLAG_kinship) ||
         dc.setKinshipEigenFile(DataConsolidator::KINSHIP_AUTO,
                                FLAG_kinshipEigen) ||
@@ -854,7 +893,7 @@ int main(int argc, char** argv) {
     logger->info("Drop missing genotypes");
     dc.setStrategy(DataConsolidator::DROP);
   }
-  dc.setPhenotypeName(phenotypeNameInOrder);
+  dc.setPhenotypeName(dataLoader.getPhenotype().getRowName());
 
   // set up par region
   ParRegion parRegion(FLAG_xLabel, FLAG_xParRegion);
@@ -875,7 +914,7 @@ int main(int argc, char** argv) {
 
   // handle sex chromosome
   ge.setParRegion(&parRegion);
-  ge.setSex(&sex);
+  ge.setSex(&dataLoader.getSex());
 
   // use dosage instead G/T
   if (!FLAG_dosageTag.empty()) {
@@ -902,7 +941,7 @@ int main(int argc, char** argv) {
   }
 
   dc.preRegressionCheck(phenotypeMatrix, covariate);
-  
+
   logger->info("Analysis started");
   Result& buf = dc.getResult();
 
@@ -1021,7 +1060,7 @@ int main(int argc, char** argv) {
     buf.addHeader("N_INFORMATIVE");
     buf.addHeader("NumVar");
     buf.addHeader("NumPolyVar");
-    
+
     // output headers
     for (size_t m = 0; m < numModel; m++) {
       model[m]->writeHeader(fOuts[m], buf);
@@ -1053,8 +1092,9 @@ int main(int argc, char** argv) {
       buf.updateValue("RANGE", rangeList.toString());
       buf.updateValue("N_INFORMATIVE", genotype.rows);
       buf.updateValue("NumVar", genotype.cols);
-      buf.updateValue("NumPolyVar", dc.getFlippedToMinorPolymorphicGenotype().cols);
-      
+      buf.updateValue("NumPolyVar",
+                      dc.getFlippedToMinorPolymorphicGenotype().cols);
+
       // #ifdef _OPENMP
       // #pragma omp parallel for
       // #endif
@@ -1067,7 +1107,8 @@ int main(int argc, char** argv) {
     logger->info("Analyzed [ %d ] variants from [ %d ] genes/regions",
                  variantProcessed, (int)geneRange.size());
   } else {
-    logger->error("Unsupported reading mode and test modes! (need more parameters?)");
+    logger->error(
+        "Unsupported reading mode and test modes! (need more parameters?)");
     exit(1);
   }
 

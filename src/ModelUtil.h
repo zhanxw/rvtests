@@ -1,6 +1,11 @@
 #ifndef _MODELUTIL_H_
 #define _MODELUTIL_H_
 
+#include <vector>
+#include "base/SimpleMatrix.h"
+#include "libsrc/MathVector.h"
+#include "libsrc/MathMatrix.h"
+
 inline void copy(const std::vector<double>& in, Vector* o) {
   Vector& out = *o;
   out.Dimension(in.size());
@@ -14,6 +19,15 @@ inline void copyPhenotype(Matrix& in, Vector* o) {
   Vector& out = *o;
   out.Dimension(in.rows);
   for (int i = 0; i < in.rows; ++i) {
+    out[i] = in[i][0];
+  }
+};
+
+inline void copyPhenotype(const SimpleMatrix& in, Vector* o) {
+  Vector& out = *o;
+  const int nr = in.nrow();
+  out.Dimension(nr);
+  for (int i = 0; i < nr; ++i) {
     out[i] = in[i][0];
   }
 };
@@ -79,6 +93,31 @@ inline void copyCovariateAndIntercept(int n, Matrix& cov, Matrix* o) {
   for (int i = 0; i < n; ++i) {
     (*o)[i][0] = 1.0;
     for (int j = 0; j < cov.cols; ++j) {
+      (*o)[i][j + 1] = cov[i][j];
+    }
+  }
+  return;
+};
+
+inline void copyCovariateAndIntercept(int n, SimpleMatrix& cov, Matrix* o) {
+  const int nr = cov.nrow();
+  const int nc = cov.ncol();
+  
+  if (nc == 0) {
+    (*o).Dimension(n, 1);
+    for (int i = 0; i < n; ++i) {
+      (*o)[i][0] = 1.0;
+    }
+    return;
+  }
+  if (n != nr) {
+    return;
+  }
+  
+  (*o).Dimension(n, 1 + nc);
+  for (int i = 0; i < n; ++i) {
+    (*o)[i][0] = 1.0;
+    for (int j = 0; j < nc; ++j) {
       (*o)[i][j + 1] = cov[i][j];
     }
   }

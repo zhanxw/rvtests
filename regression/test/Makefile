@@ -10,10 +10,14 @@ EXE = testGSLIntegration \
       testLinearVT \
       testMultivariateNormalDistribution \
       testLMM \
-      testMixtureChiSquare
+      testMixtureChiSquare \
+      testMultipleTraitScoreTest \
 
 all: $(EXE)
 debug: $(EXE)
+
+../lib-dbg-regression.a: $(wildcard ../*.cpp) $(wildcard ../*.h)
+	$(MAKE) -C .. debug
 
 LIBS =  ../lib-dbg-regression.a ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a
 CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
@@ -22,7 +26,7 @@ CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I..
             ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
             ../../third/gsl/lib/libgsl.a \
             ../../third/nlopt/lib/libnlopt.a \
-            -lz -lbz2 
+            -lz -lbz2 -lrt
 
 define BUILD_each
   TAR := $(1)
@@ -101,6 +105,12 @@ correct.linear.mvt.out:
 	Rscript testLinearVT.R $@
 test.linear.mvt.out: $(EXE)
 	./testLinearVT > $@
+
+######################################################################
+check10: testMultipleTraitScoreTest.out
+	diff $^ correct.testMultipleTraitScoreTest.out
+testMultipleTraitScoreTest.out : $(EXE)
+	./testMultipleTraitScoreTest > $@
 
 deepclean: clean
 	-rm output.* input.*

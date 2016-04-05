@@ -1,3 +1,10 @@
+.PHONY: all release debug
+all: release
+
+ROOT?=..
+include $(ROOT)/Makefile.common
+include $(ROOT)/Makefile.lib
+
 LIB = lib-regression.a 
 LIB-DBG = lib-dbg-regression.a 
 
@@ -25,22 +32,21 @@ BASE = LogisticRegression \
        FamSkat \
        cdflib \
        SkatO \
+       MultipleTraitLinearRegressionScoreTest \
+       Formula \
 
 OBJ = $(BASE:%=%.o)
 
-.PHONY: all release debug
-all: release
+# GONCALO_INC = ../libsrc
+# # GONCALO_LIB = ../libsrc/lib-goncalo.a
 
-GONCALO_INC = ../libsrc
-# GONCALO_LIB = ../libsrc/lib-goncalo.a
+# EIGEN_INC = ../third/eigen
+# EIGEN_LIB =  # Eigen are header files only
+# $(EIGEN_INC) $(EIGEN_LIB):
+# 	(cd ../third; $(MAKE) eigen)
 
-EIGEN_INC = ../third/eigen
-EIGEN_LIB =  # Eigen are header files only
-$(EIGEN_INC) $(EIGEN_LIB):
-	(cd ../third; $(MAKE) eigen)
-
-GSL_INC = ../third/gsl/include
-NLOPT_INC = ../third/nlopt/include
+# GSL_INC = ../third/gsl/include
+# NLOPT_INC = ../third/nlopt/include
 
 MVTNORM_OBJ = libMvtnorm/mvtnorm.o libMvtnorm/mvt.o libMvtnorm/randomF77.o
 $(MVTNORM_OBJ):
@@ -64,7 +70,7 @@ define BUILD_each
   SRC := $(1).cpp
   -include  $(1).d
   $$(TAR): $$(SRC) $$(EIGEN_INC)
-	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC) -I$(NLOPT_INC)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -I$(ROOT) -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC) -I$(NLOPT_INC)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 

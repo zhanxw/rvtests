@@ -170,10 +170,9 @@ inline void zero(std::vector<double>* y) {
 }
 
 inline void standardize(std::vector<double>* y) {
-  // center
   if (!y) return;
-
   const size_t n = y->size();
+  // center
   double m = calculateMean(*y);
   double sd = calculateSD(*y);
   if (sd == 0.0) {
@@ -181,7 +180,7 @@ inline void standardize(std::vector<double>* y) {
     return;
   }
 
-  for (size_t i = 0; i < n; i++) {
+  for (size_t i = 0; i != n; i++) {
     (*y)[i] -= m;
     (*y)[i] /= sd;
   }
@@ -205,12 +204,22 @@ inline void makeSet(const std::string& str, char sep,
   for (size_t i = 0; i < fd.size(); i++) s->insert(fd[i]);
 }
 
-inline void makeSet(const std::vector<std::string>& in,
-                    std::set<std::string>* s) {
+template <class T>
+inline void makeSet(const std::vector<T>& in, std::set<T>* s) {
   s->clear();
   if (in.empty()) return;
 
   for (size_t i = 0; i < in.size(); i++) s->insert(in[i]);
+}
+
+template <class T>
+inline void makeCounter(const std::vector<T>& in, std::map<T, int>* s) {
+  s->clear();
+  if (in.empty()) return;
+
+  for (size_t i = 0; i < in.size(); i++) {
+    (*s)[in[i]]++;
+  }
 }
 
 /**
@@ -231,7 +240,7 @@ inline void makeMap(const std::vector<std::string>& in,
 }
 
 /**
- * Test whether all elements in @param x are unique
+ *  Test whether all elements in @param x are unique
  */
 inline bool isUnique(const std::vector<std::string>& x) {
   std::set<std::string> s;
@@ -245,13 +254,15 @@ inline bool isUnique(const std::vector<std::string>& x) {
 }
 
 /**
- * Remove i th element from @param val where i is stored in @param index
- * @return number of elements removed
- *
- * NOTE: unless static function, template functions should not be in .cpp files
- */
+    * Remove i th element from @param val where i is stored in @param index
+    * @return number of elements removed
+    *
+    * NOTE: unless static function, template functions should not be in .cpp
+  *files
+    */
 template <typename T, typename A>
-int removeByIndex(const std::vector<int>& index, std::vector<T, A>* val) {
+inline int removeByIndex(const std::vector<int>& index,
+                         std::vector<T, A>* val) {
   if (index.empty()) return 0;
 
   std::set<int> idx(index.begin(), index.end());
@@ -270,6 +281,104 @@ int removeByIndex(const std::vector<int>& index, std::vector<T, A>* val) {
   }
   val->resize(last);
   return nRemoved;
+}
+
+template <class T>
+struct FuncInSet {
+  FuncInSet(const std::set<T>& s) : data(s){};
+  bool operator()(T& s) const {
+    if (this->data.count(s)) {
+      return true;
+    }
+    return false;
+  }
+  const std::set<T>& data;
+};
+template <class T>
+struct FuncNotInSet {
+  FuncNotInSet(const std::set<T>& s) : data(s){};
+  bool operator()(T& s) const {
+    if (this->data.count(s)) {
+      return false;
+    }
+    return true;
+  }
+  const std::set<T>& data;
+};
+
+template <class T>
+inline int setIntersect(const std::vector<T>& a, std::vector<T>* b) {
+  if (!b) return -1;
+  std::set<T> s(a.begin(), a.end());
+  FuncNotInSet<T> func(s);
+  b->erase(std::remove_if(b->begin(), b->end(), func), b->end());
+  return 0;
+}
+
+template <class T>
+inline std::vector<T> setIntersect(const std::vector<T>& a,
+                                   const std::vector<T>& b) {
+  std::vector<T> ret(b);
+  setIntersect(a, &ret);
+  return ret;
+}
+
+template <class T>
+inline int setSubstrct(const std::vector<T>& a, std::vector<T>* b) {
+  if (!b) return -1;
+  std::set<T> s(a.begin(), a.end());
+  FuncInSet<T> func(s);
+  b->erase(std::remove_if(b->begin(), b->end(), func), b->end());
+  return 0;
+}
+
+template <class T>
+inline int dedup(std::vector<T>* a) {
+  if (!a) return -1;
+  std::set<T> s;
+  int idx = 0;
+  size_t n = a->size();
+  for (size_t i = 0; i != n; ++i) {
+    if (s.count((*a)[i])) {
+      continue;
+    }
+    if (idx != i) {
+      (*a)[idx] = (*a)[i];
+    }
+    idx++;
+  }
+  return 0;
+}
+
+template <class T>
+inline int extend(const std::vector<T>& vec, std::vector<T>* a) {
+  if (!a) return -1;
+  size_t n = vec.size();
+  for (size_t i = 0; i != n; ++i) {
+    a->push_back(vec[i]);
+  }
+  return 0;
+}
+
+#if 0
+template <class T>
+int which(const std::vector<T>& vec, T& elem) {
+  for (size_t i = 0; i != vec.size(); ++i) {
+    if (vec[i] == elem) {
+      return i;
+    }
+  }
+  return -1;
+}
+#endif
+
+inline int which(const std::vector<std::string>& vec, const char* elem) {
+  for (size_t i = 0; i != vec.size(); ++i) {
+    if (vec[i] == elem) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 #endif /* _COMMONFUNCTION_H_ */

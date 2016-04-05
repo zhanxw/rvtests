@@ -266,3 +266,23 @@ void SimpleMatrix::resetColName() {
     colName[i] += toString(i + 1);
   }
 }
+
+std::vector<int> SimpleMatrix::allMissingRows() const {
+  std::vector<int> ret;
+  const int nr = nrow();
+  const int nc = ncol();
+  bool allMissing = true;
+  for (int i = 0; i < nr; ++i) {
+    allMissing = true;
+    for (int j = 0;j < nc; ++j) {
+      if (!isnan(mat[i][j])) {
+        allMissing = false;
+        break;
+      }
+    }
+    if (allMissing) {
+      ret.push_back(i);
+    }
+  }
+  return ret;
+}

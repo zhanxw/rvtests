@@ -66,6 +66,7 @@ class SimpleMatrix {
   std::vector<double> extractCol(int col) const;
   int setCol(int col, const std::vector<double>& v);
 
+  std::vector<int> allMissingRows() const;
  private:
   void resetRowName();
   void resetColName();

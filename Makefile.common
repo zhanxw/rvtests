@@ -80,4 +80,11 @@ endif
 format: *.cpp *.h
 	clang-format -i -style google $^
 
+##################################################
+## lint
+##################################################
+.PHONY: lint
+lint: *.cpp *.h
+	cpplint.py --filter=-legal/copyright $^
+
 

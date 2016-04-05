@@ -27,6 +27,7 @@
 #include "regression/MultivariateVT.h"
 #include "regression/FamSkat.h"
 #include "regression/FirthRegression.h"
+#include "regression/MultipleTraitLinearRegressionScoreTest.h"
 
 #include "DataConsolidator.h"
 #include "LinearAlgebra.h"
@@ -5075,6 +5076,129 @@ class MetaKurtTest: public ModelFitter{
 
 #endif
 
+class MultipleTraitScoreTest : public ModelFitter {
+ public:
+  MultipleTraitScoreTest()
+      : nSample(-1), fitOK(false), needToFitNullModel(true) {
+    this->modelName = "MultipleTrait";
+  }
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc->getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+    const FormulaVector& tests = *dc->getFormula();
+
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    nSample = genotype.rows;
+
+    // af = getMarkerFrequency(genotype, 0);
+    // if (isMonomorphicMarker(genotype, 0)) {
+    //   fitOK = false;
+    //   return -1;
+    // }
+    // copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+    // copyPhenotype(phenotype, &this->pheno);
+
+    if (!isBinaryOutcome()) {  // qtl
+      if (needToFitNullModel || dc->isPhenotypeUpdated() ||
+          dc->isCovariateUpdated()) {
+        fitOK = linear.FitNullModel(covariate, phenotype, tests);
+        if (!fitOK) {
+          warnOnce("Multiple trait score test failed when fitting null model.");
+          return -1;
+        }
+        needToFitNullModel = false;
+      }
+      fitOK = linear.TestCovariate(genotype);
+    } else {
+      warnOnce(
+          "Multiple trait score test model does not support binary trait yet.");
+      return -1;
+      // if (needToFitNullModel || dc->isPhenotypeUpdated() ||
+      //     dc->isCovariateUpdated()) {
+      //   fitOK = logistic.FitNullModel(cov, pheno, 100);
+      //   if (!fitOK) {
+      //     warnOnce("Single variant score test failed in fitting null
+      //     model.");
+      //     return -1;
+      //   }
+      //   calculateConstant(phenotype);
+      //   needToFitNullModel = false;
+      // }
+      // fitOK = logistic.TestCovariate(cov, pheno, genotype);
+    }
+    return (fitOK ? 0 : -1);
+  }
+
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    // result.addHeader("AF");
+    // result.addHeader("U");
+    // result.addHeader("V");
+    // result.addHeader("STAT");
+    // result.addHeader("DIRECTION");
+    // result.addHeader("EFFECT");
+    // result.addHeader("SE");
+    // result.addHeader("PVALUE");
+    result.writeHeaderLine(fp);
+  }
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeValueTab(fp);
+    result.clearValue();
+    // result.updateValue("AF", af);
+    if (fitOK) {
+      if (!isBinaryOutcome()) {
+        // const double u = linear.GetU()[0][0];
+        // const double v = linear.GetV()[0][0];
+        // result.updateValue("U", u);
+        // result.updateValue("V", v);
+        // result.updateValue("STAT", linear.GetStat());
+        // if (u != 0) {
+        //   result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" :
+        //   "-");
+        // }
+        // if (v > 0) {
+        //   result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+        //   result.updateValue("SE", 1.0 / sqrt(v));
+        // }
+        // result.updateValue("PVALUE", linear.GetPvalue());
+      } else {
+        // const double u = logistic.GetU()[0][0];
+        // const double v = logistic.GetV()[0][0];
+        // result.updateValue("U", u);
+        // result.updateValue("V", v);
+        // result.updateValue("STAT", logistic.GetStat());
+        // if (u != 0) {
+        //   result.updateValue("DIRECTION",
+        //                      logistic.GetU()[0][0] > 0 ? "+" : "-");
+        // }
+        // if (v > 0 && b > 0) {
+        //   result.updateValue("EFFECT", u / v / b);
+        //   result.updateValue("SE", 1.0 / sqrt(v) / b);  // need to verify
+        // }
+        // result.updateValue("PVALUE", logistic.GetPvalue());
+      }
+    }
+    result.writeValueLine(fp);
+  }
+
+ private:
+  // double b;  // a constant
+  // double af;
+  int nSample;
+  // Vector pheno;
+  MultipleTraitLinearRegressionScoreTest linear;
+  bool fitOK;
+  bool needToFitNullModel;
+  // Matrix cov;
+};  // MultipleTraitScoreTest
+
 class DumpModel : public ModelFitter {
  public:
   DumpModel(const char* prefix) {
@@ -5170,6 +5294,7 @@ class DumpModel : public ModelFitter {
   }
 
   void reset() {}  // for particular class to call when fitting repeatedly
+
  private:
   Matrix phenotype;
   Matrix genotype;

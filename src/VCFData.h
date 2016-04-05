@@ -610,7 +610,6 @@ class VCFData {
       phenotype2Idx;  // phenotype -> idx in this->collapsedGenotype
   // OrderedMap<std::string, int> set2Idx; // collapsedSetName -> idx in
   // this->collapsedGenotype
-
 };  // end VCFData
 
 #endif /* _VCFDATA_H_ */

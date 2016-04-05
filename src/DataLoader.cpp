@@ -1,15 +1,20 @@
 #include "DataLoader.h"
 
+#include <string>
+#include <vector>
+
 #include "CommonFunction.h"
 #include "Indexer.h"
 #include "GenotypeExtractor.h"
-#include "ModelUtil.h"  //copy()
+#include "ModelUtil.h"  // copy()
 
 #include "base/IO.h"
 #include "base/Logger.h"
+#include "base/TextMatrix.h"
 #include "base/TypeConversion.h"
 #include "libVcf/VCFConstant.h"
 #include "regression/LinearRegression.h"
+#include "regression/Formula.h"
 
 extern Logger* logger;
 
@@ -27,16 +32,27 @@ void extractMap(const std::map<Key, Val>& input, std::vector<Key>* key,
   }
 }
 
-DataLoader::DataLoader() { binaryPhenotype = false; }
+DataLoader::DataLoader()
+    : phenotypes(1),
+      covariates(1),
+      phenotype(phenotypes[0]),
+      covariate(covariates[0]),
+      FLAG_imputePheno(false),
+      FLAG_imputeCov(false) {
+  binaryPhenotype = false;
+}
+
+void DataLoader::setPhenotypeImputation(bool b) { this->FLAG_imputePheno = b; }
+
+void DataLoader::setCovariateImputation(bool b) { this->FLAG_imputeCov = b; }
 
 int DataLoader::loadPhenotype(const std::string& pheno,
                               const std::string& mpheno,
-                              const std::string& phenoName,
-                              const bool imputePheno) {
+                              const std::string& phenoName) {
   this->FLAG_pheno = pheno;
   this->FLAG_mpheno = mpheno;
   this->FLAG_phenoName = phenoName;
-  this->FLAG_imputePheno = imputePheno;
+  // this->FLAG_imputePheno = imputePheno;
 
   std::map<std::string, double> phenotype;
   std::string label;
@@ -121,10 +137,10 @@ int DataLoader::arrangePhenotype(const std::vector<std::string>& names,
 }
 
 int DataLoader::loadCovariate(const std::string& covar,
-                              const std::string& covName, bool imputeCov) {
+                              const std::string& covName) {
   this->FLAG_cov = covar;
   this->FLAG_covName = covName;
-  this->FLAG_imputeCov = imputeCov;
+  // this->FLAG_imputeCov = imputeCov;
 
   // load covariate
   // Matrix covariate;
@@ -188,18 +204,24 @@ int DataLoader::loadCovariate(const std::string& covar,
   return 0;
 }
 
+/**
+ */
 int DataLoader::arrangeCovariate(const std::vector<std::string>& names,
                                  std::vector<std::string>* droppedNames) {
   // As we load covariate after we load phenotype, assume the order is already
   // matched
   // TODO: may add some assertion here
 
-  // reuse results
-  std::set<std::string>::const_iterator it = sampleToDropInCovariate.begin();
-  for (; it != sampleToDropInCovariate.end(); ++it) {
-    droppedNames->push_back(*it);
+  droppedNames->clear();
+  size_t n = names.size();
+  for (size_t i = 0; i != n; ++i) {
+    if (!sampleToDropInCovariate.count(names[i])) {
+      continue;
+    }
+    droppedNames->push_back(names[i]);
   }
-
+  dedup(droppedNames);
+  
   return 0;
 }
 
@@ -274,6 +296,87 @@ int DataLoader::loadMarkerAsCovariate(const std::string& inVcf,
   // }
   return 0;
 }
+
+std::vector<std::string> extractCovariate(const std::vector<std::string>& v) {
+  std::vector<std::string> fd;
+  std::vector<std::string> ret;
+  for (size_t i = 0; i != v.size(); ++i) {
+    stringTokenize(v[i], ",+", &fd);
+    for (size_t j = 0; j != fd.size(); ++j) {
+      if (fd[j] != "1") {
+        ret.push_back(fd[j]);
+      }
+    }
+  }
+  dedup(&ret);
+  return ret;
+}
+
+int DataLoader::loadMultiplePhenotype(const std::string& multiplePhenotype,
+                                      const std::string& pheno,
+                                      const std::string& covar) {
+  // read in analysis template
+  TextMatrix textMat;
+  textMat.readFile(multiplePhenotype, TextMatrix::HAS_HEADER);
+  if (textMat.nrow() == 0 || textMat.header()[0] != "fid" ||
+      textMat.header()[0] != "iid") {
+    logger->warn("Wrong multiple phenotype analysis file");
+    exit(1);
+  }
+
+  const int nTests = textMat.nrow();
+  const int phenoCol = which(textMat.getColName(), "pheno");
+  const int covCol = which(textMat.getColName(), "covar");
+  for (int i = 0; i < nTests; ++i) {
+    formula.add(textMat[i][phenoCol], textMat[i][covCol]);
+  }
+
+  std::vector<std::string> phenoLabel = formula.extractResponse();
+  std::vector<std::string> covarLabel =
+      formula.extractPredictor(FormulaVector::NO_INTERCEPT);
+  // std::vector<std::string> phenoLabel = textMat.extractCol("pheno");
+  // std::vector<std::string> covarLabel =
+  // extractCovariate(textMat.extractCol("covar"));
+
+  // read in ped
+  TextMatrix pedMat;
+  pedMat.readFile(pheno);
+  if (pedMat.nrow() == 0 || pedMat.header()[0] != "fid" ||
+      pedMat.header()[0] != "iid") {
+    logger->warn("Wrong phenotype file (PED file)");
+    exit(1);
+  }
+  pedMat.setRowNameByCol("iid");
+  pedMat.keepCol(phenoLabel);
+
+  // read in cov
+  TextMatrix covMat;
+  if (covMat.nrow() == 0 || covMat.header()[0] != "fid" ||
+      covMat.header()[0] != "iid") {
+    logger->warn("Wrong phenotype file (PED file)");
+    exit(1);
+  }
+  covMat.readFile(covar);
+  covMat.keepCol(covarLabel);
+
+  // orangize ped/cov
+  pedMat.convert(&phenotype);
+  covMat.convert(&covariate);
+  std::vector<int> missing =
+      setIntersect((phenotype.allMissingRows()), (covariate.allMissingRows()));
+  phenotype.dropRow(missing);
+  covariate.dropRow(missing);
+
+  // NOTE: do not take imputePheno, imputeCov
+  // NOTE: do not center, scale ...
+  // Actual regression model will center phenotype and covariate
+  return 0;
+}
+
+// int DataLoader::assignFormula(FormulaVector* formula){
+//   int n = this->phenotypes.nrow();
+
+// }
 
 int DataLoader::checkConstantCovariate() {
   // check if some covariates are constant for all samples

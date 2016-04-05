@@ -6,6 +6,7 @@
 #include "libsrc/MathMatrix.h"
 #include "libsrc/Random.h"
 
+#include "Formula.h"
 #include "KinshipHolder.h"
 #include "Result.h"
 
@@ -397,6 +398,8 @@ class DataConsolidator {
 
   // Sex (1=male; 2=female; other=unknown)
   void setSex(const std::vector<int>* sex) { this->sex = sex; };
+  void setFormula(const FormulaVector* formula) { this->formula = formula; };
+  const FormulaVector* getFormula() const { return this->formula; };
   /**
    * Check if genotype matrix column @param columnIndex is a chromosome X.
    */
@@ -553,11 +556,12 @@ class DataConsolidator {
   bool covariateUpdated;
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
-
   KinshipHolder kinship[2];  // 2: include both AUTO and X kinships
 
   // sex chromosome adjustment
   const std::vector<int>* sex;
+  // store formulae
+  const FormulaVector* formula;
 
   ParRegion* parRegion;
 };  // end DataConsolidator

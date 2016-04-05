@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "regression/Formula.h"
 #include "base/SimpleMatrix.h"
 #include "libsrc/MathVector.h"
 #include "libsrc/MathMatrix.h"
@@ -27,14 +28,13 @@ class DataLoader {
   DataLoader();
   // phenotypes related
   int loadPhenotype(const std::string& pheno, const std::string& mpheno,
-                    const std::string& phenoName, const bool imputePheno);
+                    const std::string& phenoName);
   int arrangePhenotype(const std::vector<std::string>& names,
                        std::vector<std::string>* droppedNames);
 
   // covariates related
   void setImputeCovariate();
-  int loadCovariate(const std::string& covar, const std::string& covName,
-                    bool imputeCov);
+  int loadCovariate(const std::string& covar, const std::string& covName);
   int arrangeCovariate(const std::vector<std::string>& names,
                        std::vector<std::string>* droppedNames);
 
@@ -42,6 +42,10 @@ class DataLoader {
   int useSexAsCovariate();
   int loadMarkerAsCovariate(const std::string& inVcf,
                             const std::string& marker);
+
+  // load multiple phenotype
+  int loadMultiplePhenotype(const std::string& multiplePhenotype,
+                            const std::string& pheno, const std::string& covar);
 
   // sanity check
   int checkConstantCovariate();
@@ -55,14 +59,24 @@ class DataLoader {
   int setTraitType(PhenotypeType t);
   bool isBinaryPhenotype() const { return binaryPhenotype; };
 
+  // setters
+  void setPhenotypeImputation(bool b);
+  void setCovariateImputation(bool b);
+
   // getters
   const SimpleMatrix& getPhenotype() { return this->phenotype; };
   const SimpleMatrix& getCovariate() { return this->covariate; };
   const std::vector<int>& getSex() { return this->sex; };
+  const FormulaVector& getFormula() const { return this->formula; };
 
  private:
-  SimpleMatrix phenotype;  // sample by traits
-  SimpleMatrix covariate;  // sample by covariates
+  // for multiple traits
+  std::vector<SimpleMatrix> phenotypes;  // sample by traits
+  std::vector<SimpleMatrix> covariates;  // sample by covariates
+  FormulaVector formula;
+
+  SimpleMatrix& phenotype;  // sample by traits
+  SimpleMatrix& covariate;  // sample by covariates
   bool binaryPhenotype;
   std::vector<int> sex;  // plink coded genders
 

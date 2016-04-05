@@ -1,5 +1,8 @@
 #include "DataConsolidator.h"
 
+#include <string>
+#include <vector>
+
 #include "base/CommonFunction.h"
 #include "regression/EigenMatrixInterface.h"
 

@@ -11,15 +11,9 @@
 #include <cassert>
 #include <algorithm>
 
-// transpose matrix with dimension @param nr by @param nc
-template <class T>
-inline void transposeMatrix(T* m, int nr, int nc) {
-  for (int i = 0; i < nr; i++) {
-    for (int j = 0; j < i; j++) {
-      std::swap((*m)[i * nc + j], (*m)[j * nc + i]);
-    }
-  }
-}
+/**
+ * String related utility functions
+ */
 
 // remove the leading 'chr' if any
 inline std::string chopChr(const std::string& s) {

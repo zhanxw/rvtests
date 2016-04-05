@@ -130,7 +130,7 @@ inline bool str2double(const char* input, double* output) {
   *output = val;
   return true;
 }
-inline bool str2double(std::string& input, double* output) {
+inline bool str2double(const std::string& input, double* output) {
   return str2double(input.c_str(), output);
 }
 

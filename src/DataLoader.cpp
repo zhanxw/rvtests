@@ -103,13 +103,52 @@ int DataLoader::loadPhenotype(const std::string& pheno,
   return 0;
 }
 
+/**
+ * Current phenotype data may nhave NAN values
+ */
 int DataLoader::arrangePhenotype(const std::vector<std::string>& names,
                                  std::vector<std::string>* droppedNames) {
+  if (!isUnique(names)) {
+    logger->error("VCF file have duplicated sample ids. Quitting!");
+    abort();
+  }
+
+  // not impute phentoype
+  if (!FLAG_imputePheno) {
+    std::vector<std::string> noGenotypeSamples =
+        setSubtract(phenotype.getRowName(), names);
+    *droppedNames = setSubtract(names, phenotype.getRowName());
+    const int n = noGenotypeSamples.size();
+    if (n) {
+      logger->info("Discard [ %d ] samples as they do not have genotypes", n);
+    }
+    phenotype.dropRow(noGenotypeSamples);
+    phenotype.reorderRow(names);
+    // TODO: print some info here
+    return 0;
+  }
+
+  // imputation
+  std::vector<std::string> noPhenotypeSamples =
+      setSubtract(names, phenotype.getRowName());
+  const int n = noPhenotypeSamples.size();
+  if (n) {
+    logger->info(
+        "Impute [ %d ] phenotypes of [ %d ] samples to the mean values",
+        phenotype.ncol(), n);
+    phenotype.addRow(noPhenotypeSamples, NAN);
+    phenotype.imputeMissingToMeanByCol();
+  }
+  phenotype.reorderRow(names);
+  return 0;
+
+#if 0  
   // phenotype names (vcf sample names) arranged in the same order as in VCF
   std::vector<std::string> phenotypeNameInOrder;
   std::vector<double>
       phenotypeValueInOrder;  // phenotype arranged in the same order as in VCF
 
+  // TODO: better support  for multiple phenotypes
   std::map<std::string, double> phenoDict;
   for (int i = 0; i < phenotype.nrow(); ++i) {
     phenoDict[phenotype.getRowName()[i]] = phenotype[i][0];
@@ -132,6 +171,8 @@ int DataLoader::arrangePhenotype(const std::vector<std::string>& names,
     // We may output these samples by comparing keys of phenotype and
     // phenotypeNameInOrder
   }
+
+#endif
 
   return 0;
 }
@@ -221,7 +262,7 @@ int DataLoader::arrangeCovariate(const std::vector<std::string>& names,
     droppedNames->push_back(names[i]);
   }
   dedup(droppedNames);
-  
+
   return 0;
 }
 
@@ -315,12 +356,20 @@ std::vector<std::string> extractCovariate(const std::vector<std::string>& v) {
 int DataLoader::loadMultiplePhenotype(const std::string& multiplePhenotype,
                                       const std::string& pheno,
                                       const std::string& covar) {
+  this->FLAG_pheno = pheno;
+  this->FLAG_cov = covar;
+  this->FLAG_multiplePheno = multiplePhenotype;
+
+  if (covar.empty()) {
+    this->FLAG_cov = this->FLAG_pheno;
+  }
+
   // read in analysis template
   TextMatrix textMat;
-  textMat.readFile(multiplePhenotype, TextMatrix::HAS_HEADER);
-  if (textMat.nrow() == 0 || textMat.header()[0] != "fid" ||
-      textMat.header()[0] != "iid") {
-    logger->warn("Wrong multiple phenotype analysis file");
+  textMat.readFile(FLAG_multiplePheno, TextMatrix::HAS_HEADER);
+  if (textMat.nrow() == 0 || which(textMat.header(), "pheno") < 0 ||
+      which(textMat.header(), "covar") < 0) {
+    logger->warn("Wrong multiple phenotype analysis file (no correct headers)");
     exit(1);
   }
 
@@ -340,30 +389,53 @@ int DataLoader::loadMultiplePhenotype(const std::string& multiplePhenotype,
 
   // read in ped
   TextMatrix pedMat;
-  pedMat.readFile(pheno);
+  pedMat.readFile(FLAG_pheno, TextMatrix::HAS_HEADER);
   if (pedMat.nrow() == 0 || pedMat.header()[0] != "fid" ||
-      pedMat.header()[0] != "iid") {
-    logger->warn("Wrong phenotype file (PED file)");
+      pedMat.header()[1] != "iid") {
+    logger->warn("Wrong phenotype file [ %s ]", pheno.c_str());
     exit(1);
   }
   pedMat.setRowNameByCol("iid");
   pedMat.keepCol(phenoLabel);
+  if (pedMat.ncol() != (int)phenoLabel.size()) {
+    logger->error(
+        "Required responses [ %s ] cannot be found in [ %s ]",
+        stringJoin(setSubtract(phenoLabel, pedMat.getColName()), ' ').c_str(),
+        FLAG_pheno.c_str());
+    exit(1);
+  }
 
   // read in cov
   TextMatrix covMat;
+  covMat.readFile(FLAG_cov, TextMatrix::HAS_HEADER);
   if (covMat.nrow() == 0 || covMat.header()[0] != "fid" ||
-      covMat.header()[0] != "iid") {
-    logger->warn("Wrong phenotype file (PED file)");
+      covMat.header()[1] != "iid") {
+    logger->warn("Wrong covariate file [ %s ]", covar.c_str());
     exit(1);
   }
-  covMat.readFile(covar);
+  covMat.setRowNameByCol("iid");
   covMat.keepCol(covarLabel);
+  if (covMat.ncol() != (int)covarLabel.size()) {
+    logger->error(
+        "Required covariates [ %s ] cannot be found in [ %s ]",
+        stringJoin(setSubtract(covarLabel, covMat.getColName()), ' ').c_str(),
+        FLAG_cov.c_str());
+    exit(1);
+  }
 
   // orangize ped/cov
   pedMat.convert(&phenotype);
   covMat.convert(&covariate);
+
+  // make sure covarite and phenotype have the sample sets of samples
+  std::vector<std::string> commonSample =
+      intersect((phenotype.getRowName()), (covariate.getRowName()));
+  phenotype.keepRow(commonSample);
+  covariate.keepRow(commonSample);
+
+  // drop all missing rows
   std::vector<int> missing =
-      setIntersect((phenotype.allMissingRows()), (covariate.allMissingRows()));
+      intersect((phenotype.allMissingRows()), (covariate.allMissingRows()));
   phenotype.dropRow(missing);
   covariate.dropRow(missing);
 
@@ -547,16 +619,24 @@ int extractCovariate(const std::string& fn,
         logger->error("Covariate file have duplicated header!");
         return -1;
       }
-      for (size_t i = 0; i < covNameToUse.size(); ++i) {
-        if (headerMap.count(covNameToUse[i]) == 0) {
-          logger->error(
-              "The covariate [ %s ] you specified cannot be found from "
-              "covariate file!",
-              covNameToUse[i].c_str());
-          continue;
+      // specify which covariates to extract
+      if (covNameToUse.size()) {
+        for (size_t i = 0; i < covNameToUse.size(); ++i) {
+          if (headerMap.count(covNameToUse[i]) == 0) {
+            logger->error(
+                "The covariate [ %s ] you specified cannot be found from "
+                "covariate file!",
+                covNameToUse[i].c_str());
+            continue;
+          }
+          columnToExtract.push_back(headerMap[covNameToUse[i]]);
+          extractColumnName.push_back(covNameToUse[i]);
         }
-        columnToExtract.push_back(headerMap[covNameToUse[i]]);
-        extractColumnName.push_back(covNameToUse[i]);
+      } else {
+        for (size_t i = 2; i < fd.size(); ++i) {
+          columnToExtract.push_back(headerMap[fd[i]]);
+          extractColumnName.push_back(fd[i]);
+        }
       }
     } else {  // body lines
       if (fd.empty() ||
@@ -759,7 +839,9 @@ int _loadCovariate(const std::string& fn,
                    SimpleMatrix* covariate, std::vector<std::string>* colNames,
                    std::set<std::string>* sampleToDrop) {
   std::vector<std::string> fd;
-  stringTokenize(covNameToUse, ',', &fd);
+  if (covNameToUse.size()) {
+    stringTokenize(covNameToUse, ',', &fd);
+  }
   if (!isUnique(fd)) {
     logger->error("Remove duplicated covariates in the model before continue");
     return -1;
@@ -1046,7 +1128,7 @@ void rearrange(const std::map<std::string, double>& phenotype,
           "lacks phenotypes",
           nMissingPheno);
   }
-};
+}
 
 int _loadSex(const std::string& fn,
              const std::vector<std::string>& includedSample,

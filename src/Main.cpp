@@ -503,7 +503,7 @@ int main(int argc, char** argv) {
     // drop samples from phenotype or vcf
     dataLoader.arrangePhenotype(vcfSampleNames, &vcfSampleToDrop);
     excludeVcfSamples("missing phenotype", vcfSampleToDrop, &ge);
-    setSubstrct(vcfSampleToDrop, &vcfSampleNames);
+    remove(vcfSampleToDrop, &vcfSampleNames);
 
     // // phenotype names (vcf sample names) arranged in the same order as in
     // VCF
@@ -552,7 +552,7 @@ int main(int argc, char** argv) {
     dataLoader.loadCovariate(FLAG_cov, FLAG_covName);
     dataLoader.arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
     excludeVcfSamples("missing covariate", vcfSampleToDrop, &ge);
-    setSubstrct(vcfSampleToDrop, &vcfSampleNames);
+    remove(vcfSampleToDrop, &vcfSampleNames);
 
     // // load covariate
     // Matrix covariate;
@@ -610,11 +610,11 @@ int main(int argc, char** argv) {
     dataLoader.loadMultiplePhenotype(FLAG_multiplePheno, FLAG_pheno, FLAG_cov);
     dataLoader.arrangePhenotype(vcfSampleNames, &vcfSampleToDrop);
     excludeVcfSamples("missing phenotype", vcfSampleToDrop, &ge);
-    setSubstrct(vcfSampleToDrop, &vcfSampleNames);
+    remove(vcfSampleToDrop, &vcfSampleNames);
 
     dataLoader.arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
     excludeVcfSamples("missing covariate", vcfSampleToDrop, &ge);
-    setSubstrct(vcfSampleToDrop, &vcfSampleNames);
+    remove(vcfSampleToDrop, &vcfSampleNames);
   }
 
   dataLoader.loadSex();
@@ -622,7 +622,7 @@ int main(int argc, char** argv) {
     dataLoader.useSexAsCovariate();
     dataLoader.arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
     excludeVcfSamples("missing sex", vcfSampleToDrop, &ge);
-    setSubstrct(vcfSampleToDrop, &vcfSampleNames);
+    remove(vcfSampleToDrop, &vcfSampleNames);
   }
   // // load sex
   // std::vector<int> sex;

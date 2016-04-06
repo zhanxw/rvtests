@@ -5080,7 +5080,7 @@ class MultipleTraitScoreTest : public ModelFitter {
  public:
   MultipleTraitScoreTest()
       : nSample(-1), fitOK(false), needToFitNullModel(true) {
-    this->modelName = "MultipleTrait";
+    this->modelName = "MultipleTraitScore";
   }
   // fitting model
   int fit(DataConsolidator* dc) {
@@ -5144,7 +5144,7 @@ class MultipleTraitScoreTest : public ModelFitter {
     // result.addHeader("DIRECTION");
     // result.addHeader("EFFECT");
     // result.addHeader("SE");
-    // result.addHeader("PVALUE");
+    result.addHeader("PVALUE");
     result.writeHeaderLine(fp);
   }
   // write model output
@@ -5154,6 +5154,16 @@ class MultipleTraitScoreTest : public ModelFitter {
     // result.updateValue("AF", af);
     if (fitOK) {
       if (!isBinaryOutcome()) {
+        Vector& v = linear.GetPvalue();
+        const int n = v.Length();
+        pvalue.clear();
+        for (int i = 0; i < n; ++i) {
+          if (i) {
+            pvalue += ",";
+          }
+          pvalue += toString(v[i]);
+        }
+        result.updateValue("PVALUE", pvalue);
         // const double u = linear.GetU()[0][0];
         // const double v = linear.GetV()[0][0];
         // result.updateValue("U", u);
@@ -5196,6 +5206,7 @@ class MultipleTraitScoreTest : public ModelFitter {
   MultipleTraitLinearRegressionScoreTest linear;
   bool fitOK;
   bool needToFitNullModel;
+  std::string pvalue;
   // Matrix cov;
 };  // MultipleTraitScoreTest
 

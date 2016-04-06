@@ -85,7 +85,8 @@ class DataLoader {
   std::string FLAG_mpheno;
   std::string FLAG_phenoName;
   bool FLAG_imputePheno;
-
+  std::string FLAG_multiplePheno;
+  
   std::string FLAG_cov;
   std::string FLAG_covName;
   bool FLAG_imputeCov;

@@ -64,6 +64,8 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new SingleVariantFamilyGrammarGamma);
     } else if (modelName == "firth") {
       model.push_back(new SingleVariantFirthTest);
+    } else if (modelName == "mtscore") {
+      model.push_back(new MultipleTraitScoreTest);
     } else {
       logger->error("Unknown model name: %s .", modelName.c_str());
       abort();

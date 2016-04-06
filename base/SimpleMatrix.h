@@ -46,6 +46,7 @@ class SimpleMatrix {
   }
   const std::vector<std::string>& getRowName() const { return this->rowName; };
   const std::vector<std::string>& getColName() const { return this->colName; };
+
   int setRowName(const int idx, const std::string& s);
   int setColName(const int idx, const std::string& s);
   int setRowName(const std::vector<std::string>& name);
@@ -55,7 +56,12 @@ class SimpleMatrix {
    * Remove rows in which their row names are in @param rowNamSet
    */
   int dropRow(const std::set<std::string>& rowNameSet);
+  int dropRow(const std::vector<std::string>& name);  
   int dropRow(const std::vector<int>& index);
+  int addRow(const std::vector<std::string>& newRowName, double value);
+
+  int keepRow(const std::vector<std::string>& name);
+  int keepCol(const std::vector<std::string>& name);
 
   /**
    * Assign row @param from to row @param to
@@ -67,6 +73,23 @@ class SimpleMatrix {
   int setCol(int col, const std::vector<double>& v);
 
   std::vector<int> allMissingRows() const;
+  /**
+   * Rearrange rows in the order specified by @param indice
+   * eg. indice = [0, 2, 4, ...], then odd rows will be picked
+   * invalid indice will be discarded
+   */
+  int reorderRow(const std::vector<int>& indice);
+  /**
+   * Rearrange rows by the given row name
+   */
+  int reorderRow(const std::vector<std::string>& indice);
+
+  /**
+   * Imputate missing values (NAN, infinite..., anything not finite) to column
+   * means
+   */
+  int imputeMissingToMeanByCol();
+
  private:
   void resetRowName();
   void resetColName();

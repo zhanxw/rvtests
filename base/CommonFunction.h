@@ -269,7 +269,8 @@ inline int removeByIndex(const std::vector<int>& index,
 
   int nRemoved = 0;
   size_t last = 0;
-  for (size_t i = 0; i < idx.size(); ++i) {
+  const size_t n = val->size();
+  for (size_t i = 0; i < n; ++i) {
     if (idx.count(i)) {
       ++nRemoved;
       continue;
@@ -307,7 +308,7 @@ struct FuncNotInSet {
 };
 
 template <class T>
-inline int setIntersect(const std::vector<T>& a, std::vector<T>* b) {
+inline int intersect(const std::vector<T>& a, std::vector<T>* b) {
   if (!b) return -1;
   std::set<T> s(a.begin(), a.end());
   FuncNotInSet<T> func(s);
@@ -316,20 +317,33 @@ inline int setIntersect(const std::vector<T>& a, std::vector<T>* b) {
 }
 
 template <class T>
-inline std::vector<T> setIntersect(const std::vector<T>& a,
+inline std::vector<T> intersect(const std::vector<T>& a,
                                    const std::vector<T>& b) {
   std::vector<T> ret(b);
-  setIntersect(a, &ret);
+  intersect(a, &ret);
   return ret;
 }
 
+/**
+ * Remove elements from @param b if they exist in @param a
+ */
 template <class T>
-inline int setSubstrct(const std::vector<T>& a, std::vector<T>* b) {
+inline int remove(const std::vector<T>& a, std::vector<T>* b) {
   if (!b) return -1;
   std::set<T> s(a.begin(), a.end());
   FuncInSet<T> func(s);
   b->erase(std::remove_if(b->begin(), b->end(), func), b->end());
   return 0;
+}
+
+/**
+ * 
+ */
+template <class T>
+inline std::vector<T> setSubtract(const std::vector<T>& a, const std::vector<T>& b) {
+  std::vector<T> s(a);
+  remove(b, &s);
+  return s;
 }
 
 template <class T>
@@ -342,11 +356,14 @@ inline int dedup(std::vector<T>* a) {
     if (s.count((*a)[i])) {
       continue;
     }
+    s.insert((*a)[i]);
     if (idx != i) {
       (*a)[idx] = (*a)[i];
     }
     idx++;
   }
+
+  a->resize(idx);
   return 0;
 }
 

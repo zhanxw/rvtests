@@ -1,7 +1,7 @@
 EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
       testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
       testCommonFunction testTypeConversion testSimpleTimer testProfiler testVersionChecker \
-      testSocket testHttp
+      testSocket testHttp testIndexer
 all: $(EXE)
 debug: all
 
@@ -38,6 +38,7 @@ check: kinship
         ./testCommonFunction && \
         ./testTypeConversion > test.TypeConversion.output && diff test.TypeConversion.output test.TypeConversion.correct && \
         ./testSimpleTimer && \
+        ./testIndexer && \
         echo "All tests passed!"
 
 kinship:

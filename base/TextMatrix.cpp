@@ -15,7 +15,11 @@ int TextMatrix::readFile(const std::string& fn, int flag) {
     lineNo++;
     if (lineNo == 1 && flag & TextMatrix::HAS_HEADER) {
       colName.resize(fd.size());
-      std::copy(fd.begin() + 1, fd.end(), colName.begin());
+      if (flag & TextMatrix::HAS_ROWNAME) {
+        std::copy(fd.begin() + 1, fd.end(), colName.begin());
+      } else {
+        colName = fd;
+      }
     } else {
       if (flag & TextMatrix::HAS_ROWNAME) {
         d.resize(fd.size() - 1);
@@ -38,7 +42,7 @@ int TextMatrix::readFile(const std::string& fn, int flag) {
   }
   return 0;
 }
-const std::vector<std::string> TextMatrix::header() const { return mat[0]; }
+const std::vector<std::string> TextMatrix::header() const { return colName; }
 
 int TextMatrix::keepCol(const std::vector<std::string>& name) {
   const int nc = ncol();
@@ -93,6 +97,9 @@ int TextMatrix::convert(SimpleMatrix* out) const {
       }
     }
   }
+
+  m.setRowName(rowName);
+  m.setColName(colName);
 
   return 0;
 }

@@ -165,6 +165,7 @@ inline int stringNaturalTokenize(const std::string& str,
   if (s.size() > 0) result->push_back(s);
   return result->size();
 };
+
 inline int stringNaturalTokenize(const std::string& str, const char delim,
                                  std::vector<std::string>* result) {
   std::string d(1, delim);
@@ -178,6 +179,12 @@ inline void stringJoin(const std::vector<std::string>& array, const char delim,
     if (i) (*res) += delim;
     (*res) += array[i];
   }
+};
+
+inline std::string stringJoin(const std::vector<std::string>& array, const char delim) {
+  std::string res;
+  stringJoin(array, delim, &res);
+  return res;
 };
 
 inline void tolower(std::string* s) {

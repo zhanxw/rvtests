@@ -1,9 +1,12 @@
 #include "SimpleMatrix.h"
+
+#include <algorithm>
+#include <cmath>
+
 #include "IO.h"
 #include "TypeConversion.h"
 #include "CommonFunction.h"
-
-#include <algorithm>
+#include "Indexer.h"
 
 void SimpleMatrix::resize(int nr, int nc) {
   if (nr < 0 || nc < 0) return;
@@ -205,10 +208,60 @@ int SimpleMatrix::dropRow(const std::set<std::string>& rowNameSet) {
   return 0;
 }
 
+int SimpleMatrix::dropRow(const std::vector<std::string>& name) {
+  std::set<std::string> s(name.begin(), name.end());
+  return dropRow(s);
+}
+
 int SimpleMatrix::dropRow(const std::vector<int>& index) {
   removeByIndex(index, &mat);
   removeByIndex(index, &rowName);
   removeByIndex(index, &colName);
+  return 0;
+}
+
+int SimpleMatrix::addRow(const std::vector<std::string>& newRowName,
+                         double value) {
+  const int nc = ncol();
+  std::vector<double> fd(nc, value);
+  extend(newRowName, &rowName);
+  for (size_t i = 0; i != newRowName.size(); ++i) {
+    mat.push_back(fd);
+  }
+  return 0;
+}
+
+int SimpleMatrix::keepRow(const std::vector<std::string>& name) {
+  std::set<std::string> s(name.begin(), name.end());
+  std::vector<int> indexToRemove;
+  const int nr = nrow();
+  for (int i = 0; i < nr; ++i) {
+    if (!s.count(rowName[i])) {
+      indexToRemove.push_back(i);
+    }
+  }
+  removeByIndex(indexToRemove, &rowName);
+  removeByIndex(indexToRemove, &mat);
+  return 0;
+}
+
+int SimpleMatrix::keepCol(const std::vector<std::string>& name) {
+  const int nc = ncol();
+  const int nr = nrow();
+
+  std::vector<int> indexToRemove;
+  std::set<std::string> keep(name.begin(), name.end());
+
+  for (int i = 0; i < nc; ++i) {
+    if (!keep.count(colName[i])) {
+      indexToRemove.push_back(i);
+    }
+  }
+
+  removeByIndex(indexToRemove, &this->colName);
+  for (int i = 0; i < nr; ++i) {
+    removeByIndex(indexToRemove, &this->mat[i]);
+  }
   return 0;
 }
 
@@ -274,7 +327,7 @@ std::vector<int> SimpleMatrix::allMissingRows() const {
   bool allMissing = true;
   for (int i = 0; i < nr; ++i) {
     allMissing = true;
-    for (int j = 0;j < nc; ++j) {
+    for (int j = 0; j < nc; ++j) {
       if (!isnan(mat[i][j])) {
         allMissing = false;
         break;
@@ -285,4 +338,65 @@ std::vector<int> SimpleMatrix::allMissingRows() const {
     }
   }
   return ret;
+}
+
+int SimpleMatrix::reorderRow(const std::vector<int>& indice) {
+  std::vector<std::vector<double> > newMat;
+  std::vector<std::string> newRowName;
+  const size_t n = indice.size();
+  const int nr = nrow();
+  for (size_t i = 0; i != n; ++i) {
+    if (indice[i] < 0 || indice[i] >= nr) {
+      continue;
+    }
+    newMat.push_back(mat[indice[i]]);
+    newRowName.push_back(rowName[indice[i]]);
+  }
+
+  std::swap(mat, newMat);
+  std::swap(rowName, newRowName);
+
+  return 0;
+}
+
+int SimpleMatrix::reorderRow(const std::vector<std::string>& indice) {
+  std::vector<int> ind;
+  Indexer indexer(rowName);
+  indexer.translate(indice, &ind);
+  return reorderRow(ind);
+}
+
+int SimpleMatrix::imputeMissingToMeanByCol() {
+  const int nr = nrow();
+  const int nc = ncol();
+  std::vector<double> d(nc, 0.0);
+  std::vector<int> n(nc, 0);
+  std::vector<int> hasMissing(nc, false);
+
+  for (int i = 0; i < nr; ++i) {
+    for (int j = 0; j < nc; ++j) {
+      if (std::isfinite(mat[i][j])) {
+        d[j] += mat[i][j];
+        n[j]++;
+      } else {
+        hasMissing[j] = true;
+      }
+    }
+  }
+
+  double avg;
+  for (int j = 0; j < nc; ++j) {
+    if (!hasMissing[j]) continue;
+    avg = 0.0;
+    if (n[j] != 0) {
+      avg = d[j] / n[j];
+    }
+    for (int i = 0; i < nr; ++i) {
+      if (!std::isfinite(mat[i][j])) {
+        mat[i][j] = avg;
+      }
+    }
+  }
+
+  return 0;
 }

@@ -20,6 +20,8 @@ class MultipleTraitLinearRegressionScoreTest {
   Vector& GetPvalue() { return this->pvalue; };
 
  private:
+  Vector ustat;
+  Vector vstat;  
   Vector pvalue;
   MultipleTraitLinearRegressionScoreTestInternal* work;  // store working data
 };

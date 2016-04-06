@@ -2,21 +2,21 @@
 
 #include "MathMatrix.h"
 #include "MathVector.h"
-#include "MultipleTraitScoreTest.h"
+#include "MultipleTraitLinearRegressionScoreTest.h"
 #include "MatrixIO.h"
 
 #include "Formula.h"
 #include "SimpleTimer.h"
 
 int main(int argc, char* argv[]) {
-  int T = 10;
-  int N = 10000;
-  if (argc >= 2) {
-    T = atoi(argv[1]);
-  }
-  if (argc >= 3) {
-    N = atoi(argv[2]);
-  }
+  // int T = 10;
+  // int N = 10000;
+  // if (argc >= 2) {
+  //   T = atoi(argv[1]);
+  // }
+  // if (argc >= 3) {
+  //   N = atoi(argv[2]);
+  // }
 
   Matrix G;
   Matrix Y;
@@ -55,7 +55,8 @@ int main(int argc, char* argv[]) {
     tests.add(p1, c1);
   }
 
-  for (int i = 0; i < T - 2; ++i) {
+  // for (int i = 0; i < T - 2; ++i) {
+  {
     const char* tp1[] = {"y2"};
     const char* tc1[] = {"c1", "c2"};
     std::vector<std::string> p1(tp1, tp1 + 1);
@@ -68,7 +69,7 @@ int main(int argc, char* argv[]) {
 
   AccurateTimer t;
   {
-    MultipleTraitScoreTest mt;
+    MultipleTraitLinearRegressionScoreTest mt;
 
     bool ret = mt.FitNullModel(Cov, Y, tests);
     if (ret == false) {
@@ -76,19 +77,19 @@ int main(int argc, char* argv[]) {
       exit(1);
     }
 
-    for (int i = 0; i < N; ++i) {
-      ret = mt.TestCovariate(G);
-      if (ret == false) {
-        printf("Test covariate failed!\n");
-        exit(1);
-      }
+    // for (int i = 0; i < N; ++i) {
+    ret = mt.TestCovariate(G);
+    if (ret == false) {
+      printf("Test covariate failed!\n");
+      exit(1);
     }
+    //}
     Vector& pval = mt.GetPvalue();
-    // Print(pval);
-    // printf("\n");
+    Print(pval);
+    printf("\n");
   }
 
-  printf("T = %d\tN = %d\telapsed %.5f\n", T, N, t.stop());
+  // printf("T = %d\tN = %d\telapsed %.5f\n", T, N, t.stop());
 
   return 0;
 }

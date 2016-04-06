@@ -8,23 +8,19 @@
 
 /**
  * Indexer class is convenient tool to index a vector class
+ *
+ * v = ["a", "b", "c"]
+ * indexer will store {"a": 0,  "b": 1, "c": 2}
  */
 class Indexer {
  public:
-  Indexer(const std::vector<std::string>& a) {
-    for (size_t i = 0; i < a.size(); ++i) {
-      if (m.count(a[i]) == 0) {
-        m[a[i]] = i;
-      } else {
-        duplication.insert(a[i]);
-      }
-    }
-  }
+  Indexer(const std::vector<std::string>& a);
   bool hasDuplication() { return this->duplication.size() > 0; }
   int operator[](const std::string& s) const {
     if (m.count(s) == 0) return -1;
     return m.find(s)->second;
   }
+  int translate(const std::vector<std::string>& input, std::vector<int>* out);
 
  private:
   std::map<std::string, int> m;

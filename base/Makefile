@@ -10,7 +10,8 @@ LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship Profiler VersionChecker \
        Socket Http TextMatrix Indexer
-OBJ = $(BASE:%=%.o) 
+OBJ = $(BASE:%=%.o)
+OBJ_DBG = $(BASE:%=%_dbg.o) 
 
 DEFAULT_CXXFLAGS = -std=c++0x -I. $(addprefix -I, $(THIRD_INC))
 # enable read over HTTP and FTP
@@ -30,15 +31,19 @@ profile: $(LIB_DBG)
 
 $(LIB): $(OBJ)
 	$(AR) rcs $(LIB) $(OBJ)
-$(LIB_DBG): $(OBJ)
-	$(AR) rcs $(LIB_DBG) $(OBJ)
+$(LIB_DBG): $(OBJ_DBG)
+	$(AR) rcs $(LIB_DBG) $(OBJ_DBG)
 
 define BUILD_each
   TAR := $(1).o
   SRC := $(1).cpp
   -include  $(1).d
   $$(TAR): $$(SRC) | $$(THIRD_INC)
-	$$(CXX) -MMD $$(CXXFLAGS) -c $$< $$(CXXFLAGS)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@
+  TAR_DBG := $(1)_dbg.o
+  -include  $(1)_dbg.d
+  $$(TAR_DBG): $$(SRC) | $$(THIRD_INC)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 

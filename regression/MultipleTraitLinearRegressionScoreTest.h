@@ -10,8 +10,6 @@ class FormulaVector;
 
 class MultipleTraitLinearRegressionScoreTest {
  public:
-  // typedef std::vector<std::vector<std::vector<std::string> > > Tests;
-  
   MultipleTraitLinearRegressionScoreTest();
   virtual ~MultipleTraitLinearRegressionScoreTest();
   bool FitNullModel(Matrix& cov, Matrix& y,

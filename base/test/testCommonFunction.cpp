@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   {
     std::vector<int> a = {1, 2, 3};
     std::vector<int> b = {2, 4};
-    setSubstrct(b, &a);
+    remove(b, &a);
     assert(a.size() == 2);
     assert(a[0] == 1);
     assert(a[1] == 3);
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
   {
     std::vector<int> a = {1, 2, 3};
     std::vector<int> b = {2, 4};
-    setSubstrct(a, &b);
+    remove(a, &b);
     assert(b.size() == 1);
     assert(b[0] == 4);
   }

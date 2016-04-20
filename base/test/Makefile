@@ -24,6 +24,8 @@ define BUILD_each
 endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
+../lib-dbg-base.a:
+	$(MAKE) -C ../ debug
 $(EXE): ../lib-dbg-base.a
 check: kinship
 	./testIO && \

@@ -157,20 +157,18 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
     }
 
     // create index to indicate missingness
-    // TODO: Y, Z pair can have missing values, need to handle them
     w.missingIndex[i].resize(w.N);
     for (int j = 0; j < w.N; ++j) {
-      bool hasMissing = false;
       if (hasMissingInRow(w.Y[i], j)) {
-        hasMissing = true;
-        break;
+        w.missingIndex[i][j] = true;
+        continue;
       } else {
         if (w.hasCovariate[i] && hasMissingInRow(w.Z[i], j)) {
-          hasMissing = true;
-          break;
+          w.missingIndex[i][j] = true;
+          continue;
         }
       }
-      w.missingIndex[i][j] = hasMissing;
+      w.missingIndex[i][j] = false;  
     }
     removeRow(w.missingIndex[i], &w.Y[i]);
     removeRow(w.missingIndex[i], &w.Z[i]);

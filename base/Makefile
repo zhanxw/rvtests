@@ -35,7 +35,8 @@ define BUILD_each
   TAR := $(1).o
   TAR_DBG := $(1)_dbg.o
   SRC := $(1).cpp 
-  -include  $(1).d 
+  -include  $(1).d
+  -include  $(1)_dbg.d 
   $$(TAR) $$(TAR_DBG): $$(SRC) | $$(THIRD_INC)
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@
 endef

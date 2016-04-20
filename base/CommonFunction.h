@@ -350,7 +350,7 @@ template <class T>
 inline int dedup(std::vector<T>* a) {
   if (!a) return -1;
   std::set<T> s;
-  int idx = 0;
+  size_t idx = 0;
   size_t n = a->size();
   for (size_t i = 0; i != n; ++i) {
     if (s.count((*a)[i])) {

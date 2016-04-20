@@ -5144,6 +5144,8 @@ class MultipleTraitScoreTest : public ModelFitter {
     // result.addHeader("DIRECTION");
     // result.addHeader("EFFECT");
     // result.addHeader("SE");
+    result.addHeader("U_STAT");
+    result.addHeader("V_STAT");
     result.addHeader("PVALUE");
     result.writeHeaderLine(fp);
   }
@@ -5154,16 +5156,14 @@ class MultipleTraitScoreTest : public ModelFitter {
     // result.updateValue("AF", af);
     if (fitOK) {
       if (!isBinaryOutcome()) {
-        Vector& v = linear.GetPvalue();
-        const int n = v.Length();
-        pvalue.clear();
-        for (int i = 0; i < n; ++i) {
-          if (i) {
-            pvalue += ",";
-          }
-          pvalue += toString(v[i]);
-        }
+        formatValue(linear.GetU(), &ustat);
+        formatValue(linear.GetV(), &vstat);
+        formatValue(linear.GetPvalue(), &pvalue);
+        
+        result.updateValue("U_STAT", ustat);
+        result.updateValue("V_STAT", vstat);
         result.updateValue("PVALUE", pvalue);
+        
         // const double u = linear.GetU()[0][0];
         // const double v = linear.GetV()[0][0];
         // result.updateValue("U", u);
@@ -5197,7 +5197,16 @@ class MultipleTraitScoreTest : public ModelFitter {
     }
     result.writeValueLine(fp);
   }
-
+  void formatValue(Vector& v, std::string* out) {
+    const int n = v.Length();
+    (*out).clear();
+    for (int i = 0; i < n; ++i) {
+      if (i) {
+        (*out) += ",";
+      }
+      (*out) += toString(v[i]);
+    }
+  }    
  private:
   // double b;  // a constant
   // double af;
@@ -5206,6 +5215,8 @@ class MultipleTraitScoreTest : public ModelFitter {
   MultipleTraitLinearRegressionScoreTest linear;
   bool fitOK;
   bool needToFitNullModel;
+  std::string ustat;
+  std::string vstat;  
   std::string pvalue;
   // Matrix cov;
 };  // MultipleTraitScoreTest

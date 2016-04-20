@@ -16,7 +16,8 @@ class MultipleTraitLinearRegressionScoreTest {
                     const FormulaVector & tests);
   bool TestCovariate(Matrix& g);
   Vector& GetPvalue() { return this->pvalue; };
-
+  Vector& GetU() { return this->ustat; };
+  Vector& GetV() { return this->vstat; };  
  private:
   Vector ustat;
   Vector vstat;  

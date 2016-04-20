@@ -39,7 +39,7 @@ inline double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
     het_probs[i] = 0.0;
 
   /* start at midpoint */
-  int mid = rare_copies * (2 * genotypes - rare_copies) / (2 * genotypes);
+  int mid = 1.0 * rare_copies * (2 * genotypes - rare_copies) / (2 * genotypes);
 
   /* check to ensure that midpoint and rare alleles have same parity */
   if ((rare_copies & 1) ^ (mid & 1))

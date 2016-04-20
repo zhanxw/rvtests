@@ -6,7 +6,7 @@ include $(ROOT)/Makefile.common
 include $(ROOT)/Makefile.lib
 
 LIB = lib-regression.a 
-LIB-DBG = lib-dbg-regression.a 
+LIB_DBG = lib-dbg-regression.a 
 
 BASE = LogisticRegression \
        LogisticRegressionScoreTest \
@@ -36,17 +36,7 @@ BASE = LogisticRegression \
        Formula \
 
 OBJ = $(BASE:%=%.o)
-
-# GONCALO_INC = ../libsrc
-# # GONCALO_LIB = ../libsrc/lib-goncalo.a
-
-# EIGEN_INC = ../third/eigen
-# EIGEN_LIB =  # Eigen are header files only
-# $(EIGEN_INC) $(EIGEN_LIB):
-# 	(cd ../third; $(MAKE) eigen)
-
-# GSL_INC = ../third/gsl/include
-# NLOPT_INC = ../third/nlopt/include
+OBJ_DBG = $(BASE:%=%_dbg.o)
 
 MVTNORM_OBJ = libMvtnorm/mvtnorm.o libMvtnorm/mvt.o libMvtnorm/randomF77.o
 $(MVTNORM_OBJ):
@@ -56,21 +46,22 @@ DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
 release: CXXFLAGS = -O2 -msse2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
-debug: $(LIB-DBG)
+debug: $(LIB_DBG)
 profile: CXXFLAGS = -Wall -pg -O0 $(DEFAULT_CXXFLAGS)
-profile: $(LIB-DBG)
+profile: $(LIB_DBG)
 
 $(LIB): $(OBJ) $(MVTNORM_OBJ)
 	$(AR) -cqs $@ $^
-$(LIB-DBG): $(OBJ) $(MVTNORM_OBJ)
+$(LIB_DBG): $(OBJ_DBG) $(MVTNORM_OBJ)
 	$(AR) -cqs $@ $^
 
 define BUILD_each
   TAR := $(1).o
+  TAR_DBG := $(1)_dbg.o
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): $$(SRC) $$(EIGEN_INC)
-	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -I$(ROOT) -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC) -I$(NLOPT_INC)
+  $$(TAR) $$(TAR_DBG): $$(SRC) $$(EIGEN_INC)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ -I$(ROOT) -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC) -I$(NLOPT_INC)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 

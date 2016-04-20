@@ -11,15 +11,12 @@ BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship Profiler VersionChecker \
        Socket Http TextMatrix Indexer
 OBJ = $(BASE:%=%.o)
-OBJ_DBG = $(BASE:%=%_dbg.o) 
+OBJ_DBG = $(BASE:%=%_dbg.o)
 
 DEFAULT_CXXFLAGS = -std=c++0x -I. $(addprefix -I, $(THIRD_INC))
 # enable read over HTTP and FTP
 DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 
-
-# 'make release' will: clean current build; build with -O4 flags; backup executable files to release/ folder
-# NOTE: don't use -j flag!
 release: CXXFLAGS = -O4 $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 
@@ -30,19 +27,16 @@ profile: CXXFLAGS = -Wall -pg -O0 $(DEFAULT_CXXFLAGS)
 profile: $(LIB_DBG)
 
 $(LIB): $(OBJ)
-	$(AR) rcs $(LIB) $(OBJ)
+	$(AR) rcs $@ $^
 $(LIB_DBG): $(OBJ_DBG)
-	$(AR) rcs $(LIB_DBG) $(OBJ_DBG)
+	$(AR) rcs $@ $^
 
 define BUILD_each
   TAR := $(1).o
-  SRC := $(1).cpp
-  -include  $(1).d
-  $$(TAR): $$(SRC) | $$(THIRD_INC)
-	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@
   TAR_DBG := $(1)_dbg.o
-  -include  $(1)_dbg.d
-  $$(TAR_DBG): $$(SRC) | $$(THIRD_INC)
+  SRC := $(1).cpp 
+  -include  $(1).d 
+  $$(TAR) $$(TAR_DBG): $$(SRC) | $$(THIRD_INC)
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))

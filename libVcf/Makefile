@@ -3,9 +3,10 @@ all: release
 
 LIB = lib-vcf.a
 LIB_DBG = lib-dbg-vcf.a
-BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile VCFIndividual SiteSet VCFHeader BCFReader VCFExtractor VCFFilter
-
+BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile \
+       VCFIndividual SiteSet VCFHeader BCFReader VCFExtractor VCFFilter
 OBJ = $(BASE:=.o)
+OBJ_DBG = $(BASE:%=%_dbg.o)
 
 TABIX_INC = ../third/tabix
 TABIX_LIB = ../third/tabix/libtabix.a
@@ -47,16 +48,17 @@ profile: $(LIB_DBG)
 
 $(LIB): $(OBJ) 
 	$(AR) rcs $@ $^
-$(LIB_DBG): $(OBJ) 
+$(LIB_DBG): $(OBJ_DBG) 
 	$(AR) rcs $@ $^
 
 .SUFFIXES:
 define BUILD_each
   TAR := $(1).o
+  TAR_DBG := $(1)_dbg.o
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR): $$(SRC) 
-	$$(CXX) -MMD $$(CXXFLAGS) -c $$< $$(CXXFLAGS)
+  $$(TAR) $$(TAR_DBG): $$(SRC) 
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ $$(CXXFLAGS)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 

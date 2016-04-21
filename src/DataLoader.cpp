@@ -462,16 +462,27 @@ int DataLoader::checkConstantCovariate() {
   //      in such case, we will give a fatal error
   const int nr = covariate.nrow();
   const int nc = covariate.ncol();
+  std::set<double> s;
+  int numNAN = 0;
   for (int i = 0; i < nc; ++i) {
-    std::set<double> s;
     s.clear();
     for (int j = 0; j < nr; ++j) {
-      s.insert(covariate[j][i]);
+      if (finite(covariate[j][i])) {
+        s.insert(covariate[j][i]);
+      } else {
+        numNAN++;
+      }
     }
     if (s.size() == 1) {
       logger->error(
           "Covariate [ %s ] equals [ %g ] for all samples, cannot fit "
           "model...\n",
+          covariate.getColName()[i].c_str(), *s.begin());
+      exit(1);
+    }
+    if (s.size() == 0 && numNAN) {
+      logger->error(
+          "Covariate [ %s ] does not have finite values, cannot fit model...",
           covariate.getColName()[i].c_str(), *s.begin());
       exit(1);
     }
@@ -525,8 +536,7 @@ int DataLoader::useResidualAsPhenotype() {
     Matrix& betaSd = lr.GetCovB();
     const int n = beta.Length();
     for (int i = 0; i < n; ++i) {
-      addFittedParameter(covAndInt.GetColumnLabel(i), beta[i],
-                         betaSd[i][i]);
+      addFittedParameter(covAndInt.GetColumnLabel(i), beta[i], betaSd[i][i]);
     }
     addFittedParameter("Sigma2", lr.GetSigma2(), NAN);
   }
@@ -568,7 +578,8 @@ int DataLoader::useResidualAsPhenotype() {
   return 0;
 }
 
-int DataLoader::addFittedParameter(const std::string& name, double beta, double seBeta) {
+int DataLoader::addFittedParameter(const std::string& name, double beta,
+                                   double seBeta) {
   const int n = fittedResidualModel.nrow();
   fittedResidualModel.resize(n + 1, 2);
   fittedResidualModel.setRowName(n, name);
@@ -656,7 +667,8 @@ int extractCovariate(const std::string& fn,
       missing;  // record which number is covaraite is missing.
   int missingCovariateWarning =
       0;  // record how many times a missing warning is geneated.
-  bool missingValueInLine;  // record whether there is missing value in the line
+  bool missingValueInLine;  // record whether there is missing value in the
+                            // line
   int missingLines = 0;     // record how many lines has missing values
   std::vector<int> columnToExtract;
   std::vector<std::string> extractColumnName;
@@ -741,12 +753,14 @@ int extractCovariate(const std::string& fn,
           if (missingCovariateWarning <= 10) {
             if (handleMissingCov == DataLoader::COVARIATE_IMPUTE) {
               logger->warn(
-                  "Covariate file line [ %d ] has non-numerical value [ %s ], "
+                  "Covariate file line [ %d ] has non-numerical value [ %s "
+                  "], "
                   "we will impute to its mean",
                   lineNo, fd[columnToExtract[i]].c_str());
             } else if (handleMissingCov == DataLoader::COVARIATE_DROP) {
               logger->warn(
-                  "Covariate file line [ %d ] has non-numerical value [ %s ], "
+                  "Covariate file line [ %d ] has non-numerical value [ %s "
+                  "], "
                   "we will skip this sample",
                   lineNo, fd[columnToExtract[i]].c_str());
             }
@@ -766,12 +780,14 @@ int extractCovariate(const std::string& fn,
   if (missingCovariateWarning > 10) {
     if (handleMissingCov == DataLoader::COVARIATE_IMPUTE) {
       logger->warn(
-          "Total [ %d ] lines in covariate file contain non-numerical values, "
+          "Total [ %d ] lines in covariate file contain non-numerical "
+          "values, "
           "we will impute these to their mean",
           missingLines);
     } else if (handleMissingCov == DataLoader::COVARIATE_DROP) {
       logger->warn(
-          "Total [ %d ] lines in covariate file contain non-numerical values, "
+          "Total [ %d ] lines in covariate file contain non-numerical "
+          "values, "
           "we will skip these lines",
           missingLines);
     }
@@ -786,7 +802,8 @@ int extractCovariate(const std::string& fn,
           noPhenotypeSample.size());
     if (i > 10) {
       logger->warn(
-          "Skip outputting additional [ %d ] samples from covariate file with "
+          "Skip outputting additional [ %d ] samples from covariate file "
+          "with "
           "missing phenotypes",
           ((int)noPhenotypeSample.size() - 10));
       break;
@@ -823,7 +840,8 @@ int extractCovariate(const std::string& fn,
     }
     if (nonZero == 0) {  // all column are missing, drop column
       logger->info(
-          "Covariate [ %s ] is missing for all samples. Exclude please before "
+          "Covariate [ %s ] is missing for all samples. Exclude please "
+          "before "
           "continue!",
           mat->getColName()[col].c_str());
       return -1;
@@ -840,9 +858,11 @@ int extractCovariate(const std::string& fn,
 }  // end extractCovariate
 
 /**
- * Load covariate from @param fn, using specified @param covNameToUse, for given
+ * Load covariate from @param fn, using specified @param covNameToUse, for
+ * given
  * @param includedSample
- * covariate will be stored in @param covariate, and column names will be stored
+ * covariate will be stored in @param covariate, and column names will be
+ * stored
  * in @colNames
  * if covariate file missed some samples, those sample names will be stored in
  * @sampleToDrop
@@ -954,7 +974,8 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p,
         continue;
       } else {
         logger->warn(
-            "SKip line %d because the abnormal family and individual ids [ FID "
+            "SKip line %d because the abnormal family and individual ids [ "
+            "FID "
             "] and [ IID ]",
             lineNo);
         continue;
@@ -969,7 +990,8 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p,
         ++numMissingPhenotype;
         if (numMissingPhenotype <= 10) {
           logger->warn(
-              "Skip: Missing or invalid phenotype type, skipping line %d [ %s "
+              "Skip: Missing or invalid phenotype type, skipping line %d [ "
+              "%s "
               "] ... ",
               lineNo, line.c_str());
         }
@@ -983,14 +1005,16 @@ int loadPedPhenotypeByColumn(const char* fn, std::map<std::string, double>* p,
   }
   if (numMissingPhenotype > 10) {
     logger->warn(
-        "Skip: Additional [ %d ] lines have missing or invalid phenotype type",
+        "Skip: Additional [ %d ] lines have missing or invalid phenotype "
+        "type",
         numMissingPhenotype - 10);
   }
 
   for (std::map<std::string, int>::iterator iter = dup.begin();
        iter != dup.end(); ++iter) {
     logger->warn(
-        "Sample [ %s ] removed from phenotype file [ %s ] for its duplicity [ "
+        "Sample [ %s ] removed from phenotype file [ %s ] for its duplicity "
+        "[ "
         "%d ]",
         iter->first.c_str(), fn, iter->second + 1);
     pheno.erase(iter->first);
@@ -1030,7 +1054,8 @@ int loadPedPhenotypeByHeader(const char* fn, std::map<std::string, double>* p,
     }
     if (toupper(fd[0]) != "FID" || toupper(fd[1]) != "IID") {
       logger->error(
-          "Cannot use phenotype [ %s ] because it does not contain header line "
+          "Cannot use phenotype [ %s ] because it does not contain header "
+          "line "
           "FID, IID, ...",
           fn);
       return -1;
@@ -1057,7 +1082,8 @@ int loadPedPhenotypeByHeader(const char* fn, std::map<std::string, double>* p,
 }
 
 /**
- * @return true if @param phenotype is either:  1: unaffected, 2: affected,  -9,
+ * @return true if @param phenotype is either:  1: unaffected, 2: affected,
+ * -9,
  * 0: missing
  */
 bool _isBinaryPhenotype(const std::vector<double>& phenotype) {
@@ -1134,7 +1160,8 @@ bool convertBinaryPhenotype(std::vector<double>* p) {
 /**
  * according to the order of @param vcfSampleNames, put phenotypes to @param
  * phenotypeInOrder
- * @param imputePhenotype: if true, we will impute phenotpye to the average for
+ * @param imputePhenotype: if true, we will impute phenotpye to the average
+ * for
  * those have genotype but no phenotype;
  *                         if false, we will drop those samples
  */

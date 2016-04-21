@@ -141,6 +141,7 @@ int DataConsolidator::checkColinearity(Matrix& cov) {
   int m = (cov.rows > cov.cols) ? cov.cols : cov.rows;
   // fprintf(stderr, "rank of cov is %d, and min(r,c) = %d\n", r, m);
   if (m != r) {
+    logger->warn("The covariate matrix may be rank deficient (%d < %d)!", r, m);
     return -1;
   }
   return 0;

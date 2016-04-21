@@ -252,12 +252,10 @@ class DataConsolidator {
     } else if (this->strategy == IMPUTE_HWE) {
       // impute missing genotypes
       imputeGenotypeByFrequency(&genotype, &this->random);
-      /* *phenoOut = pheno; */
-      /* *covOut = cov; */
       this->phenotype = pheno;
       this->covariate = cov;
     } else if (this->strategy == DROP) {
-      // XX: should also consider how kinship matrix changes.
+      // (TODO) should also consider how kinship matrix changes.
 
       // we process genotype matrix (people by marker)
       // if for the same people, any marker is empty, we will remove this people

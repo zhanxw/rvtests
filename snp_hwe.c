@@ -7,10 +7,10 @@
 //
 // Written by Jan Wigginton
 */
-
+#include <vector>
 /**
  * NOTE (by zhanxw)
- * !! Makesure not all parameters equal to 0, or the program will crash.
+ * !! Make sure not all parameters equal to 0, or the program will crash.
  */
 inline double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
 {
@@ -27,13 +27,16 @@ inline double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
   int rare_copies = 2 * obs_homr + obs_hets;
   int genotypes   = obs_hets + obs_homc + obs_homr;
 
-  double * het_probs = (double *) malloc((size_t) (rare_copies + 1) * sizeof(double));
-  if (het_probs == NULL)
-  {
-    printf("FATAL ERROR - SNP-HWE: Unable to allocate array for heterozygote probabilities" );
-    exit(EXIT_FAILURE);
-  }
+  // double * het_probs = (double *) malloc((size_t) (rare_copies + 1) * sizeof(double));
+  // if (het_probs == NULL)
+  // {
+  //   printf("FATAL ERROR - SNP-HWE: Unable to allocate array for heterozygote probabilities" );
+  //   exit(EXIT_FAILURE);
+  // }
 
+  static std::vector<double> het_probs;
+  het_probs.resize((size_t) (rare_copies + 1));
+  
   int i;
   for (i = 0; i <= rare_copies; i++)
     het_probs[i] = 0.0;
@@ -103,7 +106,7 @@ inline double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
 
   p_hwe = p_hwe > 1.0 ? 1.0 : p_hwe;
 
-  free(het_probs);
+  // free(het_probs);
 
   return p_hwe;
 }

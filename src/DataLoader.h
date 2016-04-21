@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 
-#include "regression/Formula.h"
 #include "base/SimpleMatrix.h"
-#include "libsrc/MathVector.h"
 #include "libsrc/MathMatrix.h"
+#include "libsrc/MathVector.h"
+#include "regression/Formula.h"
 
 class DataLoader {
  public:
@@ -52,6 +52,7 @@ class DataLoader {
 
   // transformations
   int useResidualAsPhenotype();
+  int addFittedParameter(const std::string& name, double beta, double seBeta);
   int inverseNormalizePhenotype();
 
   // phenotype-related utilities
@@ -68,6 +69,7 @@ class DataLoader {
   const SimpleMatrix& getCovariate() { return this->covariate; };
   const std::vector<int>& getSex() { return this->sex; };
   const FormulaVector& getFormula() const { return this->formula; };
+  const SimpleMatrix& getEstimation() const { return this->fittedResidualModel; };
 
  private:
   // for multiple traits
@@ -80,13 +82,16 @@ class DataLoader {
   bool binaryPhenotype;
   std::vector<int> sex;  // plink coded genders
 
+  SimpleMatrix fittedResidualModel;  // store estimates (beta, se(beta)) for
+                                     // model y ~ cov,
+
   // external parameters
   std::string FLAG_pheno;
   std::string FLAG_mpheno;
   std::string FLAG_phenoName;
   bool FLAG_imputePheno;
   std::string FLAG_multiplePheno;
-  
+
   std::string FLAG_cov;
   std::string FLAG_covName;
   bool FLAG_imputeCov;
@@ -96,7 +101,7 @@ class DataLoader {
 
   // intermediate values
   std::set<std::string> sampleToDropInCovariate;
-};
+};  // end DataLoader
 
 /**
  * Extract covaraite from file @param fn.

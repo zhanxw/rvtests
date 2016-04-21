@@ -89,6 +89,9 @@ class SummaryHeader {
       this->recordCovariateColumn(m, i);
     }
   }
+  void recordEstimation(const SimpleMatrix& est) {
+    this->fittedResidualModel = est;
+  }
   // void recordCovariate(Matrix& m) {
   //   // int nr = m.rows;
   //   int nc = m.cols;
@@ -137,7 +140,33 @@ class SummaryHeader {
                    cov[i].mean, cov[i].sd * cov[i].sd);
       }
     }
+
+    // optionally, write pheno ~ cov estimates
+    // NOTE: when --useResidualAsPhenotype option is effective
+    const int nParam = fittedResidualModel.nrow();
+    if (nParam) {
+      fp->write("##ResidualModelEstimates\n");
+      fp->write("## - Name\tBeta\tSD\n");
+      for (int i = 0 ; i < nParam; ++i) {
+        fp->write("## - ");
+        fp->write(fittedResidualModel.getRowName()[i]);
+        fp->write("\t");
+        if (finite(fittedResidualModel[i][0])) {
+          fp->printf("%g", fittedResidualModel[i][0]);
+        } else {
+          fp->write("NA");
+        }
+        fp->write("\t");
+        if (finite(fittedResidualModel[i][1])) {
+          fp->printf("%g", fittedResidualModel[i][1]);
+        } else {
+          fp->write("NA");
+        }
+        fp->write("\n");
+      }
+    }
   }
+  
   const std::vector<std::string>& getCovLabel() const { return this->covLabel; }
 
  private:
@@ -149,6 +178,7 @@ class SummaryHeader {
 
   std::vector<std::string> covLabel;
   std::vector<Summary> cov;
+  SimpleMatrix fittedResidualModel;
 };
 
 #endif /* _SUMMARY_H_ */

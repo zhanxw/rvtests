@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "CommonFunction.h"
-#include "Indexer.h"
 #include "GenotypeExtractor.h"
+#include "Indexer.h"
 #include "ModelUtil.h"  // copy()
 
 #include "base/IO.h"
@@ -13,8 +13,8 @@
 #include "base/TextMatrix.h"
 #include "base/TypeConversion.h"
 #include "libVcf/VCFConstant.h"
-#include "regression/LinearRegression.h"
 #include "regression/Formula.h"
+#include "regression/LinearRegression.h"
 
 extern Logger* logger;
 
@@ -104,7 +104,12 @@ int DataLoader::loadPhenotype(const std::string& pheno,
 }
 
 /**
- * Current phenotype data may nhave NAN values
+ * Rearrange phenotype rows in the order given by @param names
+ * @param droppedNamed will store sample names who are in @param names but are
+ * not listed in phenotype.
+ *
+ * NOTE: @param names usually is the VCF sample names
+ * NOTE: Current phenotype data may have NAN values
  */
 int DataLoader::arrangePhenotype(const std::vector<std::string>& names,
                                  std::vector<std::string>* droppedNames) {
@@ -142,7 +147,7 @@ int DataLoader::arrangePhenotype(const std::vector<std::string>& names,
   phenotype.reorderRow(names);
   return 0;
 
-#if 0  
+#if 0
   // phenotype names (vcf sample names) arranged in the same order as in VCF
   std::vector<std::string> phenotypeNameInOrder;
   std::vector<double>
@@ -249,9 +254,10 @@ int DataLoader::loadCovariate(const std::string& covar,
  */
 int DataLoader::arrangeCovariate(const std::vector<std::string>& names,
                                  std::vector<std::string>* droppedNames) {
-  // As we load covariate after we load phenotype, assume the order is already
-  // matched
-  // TODO: may add some assertion here
+  covariate.keepRow(phenotype.getRowName());
+  covariate.reorderRow(phenotype.getRowName());
+  assert(covariate.nrow() == phenotype.nrow());
+  assert(covariate.getRowName() == phenotype.getRowName());
 
   droppedNames->clear();
   size_t n = names.size();
@@ -481,6 +487,51 @@ int DataLoader::useResidualAsPhenotype() {
     return 0;
   }
 
+  LinearRegression lr;
+  Vector pheno;
+  Matrix covAndInt;
+  const int numCovariate = covariate.ncol();
+
+  copyPhenotype(phenotype, &pheno);
+  copyCovariateAndIntercept(covariate.nrow(), covariate, &covAndInt);
+  if (!lr.FitLinearModel(covAndInt, pheno)) {
+    if (numCovariate > 0) {
+      logger->error(
+          "Cannot fit model: [ phenotype ~ 1 + covariates ], now use the "
+          "original phenotype");
+    } else {
+      logger->error(
+          "Cannot fit model: [ phenotype ~ 1 ], now use the "
+          "original phenotype");
+    }
+  } else {  // linear model fitted successfully
+    copyVectorToMatrixColumn(lr.GetResiduals(), &phenotype, 0);
+    // const int n = lr.GetResiduals().Length();
+    // for (int i = 0; i < n; ++i) {
+    //   // phenotypeInOrder[i] = lr.GetResiduals()[i];
+    //   phenotype[i][0] = lr.GetResiduals()[i];
+    // }
+    covariate.clear();
+    if (numCovariate > 0) {
+      logger->info(
+          "DONE: Fit model [ phenotype ~ 1 + covariates ] and model "
+          "residuals will be used as responses");
+    } else {
+      logger->info("DONE: Use residual as phenotype by centerng it");
+    }
+
+    // store fitting results
+    Vector& beta = lr.GetCovEst();
+    Matrix& betaSd = lr.GetCovB();
+    const int n = beta.Length();
+    for (int i = 0; i < n; ++i) {
+      addFittedParameter(covAndInt.GetColumnLabel(i), beta[i],
+                         betaSd[i][i]);
+    }
+    addFittedParameter("Sigma2", lr.GetSigma2(), NAN);
+  }
+
+#if 0
   if (covariate.ncol() > 0) {
     LinearRegression lr;
     Vector pheno;
@@ -502,14 +553,27 @@ int DataLoader::useResidualAsPhenotype() {
           "DONE: Fit model [ phenotype ~ 1 + covariates ] and model "
           "residuals will be used as responses");
     }
+    storeFittedModel(lr);
   } else {  // no covaraites
     // centerVector(&phenotypeInOrder);
     std::vector<double> v;
     phenotype.extractCol(0, &v);
     centerVector(&v);
     phenotype.setCol(0, v);
+
     logger->info("DONE: Use residual as phenotype by centerng it");
   }
+#endif
+
+  return 0;
+}
+
+int DataLoader::addFittedParameter(const std::string& name, double beta, double seBeta) {
+  const int n = fittedResidualModel.nrow();
+  fittedResidualModel.resize(n + 1, 2);
+  fittedResidualModel.setRowName(n, name);
+  fittedResidualModel[n][0] = beta;
+  fittedResidualModel[n][1] = seBeta;
   return 0;
 }
 
@@ -542,6 +606,7 @@ DataLoader::PhenotypeType DataLoader::detectPhenotypeType() const {
   }
   return PHENOTYPE_QTL;
 }
+
 int DataLoader::setTraitType(PhenotypeType t) {
   if (t == PHENOTYPE_QTL) {
     binaryPhenotype = false;
@@ -1275,7 +1340,7 @@ int excludeSamplesByIndex(const std::vector<int>& index, GenotypeExtractor* ge,
   if (!ge || !phenotypeNameInOrder || !phenotypeInOrder || !cov) {
     return -1;
   }
-  
+
   ge->excludePeople((*phenotypeNameInOrder), index);
   removeByIndex(index, phenotypeNameInOrder);
   removeByIndex(index, phenotypeInOrder);

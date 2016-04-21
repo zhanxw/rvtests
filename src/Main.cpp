@@ -712,6 +712,7 @@ int main(int argc, char** argv) {
 
   if (FLAG_useResidualAsPhenotype) {
     dataLoader.useResidualAsPhenotype();
+    g_SummaryHeader->recordEstimation(dataLoader.getEstimation());
   }
   // // use residual as phenotype
   // if (FLAG_useResidualAsPhenotype) {

@@ -222,7 +222,8 @@ class DataConsolidator {
    * @param pheno, @param cov @param genotype are all ordered and sorted by the
    * same set of samples
    *
-   * NOTE: we assume @param pheno, @param cov are not changed outside of this function;
+   * NOTE: we assume @param pheno, @param cov are not changed outside of this
+   * function;
    * we assume @param geno is always changed
    */
   void consolidate(Matrix& pheno, Matrix& cov, Matrix& geno) {
@@ -236,7 +237,7 @@ class DataConsolidator {
     }
     if (isCovariateUpdated()) {
       copyColName(cov, &this->covariate);
-    }          
+    }
 
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
@@ -247,9 +248,9 @@ class DataConsolidator {
         this->phenotypeUpdated = !isEqual(this->phenotype, pheno);
         this->phenotype = pheno;
       } else {
-        // no need to update phenotype 
+        // no need to update phenotype
       }
-        
+
       // handle covariate
       if (isCovariateUpdated()) {
         this->covariateUpdated = !isEqual(this->covariate, cov);
@@ -265,9 +266,9 @@ class DataConsolidator {
         this->phenotypeUpdated = !isEqual(this->phenotype, pheno);
         this->phenotype = pheno;
       } else {
-        // no need to update phenotype 
+        // no need to update phenotype
       }
-        
+
       // handle covariate
       if (isCovariateUpdated()) {
         this->covariateUpdated = !isEqual(this->covariate, cov);
@@ -310,9 +311,7 @@ class DataConsolidator {
     const int nc = a.cols;
     for (int i = 0; i < nr; ++i) {
       for (int j = 0; j < nc; ++j) {
-        if (finite(a[i][j]) &&
-            finite(b[i][j]) &&
-            a[i][j] != b[i][j])
+        if (finite(a[i][j]) && finite(b[i][j]) && a[i][j] != b[i][j])
           return false;
       }
     }

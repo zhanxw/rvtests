@@ -1,3 +1,12 @@
+2016-04-22  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix crash when analyzing large samples (>80,000)
+	* Add experimental multiple trait analysis
+	* Add richer outputs for --meta score model e.g. SE(beta)
+	* Add estimates for residual model (pheno~covar) in --meta score model
+	* Clean codes (refactoring codes in the large-scale)
+	* Update third-party libraries
+
 2015-12-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix a bug in meta covariance file (happens only when: unrelated individuals, has covariates, residual variance not one)

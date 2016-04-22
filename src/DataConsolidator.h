@@ -269,10 +269,11 @@ class DataConsolidator {
           idxToCopy++;
         }
       }
-      this->phenotypeUpdated = this->covariateUpdated = true;
       genotype.Dimension(idxToCopy, genotype.cols);
       covariate.Dimension(idxToCopy, cov.cols);
       phenotype.Dimension(idxToCopy, pheno.cols);
+      this->phenotypeUpdated = true;
+      this->covariateUpdated = true;
     } else {
       logger->error(
           "Uninitialized consolidation methods to handle missing data!");

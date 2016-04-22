@@ -254,10 +254,12 @@ int DataLoader::loadCovariate(const std::string& covar,
  */
 int DataLoader::arrangeCovariate(const std::vector<std::string>& names,
                                  std::vector<std::string>* droppedNames) {
-  covariate.keepRow(phenotype.getRowName());
-  covariate.reorderRow(phenotype.getRowName());
-  assert(covariate.nrow() == phenotype.nrow());
-  assert(covariate.getRowName() == phenotype.getRowName());
+  if (covariate.ncol() > 0) {
+    covariate.keepRow(phenotype.getRowName());
+    covariate.reorderRow(phenotype.getRowName());
+    assert(covariate.nrow() == phenotype.nrow());
+    assert(covariate.getRowName() == phenotype.getRowName());
+  }
 
   droppedNames->clear();
   size_t n = names.size();

@@ -254,7 +254,8 @@ int DataLoader::loadCovariate(const std::string& covar,
  */
 int DataLoader::arrangeCovariate(const std::vector<std::string>& names,
                                  std::vector<std::string>* droppedNames) {
-  if (covariate.ncol() > 0) {
+  if (covariate.nrow() > 0) {
+    // when covariates are used
     covariate.keepRow(phenotype.getRowName());
     covariate.reorderRow(phenotype.getRowName());
     assert(covariate.nrow() == phenotype.nrow());

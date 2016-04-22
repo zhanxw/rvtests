@@ -220,40 +220,61 @@ class DataConsolidator {
   void setStrategy(const int s) { this->strategy = s; };
   /**
    * @param pheno, @param cov @param genotype are all ordered and sorted by the
-   * same people
-   * @param phenoOut, @param covOut and @param genotype are outputted
-   * NOTE: @param covOut may be filled as column vector of 1 if @param cov is
-   * empty
+   * same set of samples
+   *
+   * NOTE: we assume @param pheno, @param cov are not changed outside of this function;
+   * we assume @param geno is always changed
    */
   void consolidate(Matrix& pheno, Matrix& cov, Matrix& geno) {
     this->originalGenotype = geno;
     this->genotype = geno;
-
-    copyColName(pheno, &this->phenotype);
-    copyColName(cov, &this->covariate);
     copyColName(geno, &this->genotype);
     copyColName(geno, &this->originalGenotype);
+
+    if (isPhenotypeUpdated()) {
+      copyColName(pheno, &this->phenotype);
+    }
+    if (isCovariateUpdated()) {
+      copyColName(cov, &this->covariate);
+    }          
 
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(&this->genotype);
-      if (this->phenotype != pheno) {
+
+      // handle phenotype
+      if (isPhenotypeUpdated()) {
+        this->phenotypeUpdated = !isEqual(this->phenotype, pheno);
         this->phenotype = pheno;
-        this->phenotypeUpdated = true;
       } else {
-        this->phenotypeUpdated = false;
+        // no need to update phenotype 
       }
-      if (this->covariate != cov) {
+        
+      // handle covariate
+      if (isCovariateUpdated()) {
+        this->covariateUpdated = !isEqual(this->covariate, cov);
         this->covariate = cov;
-        this->covariateUpdated = true;
       } else {
-        this->covariateUpdated = false;
+        // no need to update covariate
       }
     } else if (this->strategy == IMPUTE_HWE) {
       // impute missing genotypes
       imputeGenotypeByFrequency(&genotype, &this->random);
-      this->phenotype = pheno;
-      this->covariate = cov;
+      // handle phenotype
+      if (isPhenotypeUpdated()) {
+        this->phenotypeUpdated = !isEqual(this->phenotype, pheno);
+        this->phenotype = pheno;
+      } else {
+        // no need to update phenotype 
+      }
+        
+      // handle covariate
+      if (isCovariateUpdated()) {
+        this->covariateUpdated = !isEqual(this->covariate, cov);
+        this->covariate = cov;
+      } else {
+        // no need to update covariate
+      }
     } else if (this->strategy == DROP) {
       // (TODO) should also consider how kinship matrix changes.
 
@@ -261,7 +282,7 @@ class DataConsolidator {
       // if for the same people, any marker is empty, we will remove this people
       int idxToCopy = 0;
       for (int i = 0; i < (genotype).rows; ++i) {
-        if (hasNoMissingGenotype(genotype, i)) {
+        if (isNoMissingGenotypeInRow(genotype, i)) {
           copyRow(genotype, i, &genotype, idxToCopy);
           copyRow(cov, i, &covariate, idxToCopy);
           copyRow(pheno, i, &phenotype, idxToCopy);
@@ -279,7 +300,28 @@ class DataConsolidator {
           "Uninitialized consolidation methods to handle missing data!");
     }
   }
-  bool hasNoMissingGenotype(Matrix& g, int r) {
+  /**
+   * Compare @param a and @param b by comparing their common finite elements.
+   */
+  bool isEqual(Matrix& a, Matrix& b) {
+    if (a.rows != b.rows) return false;
+    if (a.cols != b.cols) return false;
+    const int nr = a.rows;
+    const int nc = a.cols;
+    for (int i = 0; i < nr; ++i) {
+      for (int j = 0; j < nc; ++j) {
+        if (finite(a[i][j]) &&
+            finite(b[i][j]) &&
+            a[i][j] != b[i][j])
+          return false;
+      }
+    }
+    return true;
+  }
+  /**
+   * @param g , row @param r: all elements are non-missing
+   */
+  bool isNoMissingGenotypeInRow(Matrix& g, int r) {
     const int n = g.cols;
     for (int i = 0; i < n; ++i) {
       if (g[r][i] < 0) return false;

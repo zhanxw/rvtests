@@ -378,7 +378,9 @@ int DataLoader::loadMultiplePhenotype(const std::string& multiplePhenotype,
   textMat.readFile(FLAG_multiplePheno, TextMatrix::HAS_HEADER);
   if (textMat.nrow() == 0 || which(textMat.header(), "pheno") < 0 ||
       which(textMat.header(), "covar") < 0) {
-    logger->warn("Wrong multiple phenotype analysis file (no correct headers)");
+    logger->warn(
+        "Wrong multiple phenotype analysis file (no correct headers: \"pheno "
+        "covar\")");
     exit(1);
   }
 

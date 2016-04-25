@@ -6,8 +6,8 @@
 
 #include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
-#include "Eigen/Dense"
 #include "Eigen/Cholesky"  // ldlt
+#include "Eigen/Dense"
 
 #include "Formula.h"
 
@@ -134,8 +134,9 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
   std::vector<int> phenoCol;
   std::vector<int> covCol;
 
-  // NOTE: need to handle (1) no covariates (2) after removing missing values,
-  // there is no value to test
+  // NOTE: need to handle two corner cases:
+  // (1) no covariates
+  // (2) after removing missing values, there is no value to test
   for (int i = 0; i < w.nTest; ++i) {
     phenoName = tests.getPhenotype(i);
     phenoCol.clear();
@@ -168,7 +169,7 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
           continue;
         }
       }
-      w.missingIndex[i][j] = false;  
+      w.missingIndex[i][j] = false;
     }
     removeRow(w.missingIndex[i], &w.Y[i]);
     removeRow(w.missingIndex[i], &w.Z[i]);
@@ -179,8 +180,10 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
 
     // calcualte Uzy, inv(Z'Z)
     if (w.hasCovariate[i]) {
-      w.ZZinv[i].noalias() = (w.Z[i].transpose() * w.Z[i]).ldlt().solve(
-          EMat::Identity(w.Z[i].cols(), w.Z[i].cols()));
+      w.ZZinv[i].noalias() =
+          (w.Z[i].transpose() * w.Z[i])
+              .ldlt()
+              .solve(EMat::Identity(w.Z[i].cols(), w.Z[i].cols()));
       w.Uyz[i].noalias() = w.Z[i].transpose() * w.Y[i];
       w.sigma2[i] = (w.Y[i].transpose() * w.Y[i] -
                      w.Uyz[i].transpose() * w.ZZinv[i] * w.Uyz[i])(0, 0) /

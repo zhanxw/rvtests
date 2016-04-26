@@ -88,3 +88,11 @@ lint: *.cpp *.h
 	cpplint.py --filter=-legal/copyright $^
 
 
+##################################################
+## GitVersion
+##################################################
+$(ROOT)/GitVersion.h: $(ROOT)/.git/HEAD $(ROOT)/.git/index
+	-echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
+$(ROOT)/.git/HEAD $(ROOT)/.git/index:
+	-echo "const char *gitVersion = \"not-a-git-repo\"" > $(ROOT)/GitVersion.h 
+

@@ -29,11 +29,6 @@ debug.vcfUtil: lib-dbg
 profile: lib-dbg
 	$(MAKE) -C $(ROOT)/src profile
 	$(MAKE) -C $(ROOT)/vcfUtils profile
-##################################################
-GitVersion.h: .git/HEAD .git/index
-	-echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
-.git/HEAD .git/index:
-	-echo "const char *gitVersion = \"not-a-git-repo\"" > GitVersion.h 
 
 ##################################################
 ## clean

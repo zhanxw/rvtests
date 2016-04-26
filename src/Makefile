@@ -51,9 +51,6 @@ $(DIR_EXEC_DBG)/$(EXEC): $(LIBS_DBG) \
 
 
 ##################################################
-../GitVersion.h:
-	(cd $(ROOT); $(MAKE)  GitVersion.h)
-
 define BUILD_each
   TAR := $(1).o
   TAR_DBG := $(1)_dbg.o

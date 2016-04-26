@@ -1,9 +1,9 @@
 #ifndef _RESULT_H_
 #define _RESULT_H_
 
+#include "base/IO.h"
 #include "base/OrderedMap.h"
 #include "base/TypeConversion.h"
-#include "base/IO.h"
 
 /**
  * Store key-value pair for minimal typing
@@ -156,6 +156,51 @@ class Result {
   void writeValueLine(FileWriter* fp) const {
     writeValue(fp);
     fp->write('\n');
+  }
+
+  //////////////////////////////////////////////////
+  // Use std::string* to output
+  /**
+   * Write the keys separated by '\t'
+   */
+  void writeHeader(std::string* fp) const {
+    int n = data.size();
+    for (int i = 0; i < n; ++i) {
+      if (i) {
+        fp->push_back('\t');
+      }
+      fp->append(data.keyAt(i));
+    }
+  }
+  void writeHeaderTab(std::string* fp) const {
+    writeHeader(fp);
+    fp->push_back('\t');
+  }
+
+  void writeHeaderLine(std::string* fp) const {
+    writeHeader(fp);
+    fp->push_back('\n');
+  }
+
+  /**
+   * Write the values separated by '\t'
+   */
+  void writeValue(std::string* fp) const {
+    int n = data.size();
+    for (int i = 0; i < n; ++i) {
+      if (i) {
+        fp->push_back('\t');
+      }
+      fp->append(data.valueAt(i));
+    }
+  }
+  void writeValueTab(std::string* fp) const {
+    writeValue(fp);
+    fp->push_back('\t');
+  }
+  void writeValueLine(std::string* fp) const {
+    writeValue(fp);
+    fp->push_back('\n');
   }
 
   /**

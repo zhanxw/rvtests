@@ -28,6 +28,7 @@ class MultipleTraitLinearRegressionScoreTestInternal {
   EMatVec Z;
   EMatVec G;
   EMatVec ZZinv;
+  EMatVec L;
   EMatVec Uyz;
   EMatVec Ugz;
   EMatVec Uyg;
@@ -35,6 +36,8 @@ class MultipleTraitLinearRegressionScoreTestInternal {
   std::vector<std::vector<bool> >
       missingIndex;  // store whether the elements of Y[i] or Z[i, .] is missing
   std::vector<double> sigma2;
+  EMat ustat;
+  EMat vstat;
 };
 
 void makeColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
@@ -81,12 +84,18 @@ void removeRow(const std::vector<bool>& missingIndicator, EMat* m) {
   (*m).conservativeResize(idx, (*m).cols());
 }
 
-void scale(EMat* m) { (*m).rowwise() -= (*m).colwise().sum() / (*m).rows(); }
-
-MultipleTraitLinearRegressionScoreTest::
-    MultipleTraitLinearRegressionScoreTest() {
-  this->work = new MultipleTraitLinearRegressionScoreTestInternal;
+void scale(EMat* m) {
+  (*m).rowwise() -= (*m).colwise().sum() / (*m).rows();
+  // (*m).colwise().normalize();
 }
+
+MultipleTraitLinearRegressionScoreTest::MultipleTraitLinearRegressionScoreTest(
+    int blockSize) {
+  this->work = new MultipleTraitLinearRegressionScoreTestInternal;
+  this->blockSize = blockSize;
+  this->resultLength = 0;
+}
+
 MultipleTraitLinearRegressionScoreTest::
     ~MultipleTraitLinearRegressionScoreTest() {
   if (this->work) {
@@ -107,6 +116,7 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
   w.Z.resize(tests.size());
   w.G.resize(tests.size());
   w.ZZinv.resize(tests.size());
+  w.L.resize(tests.size());
   w.hasCovariate.resize(tests.size());
   w.missingIndex.resize(tests.size());
   w.Uyz.resize(tests.size());
@@ -114,9 +124,9 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
   w.Uyg.resize(tests.size());
   w.sigma2.resize(tests.size());
   w.nTest = tests.size();
-  ustat.Dimension(tests.size());
-  vstat.Dimension(tests.size());
-  pvalue.Dimension(tests.size());
+  ustat.Dimension(blockSize, tests.size());
+  vstat.Dimension(blockSize, tests.size());
+  pvalue.Dimension(blockSize, tests.size());
 
   // create dict (key: phenotype/cov name, val: index)
   std::map<std::string, int> phenoDict;
@@ -180,6 +190,9 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
           (w.Z[i].transpose() * w.Z[i])
               .ldlt()
               .solve(EMat::Identity(w.Z[i].cols(), w.Z[i].cols()));
+      Eigen::LLT<Eigen::MatrixXf> lltOfA(w.ZZinv[i]);
+      // L * L' = A
+      w.L[i] = lltOfA.matrixL();
       w.Uyz[i].noalias() = w.Z[i].transpose() * w.Y[i];
       w.sigma2[i] = (w.Y[i].transpose() * w.Y[i] -
                      w.Uyz[i].transpose() * w.ZZinv[i] * w.Uyz[i])(0, 0) /
@@ -187,54 +200,87 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
     } else {
       w.sigma2[i] = w.Y[i].col(0).squaredNorm() / w.Y[i].rows();
     }
+
+    // initialize G
+    const int nSample = w.Y[i].rows();
+    if (w.G[i].cols() != blockSize) {
+      w.G[i].resize(nSample, blockSize);
+    }
   }
 
   return true;
 }
-bool MultipleTraitLinearRegressionScoreTest::TestCovariate(Matrix& g) {
-  MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
 
+bool MultipleTraitLinearRegressionScoreTest::AddCovariate(Matrix& g) {
+  MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
+  assert(resultLength < blockSize);
   for (int i = 0; i < w.nTest; ++i) {
     // Convert g to suitable g matrix
-    const int nSample = w.Y[i].rows();
-    w.G[i].resize(nSample, 1);
     int idx = 0;
-    for (int j = 0; j < (int)w.missingIndex[i].size(); ++j) {
-      if (!w.missingIndex[i][j]) {
-        w.G[i](idx, 0) = g[j][0];
+    const std::vector<bool>& missingIndex = w.missingIndex[i];
+    const int n = missingIndex.size();
+    EMat& G = w.G[i];
+
+    for (int j = 0; j < n; ++j) {
+      if (!missingIndex[j]) {
+        G(idx, resultLength) = g[j][0];
         ++idx;
       }
     }
+  }
+  resultLength++;
+  return true;
+}
 
+bool MultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
+  MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
+  for (int i = 0; i < w.nTest; ++i) {
     // center and scale g
     scale(&w.G[i]);
 
     // calculate Ugz, Uyg
     if (w.hasCovariate[i]) {
-      w.Ugz[i].noalias() = w.Z[i].transpose() * w.G[i];  // C by 1
+      w.Ugz[i].noalias() = w.Z[i].transpose() * w.G[i];  // C by blockSize
     }
-    w.Uyg[i].noalias() = w.G[i].transpose() * w.Y[i];
+    w.Uyg[i].noalias() = w.G[i].transpose() * w.Y[i];  // blockSize by T=1
 
     // calculate Ustat, Vstat
     if (w.hasCovariate[i]) {
-      ustat[i] =
-          (w.Uyg[i] - w.Ugz[i].transpose() * w.ZZinv[i] * w.Uyz[i])(0, 0);
-      vstat[i] = (w.G[i].transpose() * w.G[i] -
-                  w.Ugz[i].transpose() * w.ZZinv[i] * w.Ugz[i])(0, 0);
-    } else {  // no covariate
-      ustat[i] = w.Uyg[i](0, 0);
-      vstat[i] =
-          w.G[i].col(0).squaredNorm();  // (w.G[i].transpose() * w.G[i])(0, 0);
+      w.ustat =
+          (w.Uyg[i] -
+           w.Ugz[i].transpose() * w.ZZinv[i] * w.Uyz[i]);  // blockSize by T=1
+      w.vstat = (w.G[i].array().square().matrix().colwise().sum() -
+                 (w.L[i].transpose() * w.Ugz[i])
+                     .array()
+                     .square()
+                     .matrix()
+                     .colwise()
+                     .sum())
+                    .transpose();  // blockSize by 1
+    } else {                       // no covariate
+      w.ustat = w.Uyg[i];
+      w.vstat = w.G[i]
+                    .array()
+                    .square()
+                    .matrix()
+                    .colwise()
+                    .sum()
+                    .transpose();  // blockSize by 1
     }
-    vstat[i] *= w.sigma2[i];
+    w.vstat *= w.sigma2[i];
 
-    // calculat p-value
-    if (vstat[i] == 0.) {
-      pvalue[i] = NAN;
-    } else {
-      double stat = ustat[i] * ustat[i] / vstat[i];
-      pvalue[i] = gsl_cdf_chisq_Q(stat, 1.0);
+    // assign and calculat p-value
+    for (int j = 0; j < blockSize; ++j) {
+      this->ustat[j][i] = w.ustat(j, 0);
+      this->vstat[j][i] = w.vstat(j, 0);
+
+      if (w.vstat(j, 0) == 0.) {
+        pvalue[j][i] = NAN;
+      } else {
+        double stat = ustat[j][i] * ustat[j][i] / vstat[j][i];
+        pvalue[j][i] = gsl_cdf_chisq_Q(stat, 1.0);
+      }
     }
-  }
+  }  // end for i
   return true;
 }

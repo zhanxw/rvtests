@@ -81,11 +81,7 @@ void removeRow(const std::vector<bool>& missingIndicator, EMat* m) {
   (*m).conservativeResize(idx, (*m).cols());
 }
 
-void scale(EMat* m) {
-  (*m).rowwise() -= (*m).colwise().sum() / (*m).rows();
-  (*m).colwise().normalize();
-  // rowwise() /= (*m).colwise().norm().array();
-}
+void scale(EMat* m) { (*m).rowwise() -= (*m).colwise().sum() / (*m).rows(); }
 
 MultipleTraitLinearRegressionScoreTest::
     MultipleTraitLinearRegressionScoreTest() {

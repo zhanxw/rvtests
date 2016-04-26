@@ -12,15 +12,21 @@ class MultipleTraitLinearRegressionScoreTest {
  public:
   MultipleTraitLinearRegressionScoreTest();
   virtual ~MultipleTraitLinearRegressionScoreTest();
-  bool FitNullModel(Matrix& cov, Matrix& y,
-                    const FormulaVector & tests);
+  bool FitNullModel(Matrix& cov, Matrix& y, const FormulaVector& tests);
   bool TestCovariate(Matrix& g);
   Vector& GetPvalue() { return this->pvalue; };
   Vector& GetU() { return this->ustat; };
-  Vector& GetV() { return this->vstat; };  
+  Vector& GetV() { return this->vstat; };
+
+ private:
+  MultipleTraitLinearRegressionScoreTest(
+      const MultipleTraitLinearRegressionScoreTest&);
+  MultipleTraitLinearRegressionScoreTest& operator=(
+      const MultipleTraitLinearRegressionScoreTest&);
+
  private:
   Vector ustat;
-  Vector vstat;  
+  Vector vstat;
   Vector pvalue;
   MultipleTraitLinearRegressionScoreTestInternal* work;  // store working data
 };

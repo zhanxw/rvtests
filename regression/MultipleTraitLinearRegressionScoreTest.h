@@ -33,6 +33,9 @@ class MultipleTraitLinearRegressionScoreTest {
   MultipleTraitLinearRegressionScoreTestInternal* work;  // store working data
   int blockSize;     // unit of grouped computational units
   int resultLength;  // how many results are available
+  // store grouping results
+  std::vector<std::vector<int> > group;  // record grouping results of tests
+  int groupSize;
 };
 
 #endif /* MULTIPLETRAITSCORETEST_H */

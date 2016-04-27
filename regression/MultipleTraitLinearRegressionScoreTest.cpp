@@ -124,6 +124,8 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
   w.Uyg.resize(tests.size());
   w.sigma2.resize(tests.size());
   w.nTest = tests.size();
+  w.ustat.resize(blockSize, tests.size());
+  w.vstat.resize(blockSize, tests.size());
   ustat.Dimension(blockSize, tests.size());
   vstat.Dimension(blockSize, tests.size());
   pvalue.Dimension(blockSize, tests.size());
@@ -211,7 +213,7 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
   return true;
 }
 
-bool MultipleTraitLinearRegressionScoreTest::AddCovariate(Matrix& g) {
+bool MultipleTraitLinearRegressionScoreTest::AddCovariate(const Matrix& g) {
   MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
   assert(resultLength < blockSize);
   for (int i = 0; i < w.nTest; ++i) {
@@ -235,46 +237,49 @@ bool MultipleTraitLinearRegressionScoreTest::AddCovariate(Matrix& g) {
 bool MultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
   MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
   for (int i = 0; i < w.nTest; ++i) {
+    // delcare const variables
+    EMat& G = w.G[i];
+    const EMat& Z = w.Z[i];
+    const EMat& Y = w.Y[i];
+    EMat& Ugz = w.Ugz[i];
+    EMat& Uyg = w.Uyg[i];
+    const EMat& Uyz = w.Uyz[i];
+    const bool& hasCovariate = w.hasCovariate[i];
+
     // center and scale g
-    scale(&w.G[i]);
+    scale(&G);
 
     // calculate Ugz, Uyg
-    if (w.hasCovariate[i]) {
-      w.Ugz[i].noalias() = w.Z[i].transpose() * w.G[i];  // C by blockSize
+    if (hasCovariate) {
+      Ugz.noalias() = Z.transpose() * G;  // C by blockSize
     }
-    w.Uyg[i].noalias() = w.G[i].transpose() * w.Y[i];  // blockSize by T=1
+    Uyg.noalias() = G.transpose() * Y;  // blockSize by T=1
 
     // calculate Ustat, Vstat
-    if (w.hasCovariate[i]) {
-      w.ustat =
-          (w.Uyg[i] -
-           w.Ugz[i].transpose() * w.ZZinv[i] * w.Uyz[i]);  // blockSize by T=1
-      w.vstat = (w.G[i].array().square().matrix().colwise().sum() -
-                 (w.L[i].transpose() * w.Ugz[i])
-                     .array()
-                     .square()
-                     .matrix()
-                     .colwise()
-                     .sum())
-                    .transpose();  // blockSize by 1
-    } else {                       // no covariate
-      w.ustat = w.Uyg[i];
-      w.vstat = w.G[i]
-                    .array()
-                    .square()
-                    .matrix()
-                    .colwise()
-                    .sum()
-                    .transpose();  // blockSize by 1
+    if (hasCovariate) {
+      w.ustat.col(i).noalias() =
+          (Uyg - Ugz.transpose() * w.ZZinv[i] * Uyz);  // blockSize by T=1
+      w.vstat.col(i).noalias() =
+          (G.array().square() - (w.L[i].transpose() * Ugz).array().square())
+              .matrix()
+              .colwise()
+              .sum()
+              .transpose();  // blockSize by 1
+    } else {                 // no covariate
+      w.ustat.col(i).noalias() = Uyg;
+      w.vstat.col(i).noalias() =
+          G.array().square().matrix().colwise().sum().transpose();  // blockSize
+                                                                    // by 1
     }
-    w.vstat *= w.sigma2[i];
+    w.vstat.col(i) *= w.sigma2[i];
+  }
+  // assign and calculat p-value
+  for (int j = 0; j < blockSize; ++j) {
+    for (int i = 0; i < w.nTest; ++i) {
+      this->ustat[j][i] = w.ustat(j, i);
+      this->vstat[j][i] = w.vstat(j, i);
 
-    // assign and calculat p-value
-    for (int j = 0; j < blockSize; ++j) {
-      this->ustat[j][i] = w.ustat(j, 0);
-      this->vstat[j][i] = w.vstat(j, 0);
-
-      if (w.vstat(j, 0) == 0.) {
+      if (w.vstat(j, i) == 0.) {
         pvalue[j][i] = NAN;
       } else {
         double stat = ustat[j][i] * ustat[j][i] / vstat[j][i];

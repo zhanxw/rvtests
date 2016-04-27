@@ -5233,7 +5233,7 @@ class MultipleTraitScoreTest : public ModelFitter {
     linear.flush();
     numResult = 0;
   }
-  void formatValue(Vector& v, std::string* out) {
+  void formatValue(const Vector& v, std::string* out) {
     const int n = v.Length();
     (*out).clear();
     for (int i = 0; i < n; ++i) {

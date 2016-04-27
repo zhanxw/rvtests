@@ -13,11 +13,11 @@ class MultipleTraitLinearRegressionScoreTest {
   MultipleTraitLinearRegressionScoreTest(int blockSize);
   virtual ~MultipleTraitLinearRegressionScoreTest();
   bool FitNullModel(Matrix& cov, Matrix& y, const FormulaVector& tests);
-  bool AddCovariate(Matrix& g);
+  bool AddCovariate(const Matrix& g);
   bool TestCovariateBlock();
-  Vector& GetPvalue(int i) { return this->pvalue[i]; };
-  Vector& GetU(int i) { return this->ustat[i]; };
-  Vector& GetV(int i) { return this->vstat[i]; };
+  const Vector& GetPvalue(int i) const { return this->pvalue[i]; };
+  const Vector& GetU(int i) const { return this->ustat[i]; };
+  const Vector& GetV(int i) const { return this->vstat[i]; };
   void flush() { resultLength = 0; };
 
  private:

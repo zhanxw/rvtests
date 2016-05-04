@@ -164,7 +164,7 @@ void LogisticRegression::Reset(Matrix& X) {
   p.Zero();
   V.Zero();
 
-  this->w->X.setZero(nr, nr);
+  this->w->X.setZero(nr, nc);
   this->w->beta.setZero(nc);
   this->w->eta.setZero(nr);
   this->w->p.setZero(nr);

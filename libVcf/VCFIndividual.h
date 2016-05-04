@@ -1,9 +1,9 @@
 #ifndef _VCFINDIVIDUAL_H_
 #define _VCFINDIVIDUAL_H_
 
+#include "VCFBuffer.h"
 #include "VCFFunction.h"
 #include "VCFValue.h"
-#include "VCFBuffer.h"
 
 #include <vector>
 
@@ -13,7 +13,7 @@ class VCFIndividual {
   // FUNC parseFunction[4];
   VCFIndividual() {
     this->include();  // by default, enable everyone
-  };
+  }
   /**
    * 0-base index for beg and end, e.g.
    *     0 1 2  3
@@ -50,13 +50,13 @@ class VCFIndividual {
       fprintf(stderr, "Empty individual column - very strange!!\n");
       fprintf(stderr, "vcfValue = %s\n", vcfValue.toStr());
     }
-  };
+  }
 
-  const std::string& getName() const { return this->name; };
-  void setName(std::string& s) { this->name = s; };
-  void include() { this->inUse = true; };
-  void exclude() { this->inUse = false; };
-  bool isInUse() { return this->inUse; };
+  const std::string& getName() const { return this->name; }
+  void setName(std::string& s) { this->name = s; }
+  void include() { this->inUse = true; }
+  void exclude() { this->inUse = false; }
+  bool isInUse() { return this->inUse; }
 
   const VCFValue& operator[](const unsigned int i) const
       __attribute__((deprecated)) {
@@ -64,13 +64,13 @@ class VCFIndividual {
       FATAL("index out of bound!");
     }
     return (this->fd[i]);
-  };
+  }
   VCFValue& operator[](const unsigned int i) __attribute__((deprecated)) {
     if (i >= fd.size()) {
       FATAL("index out of bound!");
     }
     return (this->fd[i]);
-  };
+  }
   /**
    * @param isMissing: index @param i does not exists. Not testing if the value
    * in ith field is missing
@@ -82,7 +82,7 @@ class VCFIndividual {
     }
     *isMissing = this->fd[i].isMissing();
     return (this->fd[i]);
-  };
+  }
   /**
    * @return VCFValue without checking missingness
    */
@@ -91,10 +91,10 @@ class VCFIndividual {
       return VCFIndividual::defaultVCFValue;
     }
     return (this->fd[i]);
-  };
+  }
 
-  VCFValue& getSelf() { return this->self; };
-  const VCFValue& getSelf() const { return this->self; };
+  VCFValue& getSelf() { return this->self; }
+  const VCFValue& getSelf() const { return this->self; }
 
   size_t size() const { return this->fd.size(); }
   /**
@@ -105,7 +105,7 @@ class VCFIndividual {
       if (i) fputc(':', fp);
       this->fd[i].output(fp);
     }
-  };
+  }
 
  private:
   bool inUse;

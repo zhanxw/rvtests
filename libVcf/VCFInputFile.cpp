@@ -1,9 +1,10 @@
 #include "VCFInputFile.h"
-#include "Utils.h"
-#include "IO.h"
 
-#include "TabixReader.h"
+#include "IO.h"
+#include "Utils.h"
+
 #include "BCFReader.h"
+#include "TabixReader.h"
 
 // use current subset of included people
 // to reconstruct a new VCF header line
@@ -29,7 +30,7 @@ void VCFInputFile::setRangeMode() {
       this->mode = VCFInputFile::VCF_RANGE_MODE;
     }
   } else if (mode == VCF_RANGE_MODE) {
-    // Auto-merge should be handled by VCFInputFile, not in tabixReader    
+    // Auto-merge should be handled by VCFInputFile, not in tabixReader
     // if (this->autoMergeRange) {
     //   this->tabixReader->enableAutoMerge();
     // }
@@ -204,12 +205,11 @@ void VCFInputFile::setRangeList(const RangeList& rl) {
   if (rl.size() == 0) return;
 
   this->setRangeMode();
-  
+
   RangeList l;
   l.setRange(rl);
-  if (this->autoMergeRange)
-    l.sort();
-  
+  if (this->autoMergeRange) l.sort();
+
   if (mode == VCF_RANGE_MODE) {
     this->tabixReader->setRange(l);
   } else if (mode == BCF_MODE) {
@@ -242,4 +242,8 @@ int VCFInputFile::setSiteFile(const std::string& fn) {
     }
   }
   return 0;
+}
+
+void VCFInputFile::getIncludedPeopleName(std::vector<std::string>* p) {
+  record.getIncludedPeopleName(p);
 }

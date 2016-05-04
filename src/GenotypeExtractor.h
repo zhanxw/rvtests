@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "base/ParRegion.h"
-#include "libsrc/MathVector.h"
 #include "libsrc/MathMatrix.h"
+#include "libsrc/MathVector.h"
 
 class Matrix;
 class RangeList;
@@ -72,6 +72,7 @@ class GenotypeExtractor {
   void excludeAllPeople();
   void enableAutoMerge();
   void getPeopleName(std::vector<std::string>* p);
+  void getIncludedPeopleName(std::vector<std::string>* p) const;
 
   /**
    * @return weigth, its length equals to # of markers

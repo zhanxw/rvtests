@@ -210,9 +210,12 @@ SummaryHeader* g_SummaryHeader = NULL;
 
 void welcome() {
 #ifdef NDEBUG
-  fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
+  fprintf(stdout, "Thank you for using rvtests (version %s, git tag %s)\n",
+          VERSION, GIT_VERSION);
 #else
-  fprintf(stdout, "Thank you for using rvtests (version %s-Debug)\n", VERSION);
+  fprintf(stdout,
+          "Thank you for using rvtests (version %s-Debug, git tag %s)\n",
+          VERSION, GIT_VERSION);
 #endif
   fprintf(stdout,
           "  For documentation, refer to http://zhanxw.github.io/rvtests/\n");
@@ -428,9 +431,8 @@ int main(int argc, char** argv) {
   // start logging
   Logger _logger((FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
-  logger->info("Program version: %s (git: %s)", VERSION, GIT_VERSION);
-  logger->infoToFile("Git Version");
-  logger->infoToFile("%s", GIT_VERSION);
+  logger->info("Program version: %s (git: %s)", VERSION);
+  logger->infoToFile("Git Version: %s", GIT_VERSION);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");

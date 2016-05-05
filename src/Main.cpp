@@ -431,7 +431,7 @@ int main(int argc, char** argv) {
   // start logging
   Logger _logger((FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
-  logger->info("Program version: %s (git: %s)", VERSION);
+  logger->info("Program version: %s", VERSION);
   logger->infoToFile("Git Version: %s", GIT_VERSION);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());

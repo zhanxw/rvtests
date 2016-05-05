@@ -92,7 +92,7 @@ lint: *.cpp *.h
 ## GitVersion
 ##################################################
 GIT_VERSION = $(ROOT)/GitVersion.h
-GIT_VERSION: $(ROOT)/.git/HEAD $(ROOT)/.git/index
+$(GIT_VERSION): $(ROOT)/.git/HEAD $(ROOT)/.git/index
 	-echo "const char *gitVersion = \"$(shell git rev-parse HEAD || echo Unknown)\";" > $@
 $(ROOT)/.git/HEAD $(ROOT)/.git/index:
 	-echo "const char *gitVersion = \"not-a-git-repo\"" > $(ROOT)/GitVersion.h 

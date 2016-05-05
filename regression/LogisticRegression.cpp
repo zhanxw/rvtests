@@ -9,9 +9,10 @@
 //
 
 #include "LogisticRegression.h"
+
+#include <Eigen/Cholesky>
 #include <cmath>  // std::isfinite
 #include "Eigen/Core"
-#include <Eigen/Cholesky>
 #include "EigenMatrixInterface.h"
 // #include "MathSVD.h"
 // #include "MathCholesky.h"
@@ -83,8 +84,8 @@ double LogisticRegression::GetDeviance() {
                 ((1. - this->w->y.array()) * (1.0 - this->w->p.array()).log()));
   } else {
     ll = safeSum((this->w->succ.array() * this->w->p.array().log()) +
-          ((this->w->total - this->w->succ).array() *
-           (1.0 - this->w->p.array()).log()));
+                 ((this->w->total - this->w->succ).array() *
+                  (1.0 - this->w->p.array()).log()));
   }
 
   double deviance = -2.0 * ll;
@@ -164,7 +165,7 @@ void LogisticRegression::Reset(Matrix& X) {
   p.Zero();
   V.Zero();
 
-  this->w->X.setZero(nr, nr);
+  this->w->X.setZero(nr, nc);
   this->w->beta.setZero(nc);
   this->w->eta.setZero(nr);
   this->w->p.setZero(nr);
@@ -346,8 +347,10 @@ int LogisticRegression::CalculateScaledWeight(Vector& w, Matrix& cov,
 
   Eigen::MatrixXf res;
   Eigen::MatrixXf zwz;
-  zwz.noalias() = (Z.transpose() * W.asDiagonal() * Z).eval().ldlt().solve(
-      Eigen::MatrixXf::Identity(n, n));
+  zwz.noalias() = (Z.transpose() * W.asDiagonal() * Z)
+                      .eval()
+                      .ldlt()
+                      .solve(Eigen::MatrixXf::Identity(n, n));
   Eigen::MatrixXf wz;
   wz.noalias() = W.asDiagonal() * Z;
 

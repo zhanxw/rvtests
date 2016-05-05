@@ -1,3 +1,8 @@
+2016-05-04  Xiaowei Zhan  <zhanxw@bunny.swmed.edu>
+
+	* Reduce memory consumption for logistic regression
+	* Clean codes
+
 2016-04-22  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix crash when analyzing large samples (>80,000)

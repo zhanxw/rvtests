@@ -1,23 +1,23 @@
 #ifndef _VCFRECORD_H_
 #define _VCFRECORD_H_
 
+#include "CommonFunction.h"
+#include "Exception.h"
+#include "IO.h"
+#include "OrderedMap.h"
+#include "RangeList.h"
+#include "Utils.h"
 #include "VCFBuffer.h"
 #include "VCFFunction.h"
 #include "VCFHeader.h"
 #include "VCFIndividual.h"
 #include "VCFInfo.h"
-#include "OrderedMap.h"
-#include "Utils.h"
-#include "IO.h"
-#include "CommonFunction.h"
-#include "RangeList.h"
-#include "Exception.h"
 
 typedef OrderedMap<int, VCFIndividual*> VCFPeople;
 
 class VCFRecord {
  public:
-  VCFRecord() { this->hasAccess = false; };
+  VCFRecord() { this->hasAccess = false; }
 
   /**
    * Parse will first make a copy then tokenized the copied one
@@ -139,10 +139,10 @@ class VCFRecord {
               (int)this->allIndv.size(), idx);
       REPORT("VCF header have LESS people than VCF content!");
       return -1;
-    };
+    }
 
     return 0;
-  };
+  }
   void createIndividual(const std::string& line) {
     std::vector<std::string> sa;
     stringTokenize(line, '\t', &sa);
@@ -158,13 +158,13 @@ class VCFRecord {
       this->allIndv[idx] = p;
       p->setName(sa[i]);
     }
-  };
+  }
   void deleteIndividual() {
     for (unsigned int i = 0; i < this->allIndv.size(); i++) {
       if (this->allIndv[i]) delete this->allIndv[i];
       this->allIndv[i] = NULL;
     }
-  };
+  }
 
   //////////////////////////////////////////////////////////////////////
   // Code related with include/exclude people
@@ -195,15 +195,15 @@ class VCFRecord {
     if (!included) {
       fprintf(stderr, "Failed to include sample [ %s ] - not in VCF file.\n",
               s.c_str());
-    };
+    }
     this->hasAccess = false;
-  };
+  }
   void includePeople(const std::vector<std::string>& v) {
     for (unsigned int i = 0; i < v.size(); i++) {
       this->includePeople(v[i]);
     }
     this->hasAccess = false;
-  };
+  }
   void includePeopleFromFile(const char* fn) {
     if (!fn || strlen(fn) == 0) return;
     LineReader lr(fn);
@@ -212,14 +212,14 @@ class VCFRecord {
       for (unsigned int i = 0; i < fd.size(); i++) this->includePeople(fd[i]);
     }
     this->hasAccess = false;
-  };
+  }
   void includeAllPeople() {
     for (unsigned int i = 0; i != this->allIndv.size(); i++) {
       VCFIndividual* p = this->allIndv[i];
       p->include();
     }
     this->hasAccess = false;
-  };
+  }
   void excludePeople(const std::string& name) {
     if (name.empty()) return;
     for (size_t i = 0; i != this->allIndv.size(); i++) {
@@ -229,7 +229,7 @@ class VCFRecord {
       }
     }
     this->hasAccess = false;
-  };
+  }
   void excludePeople(const std::set<std::string>& name) {
     if (name.empty()) return;
     for (size_t i = 0; i != this->allIndv.size(); i++) {
@@ -244,7 +244,7 @@ class VCFRecord {
     std::set<std::string> s;
     makeSet(v, &s);
     this->excludePeople(s);
-  };
+  }
   void excludePeopleFromFile(const char* fn) {
     if (!fn || strlen(fn) == 0) return;
     LineReader lr(fn);
@@ -254,39 +254,39 @@ class VCFRecord {
       for (unsigned int i = 0; i != fd.size(); i++) toExclude.insert(fd[i]);
     }
     this->excludePeople(toExclude);
-  };
+  }
   void excludeAllPeople() {
     for (unsigned int i = 0; i != this->allIndv.size(); i++) {
       VCFIndividual* p = this->allIndv[i];
       p->exclude();
     }
     this->hasAccess = false;
-  };
-  VCFInfo& getVCFInfo() { return this->vcfInfo; };
+  }
+  VCFInfo& getVCFInfo() { return this->vcfInfo; }
   const VCFValue& getInfoTag(const char* tag, bool* exists) {
     return this->vcfInfo.getTag(tag, exists);
-  };
+  }
   /**
    * Output this->self, it may contain '\0'
    */
   void output(FILE* fp) const {
     this->self.output(fp);
     fputc('\n', fp);
-  };
+  }
 
  public:
-  const char* getChrom() const { return this->chrom.toStr(); };
-  const int getPos() const { return this->pos.toInt(); };
-  const char* getPosStr() const { return this->pos.toStr(); };
-  const char* getID() const { return this->id.toStr(); };
-  const char* getRef() const { return this->ref.toStr(); };
-  const char* getAlt() const { return this->alt.toStr(); };
-  const char* getQual() const { return this->qual.toStr(); };
-  const int getQualInt() const { return this->qual.toInt(); };
-  const int getQualDouble() const { return this->qual.toDouble(); };
-  const char* getFilt() const { return this->filt.toStr(); };
-  const char* getInfo() const { return this->vcfInfo.toStr(); };
-  const char* getFormat() const { return this->format.toStr(); };
+  const char* getChrom() const { return this->chrom.toStr(); }
+  const int getPos() const { return this->pos.toInt(); }
+  const char* getPosStr() const { return this->pos.toStr(); }
+  const char* getID() const { return this->id.toStr(); }
+  const char* getRef() const { return this->ref.toStr(); }
+  const char* getAlt() const { return this->alt.toStr(); }
+  const char* getQual() const { return this->qual.toStr(); }
+  const int getQualInt() const { return this->qual.toInt(); }
+  const int getQualDouble() const { return this->qual.toDouble(); }
+  const char* getFilt() const { return this->filt.toStr(); }
+  const char* getInfo() const { return this->vcfInfo.toStr(); }
+  const char* getFormat() const { return this->format.toStr(); }
 
   VCFPeople& getPeople() {
     if (!this->hasAccess) {
@@ -299,7 +299,7 @@ class VCFRecord {
       this->hasAccess = true;
     }
     return this->selectedIndv;
-  };
+  }
   /**
    * You want to know tag "GQ" where FORMAT column is "GT:GQ:PL"
    * then call getFormatIndx("GQ") will @return 1 (0-based index)
@@ -331,8 +331,16 @@ class VCFRecord {
       }
     }
     return -1;
-  };
-  const VCFValue& getSelf() const { return this->self; };
+  }
+  const VCFValue& getSelf() const { return this->self; }
+  void getIncludedPeopleName(std::vector<std::string>* p) {
+    VCFPeople& people = getPeople();
+    p->clear();
+    const int n = people.size();
+    for (int i = 0; i < n; ++i) {
+      p->push_back(people[i]->getName());
+    }
+  }
 
  private:
   VCFPeople allIndv;       // all individual

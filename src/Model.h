@@ -1,41 +1,41 @@
 #ifndef _MODEL_H_
 #define _MODEL_H_
 
-#include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_rng.h>
 
 #include <deque>
 
 #include "libsrc/MathMatrix.h"
 
 #include "base/ParRegion.h"
-#include "regression/LogisticRegression.h"
-#include "regression/LogisticRegressionScoreTest.h"
-#include "regression/LogisticRegressionVT.h"
+#include "regression/EigenMatrixInterface.h"
+#include "regression/FamSkat.h"
+#include "regression/FastLMM.h"
+#include "regression/FirthRegression.h"
+#include "regression/GrammarGamma.h"
 #include "regression/LinearRegression.h"
 #include "regression/LinearRegressionScoreTest.h"
 #include "regression/LinearRegressionVT.h"
+#include "regression/LogisticRegression.h"
+#include "regression/LogisticRegressionScoreTest.h"
+#include "regression/LogisticRegressionVT.h"
+#include "regression/MatrixOperation.h"
+#include "regression/MetaCov.h"
+#include "regression/MultipleTraitLinearRegressionScoreTest.h"
+#include "regression/MultivariateVT.h"
 #include "regression/Skat.h"
 #include "regression/SkatO.h"
 #include "regression/Table2by2.h"
 #include "regression/kbac_interface.h"
-#include "regression/FastLMM.h"
-#include "regression/GrammarGamma.h"
-#include "regression/MetaCov.h"
-#include "regression/MatrixOperation.h"
-#include "regression/EigenMatrixInterface.h"
-#include "regression/MultivariateVT.h"
-#include "regression/FamSkat.h"
-#include "regression/FirthRegression.h"
-#include "regression/MultipleTraitLinearRegressionScoreTest.h"
 
 #include "DataConsolidator.h"
 #include "LinearAlgebra.h"
-#include "ModelUtil.h"
 #include "ModelParser.h"
+#include "ModelUtil.h"
+#include "Permutation.h"
 #include "Result.h"
 #include "Summary.h"
-#include "Permutation.h"
 
 #if 0
 // may decrease speed.
@@ -5076,12 +5076,20 @@ class MetaKurtTest: public ModelFitter{
 
 #endif
 
+#define MULTIPLE_TRAIT_SCORE_TEST_BLOCK_SIZE 8
 class MultipleTraitScoreTest : public ModelFitter {
  public:
   MultipleTraitScoreTest()
-      : nSample(-1), fitOK(false), needToFitNullModel(true) {
+      : nSample(-1),
+        linear(MULTIPLE_TRAIT_SCORE_TEST_BLOCK_SIZE),
+        fitOK(false),
+        needToFitNullModel(true),
+        numResult(0),
+        blockSize(MULTIPLE_TRAIT_SCORE_TEST_BLOCK_SIZE),
+        sites(MULTIPLE_TRAIT_SCORE_TEST_BLOCK_SIZE) {
     this->modelName = "MultipleTraitScore";
   }
+  ~MultipleTraitScoreTest() { flushOutput(); }
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc->getPhenotype();
@@ -5113,7 +5121,7 @@ class MultipleTraitScoreTest : public ModelFitter {
         }
         needToFitNullModel = false;
       }
-      fitOK = linear.TestCovariate(genotype);
+      fitOK = linear.AddCovariate(genotype);
     } else {
       warnOnce(
           "Multiple trait score test model does not support binary trait yet.");
@@ -5148,22 +5156,28 @@ class MultipleTraitScoreTest : public ModelFitter {
     result.addHeader("V_STAT");
     result.addHeader("PVALUE");
     result.writeHeaderLine(fp);
+    this->fp = fp;
   }
   // write model output
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
-    siteInfo.writeValueTab(fp);
-    result.clearValue();
+    // siteInfo.writeValueTab(fp);
+    // result.clearValue();
     // result.updateValue("AF", af);
+    sites[numResult].clear();
+    siteInfo.writeValueTab(&sites[numResult]);
+    numResult++;
     if (fitOK) {
       if (!isBinaryOutcome()) {
-        formatValue(linear.GetU(), &ustat);
-        formatValue(linear.GetV(), &vstat);
-        formatValue(linear.GetPvalue(), &pvalue);
-        
-        result.updateValue("U_STAT", ustat);
-        result.updateValue("V_STAT", vstat);
-        result.updateValue("PVALUE", pvalue);
-        
+        // formatValue(linear.GetU(), &ustat);
+        // formatValue(linear.GetV(), &vstat);
+        // formatValue(linear.GetPvalue(), &pvalue);
+
+        // result.updateValue("U_STAT", ustat);
+        // result.updateValue("V_STAT", vstat);
+        // result.updateValue("PVALUE", pvalue);
+        if (numResult == blockSize) {
+          flushOutput();
+        }
         // const double u = linear.GetU()[0][0];
         // const double v = linear.GetV()[0][0];
         // result.updateValue("U", u);
@@ -5195,9 +5209,31 @@ class MultipleTraitScoreTest : public ModelFitter {
         // result.updateValue("PVALUE", logistic.GetPvalue());
       }
     }
-    result.writeValueLine(fp);
+    // result.writeValueLine(fp);
   }
-  void formatValue(Vector& v, std::string* out) {
+  void flushOutput() {
+    fitOK = linear.TestCovariateBlock();
+    if (fitOK) {
+      if (!isBinaryOutcome()) {
+        for (int i = 0; i < numResult; ++i) {
+          fp->write(sites[i]);
+
+          formatValue(linear.GetU(i), &ustat);
+          formatValue(linear.GetV(i), &vstat);
+          formatValue(linear.GetPvalue(i), &pvalue);
+
+          result.updateValue("U_STAT", ustat);
+          result.updateValue("V_STAT", vstat);
+          result.updateValue("PVALUE", pvalue);
+
+          result.writeValueLine(fp);
+        }
+      }
+    }
+    linear.flush();
+    numResult = 0;
+  }
+  void formatValue(const Vector& v, std::string* out) {
     const int n = v.Length();
     (*out).clear();
     for (int i = 0; i < n; ++i) {
@@ -5206,7 +5242,8 @@ class MultipleTraitScoreTest : public ModelFitter {
       }
       (*out) += toString(v[i]);
     }
-  }    
+  }
+
  private:
   // double b;  // a constant
   // double af;
@@ -5215,9 +5252,13 @@ class MultipleTraitScoreTest : public ModelFitter {
   MultipleTraitLinearRegressionScoreTest linear;
   bool fitOK;
   bool needToFitNullModel;
+  int numResult;
+  int blockSize;
   std::string ustat;
-  std::string vstat;  
+  std::string vstat;
   std::string pvalue;
+  FileWriter* fp;
+  std::vector<std::string> sites;
   // Matrix cov;
 };  // MultipleTraitScoreTest
 

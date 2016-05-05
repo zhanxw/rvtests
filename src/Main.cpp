@@ -1,27 +1,26 @@
-#include <cassert>
-#include <string>
-#include <set>
-#include <map>
-#include <vector>
 #include <algorithm>
+#include <cassert>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 #include "base/Argument.h"
 #include "base/CommonFunction.h"
-#include "base/SimpleMatrix.h"
-#include "base/TimeUtil.h"
 #include "base/Indexer.h"
-#include "base/VersionChecker.h"
 #include "base/Logger.h"
 #include "base/OrderedMap.h"
 #include "base/RangeList.h"
+#include "base/SimpleMatrix.h"
+#include "base/TimeUtil.h"
 #include "base/Utils.h"
-#include "libsrc/MathVector.h"
+#include "base/VersionChecker.h"
 #include "libsrc/MathMatrix.h"
+#include "libsrc/MathVector.h"
 
-#include "DataLoader.h"
 #include "DataConsolidator.h"
+#include "DataLoader.h"
 #include "GenotypeExtractor.h"
-#include "GitVersion.h"
 #include "ModelFitter.h"
 #include "ModelManager.h"
 #include "Result.h"
@@ -183,13 +182,40 @@ int excludeVcfSamples(const std::string& reason,
   return 0;
 }
 
+int matchPhenotypeAndVCF(const std::string& msg, DataLoader* dataLoader,
+                         GenotypeExtractor* ge) {
+  std::vector<std::string> vcfSampleToDrop;
+  std::vector<std::string> vcfSampleNames;
+
+  ge->getIncludedPeopleName(&vcfSampleNames);
+  dataLoader->arrangePhenotype(vcfSampleNames, &vcfSampleToDrop);
+  excludeVcfSamples(msg, vcfSampleToDrop, ge);
+  // remove(vcfSampleToDrop, &vcfSampleNames);
+  return 0;
+}
+
+int matchCovariateAndVCF(const std::string& msg, DataLoader* dataLoader,
+                         GenotypeExtractor* ge) {
+  std::vector<std::string> vcfSampleToDrop;
+  std::vector<std::string> vcfSampleNames;
+
+  ge->getIncludedPeopleName(&vcfSampleNames);
+  dataLoader->arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
+  excludeVcfSamples(msg, vcfSampleToDrop, ge);
+  // remove(vcfSampleToDrop, &vcfSampleNames);
+  return 0;
+}
+
 SummaryHeader* g_SummaryHeader = NULL;
 
 void welcome() {
 #ifdef NDEBUG
-  fprintf(stdout, "Thank you for using rvtests (version %s)\n", VERSION);
+  fprintf(stdout, "Thank you for using rvtests (version %s, git tag %s)\n",
+          VERSION, GIT_VERSION);
 #else
-  fprintf(stdout, "Thank you for using rvtests (version %s-Debug)\n", VERSION);
+  fprintf(stdout,
+          "Thank you for using rvtests (version %s-Debug, git tag %s)\n",
+          VERSION, GIT_VERSION);
 #endif
   fprintf(stdout,
           "  For documentation, refer to http://zhanxw.github.io/rvtests/\n");
@@ -406,8 +432,7 @@ int main(int argc, char** argv) {
   Logger _logger((FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
   logger->info("Program version: %s", VERSION);
-  logger->infoToFile("Git Version");
-  logger->infoToFile("%s", gitVersion);
+  logger->infoToFile("Git Version: %s", GIT_VERSION);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
@@ -456,7 +481,6 @@ int main(int argc, char** argv) {
   DataLoader dataLoader;
   dataLoader.setPhenotypeImputation(FLAG_imputePheno);
   dataLoader.setCovariateImputation(FLAG_imputeCov);
-  std::vector<std::string> vcfSampleToDrop;
 
   if (FLAG_multiplePheno.empty()) {
     dataLoader.loadPhenotype(FLAG_pheno, FLAG_mpheno, FLAG_phenoName);
@@ -501,9 +525,7 @@ int main(int argc, char** argv) {
 
     // rearrange phenotypes
     // drop samples from phenotype or vcf
-    dataLoader.arrangePhenotype(vcfSampleNames, &vcfSampleToDrop);
-    excludeVcfSamples("missing phenotype", vcfSampleToDrop, &ge);
-    remove(vcfSampleToDrop, &vcfSampleNames);
+    matchPhenotypeAndVCF("missing phenotype", &dataLoader, &ge);
 
     // // phenotype names (vcf sample names) arranged in the same order as in
     // VCF
@@ -548,11 +570,8 @@ int main(int argc, char** argv) {
     //   // We may output these samples by comparing keys of phenotype and
     //   // phenotypeNameInOrder
     // }
-
     dataLoader.loadCovariate(FLAG_cov, FLAG_covName);
-    dataLoader.arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
-    excludeVcfSamples("missing covariate", vcfSampleToDrop, &ge);
-    remove(vcfSampleToDrop, &vcfSampleNames);
+    matchCovariateAndVCF("missing covariate", &dataLoader, &ge);
 
     // // load covariate
     // Matrix covariate;
@@ -608,21 +627,15 @@ int main(int argc, char** argv) {
     // }
   } else {
     dataLoader.loadMultiplePhenotype(FLAG_multiplePheno, FLAG_pheno, FLAG_cov);
-    dataLoader.arrangePhenotype(vcfSampleNames, &vcfSampleToDrop);
-    excludeVcfSamples("missing phenotype", vcfSampleToDrop, &ge);
-    remove(vcfSampleToDrop, &vcfSampleNames);
 
-    dataLoader.arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
-    excludeVcfSamples("missing covariate", vcfSampleToDrop, &ge);
-    remove(vcfSampleToDrop, &vcfSampleNames);
+    matchPhenotypeAndVCF("missing phenotype", &dataLoader, &ge);
+    matchCovariateAndVCF("missing covariate", &dataLoader, &ge);
   }
 
   dataLoader.loadSex();
   if (FLAG_sex) {
     dataLoader.useSexAsCovariate();
-    dataLoader.arrangeCovariate(vcfSampleNames, &vcfSampleToDrop);
-    excludeVcfSamples("missing sex", vcfSampleToDrop, &ge);
-    remove(vcfSampleToDrop, &vcfSampleNames);
+    matchCovariateAndVCF("missing sex", &dataLoader, &ge);
   }
   // // load sex
   // std::vector<int> sex;
@@ -644,6 +657,7 @@ int main(int argc, char** argv) {
 
   if (!FLAG_condition.empty()) {
     dataLoader.loadMarkerAsCovariate(FLAG_inVcf, FLAG_condition);
+    matchCovariateAndVCF("missing in conditioned marker(s)", &dataLoader, &ge);
   }
   // // load conditional markers
   // if (!FLAG_condition.empty()) {
@@ -700,6 +714,7 @@ int main(int argc, char** argv) {
     if (dataLoader.detectPhenotypeType() == DataLoader::PHENOTYPE_BINARY) {
       logger->warn("-- Enabling binary phenotype mode -- ");
       dataLoader.setTraitType(DataLoader::PHENOTYPE_BINARY);
+
     } else {
       dataLoader.setTraitType(DataLoader::PHENOTYPE_QTL);
     }
@@ -772,7 +787,7 @@ int main(int argc, char** argv) {
   g_SummaryHeader->recordPhenotype("AnalyzedTrait",
                                    dataLoader.getPhenotype().extractCol(0));
 
-  if (dataLoader.getPhenotype().ncol() == 0) {
+  if (dataLoader.getPhenotype().nrow() == 0) {
     logger->fatal("There are 0 samples with valid phenotypes, quitting...");
     exit(1);
   }

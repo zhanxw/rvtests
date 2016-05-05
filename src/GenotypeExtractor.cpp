@@ -4,8 +4,8 @@
 #include "base/Logger.h"
 
 #include "libVcf/VCFUtil.h"
-#include "libsrc/MathVector.h"
 #include "libsrc/MathMatrix.h"
+#include "libsrc/MathVector.h"
 
 extern Logger* logger;
 
@@ -389,4 +389,10 @@ void GenotypeExtractor::excludeAllPeople() { this->vin->excludeAllPeople(); }
 void GenotypeExtractor::enableAutoMerge() { this->vin->enableAutoMerge(); }
 void GenotypeExtractor::getPeopleName(std::vector<std::string>* p) {
   return this->vin->getVCFHeader()->getPeopleName(p);
+}
+
+void GenotypeExtractor::getIncludedPeopleName(
+    std::vector<std::string>* p) const {
+  this->vin->getIncludedPeopleName(p);
+  return;
 }

@@ -2,8 +2,8 @@
 #define _VCFINPUTFILE_H_
 
 // #include "tabix.h"
-#include "VCFRecord.h"
 #include "VCFFilter.h"
+#include "VCFRecord.h"
 
 class TabixReader;
 class BCFReader;
@@ -115,9 +115,7 @@ class VCFInputFile {
     r.addRange(chrom, begin, end);
     this->setRange(r);
   }
-  void setRange(const RangeList& rl) {
-    this->setRangeList(rl);
-  }
+  void setRange(const RangeList& rl) { this->setRangeList(rl); }
   void setRangeList(const std::string& l) {
     if (l.empty()) return;
 
@@ -140,6 +138,7 @@ class VCFInputFile {
   VCFRecord& getVCFRecord() { return this->record; };
   const char* getLine() const { return this->line.c_str(); };
   const char* getFileName() const { return this->fileName.c_str(); };
+  void getIncludedPeopleName(std::vector<std::string>* p);
 
  private:
   void setRangeMode();

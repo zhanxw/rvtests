@@ -15,7 +15,6 @@ $(DIR_EXEC_DBG):
 	mkdir -p $@
 
 .PHONY: release debug profile lib lib-dbg clean tar doc
-
 release: lib
 	$(MAKE) -C $(ROOT)/src release
 	$(MAKE) -C $(ROOT)/vcfUtils release
@@ -29,11 +28,6 @@ debug.vcfUtil: lib-dbg
 profile: lib-dbg
 	$(MAKE) -C $(ROOT)/src profile
 	$(MAKE) -C $(ROOT)/vcfUtils profile
-##################################################
-GitVersion.h: .git/HEAD .git/index
-	-echo "const char *gitVersion = \"$(shell git rev-parse HEAD)\";" > $@
-.git/HEAD .git/index:
-	-echo "const char *gitVersion = \"not-a-git-repo\"" > GitVersion.h 
 
 ##################################################
 ## clean

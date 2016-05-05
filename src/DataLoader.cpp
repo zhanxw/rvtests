@@ -251,6 +251,12 @@ int DataLoader::loadCovariate(const std::string& covar,
 }
 
 /**
+ * Rearrange covariates rows in the order given by @param names
+ * @param droppedNamed will store sample names who are in @param names but are
+ * not listed in covariates.
+ *
+ * NOTE: @param names usually is the VCF sample names
+ * NOTE: Current covariates data may have NAN values
  */
 int DataLoader::arrangeCovariate(const std::vector<std::string>& names,
                                  std::vector<std::string>* droppedNames) {
@@ -288,7 +294,7 @@ int DataLoader::loadSex() {
 int DataLoader::useSexAsCovariate() {
   std::vector<int> index;  // mark missing samples
   int numMissing = findMissingSex(sex, &index);
-  logger->info("Futher exclude %d samples with missing sex", numMissing);
+  logger->info("Exclude %d samples with missing sex", numMissing);
   removeByIndex(index, &sex);
 
   phenotype.dropRow(index);
@@ -390,6 +396,7 @@ int DataLoader::loadMultiplePhenotype(const std::string& multiplePhenotype,
   for (int i = 0; i < nTests; ++i) {
     formula.add(textMat[i][phenoCol], textMat[i][covCol]);
   }
+  logger->info("Load [ %d ] test formulae", (int)formula.size());
 
   std::vector<std::string> phenoLabel = formula.extractResponse();
   std::vector<std::string> covarLabel =
@@ -636,6 +643,23 @@ int DataLoader::setTraitType(PhenotypeType t) {
 
     binaryPhenotype = true;
     phenotype.setCol(0, v);
+
+    // remove missing phenotypes
+    std::vector<int> index;
+    for (int i = 0; i < phenotype.nrow(); ++i) {
+      for (int j = 0; j < phenotype.ncol(); ++j) {
+        if (phenotype[i][j] < 0 || phenotype[i][j] > 1) {
+          index.push_back(i);
+        }
+      }
+    }
+    if (index.size()) {
+      dedup(&index);
+      phenotype.dropRow(index);
+      covariate.dropRow(index);
+      // logger->info("Exclude %d samples with missing binary phenotypes",
+      //              (int)index.size());
+    }
   }
   return 0;
 }

@@ -12,7 +12,8 @@
 
    DONE:
    2. support access INFO tag
-   5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value after --inVcf
+   5. give warnings for: Argument.h detect --inVcf --outVcf empty argument value
+   after --inVcf
    8. Make code easy to use ( hide PeopleSet and RangeList)
    9. Inclusion/Exclusion set should be considered sequentially.
    8. force loading index when read by region.
@@ -27,7 +28,8 @@
    12. Design command line various models (collapsing method, freq-cutoff)
 
    Not sure if worthy to do:
-   4. speed up VCF parsing. (make a separate line buffer). --> may not need to do that...
+   4. speed up VCF parsing. (make a separate line buffer). --> may not need to
+   do that...
 
 */
 
@@ -35,30 +37,30 @@
 #include "IO.h"
 #include "tabix.h"
 
-#include <cassert>
-#include <string>
-#include <set>
-#include <map>
-#include <vector>
 #include <algorithm>
+#include <cassert>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 #include "Logger.h"
+#include "MathMatrix.h"
+#include "MathVector.h"
+#include "Random.h"
 #include "Utils.h"
 #include "VCFUtil.h"
-#include "MathVector.h"
-#include "MathMatrix.h"
-#include "Random.h"
 
 #include "CommonFunction.h"
-#include "GitVersion.h"
 
 /**
- * Impute missing genotype (<0) according to population frequency (p^2, 2pq, q^2)
+ * Impute missing genotype (<0) according to population frequency (p^2, 2pq,
+ * q^2)
  * genotype is marker by people matrix
  */
 void imputeGenotype(Matrix* genotype, Random* r) {
   Matrix& m = *genotype;
-  for (int i = 0; i < m.rows; i++ ) {
+  for (int i = 0; i < m.rows; i++) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.cols; j++) {
@@ -69,8 +71,8 @@ void imputeGenotype(Matrix* genotype, Random* r) {
     }
     double p = an == 0 ? 0. : 1.0 * ac / an;
     double pRef = p * p;
-    double pHet = pRef + 2.0*p * (1.0 - p);
-    for (int j = 0; j < m.cols; j++){
+    double pHet = pRef + 2.0 * p * (1.0 - p);
+    for (int j = 0; j < m.cols; j++) {
       if (m[i][j] < 0) {
         double v = r->Next();
         if (v < pRef) {
@@ -91,7 +93,7 @@ void imputeGenotype(Matrix* genotype, Random* r) {
  */
 void imputeGenotypeToMean(Matrix* genotype) {
   Matrix& m = *genotype;
-  for (int i = 0; i < m.rows; i++ ) {
+  for (int i = 0; i < m.rows; i++) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.cols; j++) {
@@ -101,7 +103,7 @@ void imputeGenotypeToMean(Matrix* genotype) {
       }
     }
     double p = an == 0 ? 0. : 1.0 * ac / an;
-    for (int j = 0; j < m.cols; j++){
+    for (int j = 0; j < m.cols; j++) {
       if (m[i][j] < 0) {
         m[i][j] = p;
       }
@@ -119,9 +121,9 @@ void imputeGenotypeToMean(Matrix* genotype) {
 //   }
 // };
 
-
 // /**
-//  * Convert a @param string separated by @param sep to set (stored in @param s)
+//  * Convert a @param string separated by @param sep to set (stored in @param
+//  s)
 //  */
 // void makeSet(const char* str, char sep, std::set<std::string>* s) {
 //   s->clear();
@@ -134,29 +136,30 @@ void imputeGenotypeToMean(Matrix* genotype) {
 //     s->insert(fd[i]);
 // }
 
-int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, RangeList>* geneMap) {
+int loadGeneFile(const char* fn, const char* gene,
+                 OrderedMap<std::string, RangeList>* geneMap) {
   std::set<std::string> geneSet;
   makeSet(gene, ',', &geneSet);
 
   OrderedMap<std::string, RangeList>& m = *geneMap;
   LineReader lr(fn);
   int lineNo = 0;
-  std::vector< std::string> fd;
-  while (lr.readLineBySep(&fd, "\t ")){
-    ++ lineNo;
+  std::vector<std::string> fd;
+  while (lr.readLineBySep(&fd, "\t ")) {
+    ++lineNo;
     if (fd.size() < 6) {
-      fprintf(stderr, "Skip %d line (short of columns) in gene file [ %s ].\n", lineNo, fn);
+      fprintf(stderr, "Skip %d line (short of columns) in gene file [ %s ].\n",
+              lineNo, fn);
       continue;
     }
 
     std::string& geneName = fd[0];
-    if (geneSet.size() && geneSet.find(geneName)== geneSet.end())
-      continue;
+    if (geneSet.size() && geneSet.find(geneName) == geneSet.end()) continue;
 
     std::string chr = chopChr(fd[2]);
     int beg = atoi(fd[4]);
     int end = atoi(fd[5]);
-    m[ geneName ].addRange (chr.c_str(), beg, end);
+    m[geneName].addRange(chr.c_str(), beg, end);
   }
   return m.size();
 };
@@ -164,28 +167,30 @@ int loadGeneFile(const char* fn, const char* gene, OrderedMap<std::string, Range
 /**
  * Calculate R2 for genotype[,i] and genotype[,j]
  */
-double calculateR2(Matrix& genotype, const int i, const int j){
-  double sum_i = 0.0 ; // sum of genotype[,i]
-  double sum_i2 = 0.0 ; // sum of genotype[,i]*genotype[,i]
-  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]  
-  double sum_j = 0.0 ; // sum of genotype[,j]
-  double sum_j2 = 0.0 ; // sum of genotype[,j]*genotype[,j]
+double calculateR2(Matrix& genotype, const int i, const int j) {
+  double sum_i = 0.0;   // sum of genotype[,i]
+  double sum_i2 = 0.0;  // sum of genotype[,i]*genotype[,i]
+  double sum_ij = 0.0;  // sum of genotype[,i]*genotype[,j]
+  double sum_j = 0.0;   // sum of genotype[,j]
+  double sum_j2 = 0.0;  // sum of genotype[,j]*genotype[,j]
   int n = 0;
-  for (int c = 0; c < genotype.cols; c++) { //iterator each people
+  for (int c = 0; c < genotype.cols; c++) {  // iterator each people
     if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
     ++n;
     sum_i += genotype[i][c];
-    sum_i2 += genotype[i][c]*genotype[i][c];
-    sum_ij += genotype[i][c]*genotype[j][c];
+    sum_i2 += genotype[i][c] * genotype[i][c];
+    sum_ij += genotype[i][c] * genotype[j][c];
     sum_j += genotype[j][c];
-    sum_j2 += genotype[j][c]*genotype[j][c];
+    sum_j2 += genotype[j][c] * genotype[j][c];
   };
-  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
+  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 =
+  // %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
   double cov_ij = n == 0 ? 0 : sum_ij - sum_i * sum_j / n;
-  double var_i  = n == 0 ? 0 : sum_i2 - sum_i * sum_i / n;
-  double var_j  = n == 0 ? 0 : sum_j2 - sum_j * sum_j / n;
+  double var_i = n == 0 ? 0 : sum_i2 - sum_i * sum_i / n;
+  double var_j = n == 0 ? 0 : sum_j2 - sum_j * sum_j / n;
   double d = var_i * var_j;
-  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i,
+  // var_j, n);
   if (d < 1e-10) return 0.0;
   return cov_ij / sqrt(d);
 };
@@ -193,21 +198,23 @@ double calculateR2(Matrix& genotype, const int i, const int j){
 /**
  * Calculate covariance for genotype[,i] and genotype[,j]
  */
-double calculateCov(Matrix& genotype, const int i, const int j){
-  double sum_i = 0.0 ; // sum of genotype[,i]
-  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]  
-  double sum_j = 0.0 ; // sum of genotype[,j]
+double calculateCov(Matrix& genotype, const int i, const int j) {
+  double sum_i = 0.0;   // sum of genotype[,i]
+  double sum_ij = 0.0;  // sum of genotype[,i]*genotype[,j]
+  double sum_j = 0.0;   // sum of genotype[,j]
   int n = 0;
-  for (int c = 0; c < genotype.cols; c++) { //iterator each people
+  for (int c = 0; c < genotype.cols; c++) {  // iterator each people
     if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
     ++n;
     sum_i += genotype[i][c];
-    sum_ij += genotype[i][c]*genotype[j][c];
+    sum_ij += genotype[i][c] * genotype[j][c];
     sum_j += genotype[j][c];
   };
-  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
+  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 =
+  // %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
   double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
-  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i,
+  // var_j, n);
   return cov_ij;
 };
 
@@ -245,58 +252,87 @@ double calculateR2(Matrix& genotype, const int i, const int j){
 };
 #endif
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
-      // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
-      // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
-      // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output [prefix].{fam,bed,bim} in Plink BED format")
+  ADD_PARAMETER_GROUP(pl, "Input/Output")
+  ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
+  ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
+  // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF
+  // format")
+  // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
+  // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output
+  // [prefix].{fam,bed,bim} in Plink BED format")
 
-      ADD_PARAMETER_GROUP(pl, "People Filter")
-      ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-      // ADD_INT_PARAMETER(pl, indvMinDepth, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, indvMaxDepth, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, indvMinQual,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
+  ADD_PARAMETER_GROUP(pl, "People Filter")
+  ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID",
+                       "give IDs of people that will be included in study")
+  ADD_STRING_PARAMETER(
+      pl, peopleIncludeFile, "--peopleIncludeFile",
+      "from given file, set IDs of people that will be included in study")
+  ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID",
+                       "give IDs of people that will be included in study")
+  ADD_STRING_PARAMETER(
+      pl, peopleExcludeFile, "--peopleExcludeFile",
+      "from given file, set IDs of people that will be included in study")
+  // ADD_INT_PARAMETER(pl, indvMinDepth, "--indvDepthMin", "Specify minimum
+  // depth(inclusive) of a sample to be incluced in analysis");
+  // ADD_INT_PARAMETER(pl, indvMaxDepth, "--indvDepthMax", "Specify maximum
+  // depth(inclusive) of a sample to be incluced in analysis");
+  // ADD_INT_PARAMETER(pl, indvMinQual,  "--indvQualMin",  "Specify minimum
+  // depth(inclusive) of a sample to be incluced in analysis");
 
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
-      // ADD_INT_PARAMETER(pl, siteMinDepth, "--siteDepthMin", "Specify minimum depth(inclusive) to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, siteMaxDepth, "--siteDepthMax", "Specify maximum depth(inclusive) to be incluced in analysis");
-      // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum Minor Allele Frequency to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum Minor Allele Count(inclusive) to be incluced in analysis");
-      // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular expression to select certain annotations (ANNO) ")
-      // ADD_STRING_PARAMETER(pl, annoGene, "--annoGene", "Specify gene name that is followed by ANNO= in the VCF INFO field")
-      // ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type that is follwed by ANNO= in the VCF INFO field")
-      // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any valid Python expression, will output if eval is > 0")
+  ADD_PARAMETER_GROUP(pl, "Site Filter")
+  ADD_STRING_PARAMETER(
+      pl, rangeList, "--rangeList",
+      "Specify some ranges to use, please use chr:begin-end format.")
+  ADD_STRING_PARAMETER(
+      pl, rangeFile, "--rangeFile",
+      "Specify the file containing ranges, please use chr:begin-end format.")
+  ADD_STRING_PARAMETER(pl, siteFile, "--siteFile",
+                       "Specify the file containing sites to include, please "
+                       "use \"chr pos\" format.")
+  // ADD_INT_PARAMETER(pl, siteMinDepth, "--siteDepthMin", "Specify minimum
+  // depth(inclusive) to be incluced in analysis");
+  // ADD_INT_PARAMETER(pl, siteMaxDepth, "--siteDepthMax", "Specify maximum
+  // depth(inclusive) to be incluced in analysis");
+  // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum
+  // Minor Allele Frequency to be incluced in analysis");
+  // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum
+  // Minor Allele Count(inclusive) to be incluced in analysis");
+  // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular
+  // expression to select certain annotations (ANNO) ")
+  // ADD_STRING_PARAMETER(pl, annoGene, "--annoGene", "Specify gene name that is
+  // followed by ANNO= in the VCF INFO field")
+  // ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type
+  // that is follwed by ANNO= in the VCF INFO field")
+  // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any
+  // valid Python expression, will output if eval is > 0")
 
-      ADD_PARAMETER_GROUP(pl, "Gene Parameter")
-      ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "specify a gene file (for burden tests)")
-      ADD_STRING_PARAMETER(pl, geneToTest, "--gene", "specify which genes to test")
-      
-      
-      ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
-      /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
-      // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
-      // ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
-      // ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
-      /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
-      /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
-      ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
-      // ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
-      ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
-      END_PARAMETER_LIST(pl)
-      ;
+  ADD_PARAMETER_GROUP(pl, "Gene Parameter")
+  ADD_STRING_PARAMETER(pl, geneFile, "--geneFile",
+                       "specify a gene file (for burden tests)")
+  ADD_STRING_PARAMETER(pl, geneToTest, "--gene", "specify which genes to test")
+
+  ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
+  /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency
+   * from external file")*/
+  // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate
+  // frequency from case samples")
+  // ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency
+  // bound to be included in analysis")
+  // ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency
+  // bound to be included in analysis")
+  /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
+  /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
+  ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
+  // ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes,
+  // phenotype, covariates(if any) and collapsed genotype to tabular files")
+  ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
+  END_PARAMETER_LIST(pl);
 
   pl.Read(argc, argv);
 
@@ -306,18 +342,18 @@ int main(int argc, char** argv){
   }
 
   pl.Status();
-  if (FLAG_REMAIN_ARG.size() > 0){
+  if (FLAG_REMAIN_ARG.size() > 0) {
     fprintf(stderr, "Unparsed arguments: ");
-    for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
+    for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
       fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
     }
     fprintf(stderr, "\n");
     abort();
   }
 
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
-  if (!FLAG_outPrefix.size())
-    FLAG_outPrefix = "rvtest";
+  REQUIRE_STRING_PARAMETER(FLAG_inVcf,
+                           "Please provide input file using: --inVcf");
+  if (!FLAG_outPrefix.size()) FLAG_outPrefix = "rvtest";
 
   const char* fn = FLAG_inVcf.c_str();
   VCFInputFile* pVin = new VCFInputFile(fn);
@@ -369,20 +405,24 @@ int main(int argc, char** argv){
   //             // e.g.: get TAG from INFO field
   //             // fprintf(stderr, "%s\n", r.getInfoTag("ANNO"));
 
-  //             // e.g.: Loop each (selected) people in the same order as in the VCF
+  //             // e.g.: Loop each (selected) people in the same order as in
+  //             the VCF
   //             for (int i = 0; i < people.size(); i++) {
   //                 indv = people[i];
-  //                 // get GT index. if you are sure the index will not change, call this function only once!
+  //                 // get GT index. if you are sure the index will not change,
+  //                 call this function only once!
   //                 int GTidx = r.getFormatIndex("GT");
   //                 if (GTidx >= 0)
-  //                     printf("%s ", (*indv)[0].toStr());  // [0] meaning the first field of each individual
+  //                     printf("%s ", (*indv)[0].toStr());  // [0] meaning the
+  //                     first field of each individual
   //                 else
   //                     fprintf(stderr, "Cannot find GT field!\n");
   //             }
   //             printf("\n");
   // #endif
   //         };
-  //         fprintf(stderr, "Total %d VCF records have converted successfully\n", lineNo);
+  //         fprintf(stderr, "Total %d VCF records have converted
+  //         successfully\n", lineNo);
   //         if (vout) delete vout;
   //         if (pout) delete pout;
   //     }
@@ -393,7 +433,6 @@ int main(int argc, char** argv){
   // site: DP, MAC, MAF (T3, T5)
   // indv: GD, GQ
 
-
   // if (FLAG_rangeToTest == "") {
   //     model.push_back (new SingleVariantHeader);
   // } else {
@@ -403,7 +442,8 @@ int main(int argc, char** argv){
 
   OrderedMap<std::string, RangeList> geneRange;
   if (FLAG_geneFile.size()) {
-    int ret = loadGeneFile(FLAG_geneFile.c_str(), FLAG_geneToTest.c_str(), &geneRange);
+    int ret = loadGeneFile(FLAG_geneFile.c_str(), FLAG_geneToTest.c_str(),
+                           &geneRange);
     if (ret < 0 || geneRange.size() == 0) {
       fprintf(stderr, "Error loading gene file!\n");
       return -1;
@@ -416,29 +456,29 @@ int main(int argc, char** argv){
   };
 
   std::string s = FLAG_outPrefix;
-  FILE* fout = fopen( ( s + ".cov" ).c_str(), "wt");
-  FILE* flog = fopen( ( s + ".log" ).c_str(), "wt");
-  
-  fprintf(flog, "Version: %s\n", gitVersion);
-  currentTime = time(0);  
+  FILE* fout = fopen((s + ".cov").c_str(), "wt");
+  FILE* flog = fopen((s + ".log").c_str(), "wt");
+
+  fprintf(flog, "Version: %s\n", GIT_VERSION);
+  currentTime = time(0);
   fprintf(flog, "Analysis started on %s", ctime(&currentTime));
   fprintf(stderr, "Analysis started on %s", ctime(&currentTime));
-  
-  std::string chrom; 
-  std::vector<int> pos; // store positions
-  Matrix genotype; // marker by people
+
+  std::string chrom;
+  std::vector<int> pos;  // store positions
+  Matrix genotype;       // marker by people
 
   std::string geneName;
   RangeList rangeList;
-  for ( size_t i = 0; i < geneRange.size(); ++i){
+  for (size_t i = 0; i < geneRange.size(); ++i) {
     geneRange.at(i, &geneName, &rangeList);
 
     vin.setRange(rangeList);
     pos.clear();
-    
+
     // extract genotypes
     int row = 0;
-    while (vin.readRecord()){
+    while (vin.readRecord()) {
       VCFRecord& r = vin.getVCFRecord();
       VCFPeople& people = r.getPeople();
       VCFIndividual* indv;
@@ -451,31 +491,34 @@ int main(int argc, char** argv){
       // e.g.: Loop each (selected) people in the same order as in the VCF
       for (int i = 0; i < (int)people.size(); i++) {
         indv = people[i];
-        // get GT index. if you are sure the index will not change, call this function only once!
+        // get GT index. if you are sure the index will not change, call this
+        // function only once!
         int GTidx = r.getFormatIndex("GT");
         if (GTidx >= 0)
-          //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
+          // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
+          // field of each individual
           genotype[row][i] = indv->justGet(GTidx).getGenotype();
         else
           genotype[row][i] = -9;
       }
-      ++ row;
+      ++row;
     }
 
     if (genotype.rows == 0) {
       fprintf(stderr, "Gene %s has 0 variants, skipping\n", geneName.c_str());
-      fprintf(flog, "Gene %s has 0 variants, skipping\n", geneName.c_str());      
+      fprintf(flog, "Gene %s has 0 variants, skipping\n", geneName.c_str());
       continue;
     };
 
     // remove missing genotype by imputation
     imputeGenotypeToMean(&genotype);
-    
+
     // print
     if (!pos.size()) continue;
-    fprintf(fout, "%s\t%d\t%d\t%s\t", chrom.c_str(), pos.front(), pos.back(), geneName.c_str());
+    fprintf(fout, "%s\t%d\t%d\t%s\t", chrom.c_str(), pos.front(), pos.back(),
+            geneName.c_str());
 
-    for (size_t i = 0; i < pos.size(); i++){
+    for (size_t i = 0; i < pos.size(); i++) {
       fprintf(fout, "%d,", pos[i]);
     }
     fprintf(fout, "\t");

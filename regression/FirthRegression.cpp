@@ -1,14 +1,14 @@
 #include "FirthRegression.h"
 
-#include "Eigen/Core"
 #include <Eigen/Cholesky>
+#include "Eigen/Core"
 #include "EigenMatrixInterface.h"
 
 #include "gsl/gsl_cdf.h"
 
 #ifndef NDEBUG
-#include <iostream>
 #include <fstream>
+#include <iostream>
 // for debug usage
 void printToFile(Vector& v, String fn, int index) {
   String n;
@@ -64,9 +64,7 @@ class FirthRegression::WorkingData {
   Eigen::VectorXf total;
 };
 
-FirthRegression::FirthRegression() {
-  this->w = new WorkingData;
-}
+FirthRegression::FirthRegression() { this->w = new WorkingData; }
 
 FirthRegression::~FirthRegression() {
   if (this->w) {
@@ -136,7 +134,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Matrix& y, int rnrounds) {
 
 bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
                                     int nrrounds) {
-  //this->Reset(X);
+  // this->Reset(X);
 
   G_to_Eigen(X, &this->w->X);
   G_to_Eigen(succ, &this->w->succ);
@@ -145,22 +143,22 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
   int rounds = 0;
   double lastLLK = NAN;
   double currentLLK = NAN;
-  
+
   // double lastDeviance, currentDeviance;
   Eigen::MatrixXf xw;  // W^(1/2) * X
   // Newton-Raphson
   while (rounds < nrrounds) {
     // beta = beta + solve( t(X)%*%diag(p*(1-p)) %*%X) %*% t(X) %*% (Y-p);
-    this->w->eta = this->w->X * this->w->beta;
+    this->w->eta.noalias() = this->w->X * this->w->beta;
     this->w->p = (-this->w->eta.array().exp() + 1.0).inverse();
     this->w->V = this->w->p.array() * (1.0 - this->w->p.array()) *
                  this->w->total.array();
 
     xw = (this->w->V.array().sqrt().matrix().asDiagonal() * this->w->X).eval();
-    this->w->D = xw.transpose() * xw;  // this->w->X.transpose() *
-                                       // this->w->V.asDiagonal() * this->w->X;
-                                       // // X' V X
-    this->w->covB = this->w->D.eval().llt().solve(
+    this->w->D.noalias() = xw.transpose() * xw;  // this->w->X.transpose() *
+    // this->w->V.asDiagonal() * this->w->X;
+    // // X' V X
+    this->w->covB.noalias() = this->w->D.eval().llt().solve(
         Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
     // double rel = ((this->w->D * this->w->covB).array() -
     // Eigen::MatrixXf::Identity(this->w->D.rows(),
@@ -173,13 +171,14 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
       // cannot inverse
       return false;
     }
-    this->w->h = (xw.transpose() * this->w->covB * xw).diagonal();
-    this->w->r =
+    this->w->h.noalias() = (xw.transpose() * this->w->covB * xw).diagonal();
+    this->w->r.noalias() =
         this->w->X.transpose() *
         (this->w->succ.array() - this->w->total.array() * this->w->p.array() +
          this->w->total.array() * this->w->h.array() *
-             (0.5 - this->w->p.array())).matrix();
-    this->w->delta_beta = this->w->covB * this->w->r;
+             (0.5 - this->w->p.array()))
+            .matrix();
+    this->w->delta_beta.noalias() = this->w->covB * this->w->r;
     this->w->beta += this->w->delta_beta;
     if (rounds > 1 &&
         (this->w->beta.norm() > 0 &&
@@ -191,9 +190,9 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
 
     currentLLK = (((this->w->succ.array() + .5) * this->w->p.array().log()) +
                   ((this->w->total.array() - this->w->succ.array() + .5) *
-                   (1.0 - this->w->p.array()).log())).sum();
-    if (!isnan(lastLLK) &&
-        currentLLK < lastLLK) {
+                   (1.0 - this->w->p.array()).log()))
+                     .sum();
+    if (!isnan(lastLLK) && currentLLK < lastLLK) {
       break;
     }
     lastLLK = currentLLK;
@@ -220,7 +219,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
   int rounds = 0;
   double lastLLK = NAN;
   double currentLLK = NAN;
-  
+
   Eigen::MatrixXf xw;  // W^(1/2) * X
   // Newton-Raphson
   while (rounds < nrrounds) {
@@ -235,12 +234,12 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
     this->w->covB = this->w->D.eval().ldlt().solve(
         Eigen::MatrixXf::Identity(this->w->D.rows(), this->w->D.rows()));
 
-    // double rel = ((this->w->D * this->w->covB).array() -
-    // Eigen::MatrixXf::Identity(this->w->D.rows(),
-    // this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() /
-    // this->w->D.rows();
-    // // printf("norm = %g\n", rel);
-    // if (rel > 1e-6) { // use relative accuracy to evalute convergence
+// double rel = ((this->w->D * this->w->covB).array() -
+// Eigen::MatrixXf::Identity(this->w->D.rows(),
+// this->w->D.rows()).array()).matrix().norm() / this->w->D.rows() /
+// this->w->D.rows();
+// // printf("norm = %g\n", rel);
+// if (rel > 1e-6) { // use relative accuracy to evalute convergence
 #if 0
     fprintf(stderr, "----------\n");
     fprintf(stderr, "n = %ld\n", this->w->D.rows());
@@ -252,7 +251,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
             .maxCoeff() );
     std::cerr << "D = " << this->w->D << "\n";
     std::cerr << "covB = " << this->w->covB<< "\n";
-    std::cerr << "D * covB = " << this->w->D * this->w->covB << "\n";    
+    std::cerr << "D * covB = " << this->w->D * this->w->covB << "\n";
 #endif
 #if 0
     // probably no need to check ldlt decompositin succeed,
@@ -267,7 +266,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
       // printToFile(this->w->beta, "matBeta", "beta");
       return false;
     }
-#endif 
+#endif
     this->w->h = (xw * this->w->covB * xw.transpose()).diagonal();
     this->w->r = this->w->X.transpose() *
                  (this->w->y - this->w->p +
@@ -289,10 +288,11 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
     }
     rounds++;
 
-    currentLLK = (((this->w->y.array() + .5) * this->w->p.array().log()) +
-          ((1. - this->w->y.array() + .5) * (1.0 - this->w->p.array()).log())).sum();
-    if (!isnan(lastLLK) &&
-        currentLLK < lastLLK) {
+    currentLLK =
+        (((this->w->y.array() + .5) * this->w->p.array().log()) +
+         ((1. - this->w->y.array() + .5) * (1.0 - this->w->p.array()).log()))
+            .sum();
+    if (!isnan(lastLLK) && currentLLK < lastLLK) {
       break;
     }
     lastLLK = currentLLK;

@@ -15,18 +15,17 @@ $(DIR_EXEC_DBG):
 	mkdir -p $@
 
 .PHONY: release debug profile lib lib-dbg clean tar doc
-
-release: lib
+release: lib $(GIT_VERSION)
 	$(MAKE) -C $(ROOT)/src release
 	$(MAKE) -C $(ROOT)/vcfUtils release
 
-debug: debug.rvt debug.vcfUtil
+debug: debug.rvt debug.vcfUtil $(GIT_VERSION)
 debug.rvt: lib-dbg
 	$(MAKE) -C $(ROOT)/src debug
 debug.vcfUtil: lib-dbg
 	$(MAKE) -C $(ROOT)/vcfUtils debug
 
-profile: lib-dbg
+profile: lib-dbg $(GIT_VERSION)
 	$(MAKE) -C $(ROOT)/src profile
 	$(MAKE) -C $(ROOT)/vcfUtils profile
 
@@ -36,6 +35,7 @@ profile: lib-dbg
 clean: 
 	$(MAKE) -C $(ROOT)/src clean
 	$(MAKE) -C $(ROOT)/vcfUtils clean
+	-rm -f $(GIT_VERSION)
 
 libclean:
 	$(MAKE) -C $(ROOT)/base clean

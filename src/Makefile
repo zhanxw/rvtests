@@ -57,7 +57,7 @@ define BUILD_each
   SRC := $(1).cpp 
   -include  $(1).d
   -include  $(1)_dbg.d 
-  $$(TAR) $$(TAR_DBG): $$(SRC) ../GitVersion.h | $$(THIRD_INC)
+  $$(TAR) $$(TAR_DBG): $$(SRC) $$(ROOT)/GitVersion.h | $$(THIRD_INC)
 	$$(CXX) -MMD -c $$< -o $$@ $$(CXX_FLAGS) $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))

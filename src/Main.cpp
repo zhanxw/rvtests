@@ -429,7 +429,7 @@ int main(int argc, char** argv) {
   // start logging
   Logger _logger((FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
-  logger->info("Program version: %s", VERSION);
+  logger->info("Program version: %s (git: %s)", VERSION, gitVersion);
   logger->infoToFile("Git Version");
   logger->infoToFile("%s", gitVersion);
   logger->infoToFile("Parameters BEGIN");

@@ -6,27 +6,26 @@
 #include "IO.h"
 #include "tabix.h"
 
-#include <cassert>
-#include <string>
-#include <set>
-#include <map>
-#include <vector>
 #include <algorithm>
+#include <cassert>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 #include "Logger.h"
+#include "MathMatrix.h"
+#include "MathVector.h"
+#include "Random.h"
 #include "Utils.h"
 #include "VCFUtil.h"
-#include "MathVector.h"
-#include "MathMatrix.h"
-#include "Random.h"
-#include "GitVersion.h"
 
 typedef std::vector<int> Genotype;
-struct Pos{
+struct Pos {
   std::string chrom;
   int pos;
 };
-struct Loci{
+struct Loci {
   Pos pos;
   Genotype geno;
 };
@@ -39,14 +38,13 @@ std::string getCount(const Genotype& g1, const Genotype& g2) {
   std::string r;
   char buffer[1024];
   size_t count[9] = {0};
-  for (size_t c = 0; c < n; ++c) { //iterator each people
-    if (g1[c] < 0 || g1[c] > 2 || g2[c] < 0 || g2[c] > 2)
-      continue;
-    ++ count[g1[c] + g2[c] * 3];
+  for (size_t c = 0; c < n; ++c) {  // iterator each people
+    if (g1[c] < 0 || g1[c] > 2 || g2[c] < 0 || g2[c] > 2) continue;
+    ++count[g1[c] + g2[c] * 3];
   }
   int offset = 0;
   int nWritten = 0;
-  for (int i = 0; i < 9; ++i ){
+  for (int i = 0; i < 9; ++i) {
     // printf("%zu\n", count[i]);
     nWritten = sprintf(buffer + offset, "%zu,", count[i]);
     offset += nWritten;
@@ -59,21 +57,23 @@ std::string getCount(const Genotype& g1, const Genotype& g2) {
  * @return \sum g1 * g2 - \sum(g1) * \sum(g2)/n
  */
 double getCovariance(const Genotype& g1, const Genotype& g2) {
-  double sum_i = 0.0 ; // sum of genotype[,i]
-  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]
-  double sum_j = 0.0 ; // sum of genotype[,j]
+  double sum_i = 0.0;   // sum of genotype[,i]
+  double sum_ij = 0.0;  // sum of genotype[,i]*genotype[,j]
+  double sum_j = 0.0;   // sum of genotype[,j]
   int n = 0;
-  for (size_t c = 0; c < g1.size(); ++c) { //iterator each people
+  for (size_t c = 0; c < g1.size(); ++c) {  // iterator each people
     if (g1[c] < 0 || g2[c] < 0) continue;
     ++n;
     sum_i += g1[c];
-    sum_ij += g1[c]*g2[c];
+    sum_ij += g1[c] * g2[c];
     sum_j += g2[c];
   };
-  // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij, sum_i, sum_j);
+  // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij,
+  // sum_i, sum_j);
   double cov_ij = n == 0 ? 0. : ((sum_ij - sum_i * sum_j / n) / n);
-  
-  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i,
+  // var_j, n);
   return cov_ij;
 };
 
@@ -81,25 +81,26 @@ double getCovariance(const Genotype& g1, const Genotype& g2) {
  * @return \sum g1 * g2 - \sum(g1) * \sum(g2)/n
  */
 double getCorrelation(const Genotype& g1, const Genotype& g2) {
-  double sum_i = 0.0 ;  // sum of genotype[,i]
-  double sum_i2 = 0.0 ; // sum of genotype[,i]*genotype[,i]
-  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]
-  double sum_j = 0.0 ;  // sum of genotype[,j]
-  double sum_j2 = 0.0 ; // sum of genotype[,j]*genotype[,j]
+  double sum_i = 0.0;   // sum of genotype[,i]
+  double sum_i2 = 0.0;  // sum of genotype[,i]*genotype[,i]
+  double sum_ij = 0.0;  // sum of genotype[,i]*genotype[,j]
+  double sum_j = 0.0;   // sum of genotype[,j]
+  double sum_j2 = 0.0;  // sum of genotype[,j]*genotype[,j]
   int n = 0;
-  for (size_t c = 0; c < g1.size(); ++c) { //iterator each people
+  for (size_t c = 0; c < g1.size(); ++c) {  // iterator each people
     if (g1[c] < 0 || g2[c] < 0) continue;
     ++n;
     sum_i += g1[c];
-    sum_i2 += g1[c]*g1[c];
-    sum_ij += g1[c]*g2[c];
+    sum_i2 += g1[c] * g1[c];
+    sum_ij += g1[c] * g2[c];
     sum_j += g2[c];
-    sum_j2 += g2[c]*g2[c];
+    sum_j2 += g2[c] * g2[c];
   };
   if (n == 0) {
     return 0.0;
   }
-  // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij, sum_i, sum_j);
+  // fprintf(stderr, "n = %d sum_ij = %g sum_i = %g sum_j = %g \n", n, sum_ij,
+  // sum_i, sum_j);
   double cov_ij = (sum_ij - sum_i * sum_j / n) / n;
   double cov_ii = (sum_i2 - sum_i * sum_i / n) / n;
   double cov_jj = (sum_j2 - sum_j * sum_j / n) / n;
@@ -108,15 +109,16 @@ double getCorrelation(const Genotype& g1, const Genotype& g2) {
     return 0.0;
   }
   double cor = cov_ij / c;
-  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, cov_ii, cov_jj, n);
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, cov_ii,
+  // cov_jj, n);
   return cor;
 };
 
-
 /**
- * @return max integer if different chromosome; or return difference between head and tail locus.
+ * @return max integer if different chromosome; or return difference between
+ * head and tail locus.
  */
-int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne){
+int getWindowSize(const std::deque<Loci>& loci, const Loci& newOne) {
   if (loci.size() == 0) {
     return 0;
   }
@@ -143,35 +145,36 @@ int printHeader(FILE* fp) {
  * @return 0
  * print the covariance for the front of loci to the rest of loci
  */
-int printCovariance(FILE* fp, const std::deque<Loci>& loci){
+int printCovariance(FILE* fp, const std::deque<Loci>& loci) {
   auto iter = loci.begin();
-  std::vector<int> position( loci.size());
-  std::vector<double> cov (loci.size());
-  std::vector<std::string> count (loci.size());
+  std::vector<int> position(loci.size());
+  std::vector<double> cov(loci.size());
+  std::vector<std::string> count(loci.size());
   int idx = 0;
-  for (; iter != loci.end(); ++iter){
+  for (; iter != loci.end(); ++iter) {
     position[idx] = iter->pos.pos;
     cov[idx] = getCovariance(loci.front().geno, iter->geno);
     count[idx] = getCount(loci.front().geno, iter->geno);
-    idx ++;
+    idx++;
   };
-  fprintf(fp, "%s\t%d\t%d\t", loci.front().pos.chrom.c_str(), loci.front().pos.pos, loci.back().pos.pos);
+  fprintf(fp, "%s\t%d\t%d\t", loci.front().pos.chrom.c_str(),
+          loci.front().pos.pos, loci.back().pos.pos);
   fprintf(fp, "%d\t", idx);
-  for(int i = 0; i < idx; ++i) {
+  for (int i = 0; i < idx; ++i) {
     if (i) fputc(',', fp);
     fprintf(fp, "%d", position[i]);
   }
   fputc('\t', fp);
-  for(int i = 0; i < idx; ++i) {
+  for (int i = 0; i < idx; ++i) {
     if (i) fputc(',', fp);
     fprintf(fp, "%g", cov[i]);
   }
   fputc('\t', fp);
-  for(int i = 0; i < idx; ++i) {
+  for (int i = 0; i < idx; ++i) {
     if (i) fputc(',', fp);
     fprintf(fp, "%s", count[i].c_str());
   }
-  
+
   fputc('\n', fp);
   return 0;
 };
@@ -180,13 +183,14 @@ int printCovariance(FILE* fp, const std::deque<Loci>& loci){
  * @return 0
  * print the covariance for the front of loci to the rest of loci
  */
-int printCovariance(FILE* fp, const std::deque<Loci>& anchor, const Loci& loci){
+int printCovariance(FILE* fp, const std::deque<Loci>& anchor,
+                    const Loci& loci) {
   double cov;
   double r2;
   std::string count;
-  for (auto iter=anchor.begin(); iter!=anchor.end(); ++iter) {
+  for (auto iter = anchor.begin(); iter != anchor.end(); ++iter) {
     cov = getCovariance(iter->geno, loci.geno);
-    r2 =  getCorrelation(iter->geno, loci.geno);
+    r2 = getCorrelation(iter->geno, loci.geno);
     count = getCount(iter->geno, loci.geno);
     fprintf(fp, "%s\t%d\t", iter->pos.chrom.c_str(), iter->pos.pos);
     fprintf(fp, "%s\t%d\t", loci.pos.chrom.c_str(), loci.pos.pos);
@@ -202,7 +206,7 @@ int printCovariance(FILE* fp, const std::deque<Loci>& anchor, const Loci& loci){
  */
 std::string currentTime() {
   time_t t = time(NULL);
-  std::string s (ctime(&t));
+  std::string s(ctime(&t));
   s = s.substr(0, s.size() - 1);
   return s;
 };
@@ -217,8 +221,7 @@ void banner(FILE* fp) {
       "     ...      zhanxw@umich.edu                  ...    \n"
       "      ...      Feburary 2012                     ...   \n"
       "       ..............................................  \n"
-      "                                                       \n"
-      ;
+      "                                                       \n";
   fputs(string, fp);
 };
 
@@ -257,26 +260,27 @@ double calculateR2(Matrix& genotype, const int i, const int j){
 /**
  * Calculate covariance for genotype[,i] and genotype[,j]
  */
-double calculateCov(Matrix& genotype, const int i, const int j){
-  double sum_i = 0.0 ; // sum of genotype[,i]
-  double sum_ij = 0.0 ; // sum of genotype[,i]*genotype[,j]
-  double sum_j = 0.0 ; // sum of genotype[,j]
+double calculateCov(Matrix& genotype, const int i, const int j) {
+  double sum_i = 0.0;   // sum of genotype[,i]
+  double sum_ij = 0.0;  // sum of genotype[,i]*genotype[,j]
+  double sum_j = 0.0;   // sum of genotype[,j]
   int n = 0;
-  for (int c = 0; c < genotype.cols; c++) { //iterator each people
+  for (int c = 0; c < genotype.cols; c++) {  // iterator each people
     if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
     ++n;
     sum_i += genotype[i][c];
-    sum_ij += genotype[i][c]*genotype[j][c];
+    sum_ij += genotype[i][c] * genotype[j][c];
     sum_j += genotype[j][c];
   };
-  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
+  // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 =
+  // %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
   double cov_ij = n == 0 ? 0. : (sum_ij - sum_i * sum_j / n) / n;
-  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i, var_j, n);
+  // fprintf(stderr, "cov = %g var_i = %g var_j = %g n= %d\n", cov_ij, var_i,
+  // var_j, n);
   return cov_ij;
 };
 
-void setRangeFilter(VCFInputFile* pVin,
-                    const std::string& FLAG_rangeList,
+void setRangeFilter(VCFInputFile* pVin, const std::string& FLAG_rangeList,
                     const std::string& FLAG_rangeFile) {
   pVin->setRangeList(FLAG_rangeList.c_str());
   pVin->setRangeFile(FLAG_rangeFile.c_str());
@@ -298,51 +302,74 @@ void setPeopleFilter(VCFInputFile* pVin,
 
 Logger* logger = NULL;
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
   // time_t currentTime = time(0);
   // fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
   ////////////////////////////////////////////////
   BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
-      // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF format")
-      // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
-      // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output [prefix].{fam,bed,bim} in Plink BED format")
+  ADD_PARAMETER_GROUP(pl, "Input/Output")
+  ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
+  ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
+  // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF
+  // format")
+  // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
+  // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output
+  // [prefix].{fam,bed,bim} in Plink BED format")
 
-      ADD_PARAMETER_GROUP(pl, "People Filter")
-      ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-      // ADD_INT_PARAMETER(pl, indvMinDepth, "--indvDepthMin", "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, indvMaxDepth, "--indvDepthMax", "Specify maximum depth(inclusive) of a sample to be incluced in analysis");
-      // ADD_INT_PARAMETER(pl, indvMinQual,  "--indvQualMin",  "Specify minimum depth(inclusive) of a sample to be incluced in analysis");
+  ADD_PARAMETER_GROUP(pl, "People Filter")
+  ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID",
+                       "give IDs of people that will be included in study")
+  ADD_STRING_PARAMETER(
+      pl, peopleIncludeFile, "--peopleIncludeFile",
+      "from given file, set IDs of people that will be included in study")
+  ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID",
+                       "give IDs of people that will be included in study")
+  ADD_STRING_PARAMETER(
+      pl, peopleExcludeFile, "--peopleExcludeFile",
+      "from given file, set IDs of people that will be included in study")
+  // ADD_INT_PARAMETER(pl, indvMinDepth, "--indvDepthMin", "Specify minimum
+  // depth(inclusive) of a sample to be incluced in analysis");
+  // ADD_INT_PARAMETER(pl, indvMaxDepth, "--indvDepthMax", "Specify maximum
+  // depth(inclusive) of a sample to be incluced in analysis");
+  // ADD_INT_PARAMETER(pl, indvMinQual,  "--indvQualMin",  "Specify minimum
+  // depth(inclusive) of a sample to be incluced in analysis");
 
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing sites to include, please use \"chr pos\" format.")
+  ADD_PARAMETER_GROUP(pl, "Site Filter")
+  ADD_STRING_PARAMETER(
+      pl, rangeList, "--rangeList",
+      "Specify some ranges to use, please use chr:begin-end format.")
+  ADD_STRING_PARAMETER(
+      pl, rangeFile, "--rangeFile",
+      "Specify the file containing ranges, please use chr:begin-end format.")
+  ADD_STRING_PARAMETER(pl, siteFile, "--siteFile",
+                       "Specify the file containing sites to include, please "
+                       "use \"chr pos\" format.")
 
-      ADD_PARAMETER_GROUP(pl, "Window Parameter")
-      ADD_INT_PARAMETER(pl, windowSize, "--window", "specify sliding window size to calculate covariance")
+  ADD_PARAMETER_GROUP(pl, "Window Parameter")
+  ADD_INT_PARAMETER(pl, windowSize, "--window",
+                    "specify sliding window size to calculate covariance")
 
-      ADD_PARAMETER_GROUP(pl, "Anchor SNPs")
-      ADD_STRING_PARAMETER(pl, anchor, "--anchor", "specify anchors SNPs to compare with. e.g. 1:20-20")
+  ADD_PARAMETER_GROUP(pl, "Anchor SNPs")
+  ADD_STRING_PARAMETER(pl, anchor, "--anchor",
+                       "specify anchors SNPs to compare with. e.g. 1:20-20")
 
-      ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
-      /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency from external file")*/
-      // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate frequency from case samples")
-      // ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency bound to be included in analysis")
-      // ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency bound to be included in analysis")
-      /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
-      /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
-      ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
-      // ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes, phenotype, covariates(if any) and collapsed genotype to tabular files")
-      ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
-      END_PARAMETER_LIST(pl)
-      ;
+  ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
+  /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency
+   * from external file")*/
+  // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate
+  // frequency from case samples")
+  // ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency
+  // bound to be included in analysis")
+  // ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency
+  // bound to be included in analysis")
+  /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
+  /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
+  ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
+  // ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes,
+  // phenotype, covariates(if any) and collapsed genotype to tabular files")
+  ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
+  END_PARAMETER_LIST(pl);
 
   pl.Read(argc, argv);
 
@@ -352,22 +379,22 @@ int main(int argc, char** argv){
   }
 
   pl.Status();
-  if (FLAG_REMAIN_ARG.size() > 0){
+  if (FLAG_REMAIN_ARG.size() > 0) {
     fprintf(stderr, "Unparsed arguments: ");
-    for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
+    for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
       fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
     }
     fprintf(stderr, "\n");
     abort();
   }
 
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+  REQUIRE_STRING_PARAMETER(FLAG_inVcf,
+                           "Please provide input file using: --inVcf");
   if (FLAG_windowSize <= 0) {
     fprintf(stderr, "Please specify positive window size (--windowSize)\n");
     exit(1);
   }
-  if (!FLAG_outPrefix.size())
-    FLAG_outPrefix = "rvtest";
+  if (!FLAG_outPrefix.size()) FLAG_outPrefix = "rvtest";
 
   const char* fn = FLAG_inVcf.c_str();
   VCFInputFile* pVin = new VCFInputFile(fn);
@@ -377,16 +404,15 @@ int main(int argc, char** argv){
   setRangeFilter(pVin, FLAG_rangeList, FLAG_rangeFile);
 
   // set people filters here
-  setPeopleFilter(pVin,
-                  FLAG_peopleIncludeID, FLAG_peopleIncludeFile,
+  setPeopleFilter(pVin, FLAG_peopleIncludeID, FLAG_peopleIncludeFile,
                   FLAG_peopleExcludeID, FLAG_peopleExcludeFile);
 
   std::string s = FLAG_outPrefix;
-  FILE* fout = fopen( ( s + ".cov" ).c_str(), "wt");
-  Logger _logger( (FLAG_outPrefix + ".cov.log").c_str());
+  FILE* fout = fopen((s + ".cov").c_str(), "wt");
+  Logger _logger((FLAG_outPrefix + ".cov.log").c_str());
   logger = &_logger;
   logger->infoToFile("Program Version");
-  logger->infoToFile("%s", gitVersion);
+  logger->infoToFile("%s", GIT_VERSION);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
@@ -394,19 +420,16 @@ int main(int argc, char** argv){
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 
-  
-
   // load anchor SNPs if any
   std::deque<Loci> anchor;
   if (!FLAG_anchor.empty()) {
     VCFInputFile* pVin = new VCFInputFile(fn);
     VCFInputFile& vin = *pVin;
     pVin->setRangeList(FLAG_anchor);
-    setPeopleFilter(pVin,
-                    FLAG_peopleIncludeID, FLAG_peopleIncludeFile,
+    setPeopleFilter(pVin, FLAG_peopleIncludeID, FLAG_peopleIncludeFile,
                     FLAG_peopleExcludeID, FLAG_peopleExcludeFile);
     // extract genotypes
-    while (vin.readRecord()){
+    while (vin.readRecord()) {
       VCFRecord& r = vin.getVCFRecord();
       VCFPeople& people = r.getPeople();
       VCFIndividual* indv;
@@ -415,8 +438,7 @@ int main(int argc, char** argv){
       loci.pos.chrom = r.getChrom();
       loci.pos.pos = r.getPos();
 
-      if (strlen(r.getRef()) != 1 ||
-          strlen(r.getAlt()) != 1) { // not snp
+      if (strlen(r.getRef()) != 1 || strlen(r.getAlt()) != 1) {  // not snp
         continue;
       };
 
@@ -425,7 +447,8 @@ int main(int argc, char** argv){
       // e.g.: Loop each (selected) people in the same order as in the VCF
       for (size_t i = 0; i < people.size(); i++) {
         indv = people[i];
-        // get GT index. if you are sure the index will not change, call this function only once!
+        // get GT index. if you are sure the index will not change, call this
+        // function only once!
         int GTidx = r.getFormatIndex("GT");
         if (GTidx >= 0)
           loci.geno[i] = indv->justGet(GTidx).getGenotype();
@@ -434,20 +457,22 @@ int main(int argc, char** argv){
       }
       anchor.push_back(loci);
     }
-    logger->info("Load %d anchor SNPs", (int) anchor.size());
+    logger->info("Load %d anchor SNPs", (int)anchor.size());
     delete pVin;
     fprintf(fout, "CHROM\tPOS\tCHROM\tPOS\tCOV\tr2\tCount\n");
-  } else { // do not use anchor
-    fprintf(fout, "CHROM\tCURRENT_POS\tEND_POS\tNUM_MARKER\tMARKER_POS\tCOV\tCount\n");
+  } else {  // do not use anchor
+    fprintf(
+        fout,
+        "CHROM\tCURRENT_POS\tEND_POS\tNUM_MARKER\tMARKER_POS\tCOV\tCount\n");
   }
 
   // std::string chrom;
   // std::vector<int> pos; // store positions
-  std::deque< Loci> queue;
+  std::deque<Loci> queue;
   int numVariant = 0;
 
   // extract genotypes
-  while (vin.readRecord()){
+  while (vin.readRecord()) {
     VCFRecord& r = vin.getVCFRecord();
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;
@@ -456,8 +481,7 @@ int main(int argc, char** argv){
     loci.pos.chrom = r.getChrom();
     loci.pos.pos = r.getPos();
 
-    if (strlen(r.getRef()) != 1 ||
-        strlen(r.getAlt()) != 1) { // not snp
+    if (strlen(r.getRef()) != 1 || strlen(r.getAlt()) != 1) {  // not snp
       continue;
     };
 
@@ -467,16 +491,18 @@ int main(int argc, char** argv){
     // e.g.: Loop each (selected) people in the same order as in the VCF
     for (size_t i = 0; i < people.size(); i++) {
       indv = people[i];
-      // get GT index. if you are sure the index will not change, call this function only once!
+      // get GT index. if you are sure the index will not change, call this
+      // function only once!
       int GTidx = r.getFormatIndex("GT");
       if (GTidx >= 0)
-        //printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
+        // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
+        // field of each individual
         loci.geno[i] = indv->justGet(GTidx).getGenotype();
       else
         loci.geno[i] = -9;
     }
     ++numVariant;
-    
+
     // // remove missing genotype by imputation
     // imputeGenotypeToMean(&genotype);
 
@@ -485,7 +511,7 @@ int main(int argc, char** argv){
       printCovariance(fout, anchor, loci);
       continue;
     }
-    
+
     while (queue.size() && getWindowSize(queue, loci) > FLAG_windowSize) {
       printCovariance(fout, queue);
       queue.pop_front();
@@ -493,7 +519,7 @@ int main(int argc, char** argv){
     queue.push_back(loci);
   }
 
-  while(queue.size() > 0 ) {
+  while (queue.size() > 0) {
     printCovariance(fout, queue);
     queue.pop_front();
   }
@@ -505,7 +531,7 @@ int main(int argc, char** argv){
   logger->info("Total %d variants are processed", numVariant);
   time_t endTime = time(0);
   logger->info("Analysis ends at: %s", currentTime().c_str());
-  int elapsedSecond = (int) (endTime - startTime);
+  int elapsedSecond = (int)(endTime - startTime);
   logger->info("Analysis took %d seconds", elapsedSecond);
 
   return 0;

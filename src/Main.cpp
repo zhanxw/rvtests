@@ -21,7 +21,6 @@
 #include "DataConsolidator.h"
 #include "DataLoader.h"
 #include "GenotypeExtractor.h"
-#include "GitVersion.h"
 #include "ModelFitter.h"
 #include "ModelManager.h"
 #include "Result.h"
@@ -429,9 +428,9 @@ int main(int argc, char** argv) {
   // start logging
   Logger _logger((FLAG_outPrefix + ".log").c_str());
   logger = &_logger;
-  logger->info("Program version: %s (git: %s)", VERSION, gitVersion);
+  logger->info("Program version: %s (git: %s)", VERSION, GIT_VERSION);
   logger->infoToFile("Git Version");
-  logger->infoToFile("%s", gitVersion);
+  logger->infoToFile("%s", GIT_VERSION);
   logger->infoToFile("Parameters BEGIN");
   pl.WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");

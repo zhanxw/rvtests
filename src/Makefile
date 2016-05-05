@@ -29,7 +29,7 @@ BASE = Main \
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 
-DEFAULT_CXXFLAGS = -std=c++0x -I. $(addprefix -I, $(THIRD_INC))
+DEFAULT_CXXFLAGS = -std=c++0x -I. $(addprefix -I, $(THIRD_INC)) -DGIT_VERSION="\"$(GIT_VERSION)\""
 # enable read over HTTP and FTP
 DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 
@@ -57,7 +57,7 @@ define BUILD_each
   SRC := $(1).cpp 
   -include  $(1).d
   -include  $(1)_dbg.d 
-  $$(TAR) $$(TAR_DBG): $$(SRC) $$(ROOT)/GitVersion.h | $$(THIRD_INC)
+  $$(TAR) $$(TAR_DBG): $$(SRC) | $$(THIRD_INC)
 	$$(CXX) -MMD -c $$< -o $$@ $$(CXX_FLAGS) $(CXX_INCLUDE) -D__ZLIB_AVAILABLE__
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
@@ -78,9 +78,4 @@ deepclean: clean libclean
 	rm -rf *~
 	(cd ../third; $(MAKE) deepclean)
 	(cd ../libsrc; $(MAKE) clean)
-
-# # # archive 
-# # DATE=$(shell date '+%m%d')
-# # tar:
-# # 	tar zvchf rvtest.$(DATE).tgz *.h *.cpp Makefile .git/HEAD .git/index third base libVcf regression libsrc
 

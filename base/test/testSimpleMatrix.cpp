@@ -115,10 +115,10 @@ int main(int argc, char *argv[])
 
     std::vector<std::string> ind = {"New1", "New2", "New3"};
     m.addRow(ind, NAN);
-    assert(isnan(m[2][0]));
-    assert(isnan(m[2][2]));
-    assert(isnan(m[4][0]));
-    assert(isnan(m[4][2]));
+    assert(std::isnan(m[2][0]));
+    assert(std::isnan(m[2][2]));
+    assert(std::isnan(m[4][0]));
+    assert(std::isnan(m[4][2]));
     assert(m.getRowName()[2] == "New1");
     assert(m.getRowName()[4] == "New3");
     assert(m.nrow() == 5 && m.ncol() == 3);

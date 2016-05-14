@@ -328,7 +328,7 @@ std::vector<int> SimpleMatrix::allMissingRows() const {
   for (int i = 0; i < nr; ++i) {
     allMissing = true;
     for (int j = 0; j < nc; ++j) {
-      if (!isnan(mat[i][j])) {
+      if (!std::isnan(mat[i][j])) {
         allMissing = false;
         break;
       }

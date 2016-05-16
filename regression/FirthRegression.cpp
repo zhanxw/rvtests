@@ -192,7 +192,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& succ, Vector& total,
                   ((this->w->total.array() - this->w->succ.array() + .5) *
                    (1.0 - this->w->p.array()).log()))
                      .sum();
-    if (!isnan(lastLLK) && currentLLK < lastLLK) {
+    if (!std::isnan(lastLLK) && currentLLK < lastLLK) {
       break;
     }
     lastLLK = currentLLK;
@@ -292,7 +292,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Vector& y, int nrrounds) {
         (((this->w->y.array() + .5) * this->w->p.array().log()) +
          ((1. - this->w->y.array() + .5) * (1.0 - this->w->p.array()).log()))
             .sum();
-    if (!isnan(lastLLK) && currentLLK < lastLLK) {
+    if (!std::isnan(lastLLK) && currentLLK < lastLLK) {
       break;
     }
     lastLLK = currentLLK;

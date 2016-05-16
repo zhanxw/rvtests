@@ -66,7 +66,7 @@ void makeMatrix(Matrix& m, const std::vector<int>& index, EMat* out) {
 bool hasMissingInRow(const EMat& m, int r) {
   const int nc = m.cols();
   for (int i = 0; i < nc; ++i) {
-    if (isnan(m(r, i))) {
+    if (std::isnan(m(r, i))) {
       return true;
     }
   }

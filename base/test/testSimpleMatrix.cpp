@@ -1,33 +1,32 @@
-#include "SimpleMatrix.h"
 #include <cassert>
 #include <cmath>
-int main(int argc, char *argv[])
-{
+#include "SimpleMatrix.h"
+int main(int argc, char* argv[]) {
   {
     SimpleMatrix m;
-    assert (m.nrow() == 0);
-    assert (m.ncol() == 0);
+    assert(m.nrow() == 0);
+    assert(m.ncol() == 0);
 
     m.resize(3, 2);
-    assert (m.nrow() == 3);
-    assert (m.ncol() == 2);
+    assert(m.nrow() == 3);
+    assert(m.ncol() == 2);
 
     m.zero();
-    assert (m[0][0] == 0.0);
-    assert (m[2][1] == 0.0);
+    assert(m[0][0] == 0.0);
+    assert(m[2][1] == 0.0);
 
     std::vector<double> col(3, 1.0);
     m.appendCol(col);
-    assert (m[0][0] == 0.0);
-    assert (m[2][2] == 1.0);
+    assert(m[0][0] == 0.0);
+    assert(m[2][2] == 1.0);
 
-    m.resize(2,3);
+    m.resize(2, 3);
     std::vector<double> row(3, 22.0);
     m.appendRow(row);
-    assert (m[0][0] == 0.0);
-    assert (m[2][2] == 22.0);
+    assert(m[0][0] == 0.0);
+    assert(m[2][2] == 22.0);
     m.appendRow(row);
-    assert (m[3][2] == 22.0);
+    assert(m[3][2] == 22.0);
 
     const char* fn = "tmp.mat.out";
     assert(m.writeFile(fn) == 0);
@@ -55,7 +54,7 @@ int main(int argc, char *argv[])
     SimpleMatrix m;
     m.resize(2, 3);
     for (int i = 0; i < 2; ++i) {
-      for(int j = 0; j < 3; ++j) {
+      for (int j = 0; j < 3; ++j) {
         m[i][j] = i * 3 + j;
       }
     }
@@ -67,14 +66,13 @@ int main(int argc, char *argv[])
     // 0 1 2
     // 3 4 5
     // 3 4 5
-    assert(m.getRowName()[0] == "R1");    
+    assert(m.getRowName()[0] == "R1");
     assert(m.getRowName()[2] == "R2");
     assert(m.nrow() == 3 && m.ncol() == 3);
-    assert(m[2][0] == 3);    
+    assert(m[2][0] == 3);
     assert(m[2][2] == 5);
   }
 
-  
   {
     // m:
     // 0 1 2
@@ -82,7 +80,7 @@ int main(int argc, char *argv[])
     SimpleMatrix m;
     m.resize(2, 3);
     for (int i = 0; i < 2; ++i) {
-      for(int j = 0; j < 3; ++j) {
+      for (int j = 0; j < 3; ++j) {
         m[i][j] = i * 3 + j;
       }
     }
@@ -94,10 +92,10 @@ int main(int argc, char *argv[])
     // 0 1 2
     // 3 4 5
     // 3 4 5
-    assert(m.getRowName()[0] == "R1");    
+    assert(m.getRowName()[0] == "R1");
     assert(m.getRowName()[2] == "R2");
     assert(m.nrow() == 3 && m.ncol() == 3);
-    assert(m[2][0] == 3);    
+    assert(m[2][0] == 3);
     assert(m[2][2] == 5);
   }
 
@@ -108,21 +106,21 @@ int main(int argc, char *argv[])
     SimpleMatrix m;
     m.resize(2, 3);
     for (int i = 0; i < 2; ++i) {
-      for(int j = 0; j < 3; ++j) {
+      for (int j = 0; j < 3; ++j) {
         m[i][j] = i * 3 + j;
       }
     }
 
     std::vector<std::string> ind = {"New1", "New2", "New3"};
     m.addRow(ind, NAN);
-    assert(isnan(m[2][0]));
-    assert(isnan(m[2][2]));
-    assert(isnan(m[4][0]));
-    assert(isnan(m[4][2]));
+    assert(std::isnan(m[2][0]));
+    assert(std::isnan(m[2][2]));
+    assert(std::isnan(m[4][0]));
+    assert(std::isnan(m[4][2]));
     assert(m.getRowName()[2] == "New1");
     assert(m.getRowName()[4] == "New3");
     assert(m.nrow() == 5 && m.ncol() == 3);
-    
+
     // now m should be
     // m:
     // 0   1   2
@@ -136,6 +134,6 @@ int main(int argc, char *argv[])
     assert(m[4][0] = 1.5);
     assert(m[4][2] = 3.5);
   }
-  
+
   return 0;
 }

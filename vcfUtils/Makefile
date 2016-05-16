@@ -15,7 +15,8 @@ UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcfPair \
             vcf2kinship \
             vcfPeek \
-            vcf2ld_neighbor 
+            vcf2ld_neighbor \
+            kinshipDecompose 
             # vcf2merlin 
 
 DIR_EXEC = ../executable

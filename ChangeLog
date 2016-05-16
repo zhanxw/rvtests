@@ -1,4 +1,8 @@
-2016-05-04  Xiaowei Zhan  <zhanxw@bunny.swmed.edu>
+2016-05-16  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Optimize code (faster speed, smaller memory consumptions)
+
+2016-05-04  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Reduce memory consumption for logistic regression
 	* Clean codes

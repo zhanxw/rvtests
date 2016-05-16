@@ -4,7 +4,7 @@
 int main(int argc, char *argv[])
 {
   {
-    std::string fn = "/net/fantasia/home/zhanxw/mycode/seqminer/seqminer/inst/vcf/all.anno.filtered.extract.bcf.gz";
+    std::string fn = "all.anno.filtered.extract.bcf.gz";
     std::string r = "1:196621007-196716634";
     VCFExtractor vin(fn);
     vin.setRangeList(r);

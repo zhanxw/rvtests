@@ -1,10 +1,9 @@
 #include "VCFInputFile.h"
-
-#include "IO.h"
 #include "Utils.h"
+#include "IO.h"
 
-#include "BCFReader.h"
 #include "TabixReader.h"
+#include "BCFReader.h"
 
 // use current subset of included people
 // to reconstruct a new VCF header line
@@ -30,7 +29,7 @@ void VCFInputFile::setRangeMode() {
       this->mode = VCFInputFile::VCF_RANGE_MODE;
     }
   } else if (mode == VCF_RANGE_MODE) {
-    // Auto-merge should be handled by VCFInputFile, not in tabixReader
+    // Auto-merge should be handled by VCFInputFile, not in tabixReader    
     // if (this->autoMergeRange) {
     //   this->tabixReader->enableAutoMerge();
     // }
@@ -173,7 +172,8 @@ bool VCFInputFile::readRecord() {
     }
     if (!nRead) return false;
 
-    bool ret = this->record.parse(this->line);
+    // star parsing
+    bool ret = this->record.parse(&this->line);
     if (ret) {
       reportReadError(this->line);
     }
@@ -205,11 +205,12 @@ void VCFInputFile::setRangeList(const RangeList& rl) {
   if (rl.size() == 0) return;
 
   this->setRangeMode();
-
+  
   RangeList l;
   l.setRange(rl);
-  if (this->autoMergeRange) l.sort();
-
+  if (this->autoMergeRange)
+    l.sort();
+  
   if (mode == VCF_RANGE_MODE) {
     this->tabixReader->setRange(l);
   } else if (mode == BCF_MODE) {

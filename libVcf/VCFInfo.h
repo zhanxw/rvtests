@@ -1,9 +1,9 @@
 #ifndef _VCFINFO_H_
 #define _VCFINFO_H_
 
-#include "VCFValue.h"
-#include "OrderedMap.h"
 #include <string>
+#include "OrderedMap.h"
+#include "VCFValue.h"
 
 class VCFInfo {
  public:
@@ -22,46 +22,48 @@ class VCFInfo {
 
   void at(unsigned int idx, std::string* key, VCFValue* value) const {
     if (idx >= this->data.size()) {
-    };
+    }
     this->data.at(idx, key, value);
-  };
+  }
 
   void parse(const VCFValue& v) {
-    this->self = v;
+    // this->self = v;
+    this->parsed.attach(v.line + v.beg, v.end - v.beg);
     this->hasParsed = false;
   };
   void parseActual() {
+    if (this->hasParsed) return;
     // reset data
     this->data.clear();
 
-    // dupliate string
-    this->parsed = this->self.line + this->self.beg;
-
     // parse key and values
-    int state = 0;  // 0: key, 1: value
-    unsigned int end = 0;
+    int state = 0;  // 0: key, 1: value (indicating current status for value.line[end])
+    int end = 0;
     std::string key;
     VCFValue value;
     value.beg = 0;
-    value.line = this->parsed.c_str();
-    while (end <= this->parsed.size()) {
+    value.line = this->parsed.getBuffer();
+    const int len = (int) this->parsed.size();
+    while (end <= len) {
       if (this->parsed[end] == '=') {
         if (state == 0) {
-          key = this->parsed.substr(value.beg, end - value.beg);
+          key.assign(&(value.line[value.beg]),
+                     &(value.line[end]));
           this->parsed[end] = '\0';
           value.beg = end + 1;
           state = 1;
         } else if (state == 1) {
           fprintf(stderr, "Possible wrong format in %s\n",
-                  this->parsed.c_str());
+                  this->parsed.getBuffer());
           return;
         } else {
           fprintf(stderr, "Corrupted state!\n");
           assert(false);
         }
-      } else if (this->parsed[end] == ';' || end == this->parsed.size()) {
+      } else if (this->parsed[end] == ';' || end == len) {
         if (state == 0) {  // key without value: e.g. ;HM3;
-          key = this->parsed.substr(value.beg, end - value.beg);
+          key.assign(&(value.line[value.beg]),
+                     &(value.line[end]));
           value.beg = end;
           value.end = end;
           if (key != ".")  // only store non-missing key
@@ -78,10 +80,10 @@ class VCFInfo {
           assert(false);
         };
 
-        if (end == this->parsed.size())
+        if (end == len)
           break;
         else
-          parsed[end] = '\0';
+          this->parsed[end] = '\0';
       }
 
       ++end;
@@ -89,18 +91,42 @@ class VCFInfo {
     // finish up
     this->hasParsed = true;
   };
-  const char* toStr() const { return this->self.toStr(); }
+  // const char* toStr() const { return this->self.toStr(); }
   size_t size() {
     this->parseActual();
     return this->data.size();
   }
+  void output(FILE* fp, char c) {
+    if (this->hasParsed) {
+      int n = data.size();
+      char sep = ':';
+      std::string key;
+      VCFValue value;
+      for (int i = 0; i < n; ++i) {
+        if (i == n - 1) {
+          sep = c;
+        }
+        data.at(i, &key, &value);
+        fputs(key.c_str(), fp);
+        // check '='
+        if (value.beg != value.end) {
+          fputc('=', fp);
+          value.output(fp, sep);
+        } else {
+          fputc(sep, fp);
+        }
+      }
+    } else {
+      this->parsed.output(fp, c);
+    }
+  }
 
  private:
-  VCFValue self;
   bool hasParsed;
-  std::string parsed;  /// store parsed (where \0 added) string
+  VCFBuffer parsed;
+  // VCFValue self;
+  // std::string parsed;  /// store parsed (where \0 added) string
   OrderedMap<std::string, VCFValue> data;
-
   const static VCFValue defaultValue;  // Default empty VCFValue
 };                                     // VCFInfo
 

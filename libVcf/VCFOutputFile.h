@@ -30,43 +30,50 @@ class VCFOutputFile {
     }
   };
   void writeRecord(VCFRecord* r) {
-    this->fp->printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", r->getChrom(),
-                     r->getPos(), r->getID(), r->getRef(), r->getAlt(),
-                     r->getQual(), r->getFilt(), r->getInfo(), r->getFormat());
-    VCFPeople& p = r->getPeople();
-    // std::string s;
-    for (unsigned int i = 0; i < p.size(); i++) {
-      VCFIndividual* indv = p[i];
-      this->fp->printf("\t%s", indv->getSelf().toStr());
-    }
-    this->fp->printf("\n");
+    r->output(fp);
+    // this->fp->printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", r->getChrom(),
+    //                  r->getPos(), r->getID(), r->getRef(), r->getAlt(),
+    //                  r->getQual(), r->getFilt(), r->getInfo(), r->getFormat());
+    // VCFPeople& p = r->getPeople();
+    // // std::string s;
+    // for (unsigned int i = 0; i < p.size(); i++) {
+    //   VCFIndividual* indv = p[i];
+    //   // this->fp->printf("\t%s", indv->getSelf().toStr());
+    //   this->fp->write('\t');
+    //   indv->output(this->fp);
+    // }
+    this->fp->write("\n");
   };
   void writeRecordWithFilter(VCFRecord* r, const double minGD,
                              const double minGQ) {
-    this->fp->printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", r->getChrom(),
-                     r->getPos(), r->getID(), r->getRef(), r->getAlt(),
-                     r->getQual(), r->getFilt(), r->getInfo(), r->getFormat());
-    VCFPeople& p = r->getPeople();
+    r->outputWithFilter(this->fp, minGD, minGQ);
+    
+    // this->fp->printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", r->getChrom(),
+    //                  r->getPos(), r->getID(), r->getRef(), r->getAlt(),
+    //                  r->getQual(), r->getFilt(), r->getInfo(), r->getFormat());
+    // VCFPeople& p = r->getPeople();
 
-    int GDidx = r->getFormatIndex("GD");
-    int GQidx = r->getFormatIndex("GQ");
-    for (unsigned int i = 0; i < p.size(); i++) {
-      VCFIndividual* indv = p[i];
-      if (minGD > 0 &&
-          (GDidx < 0 ||
-           (GDidx > 0 && indv->justGet(GDidx).toDouble() < minGD))) {
-        this->fp->write("\t./.");
-        continue;
-      }
-      if (minGQ > 0 &&
-          (GQidx < 0 ||
-           (GQidx > 0 && indv->justGet(GQidx).toDouble() < minGQ))) {
-        this->fp->write("\t./.");
-        continue;
-      }
-      this->fp->printf("\t%s", indv->getSelf().toStr());
-    }
-    this->fp->printf("\n");
+    // int GDidx = r->getFormatIndex("GD");
+    // int GQidx = r->getFormatIndex("GQ");
+    // for (unsigned int i = 0; i < p.size(); i++) {
+    //   VCFIndividual* indv = p[i];
+    //   if (minGD > 0 &&
+    //       (GDidx < 0 ||
+    //        (GDidx > 0 && indv->justGet(GDidx).toDouble() < minGD))) {
+    //     this->fp->write("\t./.");
+    //     continue;
+    //   }
+    //   if (minGQ > 0 &&
+    //       (GQidx < 0 ||
+    //        (GQidx > 0 && indv->justGet(GQidx).toDouble() < minGQ))) {
+    //     this->fp->write("\t./.");
+    //     continue;
+    //   }
+    //   fp->write('\t');
+    //   indv->output(fp);
+    //   // this->fp->printf("\t%s", indv->getSelf().toStr());
+    // }
+    // this->fp->printf("\n");
   }
 
  private:

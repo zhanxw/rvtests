@@ -62,11 +62,12 @@ bool VCFExtractor::passFilter() {
     for (unsigned int i = 0; i < people.size(); i++) {
       VCFIndividual* indv = people[i];
       int GTidx = r.getFormatIndex("GT");
-      if (GTidx >= 0)
+      if (GTidx >= 0) {
         gt = indv->get(0, &missing).getGenotype();  // [0] meaning the first
                                                     // field of each individual
-      else
+      } else {
         missing = true;
+      }
       if (missing) {
         nMiss++;
       } else {

@@ -1,22 +1,26 @@
 #ifndef _VCFVALUE_H_
 #define _VCFVALUE_H_
 
+#include <cassert>
+#include <string>
 #include "Exception.h"
 #include "TypeConversion.h"
-#include "VCFConstant.h"
 #include "VCFBuffer.h"
-#include <string>
-#include <cassert>
+#include "VCFConstant.h"
+
+class FileWriter;
 
 /**
  * the versatile format to store value for VCF file.
  */
 class VCFValue {
  public:
-  const char* line;
-  int beg;  // inclusive
-  int end;  // exclusive, and beg <= end
-  VCFValue() : line(NULL), beg(0), end(0){};
+  char* line;  // NOTE: line content may be changed after parsing
+  int beg;     // inclusive
+  int end;     // exclusive, and beg <= end
+  VCFValue() : line(defaultValue), beg(0), end(0){};
+  VCFValue(char* l, int b, int e) : line(l), beg(b), end(e){};
+  static char defaultValue[1];
 
  public:
   int toInt() const {
@@ -52,10 +56,10 @@ class VCFValue {
   };
   void toStr(std::string* s) const {
     if (!line) {
-      s->clear();
+      s->resize(0);
       return;
     }
-    s->clear();
+    s->resize(0);
     for (int i = beg; i < end; i++) {
       s->push_back(line[i]);
     }
@@ -66,6 +70,7 @@ class VCFValue {
       fputc(line[i], fp);
     }
   };
+  void output(FileWriter* fp) const;
 
  public:
   // return converted genotypes
@@ -205,17 +210,37 @@ class VCFValue {
    */
   int parseTill(const VCFBuffer& s, const int b, const char c) {
     if (b >= (int)s.size()) return -1;
-    this->line = s.c_str();
+    this->line = s.getBuffer();
     this->beg = b;
     this->end = b;
-    while (this->end < (int)s.size()) {
+
+    char* r = strchr(line + beg, c);
+    if (r != NULL) {
+      end = r - line;
+      return 0;
+    } else {
+      end = s.size();
+      return 1;
+    }
+#if 0
+    const int n = (int)s.size();
+    while (this->end < n) {
       if (s[this->end] == c) {
         return 0;
       }
       ++this->end;
     }
     return 1;
+#endif
   };
+
+  void output(FILE* fp, char c) const {
+    for (int i = beg; i <= end; ++i) {
+      fputc(line[i], fp);
+    }
+    fputc(c, fp);
+  }
+  void output(FileWriter* fp, char c) const;
 };
 
 #endif /* _VCFVALUE_H_ */

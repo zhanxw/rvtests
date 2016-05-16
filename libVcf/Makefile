@@ -4,7 +4,8 @@ all: release
 LIB = lib-vcf.a
 LIB_DBG = lib-dbg-vcf.a
 BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile \
-       VCFIndividual SiteSet VCFHeader BCFReader VCFExtractor VCFFilter
+       VCFIndividual SiteSet VCFHeader BCFReader VCFExtractor VCFFilter VCFValue \
+       VCFBuffer
 OBJ = $(BASE:=.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 

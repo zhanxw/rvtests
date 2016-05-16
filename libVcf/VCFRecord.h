@@ -4,7 +4,7 @@
 #include "CommonFunction.h"
 #include "Exception.h"
 #include "IO.h"
-#include "OrderedMap.h"
+#include "IndexMap.h"
 #include "RangeList.h"
 #include "Utils.h"
 #include "VCFBuffer.h"
@@ -13,22 +13,24 @@
 #include "VCFIndividual.h"
 #include "VCFInfo.h"
 
-typedef OrderedMap<int, VCFIndividual*> VCFPeople;
+typedef IndexMap<VCFIndividual*> VCFPeople;
 
 class VCFRecord {
  public:
   VCFRecord() { this->hasAccess = false; }
 
   /**
-   * Parse will first make a copy then tokenized the copied one
+   * In situ parsing - no copy of the data; parse to smalling meaningful units
    * @return 0: if success
    */
-  int parse(const std::string vcfLine) {
+  int parse(std::string* pVcfLine) {
+    std::string& vcfLine = *pVcfLine;
     this->vcfInfo.reset();
-    this->parsed = vcfLine.c_str();
-    this->self.line = this->parsed.c_str();
-    this->self.beg = 0;
-    this->self.end = this->parsed.size();
+    // this->parsed = vcfLine.c_str();
+    // this->self.line = this->parsed.c_str();
+    // this->self.beg = 0;
+    // this->self.end = this->parsed.size();
+    this->parsed.attach(&vcfLine[0], (int)vcfLine.size());
 
     // go through VCF sites (first 9 columns)
     int ret;
@@ -121,7 +123,9 @@ class VCFRecord {
 
     // if ret == 1 menas reaches end of this->parsed
     if (ret != 1) {
-      fprintf(stderr, "Parsing error in line: %s\n", this->self.toStr());
+      fputs("Parsing error in line: ", stderr);
+      this->parsed.output(stderr);
+      fputc('\n', stderr);
       return -1;
     } else {
       this->parsed[indv.end] = '\0';
@@ -270,8 +274,10 @@ class VCFRecord {
    * Output this->self, it may contain '\0'
    */
   void output(FILE* fp) const {
-    this->self.output(fp);
-    fputc('\n', fp);
+    // this->self.output(fp);
+    // fputc('\n', fp);
+
+    this->parsed.output(fp);
   }
 
  public:
@@ -285,7 +291,7 @@ class VCFRecord {
   const int getQualInt() const { return this->qual.toInt(); }
   const int getQualDouble() const { return this->qual.toDouble(); }
   const char* getFilt() const { return this->filt.toStr(); }
-  const char* getInfo() const { return this->vcfInfo.toStr(); }
+  // const char* getInfo() const { return this->vcfInfo.toStr(); }
   const char* getFormat() const { return this->format.toStr(); }
 
   VCFPeople& getPeople() {
@@ -332,13 +338,69 @@ class VCFRecord {
     }
     return -1;
   }
-  const VCFValue& getSelf() const { return this->self; }
+  // const VCFValue& getSelf() const { return this->self; }
   void getIncludedPeopleName(std::vector<std::string>* p) {
     VCFPeople& people = getPeople();
     p->clear();
     const int n = people.size();
     for (int i = 0; i < n; ++i) {
       p->push_back(people[i]->getName());
+    }
+  }
+
+  void output(FileWriter* fp) {
+    this->chrom.output(fp, '\t');
+    this->pos.output(fp, '\t');
+    this->id.output(fp, '\t');
+    this->ref.output(fp, '\t');
+    this->alt.output(fp, '\t');
+    this->qual.output(fp, '\t');
+    this->filt.output(fp, '\t');
+    this->info.output(fp, '\t');
+    this->format.output(fp, '\t');
+
+    VCFPeople& p = this->getPeople();
+    size_t n = p.size();
+    for (size_t i = 0; i != n; ++i) {
+      p[i]->output(fp);
+      if (i != (n - 1)) {
+        fp->write('\t');
+      }
+    }
+  }
+  void outputWithFilter(FileWriter* fp, const double minGD,
+                        const double minGQ) {
+    this->chrom.output(fp, '\t');
+    this->pos.output(fp, '\t');
+    this->id.output(fp, '\t');
+    this->ref.output(fp, '\t');
+    this->alt.output(fp, '\t');
+    this->qual.output(fp, '\t');
+    this->filt.output(fp, '\t');
+    this->info.output(fp, '\t');
+    this->format.output(fp);
+
+    VCFPeople& p = this->getPeople();
+    size_t n = p.size();
+    const int GDidx = this->getFormatIndex("GD");
+    const int GQidx = this->getFormatIndex("GQ");
+    for (size_t i = 0; i != n; ++i) {
+      VCFIndividual* indv = p[i];
+      if (minGD > 0 &&
+          (GDidx < 0 ||
+           (GDidx > 0 && indv->justGet(GDidx).toDouble() < minGD))) {
+        fp->write("\t./.");
+        continue;
+      }
+      if (minGQ > 0 &&
+          (GQidx < 0 ||
+           (GQidx > 0 && indv->justGet(GQidx).toDouble() < minGQ))) {
+        fp->write("\t./.");
+        continue;
+      }
+
+      fp->write('\t');
+      p[i]->output(fp);
     }
   }
 
@@ -363,8 +425,8 @@ class VCFRecord {
 
   // store parsed results
   VCFBuffer parsed;
-  VCFValue
-      self;  // a self value points to itself, it contain parsed information
+  // VCFValue
+  //     self;  // a self value points to itself, it contain parsed information
 
 };  // VCFRecord
 

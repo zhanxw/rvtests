@@ -7,6 +7,8 @@
 
 #include <vector>
 
+class FileWriter;
+
 // we assume format are always  GT:DP:GQ:GL
 class VCFIndividual {
  public:
@@ -28,13 +30,16 @@ class VCFIndividual {
       return;
     }
 
-    this->self = vcfValue;
-    this->parsed = vcfValue.toStr();
-
+    // this->self = vcfValue;
+    // this->parsed = vcfValue.toStr();
+    
+    this->parsed.attach(&vcfValue.line[vcfValue.beg], vcfValue.end - vcfValue.beg);
+    
     // need to consider missing field
-    this->fd.clear();
+    this->fd.resize(0);
 
     VCFValue v;
+    v.line = this->parsed.getBuffer();
     int beg = 0;
     int ret;
     while ((ret = v.parseTill(this->parsed, beg, ':')) == 0) {
@@ -93,8 +98,8 @@ class VCFIndividual {
     return (this->fd[i]);
   }
 
-  VCFValue& getSelf() { return this->self; }
-  const VCFValue& getSelf() const { return this->self; }
+  // VCFValue& getSelf() { return this->self; }
+  // const VCFValue& getSelf() const { return this->self; }
 
   size_t size() const { return this->fd.size(); }
   /**
@@ -106,14 +111,16 @@ class VCFIndividual {
       this->fd[i].output(fp);
     }
   }
-
+  void output(FileWriter* fp) const;
+  void toStr(std::string* s) const;
  private:
   bool inUse;
   std::string name;          // id name
-  VCFValue self;             // whole field for the individual (unparsed)
+  // VCFValue self;             // whole field for the individual (unparsed)
   VCFBuffer parsed;          // store parsed string (where \0 added)
   std::vector<VCFValue> fd;  // each field separated by ':'
   static VCFValue defaultVCFValue;
+  static char defaultValue[2];
 };  // end VCFIndividual
 
 #endif /* _VCFINDIVIDUAL_H_ */

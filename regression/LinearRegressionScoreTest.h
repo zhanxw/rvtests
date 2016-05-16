@@ -1,11 +1,11 @@
 #ifndef _LINEARREGRESSIONSCORETEST_H_
 #define _LINEARREGRESSIONSCORETEST_H_
 
-#include "MathMatrix.h"
-#include "MathCholesky.h"
 #include <cmath>
-#include "MathStats.h"
+#include "MathCholesky.h"
+#include "MathMatrix.h"
 #include "MathSVD.h"
+#include "MathStats.h"
 
 #include "LinearRegression.h"
 
@@ -30,7 +30,7 @@ class LinearRegressionScoreTest {
   /**
    * Test y ~ 1 + \beta * X (no covariate)
    */
-  bool TestCovariate(Matrix& x, Vector& y);
+  bool TestCovariate(const Matrix& x, const Vector& y);
 
   double GetStat() const { return this->stat; };
   double GetPvalue() const { return this->pvalue; };

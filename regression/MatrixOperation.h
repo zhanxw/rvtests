@@ -5,15 +5,37 @@
 
 /**
  * this procedure is essentially:
+ * m += v1 * t(v1)
+ */
+inline void MatrixPlusEqualV1andV1T(Matrix& m, const Vector& v1) {
+#ifndef NDEBUG
+  if (m.rows != v1.Length()) {
+    fprintf(stderr, "Dimension does not match!");
+  }
+#endif
+  for (int i = 0; i < m.rows; i++) {
+    Vector& v = m[i];
+    for (int j = 0; j < m.cols; j++) {
+      v[j] += v1[i] * v1[j];
+    }
+  }
+};
+
+/**
+ * this procedure is essentially:
  * m += v1 * t(v2)
  */
-inline void MatrixPlusEqualV1andV2T(Matrix& m, Vector& v1, Vector& v2) {
+inline void MatrixPlusEqualV1andV2T(Matrix& m, const Vector& v1,
+                                    const Vector& v2) {
+#ifndef NDEBUG
   if (m.rows != v1.Length() || m.cols != v2.Length()) {
     fprintf(stderr, "Dimension does not match!");
-  };
+  }
+#endif
   for (int i = 0; i < m.rows; i++) {
+    Vector& v = m[i];
     for (int j = 0; j < m.cols; j++) {
-      m[i][j] += v1[i] * v2[j];
+      v[j] += v1[i] * v2[j];
     }
   }
 };
@@ -24,12 +46,15 @@ inline void MatrixPlusEqualV1andV2T(Matrix& m, Vector& v1, Vector& v2) {
  */
 inline void MatrixPlusEqualV1andV2TWithWeight(Matrix& m, Vector& v1, Vector& v2,
                                               double w) {
+#ifndef NDEBUG
   if (m.rows != v1.Length() || m.cols != v2.Length()) {
     fprintf(stderr, "Dimension does not match!");
-  };
+  }
+#endif
   for (int i = 0; i < m.rows; i++) {
+    Vector& v = m[i];
     for (int j = 0; j < m.cols; j++) {
-      m[i][j] += v1[i] * v2[j] * w;
+      v[j] += v1[i] * v2[j] * w;
     }
   }
 };
@@ -88,7 +113,7 @@ inline void print(Matrix& m) {
     }
     printf("\n");
   }
-  printf("\n");  
+  printf("\n");
 }
 
 inline void dumpToFile(Matrix& mat, FILE* fp) {

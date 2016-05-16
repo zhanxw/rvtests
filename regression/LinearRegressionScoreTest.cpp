@@ -176,9 +176,9 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   for (int i = 0; i < n; i++) {
     U.AddMultiple(this->lr.GetResiduals()[i], Xcol[i]);
 
-    MatrixPlusEqualV1andV2T(SS, Xcol[i], Xcol[i]);
+    MatrixPlusEqualV1andV1T(SS, Xcol[i]);
     MatrixPlusEqualV1andV2T(SZ, Xcol[i], Xnull[i]);
-    MatrixPlusEqualV1andV2T(ZZ, Xnull[i], Xnull[i]);
+    MatrixPlusEqualV1andV1T(ZZ, Xnull[i]);
   }
   // inverse in place ZZ
   SVD svd;
@@ -198,7 +198,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   //
   this->Vmatrix = SS;
   this->Vmatrix *= lr.GetSigma2();
-  
+
   svd.InvertInPlace(SS);
   Matrix Umat;
   copy(U, &Umat);
@@ -228,7 +228,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
  * V = \hat{\sigma}^2 ( \sum _i S_i S_i^T - (\sum S_i)  (\sum S_i^T) / n)
  * U^T*inv(V)*U is the score test statistic
  */
-bool LinearRegressionScoreTest::TestCovariate(Matrix& X, Vector& y) {
+bool LinearRegressionScoreTest::TestCovariate(const Matrix& X,
+                                              const Vector& y) {
   if (X.rows != y.Length()) {
     fprintf(stderr, "Incompatible dimensino.\n");
     return false;

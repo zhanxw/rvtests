@@ -16,6 +16,7 @@
 //
 
 #include "MathMatrix.h"
+
 #include "Error.h"
 #include "MathConstant.h"
 #include "MathVector.h"

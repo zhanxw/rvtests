@@ -3,19 +3,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>  // gethostname
 #include <string.h>  // strlen
 #include <time.h>
+#include <unistd.h>  // gethostname
 
-#include <string>
+#include <iostream>
 #include <map>
 #include <queue>
+#include <string>
 #include <vector>
-#include <iostream>
 
+#include "LineBreaker.h"
 #include "OrderedMap.h"
 #include "TypeConversion.h"
-#include "LineBreaker.h"
 
 #define UNUSED(x) ((void)(x))
 

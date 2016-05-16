@@ -1,8 +1,8 @@
 #ifndef _TABIXREADER_H_
 #define _TABIXREADER_H_
 
-#include "third/tabix/tabix.h"
 #include "RangeList.h"
+#include "third/tabix/tabix.h"
 
 class TabixReader {
  public:

@@ -1,9 +1,9 @@
 #include "Socket.h"
 
-#include <string.h>  // memset()
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
+#include <string.h>  // memset()
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>  // close()
 
 Socket::Socket(const std::string& host, int port)

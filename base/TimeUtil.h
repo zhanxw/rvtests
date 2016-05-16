@@ -1,8 +1,8 @@
 #ifndef _TIMEUTIL_H_
 #define _TIMEUTIL_H_
 
-#include <string>
 #include <ctime>
+#include <string>
 
 /**
  * @return a string representing current time, without '\n' at the end

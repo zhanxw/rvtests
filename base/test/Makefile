@@ -1,7 +1,7 @@
 EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
       testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
       testCommonFunction testTypeConversion testSimpleTimer testProfiler testVersionChecker \
-      testSocket testHttp testIndexer
+      testSocket testHttp testIndexer testSimpleString
 all: $(EXE)
 debug: all
 
@@ -27,21 +27,23 @@ $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 ../lib-dbg-base.a:
 	$(MAKE) -C ../ debug
 $(EXE): ../lib-dbg-base.a
+.phony: check
 check: kinship
-	./testIO && \
-	./testLogger && \
-	./testRangeList > testRangeList_output && \
-	diff testRangeList_output testRangeList_output.correct && \
-	./testUtils && \
-	./testRegex && \
-	./testSimpleMatrix  && \
-	./testPedigree test.ped >& testPedigree.out && diff testPedigree.correct testPedigree.out && \
-        ./testParRegion && \
-        ./testCommonFunction && \
-        ./testTypeConversion > test.TypeConversion.output && diff test.TypeConversion.output test.TypeConversion.correct && \
-        ./testSimpleTimer && \
-        ./testIndexer && \
-        echo "All tests passed!"
+	./testIO 
+	./testLogger 
+	./testRangeList > testRangeList_output 
+	diff testRangeList_output testRangeList_output.correct 
+	./testUtils 
+	./testRegex 
+	./testSimpleMatrix  
+	./testPedigree test.ped >testPedigree.out 2>&1 && diff testPedigree.correct testPedigree.out 
+	./testParRegion 
+	./testCommonFunction 
+	./testTypeConversion > test.TypeConversion.output && diff test.TypeConversion.output test.TypeConversion.correct 
+	./testSimpleTimer 
+	./testIndexer 
+	./testSimpleString 
+	echo "All tests passed!"
 
 kinship:
 	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct && \

@@ -1,11 +1,11 @@
 #ifndef _TYPECONVERSION_H_
 #define _TYPECONVERSION_H_
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h>  // for HUGE_VALH, HUGE_VALL
+#include <stdio.h>
+#include <stdlib.h>
 #include <sstream>
 #include <vector>
 

@@ -1,8 +1,8 @@
 #ifndef _PROFILER_H_
 #define _PROFILER_H_
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 #include "SimpleTimer.h"
 

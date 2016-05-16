@@ -1,10 +1,10 @@
 #ifndef _SIMPLEMATRIX_H_
 #define _SIMPLEMATRIX_H_
 
-#include <vector>
+#include <stdio.h>
 #include <set>
 #include <string>
-#include <stdio.h>
+#include <vector>
 
 /**
  * This matrix class is for convenient store matrix class.
@@ -56,7 +56,7 @@ class SimpleMatrix {
    * Remove rows in which their row names are in @param rowNamSet
    */
   int dropRow(const std::set<std::string>& rowNameSet);
-  int dropRow(const std::vector<std::string>& name);  
+  int dropRow(const std::vector<std::string>& name);
   int dropRow(const std::vector<int>& index);
   int addRow(const std::vector<std::string>& newRowName, double value);
 

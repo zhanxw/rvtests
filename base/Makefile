@@ -9,11 +9,11 @@ LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship Profiler VersionChecker \
-       Socket Http TextMatrix Indexer
+       Socket Http TextMatrix Indexer KinshipHolder
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 
-DEFAULT_CXXFLAGS = -std=c++0x -I. $(addprefix -I, $(THIRD_INC))
+DEFAULT_CXXFLAGS ?= -std=c++0x -I. -I$(ROOT) $(addprefix -I, $(THIRD_INC))
 # enable read over HTTP and FTP
 DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 
@@ -38,7 +38,7 @@ define BUILD_each
   -include  $(1).d
   -include  $(1)_dbg.d 
   $$(TAR) $$(TAR_DBG): $$(SRC) | $$(THIRD_INC)
-	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@
+	$$(CXX) -MMD $$(CXXFLAGS) $$(CXX_INCLUDE) -c $$< -o $$@
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 

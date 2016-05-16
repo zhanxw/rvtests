@@ -12,7 +12,7 @@ class TextMatrix {
    * read in a text file
    */
   int readFile(const std::string& fn, int flag = 0);
-  std::vector<std::string>& operator[](int i) { return mat[i]; }  
+  std::vector<std::string>& operator[](int i) { return mat[i]; }
   const std::vector<std::string> header() const;
   void clear() {
     mat.clear();
@@ -26,7 +26,7 @@ class TextMatrix {
   }
   const std::vector<std::string>& getRowName() const { return this->rowName; };
   const std::vector<std::string>& getColName() const { return this->colName; };
-  
+
   /**
    * Only keep the columns whose names are in @param colName
    */

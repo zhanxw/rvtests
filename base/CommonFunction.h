@@ -2,10 +2,10 @@
 #define _COMMONFUNCTION_H_
 
 #include <algorithm>
-#include <set>
 #include <map>
-#include "gsl/gsl_cdf.h"
+#include <set>
 #include "Utils.h"
+#include "gsl/gsl_cdf.h"
 
 //////////////////////////////////////////////////
 // Statistics functions
@@ -200,7 +200,7 @@ inline void makeSet(const std::string& str, char sep,
   if (str.empty()) return;
 
   std::vector<std::string> fd;
-  stringTokenize(str, ",", &fd);
+  stringTokenize(str, sep, &fd);
   for (size_t i = 0; i < fd.size(); i++) s->insert(fd[i]);
 }
 
@@ -318,7 +318,7 @@ inline int intersect(const std::vector<T>& a, std::vector<T>* b) {
 
 template <class T>
 inline std::vector<T> intersect(const std::vector<T>& a,
-                                   const std::vector<T>& b) {
+                                const std::vector<T>& b) {
   std::vector<T> ret(b);
   intersect(a, &ret);
   return ret;
@@ -337,10 +337,11 @@ inline int remove(const std::vector<T>& a, std::vector<T>* b) {
 }
 
 /**
- * 
+ *
  */
 template <class T>
-inline std::vector<T> setSubtract(const std::vector<T>& a, const std::vector<T>& b) {
+inline std::vector<T> setSubtract(const std::vector<T>& a,
+                                  const std::vector<T>& b) {
   std::vector<T> s(a);
   remove(b, &s);
   return s;

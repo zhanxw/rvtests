@@ -1,15 +1,17 @@
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
-#include <string.h>  // for strlen
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <string.h>  // for strlen
 
-#include <vector>
-#include <string>
-#include <cassert>
 #include <algorithm>
+#include <cassert>
+#include <string>
+#include <vector>
+
+#include "SimpleString.h"
 
 /**
  * String related utility functions
@@ -42,57 +44,140 @@ inline std::string stringStrip(const std::string& s) {
   size_t end = s.find_last_not_of(' ');
   return s.substr(beg, end - beg);
 }
+
 /**
  * split " ",
  *   for "a b", split to "a", "b"
  *   for "a", split to "a"
- *   for "a ", split to "a", ""
- *   for "", split to ""
+ *   for "a ", split to "a" (similar to R strsplit())
+ *   for " ", split to ""
+ *   for "", split to nothing (length = 0)
  */
 class StringTokenizer {
  public:
-  StringTokenizer(const std::string& i, char token) : data(i) {
-    this->token = token;
+  StringTokenizer(const std::string& i, char token) : data(&i) {
+    this->token.resize(127);  // all ascii characters
+    setToken(token);
     reset();
   }
-  StringTokenizer(const std::string& i, const std::string& token) : data(i) {
-    this->token = token;
+  StringTokenizer(const std::string& i, const std::string& token) : data(&i) {
+    this->token.resize(127);  // all ascii characters
+    setToken(token);
     reset();
   }
-  void reset() {
-    this->begin = 0;
-    this->end = data.size();
+  StringTokenizer(char token) : data(NULL) {
+    this->token.resize(127);  // all ascii characters
+    setToken(token);
+  }
+  StringTokenizer(const std::string& token) : data(NULL) {
+    this->token.resize(127);  // all ascii characters
+    setToken(token);
   }
   /**
    * @param piece parsed a piece of string
    * @return true if there are more parsed results
    */
   bool next(std::string* piece) {
-    std::string& s = *piece;
-    s.clear();
-    while (begin <= end) {
-      if (begin == end) {
-        ++begin;
-        return true;
-      }
+    if (current >= end) {
+      return false;
+    }
 
-      const char& c = data[begin];
-      if (token.find(c) == std::string::npos) {
-        // not a token
-        s.push_back(c);
-        ++begin;
+    size_t ptr = current;
+    const char* d = data->data();
+    while (ptr != end) {
+      if (inToken(*(d + ptr))) {
+        break;
       } else {
-        ++begin;
-        return begin < end;
+        ++ptr;
       }
     }
-    return begin <= end;
+    // now ptr is either a delim or the end of the data
+    piece->assign(d + current, d + ptr);
+    // fprintf(stderr, "piece = %s\n", piece->data());
+    current = ptr + 1;
+    return true;
+  }
+  int tokenize(const std::string& in, std::vector<std::string>* result) {
+    this->data = &in;
+    reset();
+    return tokenize(result);
+  }
+  int tokenize(std::vector<std::string>* result) {
+    assert(result);
+    // scan to determine size of result
+    int n = 0;
+    const char* d;
+    for (size_t i = 0; i != this->end; ++i) {
+      if (inToken(*(d + i))) {
+        ++n;
+      }
+    }
+    // store results
+    result->resize(n);
+    size_t i = 0;
+    while (this->next(&((*result)[i]))) {
+      ++i;
+    }
+    return n;
+  }
+  int naturalTokenize(const std::string& in, std::vector<std::string>* result) {
+    this->data = &in;
+    reset();
+    return naturalTokenize(result);
+  }
+  int naturalTokenize(std::vector<std::string>* result) {
+    assert(result);
+    result->resize(0);
+    // scan to determine size of result
+    int n = 0;
+    size_t i = 0;
+    size_t last = 0;
+    for (i = 0; i != this->end; ++i) {
+      if (inToken((*data)[i])) {
+        if (last != i) {
+          ++n;
+          last = i + 1;
+        }
+      }
+    }
+    if (last != i) {
+      ++n;
+    }
+    // store results
+    result->resize(n);
+    i = 0;
+    while (this->next(&((*result)[i]))) {
+      if (!((*result)[i]).empty()) {
+        ++i;
+      }
+    }
+    return n;
   }
 
  private:
-  const std::string& data;
-  std::string token;
-  size_t begin;
+  void reset() {
+    this->current = 0;
+    this->end = this->data->size();
+  }
+  void cleanToken() {
+    size_t n = token.size();
+    for (size_t i = 0; i != n; ++i) {
+      token[i] = 0;
+    }
+  }
+  void setToken(const std::string& delim) {
+    size_t n = delim.size();
+    for (size_t i = 0; i != n; ++i) {
+      token[delim[i]] = 1;
+    }
+  }
+  void setToken(const char delim) { token[(int)delim] = true; }
+  bool inToken(const char c) const { return token[(int)c]; }
+
+ private:
+  const std::string* data;
+  std::vector<char> token;
+  size_t current;
   size_t end;
 };  // StringTokenizer
 
@@ -142,27 +227,33 @@ inline int stringNaturalTokenize(const std::string& str,
                                  const std::string& delim,
                                  std::vector<std::string>* result) {
   assert(result);
-  result->clear();
+  result->resize(0);
   if (!delim.size()) {
     fprintf(stderr, "stringTokenize() using an empty delim");
     result->push_back(str);
     return -1;
   }
-  std::string s;
+  static std::string ss;
+  static SimpleString s(4096);
+  s.resize(0);
   unsigned int l = str.size();
   unsigned int i = 0;
   while (i < l) {
     if (delim.find(str[i]) != std::string::npos) {  // it's a delimeter
-      if (s.size() > 0) {
-        result->push_back(s);
-        s.clear();
+      if (!s.empty()) {
+        ss = s.data();
+        result->push_back(ss);
+        s.resize(0);
       }
     } else {
-      s.push_back(str[i]);
+      s.append(str[i]);
     }
     ++i;
   };
-  if (s.size() > 0) result->push_back(s);
+  if (!s.empty()) {
+    ss = s.data();
+    result->push_back(ss);
+  }
   return result->size();
 };
 
@@ -181,7 +272,8 @@ inline void stringJoin(const std::vector<std::string>& array, const char delim,
   }
 };
 
-inline std::string stringJoin(const std::vector<std::string>& array, const char delim) {
+inline std::string stringJoin(const std::vector<std::string>& array,
+                              const char delim) {
   std::string res;
   stringJoin(array, delim, &res);
   return res;

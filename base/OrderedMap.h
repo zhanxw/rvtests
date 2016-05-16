@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 #include <cassert>
-#include <vector>
 #include <map>
+#include <vector>
 #include "Exception.h"
 
 /**

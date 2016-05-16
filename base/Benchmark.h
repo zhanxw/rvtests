@@ -1,8 +1,8 @@
 #ifndef BENCHMARK_H
 #define BENCHMARK_H
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 /**

@@ -1,15 +1,15 @@
 #ifndef _RANGELIST_H_
 #define _RANGELIST_H_
 
-#include <vector>
-#include <set>
-#include <map>
 #include <algorithm>
 #include <cassert>
+#include <map>
+#include <set>
+#include <vector>
 
+#include "IO.h"
 #include "TypeConversion.h"
 #include "Utils.h"
-#include "IO.h"
 
 /**
    range is inclusive on both edges.

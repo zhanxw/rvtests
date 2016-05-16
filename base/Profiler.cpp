@@ -1,7 +1,7 @@
 #include "Profiler.h"
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 #include "SimpleTimer.h"
 
@@ -39,8 +39,9 @@ void Profiler::dump() {
         FlatMetric(it->first, it->second.nHits, it->second.timer.getSeconds()));
   }
   std::sort(v.begin(), v.end(),
-            [](const FlatMetric& a, const FlatMetric& b)
-                -> bool { return a.avgElapsed > b.avgElapsed; });
+            [](const FlatMetric& a, const FlatMetric& b) -> bool {
+              return a.avgElapsed > b.avgElapsed;
+            });
   for (size_t i = 0; i != v.size(); ++i) {
     const FlatMetric& x = v[i];
     fprintf(stderr,

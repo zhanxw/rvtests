@@ -8,8 +8,6 @@ Duplicated person [ p1 ] in the duplicated family [ fam2 ], but not consistent t
 Encounter error when adding line 6.
 Duplicated person [ p1 ] in the duplicated family [ fam2 ], but not consistent to previous entries
 Encounter error when adding line 9.
-Duplicated person [ q3 ] in a new family [  ], this is not a supported feature.
-Encounter error when adding line 10.
 Load failed!
 Total 2 family loaded:  fam1,  fam2, 
 Total 6 founder loaded: 

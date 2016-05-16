@@ -1,9 +1,9 @@
 #ifndef _EXCEPTION_H_
 #define _EXCEPTION_H_
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 
 /**

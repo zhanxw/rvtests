@@ -45,9 +45,9 @@ class AccurateTimer : public SimpleTimer {};
 #ifdef _USE_CXX11
 //////////////////////////////////////////////////
 // C++11 standard version of accurate timer
+#include <chrono>
 #include <ctime>
 #include <ratio>
-#include <chrono>
 
 class AccurateTimer {
  public:
@@ -75,10 +75,10 @@ class AccurateTimer {
 
 #if !defined(_USE_CXX11) && defined(__APPLE__)
 #pragma message "Use native Apple Timer"
-#include <time.h>
-#include <sys/time.h>
 #include <mach/clock.h>
 #include <mach/mach.h>
+#include <sys/time.h>
+#include <time.h>
 
 class AccurateTimer {
  public:

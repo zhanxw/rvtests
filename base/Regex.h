@@ -17,12 +17,12 @@ class Regex {
   /**
    * read pattern like "=Synonymous,=Indel"
    */
-  int readPattern(const char* argRegex) ;
+  int readPattern(const char* argRegex);
   int readPattern(const std::string& argRegex);
   /**
    * @return true if matches.
    */
-  bool match(const char* text) ;
+  bool match(const char* text);
 
   /**
    * @return if any pattern matches the @param text[begin...end], will return
@@ -30,7 +30,7 @@ class Regex {
    * @param begin: inclusive
    * @param end: exclusive
    */
-  bool match(const char* text, int begin, int end) ;
+  bool match(const char* text, int begin, int end);
   Regex();
   ~Regex();
   bool isInitialized() const { return this->initialized; }

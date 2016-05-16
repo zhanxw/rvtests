@@ -1,15 +1,15 @@
 #ifndef _PARREGION_H_
 #define _PARREGION_H_
 
-#include <limits.h>
 #include <assert.h>
+#include <limits.h>
 #include <map>
 #include <set>
 #include <string>
 #include <utility>  // std::pair
 #include <vector>
-#include "Utils.h"
 #include "TypeConversion.h"
+#include "Utils.h"
 
 /**
  * A tools class to check if some variant in ParRegion

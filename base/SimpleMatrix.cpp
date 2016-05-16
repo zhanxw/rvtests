@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <cmath>
 
-#include "IO.h"
-#include "TypeConversion.h"
 #include "CommonFunction.h"
+#include "IO.h"
 #include "Indexer.h"
+#include "TypeConversion.h"
 
 void SimpleMatrix::resize(int nr, int nc) {
   if (nr < 0 || nc < 0) return;

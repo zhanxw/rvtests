@@ -1,7 +1,7 @@
 #include "ModelManager.h"
 
-#include "ModelFitter.h"
 #include "Model.h"
+#include "ModelFitter.h"
 #include "ModelParser.h"
 #include "TabixUtil.h"
 

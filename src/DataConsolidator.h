@@ -7,6 +7,7 @@
 #include "libsrc/Random.h"
 
 #include "Formula.h"
+#include "GenotypeCounter.h"
 #include "KinshipHolder.h"
 #include "Result.h"
 
@@ -28,70 +29,6 @@ class WarningOnce {
 };
 
 class EigenMatrix;
-
-/**
- * Impute missing genotype (<0) according to population frequency (p^2, 2pq,
- * q^2)
- */
-inline void imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
-  Matrix& m = *genotype;
-  for (int i = 0; i < m.cols; i++) {
-    int ac = 0;
-    int an = 0;
-    for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] >= 0) {
-        ac += m[j][i];
-        an += 2;
-      }
-    }
-    double p = an == 0 ? 0 : 1.0 * ac / an;
-    double pRef = p * p;
-    double pHet = pRef + 2.0 * p * (1.0 - p);
-    for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] < 0) {
-        double v = r->Next();
-        if (v < pRef) {
-          m[j][i] = 0;
-        } else if (v < pHet) {
-          m[j][i] = 1;
-        } else {
-          m[j][i] = 2;
-        }
-      }
-    }
-  }
-};
-
-/**
- * Impute missing genotype (<0) according to its mean genotype
- * @param genotype (people by marker matrix)
- */
-inline void imputeGenotypeToMean(Matrix* genotype) {
-  Matrix& m = *genotype;
-  for (int i = 0; i < m.cols; i++) {
-    int ac = 0;
-    int an = 0;
-    for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] >= 0) {
-        ac += m[j][i];
-        an += 2;
-      }
-    }
-    double p;
-    if (an == 0) {
-      p = 0.0;
-    } else {
-      p = 1.0 * ac / an;
-    }
-    double g = 2.0 * p;
-    for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] < 0) {
-        m[j][i] = g;
-      }
-    }
-    // fprintf(stderr, "impute to mean = %g, ac = %d, an = %d\n", g, ac, an);
-  }
-};
 
 /**
  * @return true if any of the markers (@param col) of @param genotype (people by
@@ -133,68 +70,6 @@ void removeMonomorphicMarker(Matrix* genotype);
 void convertToMinorAlleleCount(Matrix& in, Matrix* g);
 
 /**
- * This class counts either hard genotype calls or dosage
- */
-class GenotypeCounter {
- public:
-  GenotypeCounter() { reset(); }
-  void reset() {
-    nHomRef = nHet = nHomAlt = nMissing = nSample = 0;
-    sumAC = 0.;
-  }
-  void add(const double g) {
-    // to accomodate dosage (g), we will use these thresholds for dosages
-    // 0 <= g < 1  => (1 - g) homRef and (g) het
-    // 1 <= g < 2  => (2 - g) het and (g - 1) homAlt
-    if (g < 0) {
-      ++(nMissing);
-    }
-    if (g < 2.0 / 3) {
-      ++(nHomRef);
-      sumAC += g;
-    } else if (g < 4.0 / 3) {
-      ++(nHet);
-      sumAC += g;
-    } else if (g <= 2.0) {
-      ++(nHomAlt);
-      sumAC += g;
-    } else {
-      ++(nMissing);
-    }
-    ++nSample;
-  }
-  int getNumHomRef() const { return this->nHomRef; }
-  int getNumHet() const { return this->nHet; }
-  int getNumHomAlt() const { return this->nHomAlt; }
-  int getNumMissing() const { return this->nMissing; }
-  int getNumSample() const { return this->nSample; }
-  double getCallRate() const {
-    double callRate = 0.0;
-    if (nSample) {
-      callRate = 1.0 - 1.0 * nMissing / nSample;
-    }
-    return callRate;
-  }
-  double getAF() const {
-    double af = -1.0;
-    if (nSample) {
-      af = 0.5 * sumAC / nSample;
-    }
-    return af;
-  }
-  // total alternative allele counts
-  double getAC() const { return sumAC; }
-  double getHWE() const;
-
- private:
-  int nHomRef;
-  int nHet;
-  int nHomAlt;
-  int nMissing;
-  int nSample;
-  double sumAC;
-};
-/**
  * This class is in charge of cleanning data before fitting in model
  * The cleaning step includes:
  *  remove monomorphic sites
@@ -218,6 +93,19 @@ class DataConsolidator {
   DataConsolidator();
   virtual ~DataConsolidator();
   void setStrategy(const int s) { this->strategy = s; };
+
+  /**
+   * Impute missing genotype (<0) according to population frequency (p^2, 2pq,
+   * q^2)
+   */
+  void imputeGenotypeByFrequency(Matrix* genotype, Random* r);
+
+  /**
+   * Impute missing genotype (<0) according to its mean genotype
+   * @param genotype (people by marker matrix)
+   */
+  void imputeGenotypeToMean(Matrix* genotype);
+
   /**
    * @param pheno, @param cov @param genotype are all ordered and sorted by the
    * same set of samples
@@ -227,10 +115,14 @@ class DataConsolidator {
    * we assume @param geno is always changed
    */
   void consolidate(Matrix& pheno, Matrix& cov, Matrix& geno) {
-    this->originalGenotype = geno;
+    if (&geno != &this->originalGenotype) {
+      this->originalGenotype = geno;
+      copyColName(geno, &this->originalGenotype);
+      // fprintf(stderr, "== Copy occured\n");
+    }
+
     this->genotype = geno;
     copyColName(geno, &this->genotype);
-    copyColName(geno, &this->originalGenotype);
 
     if (isPhenotypeUpdated()) {
       copyColName(pheno, &this->phenotype);
@@ -239,6 +131,7 @@ class DataConsolidator {
       copyColName(cov, &this->covariate);
     }
 
+    // impute missing genotypes
     if (this->strategy == IMPUTE_MEAN) {
       // impute missing genotypes
       imputeGenotypeToMean(&this->genotype);
@@ -300,10 +193,10 @@ class DataConsolidator {
       logger->error(
           "Uninitialized consolidation methods to handle missing data!");
     }
-  }
-  /**
-   * Compare @param a and @param b by comparing their common finite elements.
-   */
+  }  // end consolidate
+     /**
+      * Compare @param a and @param b by comparing their common finite elements.
+      */
   bool isEqual(Matrix& a, Matrix& b) {
     if (a.rows != b.rows) return false;
     if (a.cols != b.cols) return false;
@@ -357,6 +250,7 @@ class DataConsolidator {
     removeMonomorphicMarker(&flippedToMinorGenotype);
     return this->flippedToMinorGenotype;
   }
+  Matrix& getOriginalGenotype() { return this->originalGenotype; }
   Matrix& getPhenotype() { return this->phenotype; }
   Matrix& getCovariate() { return this->covariate; }
   Vector& getWeight() { return this->weight; }
@@ -440,12 +334,15 @@ class DataConsolidator {
   void setSex(const std::vector<int>* sex) { this->sex = sex; };
   void setFormula(const FormulaVector* formula) { this->formula = formula; };
   const FormulaVector* getFormula() const { return this->formula; };
+  void setGenotypeCounter(const std::vector<GenotypeCounter>& c) {
+    this->counter = &c;
+  };
   /**
    * Check if genotype matrix column @param columnIndex is a chromosome X.
    */
   bool isHemiRegion(int columnIndex) {
     assert(this->parRegion);
-    std::string chromPos = this->genotype.GetColumnLabel(0);
+    std::string chromPos = this->genotype.GetColumnLabel(columnIndex);
     size_t posColon = chromPos.find(":");
     if (posColon == std::string::npos) return false;
     std::string chrom = chromPos.substr(0, posColon);
@@ -543,6 +440,10 @@ class DataConsolidator {
   int checkPredictor(Matrix& pheno, Matrix& cov);
 
  public:
+  double getMarkerFrequency(int col);
+  void getMarkerFrequency(std::vector<double>* freq);
+
+ public:
   // codes related to kinship
   int setKinshipSample(const std::vector<std::string>& samples);
   int setKinshipFile(int kinshipType, const std::string& fileName);
@@ -602,7 +503,7 @@ class DataConsolidator {
   const std::vector<int>* sex;
   // store formulae
   const FormulaVector* formula;
-
+  const std::vector<GenotypeCounter>* counter;
   ParRegion* parRegion;
 };  // end DataConsolidator
 

@@ -53,29 +53,34 @@ typedef void (*CollapsingFunction)(Matrix& in, const std::vector<int>& idx,
 // various collapsing method
 // they all take people by marker matrix
 // and they won't take special care of missing genotypes
-double getMarkerFrequency(Matrix& in, int col);
-void getMarkerFrequency(Matrix& in, std::vector<double>* freq);
+
+// double getMarkerFrequency(Matrix& in, int col);
+// void getMarkerFrequency(Matrix& in, std::vector<double>* freq);
+double getMarkerFrequency(DataConsolidator* dc, int col);
+void getMarkerFrequency(DataConsolidator* dc, std::vector<double>* freq);
 double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col);
 
-void cmcCollapse(Matrix& in, Matrix* out);
-void cmcCollapse(Matrix& in, const std::vector<int>& idx, Matrix* out,
-                 int index);
+void cmcCollapse(DataConsolidator* dc, Matrix& in, Matrix* out);
+void cmcCollapse(DataConsolidator* dc, Matrix& in, const std::vector<int>& idx,
+                 Matrix* out, int index);
 
-void zegginiCollapse(Matrix& in, Matrix* out);
-void zegginiCollapse(Matrix& in, const std::vector<int>& idx, Matrix* out,
-                     int index);
+void zegginiCollapse(DataConsolidator* dc, Matrix& in, Matrix* out);
+void zegginiCollapse(DataConsolidator* dc, Matrix& in,
+                     const std::vector<int>& idx, Matrix* out, int index);
 
-void fpCollapse(Matrix& in, Matrix* out);
+void fpCollapse(DataConsolidator* dc, Matrix& in, Matrix* out);
 
-void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out);
+void madsonBrowningCollapse(DataConsolidator* dc, Matrix& genotype,
+                            Vector& phenotype, Matrix* out);
 
 void groupFrequency(const std::vector<double>& freq,
                     std::map<double, std::vector<int> >* group);
 void convertToReferenceAlleleCount(Matrix& in, Matrix* g);
 
 void makeVariableThreshodlGenotype(
-    Matrix& in, Matrix* out, std::vector<double>* freqOut,
-    void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int));
+    DataConsolidator* dc, Matrix& in, Matrix* out, std::vector<double>* freqOut,
+    void (*collapseFunc)(DataConsolidator* dc, Matrix&, const std::vector<int>&,
+                         Matrix*, int));
 
 void appendHeritability(FileWriter* fp, const FastLMM& model);
 void appendHeritability(FileWriter* fp, const GrammarGamma& model);
@@ -253,7 +258,7 @@ class SingleVariantScoreTest : public ModelFitter {
       return -1;
     }
     nSample = genotype.rows;
-    af = getMarkerFrequency(genotype, 0);
+    af = getMarkerFrequency(dc, 0);
     if (isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
       return -1;
@@ -799,9 +804,7 @@ class CMCTest : public ModelFitter {
     Matrix& phenotype = dc->getPhenotype();
     Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
-    return this->fit(phenotype, genotype, covariate);
-  }
-  int fit(Matrix& phenotype, Matrix& genotype, Matrix& covariate) {
+
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
       fitOK = false;
@@ -815,7 +818,7 @@ class CMCTest : public ModelFitter {
       pheno[i] = phenotype[i][0];
     }
 
-    cmcCollapse(genotype, &collapsedGenotype);
+    cmcCollapse(dc, genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(cov, pheno, 100);
@@ -912,7 +915,7 @@ class CMCWaldTest : public ModelFitter {
       pheno[i] = phenotype[i][0];
     }
 
-    cmcCollapse(genotype, &collapsedGenotype);
+    cmcCollapse(dc, genotype, &collapsedGenotype);
 
     if (covariate.cols) {
       copyGenotypeWithCovariateAndIntercept(collapsedGenotype, covariate,
@@ -1003,7 +1006,7 @@ class ZegginiWaldTest : public ModelFitter {
       pheno[i] = phenotype[i][0];
     }
 
-    zegginiCollapse(genotype, &collapsedGenotype);
+    zegginiCollapse(dc, genotype, &collapsedGenotype);
 
     if (covariate.cols) {
       copyGenotypeWithCovariateAndIntercept(collapsedGenotype, covariate,
@@ -1095,7 +1098,7 @@ class CMCFisherExactTest : public ModelFitter {
     }
 
     // collapsing
-    cmcCollapse(genotype, &collapsedGenotype);
+    cmcCollapse(dc, genotype, &collapsedGenotype);
 
     // fit model
     // step 1, fit two by two table
@@ -1172,7 +1175,7 @@ class ZegginiTest : public ModelFitter {
       pheno[i] = phenotype[i][0];
     }
 
-    zegginiCollapse(genotype, &collapsedGenotype);
+    zegginiCollapse(dc, genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(cov, pheno, 100);
@@ -1249,7 +1252,7 @@ class MadsonBrowningTest : public ModelFitter {
     Matrix cov;
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
     copyPhenotype(phenotype, &this->pheno);
-    madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
+    madsonBrowningCollapse(dc, genotype, pheno, &collapsedGenotype);
 
     fitOK = logistic.FitNullModel(cov, pheno, 100);
     if (!fitOK) {
@@ -1265,7 +1268,7 @@ class MadsonBrowningTest : public ModelFitter {
     int failed = 0;
     while (this->perm.next()) {
       permute(&this->pheno);
-      madsonBrowningCollapse(genotype, pheno, &collapsedGenotype);
+      madsonBrowningCollapse(dc, genotype, pheno, &collapsedGenotype);
       fitOK = logistic.TestCovariate(collapsedGenotype, pheno);
       if (!fitOK) {
         if (failed < 10) {
@@ -1348,7 +1351,7 @@ class FpTest : public ModelFitter {
       pheno[i] = phenotype[i][0];
     }
 
-    fpCollapse(genotype, &collapsedGenotype);
+    fpCollapse(dc, genotype, &collapsedGenotype);
 
     if (isBinaryOutcome()) {
       fitOK = logistic.FitNullModel(cov, pheno, 100);
@@ -1576,8 +1579,6 @@ class CMATTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
     Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
@@ -1594,11 +1595,9 @@ class CMATTest : public ModelFitter {
       fitOK = false;
       return -1;
     }
-    copyPhenotype(phenotype, &this->pheno);
 
     // we use equal weight
-    this->stat = this->calculateStat(genotype, pheno, &N_A, &N_U, &m_A, &m_U,
-                                     &M_A, &M_U);
+    this->stat = this->calculateStat(dc, &N_A, &N_U, &m_A, &m_U, &M_A, &M_U);
     this->perm.init(this->stat);
 
     // permutation part
@@ -1606,8 +1605,7 @@ class CMATTest : public ModelFitter {
     while (this->perm.next()) {
       permute(&pheno);
       // record new stats
-      double pStat =
-          this->calculateStat(genotype, pheno, &d1, &d2, &d3, &d4, &d5, &d6);
+      double pStat = this->calculateStat(dc, &d1, &d2, &d3, &d4, &d5, &d6);
       this->perm.add(pStat);
     }  // end permutation
     fitOK = true;
@@ -1631,9 +1629,13 @@ class CMATTest : public ModelFitter {
       this->perm.writeOutputLine(fp);
     }
   }
-  double calculateStat(Matrix& genotype, Vector& phenotype, double* p_N_A,
-                       double* p_N_U, double* p_m_A, double* p_m_U,
-                       double* p_M_A, double* p_M_U) {
+  double calculateStat(DataConsolidator* dc, double* p_N_A, double* p_N_U,
+                       double* p_m_A, double* p_m_U, double* p_M_A,
+                       double* p_M_U) {
+    Matrix& phenotype = dc->getPhenotype();
+    copyPhenotype(phenotype, &this->pheno);
+    Matrix& genotype = dc->getGenotype();
+
     double& N_A = *p_N_A;
     double& N_U = *p_N_U;
     double& m_A = *p_m_A;
@@ -1648,7 +1650,7 @@ class CMATTest : public ModelFitter {
     M_A = 0;
     M_U = 0;
 
-    for (int i = 0; i < phenotype.Length(); ++i) {
+    for (int i = 0; i < pheno.Length(); ++i) {
       if (phenotype[i] == 1) {
         ++N_A;
       } else {
@@ -1657,7 +1659,7 @@ class CMATTest : public ModelFitter {
     }
     for (int i = 0; i < genotype.cols; ++i) {
       // for each marker, get its allele frequency
-      double af = getMarkerFrequency(genotype, i);
+      double af = getMarkerFrequency(dc, i);
       bool flip = false;
       if (af > 0.5) {
         flip = true;
@@ -1749,8 +1751,8 @@ class VariableThresholdPrice : public ModelFitter {
     }
 
     // calculate allele frequency
-    makeVariableThreshodlGenotype(genotype, &this->sortedBurden, &this->freq,
-                                  zegginiCollapse);
+    makeVariableThreshodlGenotype(dc, genotype, &this->sortedBurden,
+                                  &this->freq, zegginiCollapse);
     transposeInPlace(
         &this->sortedBurden);  // now each row is a collapsed genoype at
     // certain frequency cutoff
@@ -1977,7 +1979,8 @@ class VTCMC : public ModelFitter {
     // }
     // groupFrequency(freq, &freqGroup);
     freq.clear();
-    makeVariableThreshodlGenotype(geno, &sortedGenotype, &freq, cmcCollapse);
+    makeVariableThreshodlGenotype(dc, geno, &sortedGenotype, &freq,
+                                  cmcCollapse);
 
     // rearrangeGenotypeByFrequency(genotype, &sortedGenotype, &this->freq);
     if (!isBinaryOutcome()) {
@@ -2139,7 +2142,7 @@ class AnalyticVT : public ModelFitter {
     if (!this->useFamilyModel) {
       // calculate af
       for (int i = 0; i < nVariant; ++i) {
-        af[i] = getMarkerFrequency(genotype, i);
+        af[i] = getMarkerFrequency(dc, i);
       }
 
       // adjust covariates
@@ -2293,7 +2296,7 @@ class FamCMC : public ModelFitter {
       needToFitNullModel = false;
     }
 
-    cmcCollapse(genotype, &collapsedGenotype);
+    cmcCollapse(dc, genotype, &collapsedGenotype);
 
     // dumpToFile(genotype, "genotype");
     // dumpToFile(collapsedGenotype, "collapsedGenotype");
@@ -2411,7 +2414,7 @@ class FamZeggini : public ModelFitter {
       needToFitNullModel = false;
     }
 
-    zegginiCollapse(genotype, &collapsedGenotype);
+    zegginiCollapse(dc, genotype, &collapsedGenotype);
 
     fitOK = (0 ==
              lmm.TestCovariate(cov, phenotype, collapsedGenotype,
@@ -2526,7 +2529,7 @@ class FamFp : public ModelFitter {
       needToFitNullModel = false;
     }
 
-    fpCollapse(genotype, &collapsedGenotype);
+    fpCollapse(dc, genotype, &collapsedGenotype);
 
     // dumpToFile(genotype, "genotype");
     // dumpToFile(collapsedGenotype, "collapsedGenotype");
@@ -2618,7 +2621,7 @@ class SkatTest : public ModelFitter {
     // will need to adjust it back
     weight.Dimension(genotype.cols);
     for (int i = 0; i < weight.Length(); i++) {
-      double freq = getMarkerFrequency(genotype, i);
+      double freq = getMarkerFrequency(dc, i);
       // fprintf(stderr, "freq[%d] = %g\n", i, freq);
       if (freq > 0.5) {  // convert to MAF
         freq = 1.0 - freq;
@@ -2773,7 +2776,7 @@ class SkatOTest : public ModelFitter {
     // fill it weight
     weight.Dimension(genotype.cols);
     for (int i = 0; i < weight.Length(); i++) {
-      double freq = getMarkerFrequency(genotype, i);
+      double freq = getMarkerFrequency(dc, i);
       // fprintf(stderr, "freq[%d] = %g\n", i, freq);
       if (freq > 0.5) {  // convert to MAF
         freq = 1.0 - freq;
@@ -2942,7 +2945,7 @@ class KBACTest : public ModelFitter {
       ydatIn[i] = phenotype[i][0];
     }
     for (int j = 0; j < genotype.cols; ++j) {
-      mafIn[j] = getMarkerFrequency(genotype, j);
+      mafIn[j] = getMarkerFrequency(dc, j);
     }
 
     /**

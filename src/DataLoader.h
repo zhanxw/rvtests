@@ -69,7 +69,9 @@ class DataLoader {
   const SimpleMatrix& getCovariate() { return this->covariate; };
   const std::vector<int>& getSex() { return this->sex; };
   const FormulaVector& getFormula() const { return this->formula; };
-  const SimpleMatrix& getEstimation() const { return this->fittedResidualModel; };
+  const SimpleMatrix& getEstimation() const {
+    return this->fittedResidualModel;
+  };
 
  private:
   // for multiple traits

@@ -1,5 +1,6 @@
 #include "GenotypeExtractor.h"
 
+#include "GenotypeCounter.h"
 #include "Result.h"
 #include "base/Logger.h"
 
@@ -38,12 +39,14 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
   std::vector<std::string> colNames;
   std::string name;
   this->hemiRegion.clear();
+  GenotypeCounter genoCounter;
   while (this->vin->readRecord()) {
     VCFRecord& r = this->vin->getVCFRecord();
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;
 
     m.Dimension(row + 1, people.size());
+    genoCounter.reset();
 
     int genoIdx;
     const bool useDosage = (!this->dosageTag.empty());
@@ -90,8 +93,8 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
         }
         if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
           m[row][i] = MISSING_GENOTYPE;
-          continue;
         }
+        genoCounter.add(m[row][i]);
       } else {
         logger->error("Cannot find %s field!",
                       this->dosageTag.empty() ? "GT" : dosageTag.c_str());
@@ -100,24 +103,26 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     }
 
     // check frequency cutoffs
-    int numNonMissingPeople = 0;
-    double maf = 0.;
-    for (int i = 0; i < numPeople; ++i) {
-      if (m[row][i] < 0) continue;
-      maf += m[row][i];
-      ++numNonMissingPeople;
-    }
-    if (numNonMissingPeople) {
-      maf = maf / (2. * numNonMissingPeople);
-    } else {
-      maf = 0.0;
-    }
-    if (maf > .5) {
-      maf = 1.0 - maf;
-    }
+    // int numNonMissingPeople = 0;
+    // double maf = 0.;
+    // for (int i = 0; i < numPeople; ++i) {
+    //   if (m[row][i] < 0) continue;
+    //   maf += m[row][i];
+    //   ++numNonMissingPeople;
+    // }
+    // if (numNonMissingPeople) {
+    //   maf = maf / (2. * numNonMissingPeople);
+    // } else {
+    //   maf = 0.0;
+    // }
+    // if (maf > .5) {
+    //   maf = 1.0 - maf;
+    // }
+    const double maf = genoCounter.getMAF();
     if (this->freqMin > 0. && this->freqMin > maf) continue;
     if (this->freqMax > 0. && this->freqMax < maf) continue;
 
+    // store genotype results
     name = r.getChrom();
     name += ":";
     name += r.getPosStr();
@@ -131,7 +136,8 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     } else {
       this->hemiRegion.push_back(false);
     }
-  }
+    this->counter.push_back(genoCounter);
+  }  // end while (this->vin->readRecord())
 
   // delete rows (ugly code here, as we may allocate extra row in previous
   // loop)
@@ -162,6 +168,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   buf.updateValue("ALT", r.getAlt());
 
   genotype.Dimension(people.size(), 1);
+  counter.resize(1);
 
   // get GT index. if you are sure the index will not change, call this
   // function only once!
@@ -202,27 +209,31 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
       }
       if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
         genotype[i][0] = MISSING_GENOTYPE;
-        continue;
       }
+      counter[0].add(genotype[i][0]);
       // logger->info("%d ", int(genotype[i][0]));
     } else {
+      std::string s;
+      indv->toStr(&s);
       logger->error(
           "Cannot find [ %s ] field when read individual information [ %s ]!",
-          this->dosageTag.empty() ? "GT" : this->dosageTag.c_str(),
-          indv->getSelf().toStr());
+          this->dosageTag.empty() ? "GT" : this->dosageTag.c_str(), s.c_str());
       return ERROR;
     }
   }
 
   // check frequency cutoffs
-  double maf = 0.;
-  for (int i = 0; i < numPeople; ++i) {
-    maf += genotype[i][0];
-  }
-  maf = maf / (2. * numPeople);
-  if (maf > .5) {
-    maf = 1.0 - maf;
-  }
+  // double maf = 0.;
+  // if (this->freqMin > 0.0 || this->freqMax > 0.) {
+  //   for (int i = 0; i < numPeople; ++i) {
+  //     maf += genotype[i][0];
+  //   }
+  //   maf = maf / (2. * numPeople);
+  //   if (maf > .5) {
+  //     maf = 1.0 - maf;
+  //   }
+  // }
+  const double maf = counter[0].getMAF();
   if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
   if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
 

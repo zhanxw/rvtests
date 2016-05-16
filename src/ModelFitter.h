@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "libsrc/MathMatrix.h"
 #include "Result.h"
 #include "Summary.h"
+#include "libsrc/MathMatrix.h"
 
 class DataConsolidator;
 class ModelParser;

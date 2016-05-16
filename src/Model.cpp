@@ -7,6 +7,7 @@
 
 //////////////////////////////////////////////////////////////////////
 // Implementation of various collpasing methods
+#if 0
 /**
  * @return allele frequency
  * NOTE: Madson-Browning definition of alleleFrequency is different
@@ -32,6 +33,14 @@ void getMarkerFrequency(Matrix& in, std::vector<double>* freq) {
   for (int i = 0; i < in.cols; ++i) {
     (*freq)[i] = getMarkerFrequency(in, i);
   }
+}
+#endif
+double getMarkerFrequency(DataConsolidator* dc, int col) {
+  return dc->getMarkerFrequency(col);
+}
+
+void getMarkerFrequency(DataConsolidator* dc, std::vector<double>* freq) {
+  return dc->getMarkerFrequency(freq);
 }
 
 double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col) {
@@ -59,7 +68,7 @@ double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col) {
  * @param in : sample by marker matrix
  * @param out: sample by 1 matrix
  */
-void cmcCollapse(Matrix& in, Matrix* out) {
+void cmcCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
   assert(out);
   int numPeople = in.rows;
   int numMarker = in.cols;
@@ -77,8 +86,8 @@ void cmcCollapse(Matrix& in, Matrix* out) {
   }
 }
 
-void cmcCollapse(Matrix& in, const std::vector<int>& index, Matrix* out,
-                 int outIndex) {
+void cmcCollapse(DataConsolidator* dc, Matrix& in,
+                 const std::vector<int>& index, Matrix* out, int outIndex) {
   assert(out);
   int numPeople = in.rows;
   assert(out->rows == numPeople);
@@ -101,7 +110,7 @@ void cmcCollapse(Matrix& in, const std::vector<int>& index, Matrix* out,
  * @param in : sample by marker matrix
  * @param out: sample by 1 matrix
  */
-void zegginiCollapse(Matrix& in, Matrix* out) {
+void zegginiCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
   assert(out);
   int numPeople = in.rows;
   int numMarker = in.cols;
@@ -118,8 +127,8 @@ void zegginiCollapse(Matrix& in, Matrix* out) {
   }
 }
 
-void zegginiCollapse(Matrix& in, const std::vector<int>& index, Matrix* out,
-                     int outIndex) {
+void zegginiCollapse(DataConsolidator* dc, Matrix& in,
+                     const std::vector<int>& index, Matrix* out, int outIndex) {
   assert(out);
   int numPeople = in.rows;
   assert(out->rows == numPeople);
@@ -141,7 +150,8 @@ void zegginiCollapse(Matrix& in, const std::vector<int>& index, Matrix* out,
  * @param phenotype: binary trait (0 or 1)
  * @param out: collapsed genotype
  */
-void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out) {
+void madsonBrowningCollapse(DataConsolidator* dc, Matrix& genotype,
+                            Vector& phenotype, Matrix* out) {
   assert(out);
   int& numPeople = genotype.rows;
   int numMarker = genotype.cols;
@@ -162,7 +172,7 @@ void madsonBrowningCollapse(Matrix& genotype, Vector& phenotype, Matrix* out) {
   }
 };
 
-void fpCollapse(Matrix& in, Matrix* out) {
+void fpCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
   assert(out);
   int& numPeople = in.rows;
   int numMarker = in.cols;
@@ -172,7 +182,8 @@ void fpCollapse(Matrix& in, Matrix* out) {
 
   for (int m = 0; m < numMarker; m++) {
     // calculate weight
-    double freq = getMarkerFrequency(in, m);
+    // double freq = getMarkerFrequency(in, m);
+    double freq = dc->getMarkerFrequency(m);
     if (freq <= 0.0 || freq >= 1.0) continue;  // avoid freq == 1.0
     double weight = 1.0 / sqrt(freq * (1.0 - freq));
     // fprintf(stderr, "freq = %f\n", freq);
@@ -183,7 +194,7 @@ void fpCollapse(Matrix& in, Matrix* out) {
   }
 }
 
-void madsonBrowningCollapse(Matrix* d, Matrix* out) {
+void madsonBrowningCollapse(DataConsolidator* dc, Matrix* d, Matrix* out) {
   assert(out);
   Matrix& in = (*d);
   int& numPeople = in.rows;
@@ -194,7 +205,8 @@ void madsonBrowningCollapse(Matrix* d, Matrix* out) {
 
   for (int m = 0; m < numMarker; m++) {
     // calculate weight
-    double freq = getMarkerFrequency(in, m);
+    // double freq = getMarkerFrequency(in, m);
+    double freq = dc->getMarkerFrequency(m);
     if (freq <= 0.0 || freq >= 1.0) continue;  // avoid freq == 1.0
     double weight = 1.0 / sqrt(freq * (1.0 - freq));
     // fprintf(stderr, "freq = %f\n", freq);
@@ -284,9 +296,10 @@ void rearrangeGenotypeByFrequency(Matrix& in, const std::vector<double>& freqIn,
 #endif
 
 void makeVariableThreshodlGenotype(
-    Matrix& in, const std::vector<double>& freqIn, Matrix* out,
-    std::vector<double>* freqOut,
-    void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int)) {
+    DataConsolidator* dc, Matrix& in, const std::vector<double>& freqIn,
+    Matrix* out, std::vector<double>* freqOut,
+    void (*collapseFunc)(DataConsolidator*, Matrix&, const std::vector<int>&,
+                         Matrix*, int)) {
   assert((int)freqIn.size() == in.cols);
   assert(freqIn.size());
   assert(out);
@@ -310,7 +323,7 @@ void makeVariableThreshodlGenotype(
     for (size_t i = 0; i != cols.size(); ++i) {
       cumCols.push_back(cols[i]);
     }
-    (*collapseFunc)(in, cumCols, out, idx);
+    (*collapseFunc)(dc, in, cumCols, out, idx);
 
 #if 0
     printf("In:\n");
@@ -346,13 +359,16 @@ int obtainB(double alpha, double* out) {
 }
 
 void makeVariableThreshodlGenotype(
-    Matrix& in, Matrix* out, std::vector<double>* freqOut,
-    void (*collapseFunc)(Matrix&, const std::vector<int>&, Matrix*, int)) {
+    DataConsolidator* dc, Matrix& in, Matrix* out, std::vector<double>* freqOut,
+    void (*collapseFunc)(DataConsolidator*, Matrix&, const std::vector<int>&,
+                         Matrix*, int)) {
   std::vector<double> freqIn;
-  getMarkerFrequency(in, &freqIn);
+  // getMarkerFrequency(in, &freqIn);
+  dc->getMarkerFrequency(&freqIn);
 
-  makeVariableThreshodlGenotype(in, freqIn, out, freqOut, collapseFunc);
+  makeVariableThreshodlGenotype(dc, in, freqIn, out, freqOut, collapseFunc);
 }
+
 void SingleVariantScoreTest::calculateConstant(Matrix& phenotype) {
   int nCase = 0;
   int nCtrl = 0;

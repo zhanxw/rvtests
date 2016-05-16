@@ -27,7 +27,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20160404";
+const char* VERSION = "20160506";
 
 void banner(FILE* fp) {
   const char* string =
@@ -210,11 +210,10 @@ SummaryHeader* g_SummaryHeader = NULL;
 
 void welcome() {
 #ifdef NDEBUG
-  fprintf(stdout, "Thank you for using rvtests (version %s, git tag %s)\n",
+  fprintf(stdout, "Thank you for using rvtests (version: %s, git: %s)\n",
           VERSION, GIT_VERSION);
 #else
-  fprintf(stdout,
-          "Thank you for using rvtests (version %s-Debug, git tag %s)\n",
+  fprintf(stdout, "Thank you for using rvtests (version: %s-Debug, git: %s)\n",
           VERSION, GIT_VERSION);
 #endif
   fprintf(stdout,
@@ -812,6 +811,8 @@ int main(int argc, char** argv) {
   // set up models in qtl/binary modes
   if (dataLoader.isBinaryPhenotype()) {
     modelManager.setBinaryOutcome();
+    matchPhenotypeAndVCF("missing phenotype (not case/control)", &dataLoader,
+                         &ge);
   } else {
     modelManager.setQuantitativeOutcome();
   }
@@ -889,6 +890,7 @@ int main(int argc, char** argv) {
   DataConsolidator dc;
   dc.setSex(&dataLoader.getSex());
   dc.setFormula(&dataLoader.getFormula());
+  dc.setGenotypeCounter(ge.getGenotypeCounter());
 
   // load kinshp if needed by family models
   if (modelManager.hasFamilyModel() ||
@@ -943,7 +945,7 @@ int main(int argc, char** argv) {
   dc.setParRegion(&parRegion);
 
   // genotype will be extracted and stored
-  Matrix genotype;
+  Matrix& genotype = dc.getOriginalGenotype();
   if (FLAG_freqUpper > 0) {
     ge.setSiteFreqMax(FLAG_freqUpper);
     logger->info("Set upper minor allele frequency limit to %g",

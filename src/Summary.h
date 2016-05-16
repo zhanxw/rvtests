@@ -1,11 +1,11 @@
 #ifndef _SUMMARY_H_
 #define _SUMMARY_H_
 
-#include "base/IO.h"
-#include "base/CommonFunction.h"  // calculateMean, calculateSampleSD
-#include "base/SimpleMatrix.h"
 #include <algorithm>
 #include <vector>
+#include "base/CommonFunction.h"  // calculateMean, calculateSampleSD
+#include "base/IO.h"
+#include "base/SimpleMatrix.h"
 
 inline void assign(const std::vector<double>& in, Vector* out) {
   if (!out) return;
@@ -147,7 +147,7 @@ class SummaryHeader {
     if (nParam) {
       fp->write("##ResidualModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      for (int i = 0 ; i < nParam; ++i) {
+      for (int i = 0; i < nParam; ++i) {
         fp->write("## - ");
         fp->write(fittedResidualModel.getRowName()[i]);
         fp->write("\t");
@@ -166,7 +166,7 @@ class SummaryHeader {
       }
     }
   }
-  
+
   const std::vector<std::string>& getCovLabel() const { return this->covLabel; }
 
  private:

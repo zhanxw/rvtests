@@ -13,6 +13,7 @@ class RangeList;
 class Result;
 class VCFExtractor;
 class VCFIndividual;
+class GenotypeCounter;
 
 /**
  * Extract genotype from file @param fileName at the marker @param marker,
@@ -27,6 +28,12 @@ class GenotypeExtractor {
  public:
   explicit GenotypeExtractor(const std::string& fn);
   virtual ~GenotypeExtractor();
+
+ private:
+  GenotypeExtractor(const GenotypeExtractor&);
+  GenotypeExtractor& operator=(const GenotypeExtractor&);
+
+ public:
   /**
    * @param g, store people by marker matrix
    * @return 0 for success
@@ -74,10 +81,13 @@ class GenotypeExtractor {
   void getPeopleName(std::vector<std::string>* p);
   void getIncludedPeopleName(std::vector<std::string>* p) const;
 
+  const std::vector<GenotypeCounter>& getGenotypeCounter() const {
+    return this->counter;
+  }
   /**
    * @return weigth, its length equals to # of markers
    */
-  Vector& getWeight() { return this->weight; };
+  // std::vector<double>& getWeight() { return this->weight; };
   void setDosageTag(const std::string& tag) {
     if (tag.empty()) return;
     this->dosageTag = tag;
@@ -108,7 +118,11 @@ class GenotypeExtractor {
   int GQmin;
   int GQmax;
   bool needGQ;
-  Vector weight;
+  // std::vector<double> weight;   // per-variant weight
+  // std::vector<double> af;       // per-variant alt allele freq
+  // std::vector<int> numMissing;  // per-variant # of samples having missing
+  // genotypes
+  std::vector<GenotypeCounter> counter;
   std::string dosageTag;  // set if loading dosage instead of genotype
 
   // compensate sex chromosome

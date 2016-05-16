@@ -7,7 +7,6 @@
 #include "regression/EigenMatrixInterface.h"
 
 #include "LinearAlgebra.h"
-#include "snp_hwe.c"
 
 void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
   Matrix& m = *g;
@@ -103,17 +102,6 @@ void removeMonomorphicMarker(Matrix* genotype) {
   g.Dimension(g.rows, monoCol);
 }
 
-double GenotypeCounter::getHWE() const {
-  double hweP = 0.0;
-  if (nHomRef + nHet + nHomAlt == 0 ||
-      (nHet < 0 || nHomRef < 0 || nHomAlt < 0)) {
-    hweP = 0.0;
-  } else {
-    hweP = SNPHWE(nHet, nHomRef, nHomAlt);
-  }
-  return hweP;
-}
-
 DataConsolidator::DataConsolidator()
     : strategy(DataConsolidator::UNINITIALIZED),
       phenotypeUpdated(true),
@@ -122,6 +110,76 @@ DataConsolidator::DataConsolidator()
       parRegion(NULL) {}
 
 DataConsolidator::~DataConsolidator() {}
+
+/**
+ * Impute missing genotype (<0) according to population frequency (p^2, 2pq,
+ * q^2)
+ */
+void DataConsolidator::imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
+  Matrix& m = *genotype;
+  for (int i = 0; i < m.cols; i++) {
+    if ((*this->counter)[i].getNumMissing() == 0) {
+      continue;
+    }
+    int ac = 0;
+    int an = 0;
+    for (int j = 0; j < m.rows; j++) {
+      if (m[j][i] >= 0) {
+        ac += m[j][i];
+        an += 2;
+      }
+    }
+    double p = an == 0 ? 0 : 1.0 * ac / an;
+    double pRef = p * p;
+    double pHet = pRef + 2.0 * p * (1.0 - p);
+    for (int j = 0; j < m.rows; j++) {
+      if (m[j][i] < 0) {
+        double v = r->Next();
+        if (v < pRef) {
+          m[j][i] = 0;
+        } else if (v < pHet) {
+          m[j][i] = 1;
+        } else {
+          m[j][i] = 2;
+        }
+      }
+    }
+  }
+};
+
+/**
+ * Impute missing genotype (<0) according to its mean genotype
+ * @param genotype (people by marker matrix)
+ */
+void DataConsolidator::imputeGenotypeToMean(Matrix* genotype) {
+  Matrix& m = *genotype;
+  for (int i = 0; i < m.cols; i++) {
+    if ((*this->counter)[i].getNumMissing() == 0) {
+      continue;
+    }
+    int ac = 0;
+    int an = 0;
+    for (int j = 0; j < m.rows; j++) {
+      if (m[j][i] >= 0) {
+        ac += m[j][i];
+        an += 2;
+      }
+    }
+    double p;
+    if (an == 0) {
+      p = 0.0;
+    } else {
+      p = 1.0 * ac / an;
+    }
+    double g = 2.0 * p;
+    for (int j = 0; j < m.rows; j++) {
+      if (m[j][i] < 0) {
+        m[j][i] = g;
+      }
+    }
+    // fprintf(stderr, "impute to mean = %g, ac = %d, an = %d\n", g, ac, an);
+  }
+};
 
 int DataConsolidator::preRegressionCheck(Matrix& pheno, Matrix& cov) {
   if (this->checkColinearity(cov)) {
@@ -167,6 +225,18 @@ int DataConsolidator::checkPredictor(Matrix& pheno, Matrix& cov) {
     }
   }
   return 0;
+}
+
+double DataConsolidator::getMarkerFrequency(int col) {
+  return (*this->counter)[col].getAF();
+}
+
+void DataConsolidator::getMarkerFrequency(std::vector<double>* freq) {
+  size_t n = (*this->counter).size();
+  freq->resize(n);
+  for (size_t i = 0; i != n; ++i) {
+    (*freq)[i] = (*this->counter)[i].getAF();
+  }
 }
 
 //////////////////////////////////////////////////

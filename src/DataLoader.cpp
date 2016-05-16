@@ -495,7 +495,7 @@ int DataLoader::checkConstantCovariate() {
     if (s.size() == 0 && numNAN) {
       logger->error(
           "Covariate [ %s ] does not have finite values, cannot fit model...",
-          covariate.getColName()[i].c_str(), *s.begin());
+          covariate.getColName()[i].c_str());
       exit(1);
     }
   }
@@ -1072,8 +1072,9 @@ int loadPedPhenotypeByHeader(const char* fn, std::map<std::string, double>* p,
   LineReader lr(fn);
   int lineNo = 0;
   int phenoCol = -1;
+  StringTokenizer token("\t ");
   while (lr.readLine(&line)) {
-    stringNaturalTokenize(line, "\t ", &fd);
+    token.naturalTokenize(line, &fd);
     ++lineNo;
     // check header line
     if (fd.size() < 5) {
@@ -1270,8 +1271,9 @@ int _loadSex(const std::string& fn,
   int idx;
   int s;
   std::string line;
+  StringTokenizer token("\t ");
   while (lr.readLine(&line)) {
-    stringNaturalTokenize(line, "\t ", &fd);
+    token.naturalTokenize(line, &fd);
     idx = index[fd[1]];
     if (idx < 0) continue;  // sample not in @param includedSample
     s = atoi(fd[4]);        // the 5th column is gender in PLINK PED file

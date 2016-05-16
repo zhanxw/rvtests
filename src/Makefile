@@ -25,11 +25,12 @@ BASE = Main \
       Model \
       GenotypeExtractor \
       DataLoader \
-      KinshipHolder
+      GenotypeCounter
+
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 
-DEFAULT_CXXFLAGS = -std=c++0x -I. $(addprefix -I, $(THIRD_INC)) -DGIT_VERSION="\"$(GIT_VERSION)\""
+DEFAULT_CXXFLAGS ?= -std=c++0x -I. $(addprefix -I, $(THIRD_INC)) -DGIT_VERSION="\"$(GIT_VERSION)\"" -fopenmp
 # enable read over HTTP and FTP
 DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 

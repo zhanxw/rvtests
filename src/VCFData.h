@@ -1,11 +1,11 @@
 #ifndef _VCFDATA_H_
 #define _VCFDATA_H_
 
-#include "OrderedMap.h"
 #include "MathMatrix.h"
-#include "VCFUtil.h"
+#include "OrderedMap.h"
 #include "PlinkInputFile.h"
 #include "PlinkOutputFile.h"
+#include "VCFUtil.h"
 
 const static int FREQ_ALL = 1;
 const static int FREQ_CONTORL_ONLY = 2;

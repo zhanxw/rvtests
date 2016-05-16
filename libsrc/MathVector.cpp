@@ -1,662 +1,550 @@
-////////////////////////////////////////////////////////////////////// 
-// libsrc/MathVector.cpp 
+//////////////////////////////////////////////////////////////////////
+// libsrc/MathVector.cpp
 // (c) 2000-2010 Goncalo Abecasis
-// 
-// This file is distributed as part of the Goncalo source code package   
-// and may not be redistributed in any form, without prior written    
-// permission from the author. Permission is granted for you to       
-// modify this file for your own personal use, but modified versions  
-// must retain this copyright notice and must not be distributed.     
-// 
-// Permission is granted for you to use this file to compile Goncalo.    
-// 
-// All computer programs have bugs. Use this file at your own risk.   
-// 
+//
+// This file is distributed as part of the Goncalo source code package
+// and may not be redistributed in any form, without prior written
+// permission from the author. Permission is granted for you to
+// modify this file for your own personal use, but modified versions
+// must retain this copyright notice and must not be distributed.
+//
+// Permission is granted for you to use this file to compile Goncalo.
+//
+// All computer programs have bugs. Use this file at your own risk.
+//
 // Sunday May 02, 2010
-// 
- 
-#include "MathVector.h"
-#include "MathMatrix.h"
-#include "MathConstant.h"
-#include "Sort.h"
-#include "Error.h"
+//
 
-#ifdef  _MSC_VER
-#define _USE_MATH_DEFINES 
+#include "MathVector.h"
+#include "Error.h"
+#include "MathConstant.h"
+#include "MathMatrix.h"
+#include "Sort.h"
+
+#ifdef _MSC_VER
+#define _USE_MATH_DEFINES
 #endif
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 int Vector::alloc = 32;
 
-void Vector::Init()
-   {
-   dim = size = 0;
-   label = "Unknown";
-   data = NULL;
-   }
+void Vector::Init() {
+  dim = size = 0;
+  label = "Unknown";
+  data = NULL;
+}
 
-Vector::~Vector()
-   {
-   // printf(" Deleting vector %s ...\n", (const char *) label);
-   if (data != NULL) delete [] data;
-   }
+Vector::~Vector() {
+  // printf(" Deleting vector %s ...\n", (const char *) label);
+  if (data != NULL) delete[] data;
+}
 
-void Vector::Dimension(int d)
-   {
-   if (d > size)
-      if (size < 1024)
-         {
-         size = (d + alloc) / alloc * alloc;
-         double * newData = new double [size];
-         if (data != NULL)
-            {
-            for (int i = 0; i < dim; i++)
-               newData[i] = data[i];
-            delete [] data;
-            }
-         data = newData;
-         }
-      else
-         {
-         while (size <= d)
-            size *= 2;
-
-         double * newData = new double [size];
-         if (data != NULL)
-            {
-            for (int i = 0; i < dim; i++)
-               newData[i] = data[i];
-            delete [] data;
-            }
-         data = newData;
-         }
-   dim = d;
-   }
-
-void Vector::Dimension(int d, double value)
-   {
-   int original = dim;
-
-   Dimension(d);
-
-   for (int i = original; i < dim; i++)
-      data[i] = value;
-   }
-
-void Vector::Negate()
-   {
-   for (int i = 0; i < dim; i++)
-      data[i] = -data[i];
-   }
-
-void Vector::Add(double n)
-   {
-   for (int i = 0; i< dim; i++)
-      data[i] += n;
-   }
-
-void Vector::Multiply(double k)
-   {
-   for (int i = 0; i < dim; i++)
-      data[i] *= k;
-   }
-
-void Vector::Copy(const Vector & v)
-   {
-   Dimension(v.dim);
-
-   if (v.data != NULL)
-      for (int i=0; i < dim; i++)
-         data[i] = v.data[i];
-   }
-
-Vector & Vector::operator = (const Vector & rhs)
-   {
-   Copy(rhs);
-   return *this;
-   }
-
-void Vector::Add(Vector & v)
-   {
-   if (dim != v.dim)
-      error("Vector::Add - vectors have different dimensions\n"
-            "Vectors     - %s [%d] + %s [%d] ",
-            (const char *) label, dim, (const char  *) v.label, v.dim);
-
-   for (int i = 0; i < dim; i++)
-      data[i] += v.data[i];
-   }
-
-void Vector::AddMultiple(double k, Vector & v)
-   {
-   if (dim != v.dim)
-      error("Vector::AddMultiple - vectors are incompatible\n"
-            "Vectors             - %s [%d] + %s [%d] ",
-            (const char  *) label, dim, (const char  *) v.label, v.dim);
-
-   for (int i = 0; i < dim; i++)
-      data[i] += k * v.data[i];
-   }
-
-
-void Vector::Subtract(Vector & v)
-   {
-   if (dim != v.dim)
-      error("Vector::Subtract - vectors have different dimensions\n"
-            "Vectors          - %s [%d] + %s [%d] ",
-            (const char  *) label, dim, (const char  *) v.label, v.dim);
-
-   for (int i = 0; i < dim; i++)
-      data[i] -= v.data[i];
-   }
-
-
-void Vector::Zero()
-   {
-   for (int i = 0; i < dim; i++)
-      data[i] = 0.0;
-   }
-
-void Vector::Set(double k)
-   {
-   for (int i = 0; i < dim; i++)
-      data[i] = k;
-   }
-
-void Vector::SetMultiple(double k, Vector & v)
-   {
-   Dimension(v.dim);
-
-   for (int i = 0; i < dim; i++)
-      data[i] = k * v[i];
-   }
-
-double Vector::InnerProduct(Vector & v)
-   {
-   if (dim != v.dim)
-      error("Vector::InnerProduct - vectors have different dimensions\n"
-            "Vectors              - %s[%d] * %s[%d] ",
-            (const char  *) label, dim, (const char  *) v.label, v.dim);
-
-   double sum = 0.0;
-   for (int i = 0; i < dim; i++)
-      sum += data[i] * v.data[i];
-
-   return sum;
-   }
-
-void Vector::Insert(int n, double value)
-   {
-   Dimension(dim + 1);
-
-   for (int i = dim - 1; i > n; i--)
-      data[i] = data[i - 1];
-   data[n] = value;
-   }
-
-void Vector::DeleteDimension(int n)
-   {
-   for (int i = n; i < dim - 1; i++)
-      data[i] = data[i + 1];
-   dim --;
-   }
-
-void Vector::Product(Matrix & m, Vector & v)
-   {
-   if (m.cols != v.dim)
-      error ("Vector::Product - Cannot Multiply Matrix by Vector\n"
-             "Vectors         - %s [%d, %d] * %s [%d]\n",
-             (const char  *) m.label, m.rows, m.cols,
-             (const char  *) v.label, v.dim);
-
-   Dimension(m.rows);
-   Zero();
-
-   for(int i = 0; i < m.rows; i++)
-      for (int j = 0; j < m.cols; j++)
-         data[i] += m[i][j] * v[j];
-   }
-
-double Vector::Average() const
-   {
-   if (dim == 0)
-      error("Average undefined for null vector %s",
-            (const char  *) label);
-
-   return Sum() / dim;
-   }
-
-double Vector::Product() const
-   {
-   double product = 1.0;
-
-   for (int j = 0; j < dim; j++)
-      product *= data[j];
-
-   return product;
-   }
-
-double Vector::Sum() const
-   {
-   double sum = 0.0;
-
-   for (int j=0; j<dim; j++)
-      sum += data[j];
-
-   return sum;
-   }
-
-double Vector::SumSquares() const
-   {
-   double sum = 0.0;
-
-   for (int j=0; j<dim; j++)
-      sum += data[j] * data[j];
-
-   return sum;
-   }
-
-void Vector::AveVar(double & ave, double & var) const
-   {
-   // uses a two pass method to correct for
-   // round-off errors
-
-   if (dim == 0)
-      error("Average and Variance undefined for null vector %s",
-            (const char  *) label);
-
-   double s, ep;
-
-   ave = var = ep = 0.0;
-
-   for (int j=0; j<dim; j++)
-      ave += data[j];
-
-   ave /= dim;
-
-   for (int j=0; j<dim; j++)
-      {
-      s = data[j] - ave;
-      ep += s;
-      var += s*s;
+void Vector::Dimension(int d) {
+  if (d > size)
+    if (size < 1024) {
+      size = (d + alloc) / alloc * alloc;
+      double *newData = new double[size];
+      if (data != NULL) {
+        for (int i = 0; i < dim; i++) newData[i] = data[i];
+        delete[] data;
       }
+      data = newData;
+    } else {
+      while (size <= d) size *= 2;
 
-   if (dim > 1)
-      var = (var - ep*ep/dim)/(dim-1);
-   }
+      double *newData = new double[size];
+      if (data != NULL) {
+        for (int i = 0; i < dim; i++) newData[i] = data[i];
+        delete[] data;
+      }
+      data = newData;
+    }
+  dim = d;
+}
 
-double Vector::Var() const
-   {
-   double mean, var;
-   AveVar(mean, var);
-   return var;
-   }
+void Vector::Dimension(int d, double value) {
+  int original = dim;
 
-void Vector::Print(FILE * f, int d)
-   {
-   if (d == -1 || d > dim) d = dim;
+  Dimension(d);
 
-   fprintf(f, "%.15s : ", (const char  *) label);
-   for (int i = 0; i < d; i++)
-      fprintf(f, "%7.3f ", data[i]);
-   fprintf(f, "\n");
-   }
+  for (int i = original; i < dim; i++) data[i] = value;
+}
 
-int Vector::CompareDouble(const double * a, const double * b)
-   {
-   if (*a < *b) return -1;
-   if (*a > *b) return 1;
-   return 0;
-   }
+void Vector::Negate() {
+  for (int i = 0; i < dim; i++) data[i] = -data[i];
+}
 
-void Vector::Sort()
-   {
-   QuickSort(data, dim, sizeof(double), COMPAREFUNC CompareDouble);
-   }
+void Vector::Add(double n) {
+  for (int i = 0; i < dim; i++) data[i] += n;
+}
 
-void Vector::Sort(Vector & freeRider)
-   {
-   QuickSort2(data, freeRider.data, dim, sizeof(double),
-              COMPAREFUNC CompareDouble);
-   }
+void Vector::Multiply(double k) {
+  for (int i = 0; i < dim; i++) data[i] *= k;
+}
 
-int Vector::BinarySearch(double element)
-   {
-   void * pointer = ::BinarySearch
-         (&element, data, dim, sizeof(double), COMPAREFUNC CompareDouble);
+void Vector::Copy(const Vector &v) {
+  Dimension(v.dim);
 
-   if (pointer == NULL)
-      return -1;
+  if (v.data != NULL)
+    for (int i = 0; i < dim; i++) data[i] = v.data[i];
+}
 
-   return ((double *) pointer) - data;
-   }
+Vector &Vector::operator=(const Vector &rhs) {
+  Copy(rhs);
+  return *this;
+}
 
-void Vector::RemoveDuplicates()
-   {
-   int out = 0;
+void Vector::Add(const Vector &v) {
+  if (dim != v.dim)
+    error(
+        "Vector::Add - vectors have different dimensions\n"
+        "Vectors     - %s [%d] + %s [%d] ",
+        (const char *)label, dim, (const char *)v.label, v.dim);
 
-   for (int in = 1; in < Length(); in++)
-      if (data[in] != data[out])
-         data[++out] = data[in];
+  for (int i = 0; i < dim; i++) data[i] += v.data[i];
+}
 
-   Dimension(out + 1);
-   }
+void Vector::AddMultiple(double k, const Vector &v) {
+  if (dim != v.dim)
+    error(
+        "Vector::AddMultiple - vectors are incompatible\n"
+        "Vectors             - %s [%d] + %s [%d] ",
+        (const char *)label, dim, (const char *)v.label, v.dim);
 
-bool Vector::operator == (const Vector & rhs) const
-   {
-   if (rhs.dim != dim) return false;
+  for (int i = 0; i < dim; i++) data[i] += k * v.data[i];
+}
 
-   for (int i = 0; i < dim; i++)
-      if (data[i] != rhs[i])
-         return false;
-   return true;
-   }
+void Vector::Subtract(Vector &v) {
+  if (dim != v.dim)
+    error(
+        "Vector::Subtract - vectors have different dimensions\n"
+        "Vectors          - %s [%d] + %s [%d] ",
+        (const char *)label, dim, (const char *)v.label, v.dim);
+
+  for (int i = 0; i < dim; i++) data[i] -= v.data[i];
+}
+
+void Vector::Zero() {
+  for (int i = 0; i < dim; i++) data[i] = 0.0;
+}
+
+void Vector::Set(double k) {
+  for (int i = 0; i < dim; i++) data[i] = k;
+}
+
+void Vector::SetMultiple(double k, Vector &v) {
+  Dimension(v.dim);
+
+  for (int i = 0; i < dim; i++) data[i] = k * v[i];
+}
+
+double Vector::InnerProduct(Vector &v) {
+  if (dim != v.dim)
+    error(
+        "Vector::InnerProduct - vectors have different dimensions\n"
+        "Vectors              - %s[%d] * %s[%d] ",
+        (const char *)label, dim, (const char *)v.label, v.dim);
+
+  double sum = 0.0;
+  for (int i = 0; i < dim; i++) sum += data[i] * v.data[i];
+
+  return sum;
+}
+
+void Vector::Insert(int n, double value) {
+  Dimension(dim + 1);
+
+  for (int i = dim - 1; i > n; i--) data[i] = data[i - 1];
+  data[n] = value;
+}
+
+void Vector::DeleteDimension(int n) {
+  for (int i = n; i < dim - 1; i++) data[i] = data[i + 1];
+  dim--;
+}
+
+void Vector::Product(Matrix &m, Vector &v) {
+  if (m.cols != v.dim)
+    error(
+        "Vector::Product - Cannot Multiply Matrix by Vector\n"
+        "Vectors         - %s [%d, %d] * %s [%d]\n",
+        (const char *)m.label, m.rows, m.cols, (const char *)v.label, v.dim);
+
+  Dimension(m.rows);
+  Zero();
+
+  for (int i = 0; i < m.rows; i++)
+    for (int j = 0; j < m.cols; j++) data[i] += m[i][j] * v[j];
+}
+
+double Vector::Average() const {
+  if (dim == 0)
+    error("Average undefined for null vector %s", (const char *)label);
+
+  return Sum() / dim;
+}
+
+double Vector::Product() const {
+  double product = 1.0;
+
+  for (int j = 0; j < dim; j++) product *= data[j];
+
+  return product;
+}
+
+double Vector::Sum() const {
+  double sum = 0.0;
+
+  for (int j = 0; j < dim; j++) sum += data[j];
+
+  return sum;
+}
+
+double Vector::SumSquares() const {
+  double sum = 0.0;
+
+  for (int j = 0; j < dim; j++) sum += data[j] * data[j];
+
+  return sum;
+}
+
+void Vector::AveVar(double &ave, double &var) const {
+  // uses a two pass method to correct for
+  // round-off errors
+
+  if (dim == 0)
+    error("Average and Variance undefined for null vector %s",
+          (const char *)label);
+
+  double s, ep;
+
+  ave = var = ep = 0.0;
+
+  for (int j = 0; j < dim; j++) ave += data[j];
+
+  ave /= dim;
+
+  for (int j = 0; j < dim; j++) {
+    s = data[j] - ave;
+    ep += s;
+    var += s * s;
+  }
+
+  if (dim > 1) var = (var - ep * ep / dim) / (dim - 1);
+}
+
+double Vector::Var() const {
+  double mean, var;
+  AveVar(mean, var);
+  return var;
+}
+
+void Vector::Print(FILE *f, int d) {
+  if (d == -1 || d > dim) d = dim;
+
+  fprintf(f, "%.15s : ", (const char *)label);
+  for (int i = 0; i < d; i++) fprintf(f, "%7.3f ", data[i]);
+  fprintf(f, "\n");
+}
+
+int Vector::CompareDouble(const double *a, const double *b) {
+  if (*a < *b) return -1;
+  if (*a > *b) return 1;
+  return 0;
+}
+
+void Vector::Sort() {
+  QuickSort(data, dim, sizeof(double), COMPAREFUNC CompareDouble);
+}
+
+void Vector::Sort(Vector &freeRider) {
+  QuickSort2(data, freeRider.data, dim, sizeof(double),
+             COMPAREFUNC CompareDouble);
+}
+
+int Vector::BinarySearch(double element) {
+  void *pointer = ::BinarySearch(&element, data, dim, sizeof(double),
+                                 COMPAREFUNC CompareDouble);
+
+  if (pointer == NULL) return -1;
+
+  return ((double *)pointer) - data;
+}
+
+void Vector::RemoveDuplicates() {
+  int out = 0;
+
+  for (int in = 1; in < Length(); in++)
+    if (data[in] != data[out]) data[++out] = data[in];
+
+  Dimension(out + 1);
+}
+
+bool Vector::operator==(const Vector &rhs) const {
+  if (rhs.dim != dim) return false;
+
+  for (int i = 0; i < dim; i++)
+    if (data[i] != rhs[i]) return false;
+  return true;
+}
 
 // These functions are useful for simulation
 //
 
-int Vector::CountIfGreater(double threshold) const
-   {
-   int count = 0;
+int Vector::CountIfGreater(double threshold) const {
+  int count = 0;
 
-   for (int i = 0; i < dim; i++)
-      if (data[i] > threshold)
-         count++;
+  for (int i = 0; i < dim; i++)
+    if (data[i] > threshold) count++;
 
-   return count;
-   }
+  return count;
+}
 
-int Vector::CountIfGreaterOrEqual(double treshold) const
-   {
-   int count = 0;
+int Vector::CountIfGreaterOrEqual(double treshold) const {
+  int count = 0;
 
-   for (int i = 0; i < dim; i++)
-      if (data[i] >= treshold)
-         count++;
+  for (int i = 0; i < dim; i++)
+    if (data[i] >= treshold) count++;
 
-   return count;
-   }
+  return count;
+}
 
 // Min and max functions
 //
 
-double Vector::Min() const
-   {
-   if (dim == 0)
-      return 0.0;
+double Vector::Min() const {
+  if (dim == 0) return 0.0;
 
-   double min = data[0];
+  double min = data[0];
 
-   for (int i = 1; i < dim; i++)
-      if (data[i] < min)
-         min = data[i];
+  for (int i = 1; i < dim; i++)
+    if (data[i] < min) min = data[i];
 
-   return min;
-   }
+  return min;
+}
 
-double Vector::Max() const
-   {
-   if (dim == 0)
-      return 0.0;
+double Vector::Max() const {
+  if (dim == 0) return 0.0;
 
-   double max = data[0];
+  double max = data[0];
 
-   for (int i = 1; i < dim; i++)
-      if (data[i] > max)
-         max = data[i];
+  for (int i = 1; i < dim; i++)
+    if (data[i] > max) max = data[i];
 
-   return max;
-   }
+  return max;
+}
 
 // Push and Pop functions for using vector as a stack
 //
 
-void Vector::Push(double value)
-   {
-   Dimension(dim + 1);
-   data[dim - 1] = value;
-   }
+void Vector::Push(double value) {
+  Dimension(dim + 1);
+  data[dim - 1] = value;
+}
 
-void Vector::Stack(const Vector & v)
-   {
-   int end = dim;
+void Vector::Stack(const Vector &v) {
+  int end = dim;
 
-   Dimension(dim + v.dim);
+  Dimension(dim + v.dim);
 
-   for (int i = 0; i < v.dim; i++)
-      data[i + end] = v[i];
-   }
+  for (int i = 0; i < v.dim; i++) data[i + end] = v[i];
+}
 
 // Check if all values are in ascending or descending order
 //
 
-bool Vector::isAscending()
-   {
-   for (int i = 1; i < dim; i++)
-      if (data[i] < data[i - 1])
-         return false;
-   return true;
-   }
+bool Vector::isAscending() {
+  for (int i = 1; i < dim; i++)
+    if (data[i] < data[i - 1]) return false;
+  return true;
+}
 
-bool Vector::isDescending()
-   {
-   for (int i = 1; i < dim; i++)
-      if (data[i] > data[i - 1])
-         return false;
-   return true;
-   }
+bool Vector::isDescending() {
+  for (int i = 1; i < dim; i++)
+    if (data[i] > data[i - 1]) return false;
+  return true;
+}
 
 // VectorFunc class
 //
 
-VectorFunc::VectorFunc()
-   { f = NULL; }
+VectorFunc::VectorFunc() { f = NULL; }
 
-VectorFunc::VectorFunc(double (*func)(Vector &))
-   { f = func; }
+VectorFunc::VectorFunc(double (*func)(Vector &)) { f = func; }
 
-double VectorFunc::Evaluate(Vector & v)
-   { return f(v); }
+double VectorFunc::Evaluate(Vector &v) { return f(v); }
 
-#ifndef   M_SQRT2
-#define   M_SQRT2        1.41421356
+#ifndef M_SQRT2
+#define M_SQRT2 1.41421356
 #endif
 
-#define   MAXROUNDS      10
-#define   SQRT_HALF      (1.0/M_SQRT2)
-#define   TWO            (M_SQRT2 * M_SQRT2)
+#define MAXROUNDS 10
+#define SQRT_HALF (1.0 / M_SQRT2)
+#define TWO (M_SQRT2 * M_SQRT2)
 
-void VectorFunc::Derivative(Vector & x, Vector & d, double h_start)
-   {
-   double a[MAXROUNDS][MAXROUNDS];
+void VectorFunc::Derivative(Vector &x, Vector &d, double h_start) {
+  double a[MAXROUNDS][MAXROUNDS];
 
-   // Calculate derivatives along each direction ...
-   for (int k = 0; k < x.dim; k++)
-      {
-      double left, right;
-      double save_x = x[k];
-      double h = h_start;
+  // Calculate derivatives along each direction ...
+  for (int k = 0; k < x.dim; k++) {
+    double left, right;
+    double save_x = x[k];
+    double h = h_start;
 
-      // Evaluate function to the left of x along direction k
+    // Evaluate function to the left of x along direction k
+    x[k] = save_x - h;
+    left = Evaluate(x);
+
+    // Initialize or update dfmin if appropriate...
+    if (k == 0 || left < dfmin) dfmin = left, dpmin = x;
+
+    // Evaluate function to the right of x along direction k
+    x[k] = save_x + h;
+    right = Evaluate(x);
+
+    // Update dfmin
+    if (right < dfmin) dfmin = left, dpmin = x;
+
+    // Initial crude estimate
+    a[0][0] = (right - left) / (2.0 * h);
+
+    // Initial guess of error is large
+    double err = 1e30;
+
+    // At each round, update Neville tableau with smaller stepsize and higher
+    // order extrapolation ...
+    for (int i = 1; i < MAXROUNDS; i++) {
+      // Decrease h
+      h *= SQRT_HALF;
+
+      // Re-evaluate function and update dfmin as required
       x[k] = save_x - h;
-      left  = Evaluate(x);
-
-      // Initialize or update dfmin if appropriate...
-      if (k == 0 || left < dfmin)
-         dfmin = left, dpmin = x;
-
-      // Evaluate function to the right of x along direction k
+      left = Evaluate(x);
+      if (left < dfmin) dfmin = left, dpmin = x;
       x[k] = save_x + h;
       right = Evaluate(x);
+      if (right < dfmin) dfmin = right, dpmin = x;
 
-      // Update dfmin
-      if (right < dfmin)
-         dfmin = left, dpmin = x;
+      // Improved estimate of derivative
+      a[0][i] = (right - left) / (2.0 * h);
 
-      // Initial crude estimate
-      a[0][0] = (right - left) / (2.0 * h);
+      // Calculate extrapolations of various orders ...
+      double factor = TWO;
 
-      // Initial guess of error is large
-      double err = 1e30;
+      for (int j = 1; j <= i; j++) {
+        a[j][i] = (a[j - 1][i] * factor - a[j - 1][i - 1]) / (factor - 1.0);
 
-      // At each round, update Neville tableau with smaller stepsize and higher
-      // order extrapolation ...
-      for (int i = 1; i < MAXROUNDS; i++)
-         {
-         // Decrease h
-         h *= SQRT_HALF;
+        factor *= TWO;
 
-         // Re-evaluate function and update dfmin as required
-         x[k]  = save_x - h;
-         left  = Evaluate(x);
-         if (left < dfmin) dfmin = left, dpmin = x;
-         x[k]  = save_x + h;
-         right = Evaluate(x);
-         if (right < dfmin) dfmin = right, dpmin = x;
+        double error =
+            max(fabs(a[j][i] - a[j - 1][i]), fabs(a[j][i] - a[j - 1][i - 1]));
 
-         // Improved estimate of derivative
-         a[0][i] = (right - left) / (2.0 * h);
-
-         // Calculate extrapolations of various orders ...
-         double factor = TWO;
-
-         for (int j = 1; j <= i; j++)
-            {
-            a[j][i] = (a[j-1][i] * factor - a[j-1][i-1])/(factor - 1.0);
-
-            factor *= TWO;
-
-            double error = max(fabs(a[j][i] - a[j-1][i]), fabs(a[j][i] - a[j-1][i-1]));
-
-            // Did we improve solution?
-            if (error < err)
-               {
-               err = error;
-               d[k] = a[j][i];
-               }
-            }
-
-         // Stop if solution is deteriorating ...
-         if (fabs(a[i][i] - a[i-1][i-1]) >= 2.0 * err)
-            {
-            x[k] = save_x;
-            break;
-            }
-         }
-
-      x[k] = save_x;
+        // Did we improve solution?
+        if (error < err) {
+          err = error;
+          d[k] = a[j][i];
+        }
       }
-   }
 
-int Vector::SafeCount() const
-   {
-   int nonMissing = dim;
+      // Stop if solution is deteriorating ...
+      if (fabs(a[i][i] - a[i - 1][i - 1]) >= 2.0 * err) {
+        x[k] = save_x;
+        break;
+      }
+    }
 
-   for (int i = 0; i < dim; i++)
-      if (data[i] == _NAN_)
-         nonMissing--;
+    x[k] = save_x;
+  }
+}
 
-   return nonMissing;
-   }
+int Vector::SafeCount() const {
+  int nonMissing = dim;
 
-double Vector::SafeMin() const
-   {
-   double min = _NAN_;
-   int i;
+  for (int i = 0; i < dim; i++)
+    if (data[i] == _NAN_) nonMissing--;
 
-   for (i = 0; i < dim; i++)
-      if (data[i] != _NAN_)
-       {
-       min = data[i];
-       break;
-       }
+  return nonMissing;
+}
 
-   for (; i < dim; i++)
-      if (data[i] != _NAN_ && data[i] < min)
-         min = data[i];
+double Vector::SafeMin() const {
+  double min = _NAN_;
+  int i;
 
-   return min;
-   }
+  for (i = 0; i < dim; i++)
+    if (data[i] != _NAN_) {
+      min = data[i];
+      break;
+    }
 
-double Vector::SafeMax() const
-   {
-   double max = _NAN_;
-   int i;
+  for (; i < dim; i++)
+    if (data[i] != _NAN_ && data[i] < min) min = data[i];
 
-   for (i = 0; i < dim; i++)
-      if (data[i] != _NAN_) 
-       {
-       max = data[i];
-         break;
-       }
+  return min;
+}
 
-   for (; i < dim; i++)
-      if (data[i] != _NAN_ && data[i] > max)
-         max = data[i];
+double Vector::SafeMax() const {
+  double max = _NAN_;
+  int i;
 
-   return max;
-   } 
+  for (i = 0; i < dim; i++)
+    if (data[i] != _NAN_) {
+      max = data[i];
+      break;
+    }
 
-void Vector::Reverse()
-   {
-   for (int i = 0, j = dim - 1; i < j; i++, j--)
-      Swap(i, j);
-   }
+  for (; i < dim; i++)
+    if (data[i] != _NAN_ && data[i] > max) max = data[i];
 
-void Vector::InsertInSortedList(int value)
-   {
-   // Skip through large elements
-   int pos = dim - 1;
+  return max;
+}
 
-   while (pos >= 0 && data[pos] > value)
-      pos--;
+void Vector::Reverse() {
+  for (int i = 0, j = dim - 1; i < j; i++, j--) Swap(i, j);
+}
 
-   // If the value is already in the list, we are done
-   if (pos >= 0 && data[pos] == value)
-      return;
+void Vector::InsertInSortedList(int value) {
+  // Skip through large elements
+  int pos = dim - 1;
 
-   // Otherwise we need to grow array
-   Dimension(dim + 1);
+  while (pos >= 0 && data[pos] > value) pos--;
 
-   // And then shift larger elements to the right
-   pos++;
-   for (int i = dim - 1; i > pos; i--)
-      data[i] = data[i - 1];
+  // If the value is already in the list, we are done
+  if (pos >= 0 && data[pos] == value) return;
 
-   data[pos] = value;
-   }
+  // Otherwise we need to grow array
+  Dimension(dim + 1);
 
-void Vector::Swap(Vector & rhs)
-   {
-   double * temp = rhs.data;
-   rhs.data = data;
-   data = temp;
+  // And then shift larger elements to the right
+  pos++;
+  for (int i = dim - 1; i > pos; i--) data[i] = data[i - 1];
 
-   int swap = rhs.dim;
-   rhs.dim = dim;
-   dim = swap;
+  data[pos] = value;
+}
 
-   swap = rhs.size;
-   rhs.size = size;
-   size = swap;
-   }
+void Vector::Swap(Vector &rhs) {
+  double *temp = rhs.data;
+  rhs.data = data;
+  data = temp;
 
-double Vector::Average(double returnIfNull)
-   {
-   if (Length() == 0)
-      return returnIfNull;
+  int swap = rhs.dim;
+  rhs.dim = dim;
+  dim = swap;
 
-   return Average();
-   }
+  swap = rhs.size;
+  rhs.size = size;
+  size = swap;
+}
 
-double Vector::Var(double returnIfNull)
-   {
-   if (Length() == 0)
-      return returnIfNull;
+double Vector::Average(double returnIfNull) {
+  if (Length() == 0) return returnIfNull;
 
-   return Var();
-   }
+  return Average();
+}
 
- 
+double Vector::Var(double returnIfNull) {
+  if (Length() == 0) return returnIfNull;
+
+  return Var();
+}

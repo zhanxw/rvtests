@@ -1,215 +1,238 @@
-////////////////////////////////////////////////////////////////////// 
-// libsrc/MathVector.h 
+//////////////////////////////////////////////////////////////////////
+// libsrc/MathVector.h
 // (c) 2000-2010 Goncalo Abecasis
-// 
-// This file is distributed as part of the Goncalo source code package   
-// and may not be redistributed in any form, without prior written    
-// permission from the author. Permission is granted for you to       
-// modify this file for your own personal use, but modified versions  
-// must retain this copyright notice and must not be distributed.     
-// 
-// Permission is granted for you to use this file to compile Goncalo.    
-// 
-// All computer programs have bugs. Use this file at your own risk.   
-// 
+//
+// This file is distributed as part of the Goncalo source code package
+// and may not be redistributed in any form, without prior written
+// permission from the author. Permission is granted for you to
+// modify this file for your own personal use, but modified versions
+// must retain this copyright notice and must not be distributed.
+//
+// Permission is granted for you to use this file to compile Goncalo.
+//
+// All computer programs have bugs. Use this file at your own risk.
+//
 // Sunday May 02, 2010
-// 
- 
+//
+
 #ifndef __MATHVECTOR_H__
 #define __MATHVECTOR_H__
 
 #include "StringBasics.h"
 
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
 
 class Matrix;
 
-class Vector
-   {
-   public:
-      int         dim, size;
-      double *    data;
-      String      label;
+class Vector {
+ public:
+  int dim, size;
+  double *data;
+  String label;
 
-   Vector()
-      { Init(); }
-   Vector(Vector & v)
-      { Init(); Copy(v); }
-   Vector(int d)
-      { Init(); Dimension(d); }
-   Vector(const char * text)
-      { Init(); label = text; }
-   Vector(const char * text, int d)
-      { Init(); label = text; Dimension(d); }
-   Vector(const char * text, Vector & v)
-      { Init(); label = text; Copy(v); }
+  Vector() { Init(); }
+  Vector(Vector &v) {
+    Init();
+    Copy(v);
+  }
+  Vector(int d) {
+    Init();
+    Dimension(d);
+  }
+  Vector(const char *text) {
+    Init();
+    label = text;
+  }
+  Vector(const char *text, int d) {
+    Init();
+    label = text;
+    Dimension(d);
+  }
+  Vector(const char *text, Vector &v) {
+    Init();
+    label = text;
+    Copy(v);
+  }
 
-   ~Vector();
+  ~Vector();
 
-   void   Dimension(int d);
-   void   Dimension(int d, double value);
+  void Dimension(int d);
+  void Dimension(int d, double value);
 
-   void   GrowTo(int d)                { Dimension(d > dim ? d : dim); }
-   void   GrowTo(int d, double value)  { Dimension(d > dim ? d : dim, value); }
+  void GrowTo(int d) { Dimension(d > dim ? d : dim); }
+  void GrowTo(int d, double value) { Dimension(d > dim ? d : dim, value); }
 
-   int    Length() const { return dim; }
+  int Length() const { return dim; }
 
-   void   SetLabel(const char * text) { label = text; }
+  void SetLabel(const char *text) { label = text; }
 
-   void   Zero();
-   void   Set(double k);
-   void   Set(Vector & v) { Copy(v); };
-   void   SetMultiple(double k, Vector & v);
+  void Zero();
+  void Set(double k);
+  void Set(Vector &v) { Copy(v); };
+  void SetMultiple(double k, Vector &v);
 
-   void   Negate();
-   void   Add(double n);
-   void   Multiply(double k);
+  void Negate();
+  void Add(double n);
+  void Multiply(double k);
 
-   double InnerProduct(Vector & v);
-   void   Copy(const Vector & v);
-   void   Add(Vector & v);
-   void   AddMultiple(double k, Vector & v);
-   void   Subtract(Vector & v);
+  double InnerProduct(Vector &v);
+  void Copy(const Vector &v);
+  void Add(const Vector &v);
+  void AddMultiple(double k, const Vector &v);
+  void Subtract(Vector &v);
 
-   void Product(Matrix & m, Vector & v);
+  void Product(Matrix &m, Vector &v);
 
-   double & operator [] (int n)
-      { assert(n < dim);  return data[n]; }
-   double operator [] (int n) const
-      { assert(n < dim);  return data[n]; }
+  double &operator[](int n) {
+    assert(n < dim);
+    return data[n];
+  }
+  double operator[](int n) const {
+    assert(n < dim);
+    return data[n];
+  }
 
-   double operator [] (double fraction)
-      { return data[(int) (dim * fraction)]; }
-   double & operator [] (double fraction) const
-      { return data[(int) (dim * fraction)]; }
+  double operator[](double fraction) { return data[(int)(dim * fraction)]; }
+  double &operator[](double fraction) const {
+    return data[(int)(dim * fraction)];
+  }
 
-   Vector & operator = (const Vector & v);
-   bool operator == (const Vector & v) const;
-   bool operator != (const Vector & v) const { return !(*this == v); }
+  Vector &operator=(const Vector &v);
+  bool operator==(const Vector &v) const;
+  bool operator!=(const Vector &v) const { return !(*this == v); }
 
-   void Swap(int i, int j)
-      { double swap = data[i]; data[i] = data[j]; data[j] = swap; }
-   void Swap(Vector & rhs);
+  void Swap(int i, int j) {
+    double swap = data[i];
+    data[i] = data[j];
+    data[j] = swap;
+  }
+  void Swap(Vector &rhs);
 
-   Vector & operator *= (double rhs) { Multiply(rhs); return *this; }
-   Vector & operator += (double rhs) { Add(rhs); return *this; }
-   Vector & operator -= (double rhs) { return *this += -rhs; }
-   Vector & operator /= (double rhs) { return *this *= 1/rhs; }
+  Vector &operator*=(double rhs) {
+    Multiply(rhs);
+    return *this;
+  }
+  Vector &operator+=(double rhs) {
+    Add(rhs);
+    return *this;
+  }
+  Vector &operator-=(double rhs) { return *this += -rhs; }
+  Vector &operator/=(double rhs) { return *this *= 1 / rhs; }
 
-   Vector & operator += (Vector & rhs) { Add(rhs); return * this; }
-   Vector & operator -= (Vector & rhs) { Subtract(rhs); return * this; }
+  Vector &operator+=(Vector &rhs) {
+    Add(rhs);
+    return *this;
+  }
+  Vector &operator-=(Vector &rhs) {
+    Subtract(rhs);
+    return *this;
+  }
 
-   void DeleteDimension (int n);
-   void Delete(int n) { DeleteDimension(n); }
-   void Insert(int n, double value);
+  void DeleteDimension(int n);
+  void Delete(int n) { DeleteDimension(n); }
+  void Insert(int n, double value);
 
-   // Calculates average and variance
-   void   AveVar(double & ave, double & var) const;
-   double Average() const;
-   double Var() const;
+  // Calculates average and variance
+  void AveVar(double &ave, double &var) const;
+  double Average() const;
+  double Var() const;
 
-   double Average(double returnIfNull);
-   double Var(double returnIfNull);
+  double Average(double returnIfNull);
+  double Var(double returnIfNull);
 
-   // Common descriptive functions
-   double Sum() const;
-   double SumSquares() const;
-   double Product() const;
+  // Common descriptive functions
+  double Sum() const;
+  double SumSquares() const;
+  double Product() const;
 
-   // Find extreme values
-   double Min() const;
-   double Max() const;
+  // Find extreme values
+  double Min() const;
+  double Max() const;
 
-   // Return the number of elements in a subset
-   int  CountIfGreater(double treshold) const;
-   int  CountIfGreaterOrEqual(double treshold) const;
+  // Return the number of elements in a subset
+  int CountIfGreater(double treshold) const;
+  int CountIfGreaterOrEqual(double treshold) const;
 
-   // Append another vector to the end
-   void Stack(const Vector & v);
+  // Append another vector to the end
+  void Stack(const Vector &v);
 
-   void Print(int maxDim = -1) { Print(stdout, maxDim); }
-   void Print(FILE * output, int maxDim = -1);
+  void Print(int maxDim = -1) { Print(stdout, maxDim); }
+  void Print(FILE *output, int maxDim = -1);
 
-   // Routines for creating and searching through sorted vectors
-   void Sort();
-   void Reverse();
-   void Sort(Vector & freeRider);
-   int  BinarySearch(double value);
-   int  FastFind(double value) { return BinarySearch(value); }
+  // Routines for creating and searching through sorted vectors
+  void Sort();
+  void Reverse();
+  void Sort(Vector &freeRider);
+  int BinarySearch(double value);
+  int FastFind(double value) { return BinarySearch(value); }
 
-   // Remove consecutive duplicate elements from vector
-   void RemoveDuplicates();
+  // Remove consecutive duplicate elements from vector
+  void RemoveDuplicates();
 
-   // Query first and last elements
-   //
+  // Query first and last elements
+  //
 
-   double & First() { return data[0]; }
-   double & Last()  { return data[dim - 1]; }
+  double &First() { return data[0]; }
+  double &Last() { return data[dim - 1]; }
 
-   // Routines for using a vector as a stack of doubles
-   //
+  // Routines for using a vector as a stack of doubles
+  //
 
-   void   Clear()      { dim = 0; }
-   void   Push(double value);
-   double Pop()        { return data[--dim]; }
-   double Peek() const { return data[dim-1]; }
+  void Clear() { dim = 0; }
+  void Push(double value);
+  double Pop() { return data[--dim]; }
+  double Peek() const { return data[dim - 1]; }
 
-   // This routine adds items to a sorted list
-   //
+  // This routine adds items to a sorted list
+  //
 
-   void   InsertInSortedList(int item);
+  void InsertInSortedList(int item);
 
-   static int alloc;
+  static int alloc;
 
-   bool   isAscending();
-   bool   isDescending();
+  bool isAscending();
+  bool isDescending();
 
-   // Routines for dealing with vectors that include missing data
-   //
+  // Routines for dealing with vectors that include missing data
+  //
 
-   int SafeCount() const;
-   double SafeMin() const;
-   double SafeMax() const;
+  int SafeCount() const;
+  double SafeMin() const;
+  double SafeMax() const;
 
-   private:
-      static int CompareDouble(const double * a, const double * b);
-      void Init();
-   };
-
-
+ private:
+  static int CompareDouble(const double *a, const double *b);
+  void Init();
+};
 
 class VectorFunc
 // Wrapper for multi-dimensional functions
 // so that they can be used as parameters
 // and keep private data
-   {
-   private:
-      double (*f)(Vector &);
+{
+ private:
+  double (*f)(Vector &);
 
-   public:
-      // Constructors
-      VectorFunc();
-      VectorFunc(double (*func)(Vector &));
+ public:
+  // Constructors
+  VectorFunc();
+  VectorFunc(double (*func)(Vector &));
 
-      // Virtual destructor ensures that dynamic objects are
-      // handled correctly
-      virtual ~VectorFunc() { }
+  // Virtual destructor ensures that dynamic objects are
+  // handled correctly
+  virtual ~VectorFunc() {}
 
-      virtual double Evaluate(Vector & v);
+  virtual double Evaluate(Vector &v);
 
-      // Calculate derivatives along each direction. Delta is a guess value
-      // for the initial stepsize in numerical derivation
-      virtual void   Derivative(Vector & point, Vector & d, double delta = 1.0);
+  // Calculate derivatives along each direction. Delta is a guess value
+  // for the initial stepsize in numerical derivation
+  virtual void Derivative(Vector &point, Vector &d, double delta = 1.0);
 
-      // Minimum function value found while evaluating derivative
-      // and its location...
-      double dfmin;
-      Vector dpmin;
-  };
+  // Minimum function value found while evaluating derivative
+  // and its location...
+  double dfmin;
+  Vector dpmin;
+};
 
 #endif
-
- 
- 
- 

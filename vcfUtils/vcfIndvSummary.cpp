@@ -247,7 +247,9 @@ int main(int argc, char** argv){
       // get GT index. if you are sure the index will not change, call this function only once!
       int GTidx = r.getFormatIndex("GT");
       if (GTidx < 0) {
-        fprintf(stderr, "Missing GT for individual %s: %s\n", name.c_str(), indv->getSelf().toStr());
+        fprintf(stderr, "Missing GT for individual %s: ", name.c_str());
+        indv->output(stderr);
+        fputc('\n', stderr);
         v.missing ++;
       } else {
         int genotype = indv->justGet(GTidx).getGenotype();
@@ -264,7 +266,9 @@ int main(int argc, char** argv){
             isVariant = true;
             break;
           default:  // include -9, and 0/2, 1/2, 2/2....
-            fprintf(stderr, "Skipped genotype: %s\n", indv->getSelf().toStr());
+            fprintf(stderr, "Skipped genotype: ");
+            indv->output(stderr);
+            fputc('\n', stderr);
             v.missing ++;
             break;
         }

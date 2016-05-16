@@ -31,6 +31,7 @@
 
 #include "DataConsolidator.h"
 #include "LinearAlgebra.h"
+#include "ModelFitter.h"
 #include "ModelParser.h"
 #include "ModelUtil.h"
 #include "Permutation.h"

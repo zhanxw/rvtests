@@ -37,18 +37,18 @@ class VCFInfo {
     this->data.clear();
 
     // parse key and values
-    int state = 0;  // 0: key, 1: value (indicating current status for value.line[end])
+    int state =
+        0;  // 0: key, 1: value (indicating current status for value.line[end])
     int end = 0;
     std::string key;
     VCFValue value;
     value.beg = 0;
     value.line = this->parsed.getBuffer();
-    const int len = (int) this->parsed.size();
+    const int len = (int)this->parsed.size();
     while (end <= len) {
       if (this->parsed[end] == '=') {
         if (state == 0) {
-          key.assign(&(value.line[value.beg]),
-                     &(value.line[end]));
+          key.assign(&(value.line[value.beg]), &(value.line[end]));
           this->parsed[end] = '\0';
           value.beg = end + 1;
           state = 1;
@@ -62,8 +62,7 @@ class VCFInfo {
         }
       } else if (this->parsed[end] == ';' || end == len) {
         if (state == 0) {  // key without value: e.g. ;HM3;
-          key.assign(&(value.line[value.beg]),
-                     &(value.line[end]));
+          key.assign(&(value.line[value.beg]), &(value.line[end]));
           value.beg = end;
           value.end = end;
           if (key != ".")  // only store non-missing key

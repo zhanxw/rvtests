@@ -33,7 +33,8 @@ class VCFOutputFile {
     r->output(fp);
     // this->fp->printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", r->getChrom(),
     //                  r->getPos(), r->getID(), r->getRef(), r->getAlt(),
-    //                  r->getQual(), r->getFilt(), r->getInfo(), r->getFormat());
+    //                  r->getQual(), r->getFilt(), r->getInfo(),
+    //                  r->getFormat());
     // VCFPeople& p = r->getPeople();
     // // std::string s;
     // for (unsigned int i = 0; i < p.size(); i++) {
@@ -47,10 +48,11 @@ class VCFOutputFile {
   void writeRecordWithFilter(VCFRecord* r, const double minGD,
                              const double minGQ) {
     r->outputWithFilter(this->fp, minGD, minGQ);
-    
+
     // this->fp->printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", r->getChrom(),
     //                  r->getPos(), r->getID(), r->getRef(), r->getAlt(),
-    //                  r->getQual(), r->getFilt(), r->getInfo(), r->getFormat());
+    //                  r->getQual(), r->getFilt(), r->getInfo(),
+    //                  r->getFormat());
     // VCFPeople& p = r->getPeople();
 
     // int GDidx = r->getFormatIndex("GD");

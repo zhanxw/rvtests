@@ -32,9 +32,10 @@ class VCFIndividual {
 
     // this->self = vcfValue;
     // this->parsed = vcfValue.toStr();
-    
-    this->parsed.attach(&vcfValue.line[vcfValue.beg], vcfValue.end - vcfValue.beg);
-    
+
+    this->parsed.attach(&vcfValue.line[vcfValue.beg],
+                        vcfValue.end - vcfValue.beg);
+
     // need to consider missing field
     this->fd.resize(0);
 
@@ -113,9 +114,10 @@ class VCFIndividual {
   }
   void output(FileWriter* fp) const;
   void toStr(std::string* s) const;
+
  private:
   bool inUse;
-  std::string name;          // id name
+  std::string name;  // id name
   // VCFValue self;             // whole field for the individual (unparsed)
   VCFBuffer parsed;          // store parsed string (where \0 added)
   std::vector<VCFValue> fd;  // each field separated by ':'

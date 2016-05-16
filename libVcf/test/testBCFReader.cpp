@@ -1,8 +1,7 @@
 #include "BCFReader.h"
 #include "VCFExtractor.h"
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
   {
     std::string fn = "all.anno.filtered.extract.bcf.gz";
     std::string r = "1:196621007-196716634";
@@ -10,7 +9,7 @@ int main(int argc, char *argv[])
     vin.setRangeList(r);
     printf("Extract two sites\n");
     vin.setAnnoType("Nonsynonymous");
-    while (vin.readRecord()){
+    while (vin.readRecord()) {
       VCFRecord& r = vin.getVCFRecord();
       VCFPeople& people = r.getPeople();
       VCFIndividual* indv;
@@ -32,7 +31,7 @@ int main(int argc, char *argv[])
     printf("after stdout\n");
     return 0;
   }
-  
+
   const char* fn = "test.bcf.gz";
   {
     BCFReader tr(fn);
@@ -43,7 +42,7 @@ int main(int argc, char *argv[])
       ++n;
     }
     fprintf(stdout, "Read %d lines\n", n);
-    assert ( n == 14) ; // without header lines
+    assert(n == 14);  // without header lines
   }
   {
     BCFReader tr(fn);
@@ -55,7 +54,7 @@ int main(int argc, char *argv[])
       ++n;
     }
     fprintf(stdout, "Read %d lines\n", n);
-    assert ( n == 2) ;
+    assert(n == 2);
   }
   {
     BCFReader tr(fn);
@@ -87,14 +86,13 @@ int main(int argc, char *argv[])
 
   {
     BCFReader tr(fn);
-    std::string h= tr.getHeader().c_str();
+    std::string h = tr.getHeader().c_str();
     int count = 0;
     for (size_t i = 0; i < h.size(); ++i) {
-      if (h[i] == '\n')
-        count++;
+      if (h[i] == '\n') count++;
     }
     fprintf(stdout, "header has %d lines.\n", count);
-    assert( count == 60);
+    assert(count == 60);
   }
   return 0;
 }

@@ -17,7 +17,10 @@ void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
     for (int i = 0; i < m.rows; ++i) {
       s += in[i][j];
     }
-    if (2.0 * s < m.rows) {
+    // maf = s / m.rows / 2
+    // if maf > 0.5, s > m.row
+    // otherwise, s <= m.row
+    if (s <= m.rows) {
       for (int i = 0; i < m.rows; ++i) {
         m[i][j] = in[i][j];
       }

@@ -13,7 +13,7 @@ class KinshipHolder {
   int setSample(const std::vector<std::string>& names);
   int setFile(const std::string& fileName);
   int setEigenFile(const std::string& fileName);
-  int load();
+  int load();   // load, decompose and cache decomposed kinship
   int loadK();  // only load the kinship file
   int decompose();
   int saveDecomposed();
@@ -32,6 +32,7 @@ class KinshipHolder {
 
  private:
   // K = U %*% S %*%* t(U)
+  // S stores eigenvalues in the increasing order
   EigenMatrix* matK;  // n by n matrix, may be NULL after decomposition
   EigenMatrix* matU;  // n by n matrix
   EigenMatrix* matS;  // n x 1 matrix

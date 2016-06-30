@@ -42,7 +42,7 @@ MVTNORM_OBJ = libMvtnorm/mvtnorm.o libMvtnorm/mvt.o libMvtnorm/randomF77.o
 $(MVTNORM_OBJ):
 	cd libMvtnorm; $(MAKE)
 
-DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS #-Wall
+DEFAULT_CXXFLAGS ?= -D__STDC_LIMIT_MACROS #-Wall
 release: CXXFLAGS = -O2 -msse2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)

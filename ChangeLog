@@ -1,3 +1,11 @@
+2016-06-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Add support for MKL library (USE_MKL=[dynamic|static])
+
+2016-06-24  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix a bug related to flipping to minor alleles
+
 2016-05-16  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Optimize code (faster speed, smaller memory consumptions)

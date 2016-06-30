@@ -65,6 +65,40 @@ CXX_LIB = $(LIB) -lm -lpthread
 CXX_LIB_DBG = $(LIB_DBG) -lm -lpthread
 
 ##################################################
+## MKL library
+USE_MKL ?=
+MKL_ROOT = /home/zhanxw/intel/compilers_and_libraries
+ifeq  ($(USE_MKL), dynamic)
+MKL_INCDIR = $(MKL_ROOT)/linux/mkl/include
+MKL_LIBDIR = $(MKL_ROOT)/linux/mkl/lib/intel64/
+MKL_RT_LIBDIR = $(MKL_ROOT)/linux/lib/intel64/
+MKL_INC_FLAGS = -I $(MKL_INCDIR)
+MKL_LINK_FLAGS = -L $(MKL_LIBDIR) \
+                 -L $(MKL_RT_LIBDIR) \
+                 -O4 -msse2 -msse3 -msse4 \
+                 -Wl,--start-group -lmkl_gnu_thread -lmkl_core -lmkl_intel_lp64 -Wl,--end-group \
+                 -fopenmp -lm -ldl
+else ifeq ($(USE_MKL), static)
+MKL_LINK_FLAGS = -Wl,--start-group \
+                 ${MKL_ROOT}/linux/mkl/lib/intel64/libmkl_intel_lp64.a \
+                 ${MKL_ROOT}/linux/mkl/lib/intel64/libmkl_core.a \
+                 ${MKL_ROOT}/linux/mkl/lib/intel64/libmkl_intel_thread.a \
+                 /home/zhanxw/intel/compilers_and_libraries_2016.3.210/linux/compiler/lib/intel64/libiomp5.a \
+                 -Wl,--end-group -fopenmp -lpthread -lm -ldl
+else ifeq ($(USE_MKL),)
+else
+$(error "Unsupported paramter for USE_MKL")
+endif
+
+ifneq ($(USE_MKL),) 
+DEFAULT_CXXFLAGS += -DEIGEN_USE_MKL_ALL
+DEFAULT_CXXFLAGS += $(MKL_INC_FLAGS)
+CXX_INCLUDE += -DEIGEN_USE_MKL_ALL
+CXX_INCLUDE += $(MKL_INC_FLAGS)
+CXX_LIB += $(MKL_LINK_FLAGS)
+endif
+
+##################################################
 ## Platform dependent variables
 ARCH := $(firstword $(shell uname -m))
 SYS := $(firstword $(shell uname -s))
@@ -79,6 +113,7 @@ endif
 .PHONY: format
 format: *.cpp *.h
 	clang-format -i -style google $^
+
 
 ##################################################
 ## lint

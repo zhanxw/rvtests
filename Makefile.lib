@@ -1,5 +1,6 @@
 ## this file describe how we build libs
 ROOT?=.
+
 ## third-party lib
 $(TABIX_INC) $(TABIX_LIB):
 	$(MAKE) -C $(ROOT)/third tabix

@@ -30,7 +30,7 @@ define BUILD_each
   SRC := $(1).cpp
   -include  $(1).d
   $$(TAR): $$(SRC) $(LIBS) 
-	g++ -o $$@ $$< -MMD $$(CXX_FLAGS)
+	$$(CXX) -o $$@ $$< -MMD $$(CXX_FLAGS)
 endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 

@@ -9,15 +9,15 @@ release: CXX_FLAGS = -O4 -DNDEBUG
 release: lib-goncalo.a
 lib-goncalo.a: $(OBJ)
 	-[ -f $@ ] && rm -f $@ || echo -n
-	ar -cqs lib-goncalo.a $^
+	$(AR) -cqs lib-goncalo.a $^
 %.o : %.cpp
-	g++ $(CXX_FLAGS) -c $< -o $@
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
 
 debug: lib-dbg-goncalo.a
 debug: CXX_FLAGS = -g -O0
 lib-dbg-goncalo.a: $(OBJ_DBG)
 	-[ -f $@ ] && rm -f $@ || echo -n
-	ar -cqs lib-dbg-goncalo.a $^
+	$(AR) -cqs lib-dbg-goncalo.a $^
 %_dbg.o: %.cpp
 	$(CXX) $(CXX_FLAGS) -c $< -o $@
 

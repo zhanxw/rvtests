@@ -101,7 +101,7 @@ endif
 
 ##################################################
 ## BLAS library
-USE_BLAS = 0
+USE_BLAS ?= 
 ifneq ($(USE_BLAS),)
   DEFAULT_CXXFLAGS += -DEIGEN_USE_BLAS #-DEIGEN_USE_LAPACKE
   DEFAULT_CXXFLAGS += 

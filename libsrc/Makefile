@@ -19,7 +19,7 @@ lib-dbg-goncalo.a: $(OBJ_DBG)
 	-[ -f $@ ] && rm -f $@ || echo -n
 	ar -cqs lib-dbg-goncalo.a $^
 %_dbg.o: %.cpp
-	g++ $(CXX_FLAGS) -c $< -o $@
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
 
 profile: lib-dbg-goncalo.a
 profile: CXX_FLAGS = -pg -O0

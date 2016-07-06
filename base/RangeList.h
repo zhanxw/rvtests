@@ -382,10 +382,10 @@ class RangeList {
               this->inChromRangeIndex != iter.inChromRangeIndex);
     }
     const std::string getChrom() const { return (*this->chrom); }
-    const unsigned int getBegin() const {
+    unsigned int getBegin() const {
       return (*this->positionPair)[inChromRangeIndex].begin;
     }
-    const unsigned int getEnd() const {
+    unsigned int getEnd() const {
       return (*this->positionPair)[inChromRangeIndex].end;
     }
 

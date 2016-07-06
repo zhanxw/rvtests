@@ -54,7 +54,7 @@ GONCALO_LIB_DBG = $(ROOT)/libsrc/lib-dbg-goncalo.a
 
 ##################################################
 ## Common compiler options
-CXX=g++
+CXX ?= g++
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x -Wall -Wno-unused-function $(OPENMP_FLAG) -DGIT_VERSION="\"$(GIT_VERSION)\""
 
 INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
@@ -68,18 +68,19 @@ CXX_LIB_DBG = $(LIB_DBG) -lm -lpthread
 ## MKL library
 USE_MKL ?=
 MKL_ROOT = /home/zhanxw/intel/compilers_and_libraries
-ifeq  ($(USE_MKL), dynamic)
 MKL_INCDIR = $(MKL_ROOT)/linux/mkl/include
 MKL_LIBDIR = $(MKL_ROOT)/linux/mkl/lib/intel64/
 MKL_RT_LIBDIR = $(MKL_ROOT)/linux/lib/intel64/
 MKL_INC_FLAGS = -I $(MKL_INCDIR)
-MKL_LINK_FLAGS = -L $(MKL_LIBDIR) \
-                 -L $(MKL_RT_LIBDIR) \
-                 -O4 -msse2 -msse3 -msse4 \
-                 -Wl,--start-group -lmkl_gnu_thread -lmkl_core -lmkl_intel_lp64 -Wl,--end-group \
-                 -fopenmp -lm -ldl
+
+ifeq  ($(USE_MKL), dynamic)
+  MKL_LINK_FLAGS = -L $(MKL_LIBDIR) \
+                   -L $(MKL_RT_LIBDIR) \
+                   -O4 -msse2 -msse3 -msse4 \
+                   -Wl,--start-group -lmkl_gnu_thread -lmkl_core -lmkl_intel_lp64 -Wl,--end-group \
+                   -fopenmp -lm -ldl
 else ifeq ($(USE_MKL), static)
-MKL_LINK_FLAGS = -Wl,--start-group \
+  MKL_LINK_FLAGS = -Wl,--start-group \
                  ${MKL_ROOT}/linux/mkl/lib/intel64/libmkl_intel_lp64.a \
                  ${MKL_ROOT}/linux/mkl/lib/intel64/libmkl_core.a \
                  ${MKL_ROOT}/linux/mkl/lib/intel64/libmkl_intel_thread.a \
@@ -87,15 +88,26 @@ MKL_LINK_FLAGS = -Wl,--start-group \
                  -Wl,--end-group -fopenmp -lpthread -lm -ldl
 else ifeq ($(USE_MKL),)
 else
-$(error "Unsupported paramter for USE_MKL")
+  $(error "Unsupported paramter for USE_MKL")
 endif
 
 ifneq ($(USE_MKL),) 
-DEFAULT_CXXFLAGS += -DEIGEN_USE_MKL_ALL
-DEFAULT_CXXFLAGS += $(MKL_INC_FLAGS)
-CXX_INCLUDE += -DEIGEN_USE_MKL_ALL
-CXX_INCLUDE += $(MKL_INC_FLAGS)
-CXX_LIB += $(MKL_LINK_FLAGS)
+  DEFAULT_CXXFLAGS += -DEIGEN_USE_MKL_ALL
+  DEFAULT_CXXFLAGS += $(MKL_INC_FLAGS)
+  CXX_INCLUDE += -DEIGEN_USE_MKL_ALL
+  CXX_INCLUDE += $(MKL_INC_FLAGS)
+  CXX_LIB += $(MKL_LINK_FLAGS)
+endif
+
+##################################################
+## BLAS library
+USE_BLAS = 0
+ifneq ($(USE_BLAS),)
+  DEFAULT_CXXFLAGS += -DEIGEN_USE_BLAS #-DEIGEN_USE_LAPACKE
+  DEFAULT_CXXFLAGS += 
+  CXX_INCLUDE += -DEIGEN_USE_BLAS #-DEIGEN_USE_LAPACKE
+  CXX_INCLUDE += 
+  CXX_LIB += /home/zhanxw/software/OpenBLAS-0.2.18/libopenblas.a
 endif
 
 ##################################################

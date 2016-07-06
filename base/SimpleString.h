@@ -59,8 +59,8 @@ class SimpleString {
     *current = '\0';
     return this->beg;
   }
-  const size_t size() const { return current - beg; }
-  const bool empty() const { return current == beg; }
+  size_t size() const { return current - beg; }
+  bool empty() const { return current == beg; }
 
  private:
   unsigned int next_pow2(unsigned int x) {

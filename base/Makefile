@@ -1,7 +1,7 @@
 .PHONY: all release debug
 all: release
 
-ROOT?=..
+ROOT ?= ..
 include $(ROOT)/Makefile.common
 include $(ROOT)/Makefile.lib
 

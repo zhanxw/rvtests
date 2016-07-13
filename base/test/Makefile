@@ -46,9 +46,9 @@ check: kinship
 	echo "All tests passed!"
 
 kinship:
-	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct && \
-        ./testKinshipToKinInbcoef a test.KinInbcoef.pedtest test.KinInbcoef.listtest > test.KinInbcoef.outtest && diff test.KinInbcoef.outtest test.KinInbcoef.outtest.correct && \
-        ./testKinshipToKinInbcoef x test.KinInbcoefX.pedtestX2 test.KinInbcoefX.listtestX2 > test.KinInbcoefX.outtestX2 && diff test.KinInbcoefX.outtestX2 test.KinInbcoefX.outtestX2.correct
+	./testKinship testKinship2.ped > testKinship2.out && diff testKinship2.out testKinship2.correct
+	./testKinshipToKinInbcoef a test.KinInbcoef.pedtest test.KinInbcoef.listtest > test.KinInbcoef.outtest && diff test.KinInbcoef.outtest test.KinInbcoef.outtest.correct
+	./testKinshipToKinInbcoef x test.KinInbcoefX.pedtestX2 test.KinInbcoefX.listtestX2 > test.KinInbcoefX.outtestX2 && diff test.KinInbcoefX.outtestX2 test.KinInbcoefX.outtestX2.correct
 
 clean:
 	-rm -f $(EXE) *.o *.d *.out

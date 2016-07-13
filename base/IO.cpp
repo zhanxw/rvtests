@@ -492,13 +492,13 @@ int BufferedReader::readLineBySep(std::vector<std::string>* fields,
   assert(this->fp && fields && sep);
   fields->reserve(128);
   fields->resize(1);
-  (*fields)[0].resize(0);
+  fields->back().resize(0);
 
   int oldPtr, ptr;
   while (true) {
     oldPtr = bufPtr;
     ptr = search(bufPtr, bufEnd, sep, "\r\n");
-    std::string& field = (*fields)[fields->size() - 1];
+    std::string& field = fields->back();
 
     field.append(buf + oldPtr, ptr - oldPtr);
     if (ptr == bufEnd) {  // not found
@@ -509,7 +509,7 @@ int BufferedReader::readLineBySep(std::vector<std::string>* fields,
       }
     } else if (strchr(sep, buf[ptr])) {  // separator
       fields->resize(fields->size() + 1);
-      (*fields)[fields->size() - 1].resize(0);
+      fields->back().resize(0);
     } else if (buf[ptr] == '\r') {
     } else if (buf[ptr] == '\n') {
       return fields->size();
@@ -858,7 +858,10 @@ FileType AbstractFileReader::checkFileType(const char* fileName) {
  */
 int removeEmptyField(std::vector<std::string>* fields) {
   int s = fields->size();
-  std::remove(fields->begin(), fields->end(), "");
+  fields->erase(
+      std::remove_if(fields->begin(), fields->end(),
+                     [](const std::string& a) { return a.size() > 0; }),
+      fields->end());
   s -= fields->size();
   return s;
 };

@@ -20,7 +20,7 @@ debug: $(EXE)
 	$(MAKE) -C .. debug
 
 LIBS =  ../lib-dbg-regression.a ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a
-CXX_FLAGS = -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
+CXX_FLAGS = -fopenmp -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
             $(LIBS) \
             ../../third/tabix/libtabix.a \
             ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
@@ -44,14 +44,14 @@ check1: output.R.lm output.cpp.lm
 	python compare.py $^
 output.R.lm: 
 	Rscript testLinearRegression.R $@
-output.cpp.lm: $(EXE)
+output.cpp.lm: $(EXE) output.R.lm
 	./testLinearRegression > $@
 ######################################################################
 check2: output.R.lm.cov output.cpp.lm.cov
 	python compare.py $^
 output.R.lm.cov:
 	Rscript testLinearRegressionCov.R $@
-output.cpp.lm.cov: $(EXE)
+output.cpp.lm.cov: $(EXE) output.R.lm output.R.lm.cov
 	./testLinearRegressionCov > $@
 ######################################################################
 check3: output.R.glm output.cpp.glm

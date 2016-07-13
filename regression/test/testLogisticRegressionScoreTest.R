@@ -1,5 +1,5 @@
 outFile = commandArgs(trailingOnly = TRUE)[1]
-setwd("~/rvtests/regression/test/")
+# setwd("~/rvtests/regression/test/")
 source("ScoreTest.R")
 set.seed(0)
 n = 200

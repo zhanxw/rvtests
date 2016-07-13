@@ -2,8 +2,8 @@
 
 #include "MathMatrix.h"
 #include "MathVector.h"
-#include "MultipleTraitLinearRegressionScoreTest.h"
 #include "MatrixIO.h"
+#include "MultipleTraitLinearRegressionScoreTest.h"
 
 #include "Formula.h"
 #include "SimpleTimer.h"
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 
   AccurateTimer t;
   {
-    MultipleTraitLinearRegressionScoreTest mt;
+    MultipleTraitLinearRegressionScoreTest mt(1024);
 
     bool ret = mt.FitNullModel(Cov, Y, tests);
     if (ret == false) {
@@ -78,13 +78,18 @@ int main(int argc, char* argv[]) {
     }
 
     // for (int i = 0; i < N; ++i) {
-    ret = mt.TestCovariate(G);
+    ret = mt.AddCovariate(G);
     if (ret == false) {
-      printf("Test covariate failed!\n");
+      printf("Add covariate failed!\n");
+      exit(1);
+    }
+    ret = mt.TestCovariateBlock();
+    if (ret == false) {
+      printf("Test covariate block failed!\n");
       exit(1);
     }
     //}
-    Vector& pval = mt.GetPvalue();
+    const Vector& pval = mt.GetPvalue(0);
     Print(pval);
     printf("\n");
   }

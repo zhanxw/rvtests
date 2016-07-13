@@ -12,9 +12,8 @@ class SimpleString {
  public:
   SimpleString(int l) {
     beg = new char[l + 1];
+    beg[l] = '\0';
     current = beg;
-    end = beg + l;
-    *end = '\0';
     cap = l;
   }
   ~SimpleString() { delete[] beg; }
@@ -27,8 +26,7 @@ class SimpleString {
 #endif
     int newCap = l * 2;
     char* newBeg = new char[newCap];
-    end = newBeg + newCap;
-    *end = '\0';
+    newBeg[newCap] = '\0';
     memcpy(newBeg, beg, current - beg);
     cap = newCap;
     current = newBeg + (current - beg);
@@ -49,11 +47,23 @@ class SimpleString {
     return 0;
   }
   void append(char c) {
-    if (current == end) {
+    if (current >= beg + cap) {
       reserveDouble();
     }
     *(current) = c;
     current++;
+  }
+  // append buf[start...(end-1)] to the buf
+  void append(char* buf, int start, int end) {
+    if (start <= end) {
+      return;
+    }
+    while (current + (end - start) >= beg + cap) {
+      reserveDouble();
+    }
+    const int len = (end - start);
+    memcpy(current, buf + start, len);
+    current += len;
   }
   const char* data() {
     *current = '\0';
@@ -80,8 +90,8 @@ class SimpleString {
  private:
   char* beg;      // pointer to the data
   char* current;  // current read/write position
-  char* end;      // boundary of the read/write limit
-  int cap;        // memory capacity
+  // char* end;      // boundary of the read/write limit
+  int cap;  // memory capacity
 };
 
 #endif /* _SIMPLESTRING_H_ */

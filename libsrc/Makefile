@@ -5,7 +5,7 @@ BASE = $(wildcard *.cpp)
 OBJ = $(BASE:%.cpp=%.o)
 OBJ_DBG = $(BASE:%.cpp=%_dbg.o)
 
-release: CXX_FLAGS = -O4 -DNDEBUG
+release: CXX_FLAGS = -O2 -DNDEBUG
 release: lib-goncalo.a
 lib-goncalo.a: $(OBJ)
 	-[ -f $@ ] && rm -f $@ || echo -n

@@ -264,9 +264,260 @@ class KnetFileReader : public AbstractFileReader {
   bool bgzfMode;
   BGZF* bgzf_fp;
   knetFile* knet_fp;
-};
+};  // end KnetFileReader
 #endif
 
+//////////////////////////////////////////////////
+// BufferedReader
+//////////////////////////////////////////////////
+BufferedReader::BufferedReader(const char* fileName, int bufferCapacity)
+    : bufCap(0), bufEnd(0), bufPtr(0), buf(NULL), fp(NULL) {
+#ifdef IO_DEBUG
+  fprintf(stderr, "BufferedReader open %s\n", fileName);
+#endif
+  // initialize buf
+  if (bufferCapacity == 0) {
+    fprintf(stderr,
+            "Buffer size should be greater than 0, now use default buffer "
+            "size 1M instead of %d.\n",
+            bufferCapacity);
+    this->bufCap = 1024 * 1024;
+  } else {
+    this->bufCap = (int)(bufferCapacity);
+  }
+  this->buf = new char[this->bufCap];
+  if (!this->buf) {
+    fprintf(stderr, "Cannot allocate buffer for BufferedReader. - Exit!\n");
+    exit(1);
+  }
+  this->bufPtr = 0;
+  this->bufEnd = 0;
+  // initialize fp
+  this->fp = AbstractFileReader::open(fileName);
+  if (!this->fp) {
+    fprintf(stderr, "Canont open file %s\n", fileName);
+    this->fp = NULL;
+    // need to quit to prevent further actions
+    exit(1);
+  }
+}
+
+void BufferedReader::close() {
+#ifdef IO_DEBUG
+  fprintf(stderr, "BufferedReader close\n");
+#endif
+  // delete fp
+  if (this->fp) {
+    AbstractFileReader::close(&fp);
+  }
+  this->fp = NULL;
+  // delete buf
+  if (this->buf) {
+    delete[] this->buf;
+    this->buf = NULL;
+    this->bufCap = 0;
+    this->bufPtr = 0;
+    this->bufEnd = 0;
+  }
+  this->buf = NULL;
+}
+
+bool BufferedReader::isEof() {
+  // fp reaches the end and read buffer reaches the end
+  if (this->bufPtr < this->bufEnd) return false;
+
+  if (this->fp && this->fp->isEof()) {
+    return true;
+  }
+  return false;
+}
+
+int BufferedReader::getc() {
+  if (this->bufPtr < this->bufEnd) return (this->buf[this->bufPtr++]);
+
+  // buffer all used, need to refresh
+  if (this->bufPtr == this->bufEnd) {
+    this->bufEnd = this->fp->read(this->buf, this->bufCap);
+    this->bufPtr = 0;
+  }
+  if (this->bufPtr < this->bufEnd)
+    return (this->buf[this->bufPtr++]);
+  else
+    return EOF;
+}
+
+void BufferedReader::refill() {
+  bufPtr = bufEnd = 0;
+  bufEnd = this->fp->read(this->buf, this->bufCap);
+  if (bufEnd < 0) {  // error happens
+    bufEnd = 0;
+  }
+}
+/**
+ *  0     1     2      3            (4)
+ *        ^bufPtr      ^bufEnd      ^bufCap
+ *
+ * buf[0..3]: data area
+ * buf[1] = buf[butPtr]: next position to read data
+ * buf[3] = buf[bufEnd]:
+ * only buf[0..2] are available
+ * if len <=
+ * if len > (4 -1), then only raed
+ */
+int BufferedReader::read(void* pDest, int destLen) {
+  if (destLen <= 0) return 0;
+
+  int nRead = 0;
+  char* dest = (char*)pDest;
+
+  // process buf[bufPtr..bufEnd)
+  int availableData = bufEnd - bufPtr;
+  if (availableData >= destLen) {
+    memcpy(dest, buf + bufPtr, destLen);
+    bufPtr += destLen;
+    return destLen;
+  }
+
+  // copy all existing data (buf[bufPtr..bufEnd])
+  memcpy(dest, buf + bufPtr, availableData);
+  nRead += availableData;
+  bufPtr += availableData;
+  dest += availableData;
+  destLen -= availableData;
+  assert(bufPtr == bufEnd);
+
+  // refill new data and then copy to @param dest
+  while (true) {
+    refill();
+    if (bufEnd == 0) {  // file end
+      return nRead;
+    }
+    if (bufEnd >= destLen) {
+      memcpy(dest, buf, destLen);
+      bufPtr += destLen;
+      nRead += destLen;
+      return nRead;
+    }
+    memcpy(dest, buf, bufEnd);
+    nRead += bufEnd;
+    bufPtr = bufEnd;
+    dest += bufEnd;
+    destLen -= bufEnd;
+    assert(bufPtr == bufEnd);
+  }
+
+#if 0
+  // use current buffer to fill in buf
+  int idx = 0;
+  while (this->bufPtr < this->bufEnd && len > 0) {
+    ((char*)buf)[idx++] = this->buf[this->bufPtr++];
+    len--;
+  }
+  if (len == 0) {
+    return idx;
+  }
+  // fill rest of buf
+  int nRead = this->fp->read(((char*)buf) + idx, len);
+  idx += nRead;
+  // refill buffer
+  this->bufEnd = this->fp->read(this->buf, this->bufCap);
+  this->bufPtr = 0;
+  return idx;
+#endif
+}
+
+int BufferedReader::search(int left, int right, const char* sep) {
+  assert(right <= bufEnd);
+  const char* p;
+  for (int i = left; i < right; ++i) {
+    p = strchr(sep, buf[i]);
+    if (p != NULL) {
+      bufPtr = i + 1;
+      return i;
+    }
+  }
+  bufPtr = bufEnd;
+  assert(right == bufEnd);
+  return bufPtr;
+}
+
+int BufferedReader::search(int left, int right, const char* sep1,
+                           const char* sep2) {
+  assert(right <= bufEnd);
+  const char* p;
+  for (int i = left; i < right; ++i) {
+    p = strchr(sep1, buf[i]);
+    if (p != NULL) {
+      bufPtr = i + 1;
+      return i;
+    }
+    p = strchr(sep2, buf[i]);
+    if (p != NULL) {
+      bufPtr = i + 1;
+      return i;
+    }
+  }
+  bufPtr = bufEnd;
+  assert(right == bufEnd);
+  return bufPtr;
+}
+
+int BufferedReader::readLine(std::string* line) {
+  assert(this->fp && line);
+
+  line->reserve(2048);
+  line->resize(0);
+
+  int oldPtr, ptr;
+  while (true) {
+    oldPtr = bufPtr;
+    ptr = search(bufPtr, bufEnd, "\r\n");
+    line->append(buf + oldPtr, ptr - oldPtr);
+    if (ptr == bufEnd) {  // not found
+      refill();
+      if (bufEnd == 0) {  // file end
+        return line->size();
+      }
+    } else if (buf[ptr] == '\r') {
+    } else if (buf[ptr] == '\n') {
+      return line->size();
+    }
+  }
+  assert(false);
+  return 0;
+}
+
+int BufferedReader::readLineBySep(std::vector<std::string>* fields,
+                                  const char* sep) {
+  assert(this->fp && fields && sep);
+  fields->reserve(128);
+  fields->resize(1);
+  (*fields)[0].resize(0);
+
+  int oldPtr, ptr;
+  while (true) {
+    oldPtr = bufPtr;
+    ptr = search(bufPtr, bufEnd, sep, "\r\n");
+    std::string& field = (*fields)[fields->size() - 1];
+
+    field.append(buf + oldPtr, ptr - oldPtr);
+    if (ptr == bufEnd) {  // not found
+      refill();
+      if (bufEnd == 0) {  // reach file end
+        fields->resize(fields->size() - 1);
+        return fields->size();
+      }
+    } else if (strchr(sep, buf[ptr])) {  // separator
+      fields->resize(fields->size() + 1);
+      (*fields)[fields->size() - 1].resize(0);
+    } else if (buf[ptr] == '\r') {
+    } else if (buf[ptr] == '\n') {
+      return fields->size();
+    }
+  }
+}
+
+//////////////////////////////////////////////////
 class TextFileWriter : public AbstractFileWriter {
  public:
   TextFileWriter(const char* fn, bool append = false) {
@@ -570,8 +821,7 @@ void AbstractFileReader::close(AbstractFileReader** f) {
 };
 
 // check header for known file type
-AbstractFileReader::FileType AbstractFileReader::checkFileType(
-    const char* fileName) {
+FileType AbstractFileReader::checkFileType(const char* fileName) {
   // treat stdin as plain text file
   if (strncmp(fileName, "-", 1) == 0) {
     return PLAIN;

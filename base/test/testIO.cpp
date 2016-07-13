@@ -3,9 +3,9 @@
 
 #include <stdlib.h>
 
-#include <vector>
-#include <string>
 #include <cassert>
+#include <string>
+#include <vector>
 
 using std::vector;
 using std::string;
@@ -98,5 +98,20 @@ int main(int argc, char *argv[]) {
       i++;
     }
   }
+  {
+    char fn[] = "abc.txt";
+    FileWriter fw(fn);
+    fw.write(a);
+    fw.close();
+
+    LineReader lr(fn);
+    std::vector<std::string> fd;
+    int i = 0;
+    while (lr.readLineBySep(&fd, "\t")) {
+      assert(0 == strcmp(t[i].c_str(), fd[0].c_str()));
+      i++;
+    }
+  }
+
   return 0;
 }

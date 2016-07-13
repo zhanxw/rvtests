@@ -11,8 +11,6 @@
 #include <string>
 #include <vector>
 
-#include "SimpleString.h"
-
 // #define IO_DEBUG
 
 typedef enum FileType {
@@ -34,21 +32,21 @@ typedef enum FileType {
  */
 class AbstractFileReader {
  public:
+#if 0
   typedef enum FileType {
     PLAIN = 0,
     GZIP = 1,
     BZIP2 = 2,
     UNKNOWN = 99
   } FileType;
+#endif
   virtual ~AbstractFileReader() {
   }  // make it virtual so subclass types can close file handle
   static AbstractFileReader* open(const char* fileName);
   static void close(AbstractFileReader** f);
   // virtual functions
-  // each specific file type will need to implement the following function
-  // virtual int readLine(std::string* line) = 0;
-  // virtual int readLineBySep(std::vector<std::string>* fields, const char*
-  // sep) = 0;
+  // each specific file reader (for various file types)
+  // needs to implement the followings
   virtual int getc() = 0;
   virtual bool isEof() = 0;
   virtual void close() = 0;
@@ -57,7 +55,7 @@ class AbstractFileReader {
   static FileType checkFileType(const char* fileName);
 
  protected:
-  AbstractFileReader() {}  // forbid explicit create AbstractFileReader class.
+  AbstractFileReader() {}  // forbid explicitly create AbstractFileReader class.
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -76,159 +74,32 @@ class AbstractFileReader {
 */
 class BufferedReader : public AbstractFileReader {
  public:
-  BufferedReader(const char* fileName, int bufferCapacity)
-      : bufCap(0), bufEnd(0), bufPtr(0), buf(NULL), fp(NULL), s(1024 * 1024) {
-#ifdef IO_DEBUG
-    fprintf(stderr, "BufferedReader open %s\n", fileName);
-#endif
-    // initialize buf
-    if (bufferCapacity == 0) {
-      fprintf(stderr,
-              "Buffer size should be greater than 0, now use default buffer "
-              "size 1M instead of %d.\n",
-              bufferCapacity);
-      this->bufCap = 1024 * 1024;
-    } else {
-      this->bufCap = (int)(bufferCapacity);
-    }
-    this->buf = new char[this->bufCap];
-    if (!this->buf) {
-      fprintf(stderr, "Cannot allocate buffer for BufferedReader.\n");
-      return;
-    }
-    this->bufPtr = 0;
-    this->bufEnd = 0;
-    // initialize fp
-    this->fp = AbstractFileReader::open(fileName);
-    if (!this->fp) {
-      fprintf(stderr, "Canont open file %s\n", fileName);
-      this->fp = NULL;
-      // need to quit to prevent further actions
-      exit(1);
-    }
-  }
+  BufferedReader(const char* fileName, int bufferCapacity);
   virtual ~BufferedReader() { this->close(); }
-  int getc() {
-    if (this->bufPtr == this->bufEnd) {  // buffer all used, need to refresh
-      this->bufEnd = this->fp->read(this->buf, this->bufCap);
-      this->bufPtr = 0;
-    }
+  bool isEof();
+  void close();
+  // return a char or EOF
+  int getc();
+  // A more efficient way than getc() to read up to @param len characters to
+  // @param dest.
+  // return number of characters read (0: file end or @param len <= 0)
+  int read(void* dest, int len);
+  // return number of characters read (0: file end)
+  int readLine(std::string* line);
+  // return chars read (0: file end)
+  int readLineBySep(std::vector<std::string>* fields, const char* sep);
 
-    if (this->bufPtr < this->bufEnd)
-      return (this->buf[this->bufPtr++]);
-    else
-      return EOF;
-  }
-  bool isEof() {
-    // fp reaches the end and read buffer reaches the end
-    if (this->fp && this->fp->isEof() && this->bufPtr == this->bufEnd) {
-      return true;
-    }
-    return false;
-  }
-  void close() {
-#ifdef IO_DEBUG
-    fprintf(stderr, "BufferedReader close\n");
-#endif
-    // delete fp
-    if (this->fp) {
-      AbstractFileReader::close(&fp);
-    }
-    this->fp = NULL;
-    // delete buf
-    if (this->buf) {
-      delete[] this->buf;
-      this->buf = NULL;
-      this->bufCap = 0;
-      this->bufPtr = 0;
-      this->bufEnd = 0;
-    }
-    this->buf = NULL;
-  }
-  int read(void* buf, int len) {
-    // use current buffer to fill in buf
-    int idx = 0;
-    while (this->bufPtr < this->bufEnd && len > 0) {
-      ((char*)buf)[idx++] = this->buf[this->bufPtr++];
-      len--;
-    }
-    if (len == 0) {
-      return idx;
-    }
-    // fill rest of buf
-    int nRead = this->fp->read(((char*)buf) + idx, len);
-    idx += nRead;
-    // refill buffer
-    this->bufEnd = this->fp->read(this->buf, this->bufCap);
-    this->bufPtr = 0;
-    return idx;
-  }
-  int readLine(std::string* line) {
-    assert(this->fp && line);
-    // if (this->fp->isEof()) return 0;
-    this->s.resize(0);
-    char c;
-    unsigned nRead = 0;
-    while (true) {
-      c = this->getc();
-      if (c == EOF) {
-        (*line) = s.data();
-        return nRead;
-      } else if (c == '\r') {
-        // skip this
-        continue;
-      } else if (c == '\n') {
-        ++nRead;
-        (*line) = s.data();
-        return nRead;
-      } else {  // normal characters
-        ++nRead;
-        s.append(c);
-      }
-    }
-    assert(false);  // should not reach here
-    return 0;
-  }
-  int readLineBySep(std::vector<std::string>* fields, const char* sep) {
-    assert(this->fp && fields && sep);
-    // if (this->fp->isEof()) return 0;
-    fields->resize(0);
-    char c;
-    std::string s;
-    s.reserve(4096);  // reserve space
-    while (true) {
-      c = this->getc();
-      if (c == EOF) {
-        if (s.size()) {
-          fields->push_back(s);
-        }
-        return fields->size();
-      } else if (c == '\r') {
-        // skip this
-        continue;
-      } else if (c == '\n') {
-        if (s.size()) {
-          fields->push_back(s);
-        }
-        return fields->size();
-      } else if (strchr(sep, c) != NULL) {  // separator
-        fields->push_back(s);
-        s.resize(0);
-      } else {  // normal characters
-        s.push_back(c);
-      }
-    }
-    assert(false);  // should not reach here
-    return 0;
-  }
+ private:
+  void refill();
+  int search(int left, int right, const char* sep);
+  int search(int left, int right, const char* sep1, const char* sep2);
 
  private:
   int bufCap;  // capacity of the buffer
-  int bufEnd;  // bufPtr should not read beyond bufEnd(incluive)
-  int bufPtr;  // from which buffer begins to read
-  char* buf;   // [0...bufEnd]
+  int bufEnd;  // bufPtr should not read buf[bufEnd] and beyond
+  int bufPtr;  // points to next unread character
+  char* buf;   // [0...bufEnd)
   AbstractFileReader* fp;
-  SimpleString s;
 };  // end BufferedReader
 
 /** Example code:

@@ -282,14 +282,14 @@ class VCFRecord {
 
  public:
   const char* getChrom() const { return this->chrom.toStr(); }
-  const int getPos() const { return this->pos.toInt(); }
+  int getPos() const { return this->pos.toInt(); }
   const char* getPosStr() const { return this->pos.toStr(); }
   const char* getID() const { return this->id.toStr(); }
   const char* getRef() const { return this->ref.toStr(); }
   const char* getAlt() const { return this->alt.toStr(); }
   const char* getQual() const { return this->qual.toStr(); }
-  const int getQualInt() const { return this->qual.toInt(); }
-  const int getQualDouble() const { return this->qual.toDouble(); }
+  int getQualInt() const { return this->qual.toInt(); }
+  double getQualDouble() const { return this->qual.toDouble(); }
   const char* getFilt() const { return this->filt.toStr(); }
   // const char* getInfo() const { return this->vcfInfo.toStr(); }
   const char* getFormat() const { return this->format.toStr(); }

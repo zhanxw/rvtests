@@ -43,7 +43,7 @@ class LinearRegressionScoreTest {
   const Matrix& GetU() const { return this->Umatrix; };
   const Matrix& GetV() const { return this->Vmatrix; };
   const Matrix& GetBeta() const { return this->betaMatrix; }
-  const double GetSigma2() const { return this->lr.GetSigma2(); };
+  double GetSigma2() const { return this->lr.GetSigma2(); };
 
   // get estimates from null models
   Vector& GetNullCovEst() { return this->lr.GetCovEst(); };  // (X'X)^{-1} X'Y

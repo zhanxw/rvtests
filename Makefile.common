@@ -76,7 +76,6 @@ MKL_INC_FLAGS = -I $(MKL_INCDIR)
 ifeq  ($(USE_MKL), dynamic)
   MKL_LINK_FLAGS = -L $(MKL_LIBDIR) \
                    -L $(MKL_RT_LIBDIR) \
-                   -O4 -msse2 -msse3 -msse4 \
                    -Wl,--start-group -lmkl_gnu_thread -lmkl_core -lmkl_intel_lp64 -Wl,--end-group \
                    -fopenmp -lm -ldl
 else ifeq ($(USE_MKL), static)

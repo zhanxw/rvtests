@@ -52,8 +52,10 @@ Rvtests, which stands for Rare Variant tests, is a flexible software package for
 # Citation
 
 Xiaowei Zhan, Youna Hu, Bingshan Li, Goncalo R. Abecasis, and Dajiang J. Liu
-RVTESTS: An Efficient and Comprehensive Tool for Rare Variant Association Analysis Using Sequence Data
-Bioinformatics first published online February 15, 2016 doi:10.1093/bioinformatics/btw079
+
+**RVTESTS: An Efficient and Comprehensive Tool for Rare Variant Association Analysis Using Sequence Data**
+
+Bioinformatics 2016 32: 1423-1426. [doi:10.1093/bioinformatics/btw079](http://bioinformatics.oxfordjournals.org/content/32/9/1423.short)  [PDF](http://bioinformatics.oxfordjournals.org/content/32/9/1423.full.pdf+html)
 
 # Download
 

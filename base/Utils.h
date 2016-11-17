@@ -106,7 +106,7 @@ class StringTokenizer {
     assert(result);
     // scan to determine size of result
     int n = 0;
-    const char* d;
+    const char* d = this->data->data();
     for (size_t i = 0; i != this->end; ++i) {
       if (inToken(*(d + i))) {
         ++n;

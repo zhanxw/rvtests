@@ -119,6 +119,9 @@ ifeq ($(SYS), Linux)
   OPENMP_FLAG = -fopenmp
 endif
 
+ifeq ($(SYS), Darwin)
+  DEFAULT_CXXFLAGS += -m64
+endif
 ##################################################
 ## format
 ##################################################

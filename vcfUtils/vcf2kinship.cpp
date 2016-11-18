@@ -905,6 +905,10 @@ int main(int argc, char** argv) {
       kinshipForX->addGenotype(genotype);
       ++variantX;
     }
+
+    if (FLAG_storeGenotype) {
+      gw.write(genotype);
+    }
   }
   logger->info("Total [ %d ] VCF records have been processed.", lineNo);
 

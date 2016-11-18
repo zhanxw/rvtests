@@ -1,7 +1,3 @@
-#include "Argument.h"
-#include "IO.h"
-#include "tabix.h"
-
 #include <algorithm>
 #include <cassert>
 #include <map>
@@ -11,7 +7,9 @@
 
 #include "third/eigen/Eigen/Core"
 #include "third/eigen/Eigen/Eigenvalues"
+#include "third/tabix/tabix.h"
 
+#include "base/Argument.h"
 #include "base/IO.h"
 #include "base/Indexer.h"
 #include "base/Kinship.h"
@@ -32,12 +30,12 @@
 
 class EmpiricalKinship {
  public:
+  virtual ~EmpiricalKinship() {}
   virtual int addGenotype(const std::vector<double>& g) = 0;
   virtual void calculate() = 0;
   virtual const SimpleMatrix& getKinship() const = 0;
   // number of sites used in this calculation
   virtual int getSiteNumber() const = 0;
-  virtual ~EmpiricalKinship() {}
 
  public:
   int setSex(std::vector<int>* sex) {
@@ -47,7 +45,6 @@ class EmpiricalKinship {
     }
     return 0;
   }
-
  protected:
   std::vector<int>* sex;
 };
@@ -375,12 +372,73 @@ class BaldingNicolsKinshipForX : public EmpiricalKinship {
   int n;
 };  // Balding-Nicols matrix for sex chromosome
 
+// write a genotype/dosage matrix (sample by SNP)
+// output 3 files:
+//   prefix.data
+//   prefix.dim
+//   prefix.rowName
+class GenotypeWriter {
+ public:
+  explicit GenotypeWriter() {};
+  int open(const std::vector<std::string>& sampleName,
+           const std::string& prefix) {
+    sampleName_ = (sampleName);
+    prefix_ = (prefix);
+    
+    return init();
+  }
+  ~GenotypeWriter() {
+    close();
+  }
+  int write(const std::vector<double>& g) {
+    assert(fGeno_);
+    ++nVariant_;
+    return fwrite(g.data(), sizeof(double), g.size(), fGeno_);
+  }
+  int init() {
+    // write prefix.rowName
+    std::string fileName = prefix_;
+    fileName += ".rowName";
+    FILE* fp = fopen(fileName.c_str(), "wt");
+    for (size_t i = 0; i != sampleName_.size(); ++i ) {
+      fputs(sampleName_[i].c_str(), fp);
+      fputs("\n", fp);
+    }
+    fclose(fp);
+
+    fileName = prefix_;
+    fileName += ".data";
+    fGeno_ = fopen(fileName.c_str(), "wb");
+
+    return 0;
+  }
+  int close() {
+    // close prefix.data file
+    if (fGeno_) {
+      fclose(fGeno_);
+    }
+    // write prefix.dim
+    std::string fileName = prefix_;
+    fileName += ".dim";
+    FILE* fp = fopen(fileName.c_str(), "wt");
+    fprintf(fp, "%d\t%d\t<f8\n", (int)sampleName_.size(), nVariant_);
+    fclose(fp);
+
+    return 0;
+  }
+ private:
+  std::vector<std::string> sampleName_;
+  std::string prefix_;
+  FILE* fGeno_;
+  int nVariant_;
+};
+
 int output(const std::vector<std::string>& famName,
            const std::vector<std::string>& indvName, const SimpleMatrix& mat,
            bool performPCA, const std::string& outPrefix);
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20151110"
+#define VERSION "20161018"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s, git tag %s)\n", PROGRAM,
@@ -425,6 +483,7 @@ int main(int argc, char** argv) {
   ADD_BOOL_PARAMETER(pl, bn, "--bn", "Use Balding-Nicols method.")
   ADD_BOOL_PARAMETER(pl, pca, "--pca",
                      "Decomoposite calculated kinship matrix.")
+  ADD_BOOL_PARAMETER(pl, storeGenotype, "--storeGenotype", "Store genotye matrix (sample by genotype).")
 
   ADD_PARAMETER_GROUP(pl, "Specify Genotype")
   ADD_STRING_PARAMETER(pl, dosageTag, "--dosage",
@@ -737,6 +796,10 @@ int main(int argc, char** argv) {
   if (FLAG_xHemi) {
     kinshipForX->setSex(&sex);
   }
+  GenotypeWriter gw;
+  if (FLAG_storeGenotype) {
+    gw.open(names, FLAG_outPrefix);
+  }
 
   // set threshold
   double maxMissing = 1.0 * FLAG_maxMissing * names.size();
@@ -795,8 +858,8 @@ int main(int argc, char** argv) {
     GDidx = (FLAG_minGD > 0) ? r.getFormatIndex("GD") : -1;
     GQidx = (FLAG_minGQ > 0) ? r.getFormatIndex("GQ") : -1;
     DosageIdx = (!FLAG_dosageTag.empty())
-                    ? r.getFormatIndex(FLAG_dosageTag.c_str())
-                    : -1;
+        ? r.getFormatIndex(FLAG_dosageTag.c_str())
+        : -1;
 
     int ac = 0;
     double af = 0;
@@ -812,12 +875,12 @@ int main(int argc, char** argv) {
       if (FLAG_dosageTag.empty()) {  // use genotypes
         if (!hemiRegion) {
           geno = indv->get(GTidx, &missing)
-                     .getGenotype();  // here missing mean if GT exists
+              .getGenotype();  // here missing mean if GT exists
         } else {                      // hemi region
           if (sex[i] == 1) {
             geno = indv->get(GTidx, &missing)
-                       .getMaleNonParGenotype01();  // geno should be 0, 1 or
-                                                    // missing
+                .getMaleNonParGenotype01();  // geno should be 0, 1 or
+            // missing
             // if geno is missing but it is a valid genotype (0, 1, 2..), then
             // it's wrong coding
             if (geno < 0 && indv->get(GTidx, &missing).getGenotype() >= 0) {
@@ -826,7 +889,7 @@ int main(int argc, char** argv) {
             if (geno < 0) numMaleHemiMissing++;
           } else if (sex[i] == 2) {
             geno = indv->get(GTidx, &missing)
-                       .getGenotype();  // here missing means if GT exists
+                .getGenotype();  // here missing means if GT exists
           } else {
             geno = MISSING_GENOTYPE;
             missing = true;

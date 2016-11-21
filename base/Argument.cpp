@@ -1,7 +1,18 @@
 #include "base/Argument.h"
-#include "base/LineBreaker.h"
 
-#define UNUSED(x) ((void)(x))
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>  // strlen
+#include <time.h>
+#include <unistd.h>  // gethostname
+
+#include <iostream>
+#include <map>
+#include <queue>
+
+#include "base/LineBreaker.h"
+#include "base/TypeConversion.h"
+
 namespace parameter {
 ParameterParser::ParameterParser(){
   currentParameterGroupName = "Default Parameter Group";

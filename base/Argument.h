@@ -1,20 +1,12 @@
 #ifndef _ARGUMENT_H_
 #define _ARGUMENT_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>  // strlen
-#include <time.h>
-#include <unistd.h>  // gethostname
-
-#include <iostream>
-#include <map>
-#include <queue>
 #include <string>
 #include <vector>
 
 #include "base/OrderedMap.h"
-#include "base/TypeConversion.h"
+
+#define UNUSED(x) ((void)(x))
 
 namespace parameter {
 
@@ -123,8 +115,10 @@ class ParameterGroupRegister {
 
 #define PARAMETER_INSTANCE() \
   (parameter::ParameterParser::getInstance())
-#define PARSE_PARAMETER(argc, argv) \
-  const std::vector<std::string>& FLAG_REMAIN_ARG = PARAMETER_INSTANCE().getRemainArg(); \
+#define PARSE_PARAMETER(argc, argv)                                     \
+  const std::vector<std::string>& FLAG_REMAIN_ARG =                     \
+      PARAMETER_INSTANCE().getRemainArg();                              \
+  UNUSED(FLAG_REMAIN_ARG) ;                                             \
   PARAMETER_INSTANCE().Read(argc, argv);
 
 
@@ -169,6 +163,21 @@ class ParameterGroupRegister {
 #define PARAMETER_STATUS() \
   PARAMETER_INSTANCE().Status();
 
+
+#define DECLARE_PARAMETER(type, x)                                      \
+    namespace parameter {                                               \
+    extern type FLAG_##x;                                               \
+    }                                                                   \
+    using parameter::FLAG_##x;                                          
+#define DECLARE_BOOL_PARAMETER(x)                \
+  DECLARE_PARAMETER(bool, x)
+#define DECLARE_INT_PARAMETER(x)                \
+  DECLARE_PARAMETER(int, x)
+#define DECLARE_DOUBLE_PARAMETER(x)              \
+  DECLARE_PARAMETER(double, x)
+#define DECLARE_STRING_PARAMETER(x)                      \
+  DECLARE_PARAMETER(std::string, x)
+        
 // for compatible reasons, keep them here
 #define BEGIN_PARAMETER_LIST()                  
 #define END_PARAMETER_LIST()                    

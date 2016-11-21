@@ -18,37 +18,54 @@
 #include "IO.h"
 #include "Regex.h"
 
-int main(int argc, char** argv){
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "input VCF File")
+ADD_STRING_PARAMETER(out, "--out", "output prefix")
+ADD_PARAMETER_GROUP("People Filter")
+ADD_STRING_PARAMETER(peopleIncludeID, "--peopleIncludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleIncludeFile, "--peopleIncludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_STRING_PARAMETER(peopleExcludeID, "--peopleExcludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleExcludeFile, "--peopleExcludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_PARAMETER_GROUP("Gene Extractor")
+ADD_STRING_PARAMETER(
+    geneFile, "--geneFile",
+    "Specify the gene file (refFlat format), so we know gene start and end.")
+ADD_STRING_PARAMETER(geneName, "--gene", "Specify the gene names to extract")
+ADD_STRING_PARAMETER(annoType, "--annoType",
+                     "Specify the type of annotation to extract")
+ADD_PARAMETER_GROUP("Genotype Filter")
+ADD_INT_PARAMETER(
+    minGQ, "--minGQ",
+    "Specify minimum GQ required (lower than this will be marked missing).")
+ADD_PARAMETER_GROUP("Other Function")
+ADD_BOOL_PARAMETER(variantOnly, "--variantOnly",
+                   "Only variant sites from the VCF file will be processed.")
+ADD_STRING_PARAMETER(updateId, "--update-id", "Update VCF sample id using "
+                                              "given file (column 1 and 2 are "
+                                              "old and new id).")
+END_PARAMETER_LIST();
+
+int main(int argc, char **argv) {
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, out, "--out", "output prefix")
-      ADD_PARAMETER_GROUP(pl, "People Filter")
-      ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_PARAMETER_GROUP(pl, "Gene Extractor")
-      ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "Specify the gene file (refFlat format), so we know gene start and end.")
-      ADD_STRING_PARAMETER(pl, geneName, "--gene", "Specify the gene names to extract")
-      ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify the type of annotation to extract")
-      ADD_PARAMETER_GROUP(pl, "Genotype Filter")
-      ADD_INT_PARAMETER(pl, minGQ, "--minGQ", "Specify minimum GQ required (lower than this will be marked missing).")
-      ADD_PARAMETER_GROUP(pl, "Other Function")
-      ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")
-      ADD_STRING_PARAMETER(pl, updateId, "--update-id", "Update VCF sample id using given file (column 1 and 2 are old and new id).")
-      END_PARAMETER_LIST(pl)
-      ;
-
-  pl.Read(argc, argv);
-  pl.Status();
+PARSE_PARAMETER(argc, argv);
+  PARAMETER_STATUS();
 
   if (FLAG_REMAIN_ARG.size() > 0){
     fprintf(stderr, "Unparsed arguments: ");

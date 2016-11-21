@@ -131,24 +131,27 @@ int countVariant(const std::string& indv) {
   return count;
 }
 
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "input VCF File")
+ADD_STRING_PARAMETER(snp, "--snp", "input dbSNP File (.rod)")
+ADD_STRING_PARAMETER(hapmap, "--hapmap", "input HapMap File (.bim)")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+END_PARAMETER_LIST();
+
 int main(int argc, char** argv){
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, snp, "--snp", "input dbSNP File (.rod)")
-      ADD_STRING_PARAMETER(pl, hapmap, "--hapmap", "input HapMap File (.bim)")
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      END_PARAMETER_LIST(pl)
-      ;
-
-  pl.Read(argc, argv);
-  pl.Status();
+  PARSE_PARAMETER(argc, argv);
+  PARAMETER_STATUS();
 
   if (FLAG_REMAIN_ARG.size() > 0){
     fprintf(stderr, "Unparsed arguments: ");

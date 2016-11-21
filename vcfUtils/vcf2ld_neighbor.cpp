@@ -65,31 +65,44 @@ int calculateLD(std::vector<int>& lastGeno, std::vector<int>& geno, int* n, doub
   return 0;
 };
 
-int main(int argc, char** argv){
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "input VCF File")
+ADD_STRING_PARAMETER(outLD, "--outLD", "output file prefix")
+ADD_PARAMETER_GROUP("People Filter")
+ADD_STRING_PARAMETER(peopleIncludeID, "--peopleIncludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleIncludeFile, "--peopleIncludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_STRING_PARAMETER(peopleExcludeID, "--peopleExcludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleExcludeFile, "--peopleExcludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_PARAMETER_GROUP("Range Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(
+    siteID, "--siteID",
+    "Specify the sites to be extracted from the vcf file, separated by common")
+ADD_STRING_PARAMETER(
+    siteFile, "--siteFile",
+    "Specify the file to contain the site to be extract from the vcf file.")
+END_PARAMETER_LIST();
+
+int main(int argc, char **argv) {
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, outLD, "--outLD", "output file prefix")
-      ADD_PARAMETER_GROUP(pl, "People Filter")
-      ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-      ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-      ADD_PARAMETER_GROUP(pl, "Range Filter")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, siteID, "--siteID", "Specify the sites to be extracted from the vcf file, separated by common")
-      ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file to contain the site to be extract from the vcf file.")
-      END_PARAMETER_LIST(pl)
-      ;
-
-  pl.Read(argc, argv);
-  pl.Status();
+PARSE_PARAMETER(argc, argv);
+  PARAMETER_STATUS();
 
   if (FLAG_REMAIN_ARG.size() > 0){
     fprintf(stderr, "Unparsed arguments: ");

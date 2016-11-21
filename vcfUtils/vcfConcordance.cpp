@@ -283,24 +283,28 @@ size_t set_intersection(const StringArray& input1,
   return output->size();
 };
 
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(s, "-s", "standard VCF file (to which other files compare")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    siteFile, "--siteFile",
+    "Specify the file containing chromosomal sites, please use chr:pos")
+END_PARAMETER_LIST();
 
 int main(int argc, char** argv){
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
-
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, s, "-s", "standard VCF file (to which other files compare")
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing chromosomal sites, please use chr:pos")
-      END_PARAMETER_LIST(pl)
-      ;
-
-  pl.Read(argc, argv);
-  pl.Status();
+  
+  PARSE_PARAMETER(argc, argv);
+  PARAMETER_STATUS();
 
   REQUIRE_STRING_PARAMETER(FLAG_s, "Please provide input file using: -s");
 

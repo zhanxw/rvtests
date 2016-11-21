@@ -39,23 +39,23 @@ int main(int argc, char** argv){
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
     ////////////////////////////////////////////////
-    BEGIN_PARAMETER_LIST(pl)
-        ADD_PARAMETER_GROUP(pl, "Input/Output")
-        ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-        ADD_STRING_PARAMETER(pl, outMerlin, "--outMerlin", "output prefix")
-        ADD_PARAMETER_GROUP(pl, "People Filter")
-        ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-        ADD_PARAMETER_GROUP(pl, "Site Filter")
-        ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-        ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-        END_PARAMETER_LIST(pl)
+    BEGIN_PARAMETER_LIST()
+        ADD_PARAMETER_GROUP("Input/Output")
+        ADD_STRING_PARAMETER(inVcf, "--inVcf", "input VCF File")
+        ADD_STRING_PARAMETER(outMerlin, "--outMerlin", "output prefix")
+        ADD_PARAMETER_GROUP("People Filter")
+        ADD_STRING_PARAMETER(peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
+        ADD_STRING_PARAMETER(peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
+        ADD_STRING_PARAMETER(peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
+        ADD_STRING_PARAMETER(peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
+        ADD_PARAMETER_GROUP("Site Filter")
+        ADD_STRING_PARAMETER(rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
+        ADD_STRING_PARAMETER(rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+        END_PARAMETER_LIST()
         ;    
 
-    pl.Read(argc, argv);
-    pl.Status();
+    PARSE_PARAMETER(argc, argv);
+    PARAMETER_STATUS();
     
     if (FLAG_REMAIN_ARG.size() > 0){
         fprintf(stderr, "Unparsed arguments: ");

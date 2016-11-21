@@ -17,26 +17,30 @@
 
 #include "SiteSet.h"
 
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "input VCF File")
+ADD_STRING_PARAMETER(outVcf, "--outVcf", "output VCF File")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(site, "--site",
+                     "input site file (.rod file: 0-based position)")
+ADD_BOOL_PARAMETER(inverse, "--inverse", "Inverse site")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_BOOL_PARAMETER(snpOnly, "--snpOnly", "Specify only extract SNP site")
+END_PARAMETER_LIST();
+
 int main(int argc, char** argv){
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output VCF File")      
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, site, "--site", "input site file (.rod file: 0-based position)")
-      ADD_BOOL_PARAMETER(pl, inverse, "--inverse", "Inverse site")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_BOOL_PARAMETER(pl, snpOnly, "--snpOnly", "Specify only extract SNP site")      
-      END_PARAMETER_LIST(pl)
-      ;
-
-  pl.Read(argc, argv);
-  pl.Status();
+  PARSE_PARAMETER(argc, argv);
+  PARAMETER_STATUS();
 
   if (FLAG_REMAIN_ARG.size() > 0){
     fprintf(stderr, "Unparsed arguments: ");

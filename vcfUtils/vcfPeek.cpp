@@ -160,183 +160,207 @@ class BinnedCounter{
   std::vector<double> breaks;
 };
 
-int main(int argc, char** argv){
-    time_t currentTime = time(0);
-    fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "input VCF File")
+// ADD_STRING_PARAMETER(outVcf, "--outVcf", "output prefix")
+// ADD_STRING_PARAMETER(outPlink, "--make-bed", "output prefix")
+ADD_PARAMETER_GROUP("People Filter")
+ADD_STRING_PARAMETER(peopleIncludeID, "--peopleIncludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleIncludeFile, "--peopleIncludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_STRING_PARAMETER(peopleExcludeID, "--peopleExcludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleExcludeFile, "--peopleExcludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_BOOL_PARAMETER(checkGeno, "--checkGeno", "Enable check individual genotype")
+// ADD_PARAMETER_GROUP("Gene Extractor")
+// ADD_STRING_PARAMETER(geneFile, "--geneFile", "Specify the gene file (refFlat
+// format), so we know gene start and end.")
+// ADD_STRING_PARAMETER(geneName, "--gene", "Specify the gene names to extract")
+// ADD_STRING_PARAMETER(annoType, "--annoType", "Specify the type of annotation
+// to extract")
+// ADD_PARAMETER_GROUP("Quality Filter")
+// ADD_DOUBLE_PARAMETER(minSiteQual, "--minSiteQual", "Specify minimum site
+// qual")
+// ADD_DOUBLE_PARAMETER(minGQ, "--minGQ", "Specify the minimum genotype quality,
+// otherwise marked as missing genotype")
+// ADD_DOUBLE_PARAMETER(minGD, "--minGD", "Specify the minimum genotype depth,
+// otherwise marked as missing genotype")
+// ADD_PARAMETER_GROUP("Filter Option")
+// ADD_BOOL_PARAMETER(passFilter, "--pass", "Only output variants that pass
+// filters")
 
-    ////////////////////////////////////////////////
-    BEGIN_PARAMETER_LIST(pl)
-        ADD_PARAMETER_GROUP(pl, "Input/Output")
-        ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-        // ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
-        // ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
-        ADD_PARAMETER_GROUP(pl, "People Filter")
-        ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-        ADD_PARAMETER_GROUP(pl, "Site Filter")
-        ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-        ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-        ADD_BOOL_PARAMETER(pl, checkGeno, "--checkGeno", "Enable check individual genotype")
-        // ADD_PARAMETER_GROUP(pl, "Gene Extractor")
-        // ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "Specify the gene file (refFlat format), so we know gene start and end.")
-        // ADD_STRING_PARAMETER(pl, geneName, "--gene", "Specify the gene names to extract")
-        // ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify the type of annotation to extract")
-        // ADD_PARAMETER_GROUP(pl, "Quality Filter")
-        // ADD_DOUBLE_PARAMETER(pl, minSiteQual, "--minSiteQual", "Specify minimum site qual")
-        // ADD_DOUBLE_PARAMETER(pl, minGQ, "--minGQ", "Specify the minimum genotype quality, otherwise marked as missing genotype")
-        // ADD_DOUBLE_PARAMETER(pl, minGD, "--minGD", "Specify the minimum genotype depth, otherwise marked as missing genotype")
-        // ADD_PARAMETER_GROUP(pl, "Filter Option")
-        // ADD_BOOL_PARAMETER(pl, passFilter, "--pass", "Only output variants that pass filters")
-        
-        // ADD_PARAMETER_GROUP(pl, "Other Function")        
-        // ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")
-        // ADD_STRING_PARAMETER(pl, updateId, "--update-id", "Update VCF sample id using given file (column 1 and 2 are old and new id).")
-        END_PARAMETER_LIST(pl)
-        ;    
+// ADD_PARAMETER_GROUP("Other Function")
+// ADD_BOOL_PARAMETER(variantOnly, "--variantOnly", "Only variant sites from the
+// VCF file will be processed.")
+// ADD_STRING_PARAMETER(updateId, "--update-id", "Update VCF sample id using
+// given file (column 1 and 2 are old and new id).")
+END_PARAMETER_LIST();
 
-    pl.Read(argc, argv);
-    pl.Status();
-    
-    if (FLAG_REMAIN_ARG.size() > 0){
-        fprintf(stderr, "Unparsed arguments: ");
-        for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
-            fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
-        }
-        fprintf(stderr, "\n");
-        abort();
+int main(int argc, char **argv) {
+  time_t currentTime = time(0);
+  fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
+
+  PARSE_PARAMETER(argc, argv);
+  PARAMETER_STATUS();
+
+  if (FLAG_REMAIN_ARG.size() > 0) {
+    fprintf(stderr, "Unparsed arguments: ");
+    for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
+      fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
+    }
+    fprintf(stderr, "\n");
+    abort();
+  }
+
+  REQUIRE_STRING_PARAMETER(FLAG_inVcf,
+                           "Please provide input file using: --inVcf");
+
+  const char *fn = FLAG_inVcf.c_str();
+  VCFInputFile vin(fn);
+
+  // set range filters here
+  // e.g.
+  // vin.setRangeList("1:69500-69600");
+  vin.setRangeList(FLAG_rangeList.c_str());
+  vin.setRangeFile(FLAG_rangeFile.c_str());
+
+  // set people filters here
+  if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
+    vin.excludeAllPeople();
+    vin.includePeople(FLAG_peopleIncludeID.c_str());
+    vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+  }
+  vin.excludePeople(FLAG_peopleExcludeID.c_str());
+  vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+
+  std::vector<std::string> names;
+  printHeader("Sample Info");
+  vin.getVCFHeader()->getPeopleName(&names);
+  fprintf(stdout, "VCF file have %d samples\n", (int)names.size());
+  if (names.size() >= 1) {
+    fprintf(stdout, " First sample:\t%s\n", names[0].c_str());
+  }
+  if (names.size() >= 2) {
+    fprintf(stdout, " Second sample:\t%s\n", names[1].c_str());
+  }
+  if (names.size() >= 3) {
+    fprintf(stdout, " Last sample:\t%s\n", names[names.size() - 1].c_str());
+  }
+
+  // statistics to collect
+  // * chromosome names and variants counts
+  OrderedMap<std::string, int> chromCount;
+
+  // * filter frequency
+  // int maxFilterPerSite = 0;
+  // std::string maxFilter;
+  OrderedMap<std::string, int> filterCount;
+
+  // * variant type and counts
+  // const char variantType[] = {"UNKNOWN", "BIALLELIC", "MULTIALLELIC",
+  // "INDEL"};
+  OrderedMap<std::string, int> variantTypeCount;
+  OrderedMap<std::string, int> nonStandardRefCount;
+  OrderedMap<std::string, int> nonStandardAltCount;
+
+  // * frequency based counts for bi-allelic sites
+  double afBinBreak[] = {0.0,  0.01, 0.05, 0.10, 0.20, 0.50,
+                         0.80, 0.90, 0.95, 0.99, 1.00};
+  BinnedCounter afBinCount(afBinBreak,
+                           sizeof(afBinBreak) / sizeof(afBinBreak[0]));
+  double mafBinBreak[] = {0.0, 0.01, 0.05, 0.10, 0.20, 0.50};
+  BinnedCounter mafBinCount(mafBinBreak,
+                            sizeof(mafBinBreak) / sizeof(mafBinBreak[0]));
+
+  // * QC based counts for bi-allelic sites
+  double callRateBreak[] = {0.95, 0.99, 1.00};
+  BinnedCounter callRateBinCount(callRateBreak, sizeof(callRateBreak) /
+                                                    sizeof(callRateBreak[0]));
+  double hweBreak[] = {1e-6, 1e-5, 1e-4};
+  BinnedCounter hweBinCount(hweBreak, sizeof(hweBreak) / sizeof(hweBreak[0]));
+  OrderedMap<std::string, int> monoCount;
+
+  int lineNo = 0;
+  while (vin.readRecord()) {
+    lineNo++;
+    VCFRecord &r = vin.getVCFRecord();
+    const char *ref = r.getRef();
+    const char *alt = r.getAlt();
+    VCFPeople &people = r.getPeople();
+    VCFIndividual *indv;
+
+    ++chromCount[r.getChrom()];
+    ++filterCount[r.getFilt()];
+
+    bool isBiallelicSNP = false;
+    if (isBiallelicSite(ref, alt)) {
+      ++variantTypeCount["SNP"];
+      isBiallelicSNP = true;
+    } else if (isMultiallelic(ref, alt)) {
+      ++variantTypeCount["Multiallelic"];
+    } else if (isMonomorphic(ref, alt)) {
+      ++variantTypeCount["Monomorphic"];
+    } else {
+      ++variantTypeCount["Indel"];
+    }
+    if (hasNonACGT(ref)) {
+      ++nonStandardRefCount[ref];
+    }
+    if (hasNonACGT(alt)) {
+      ++nonStandardAltCount[alt];
     }
 
-    REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
+    // check individual
+    if (isBiallelicSNP && FLAG_checkGeno) {
+      int homRef = 0;
+      int het = 0;
+      int homAlt = 0;
+      int missing = 0;
 
-    const char* fn = FLAG_inVcf.c_str(); 
-    VCFInputFile vin(fn);
-
-    // set range filters here
-    // e.g.     
-    // vin.setRangeList("1:69500-69600");
-    vin.setRangeList(FLAG_rangeList.c_str());
-    vin.setRangeFile(FLAG_rangeFile.c_str());
-
-    // set people filters here
-    if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
-        vin.excludeAllPeople();
-        vin.includePeople(FLAG_peopleIncludeID.c_str());
-        vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
-    }
-    vin.excludePeople(FLAG_peopleExcludeID.c_str());
-    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
-
-    std::vector<std::string> names;
-    printHeader("Sample Info");
-    vin.getVCFHeader()->getPeopleName(&names);
-    fprintf(stdout, "VCF file have %d samples\n", (int)names.size());
-    if (names.size() >= 1) {
-      fprintf(stdout, " First sample:\t%s\n", names[0].c_str());      
-    }
-    if (names.size() >= 2) {
-      fprintf(stdout, " Second sample:\t%s\n", names[1].c_str());      
-    }
-    if (names.size() >= 3) {
-      fprintf(stdout, " Last sample:\t%s\n", names[names.size() - 1].c_str());      
-    }
-    
-    // statistics to collect
-    // * chromosome names and variants counts
-    OrderedMap< std::string, int> chromCount;
-
-    // * filter frequency
-    // int maxFilterPerSite = 0;
-    // std::string maxFilter;
-    OrderedMap< std::string, int> filterCount;
-
-    // * variant type and counts
-    // const char variantType[] = {"UNKNOWN", "BIALLELIC", "MULTIALLELIC", "INDEL"};
-    OrderedMap<std::string, int> variantTypeCount;
-    OrderedMap<std::string, int> nonStandardRefCount;
-    OrderedMap<std::string, int> nonStandardAltCount;
-
-    // * frequency based counts for bi-allelic sites
-    double afBinBreak[] = {0.0, 0.01, 0.05, 0.10, 0.20, 0.50, 0.80, 0.90, 0.95, 0.99, 1.00};
-    BinnedCounter afBinCount (afBinBreak, sizeof(afBinBreak)/sizeof(afBinBreak[0]));
-    double mafBinBreak[] = {0.0, 0.01, 0.05, 0.10, 0.20, 0.50};
-    BinnedCounter mafBinCount(mafBinBreak, sizeof(mafBinBreak)/sizeof(mafBinBreak[0]));
-    
-    // * QC based counts for bi-allelic sites
-    double callRateBreak[] = {0.95, 0.99, 1.00};
-    BinnedCounter callRateBinCount(callRateBreak, sizeof(callRateBreak)/sizeof(callRateBreak[0]));
-    double hweBreak[] = {1e-6, 1e-5, 1e-4};
-    BinnedCounter hweBinCount(hweBreak, sizeof(hweBreak)/sizeof(hweBreak[0]));
-    OrderedMap<std::string, int> monoCount;
-    
-    int lineNo = 0;
-    while (vin.readRecord()){
-        lineNo ++;
-        VCFRecord& r = vin.getVCFRecord();
-        const char* ref = r.getRef();
-        const char* alt = r.getAlt();
-        VCFPeople& people = r.getPeople();
-        VCFIndividual* indv;
-
-        ++ chromCount[r.getChrom()];
-        ++ filterCount[r.getFilt()];
-
-        bool isBiallelicSNP = false;
-        if (isBiallelicSite(ref, alt)) {
-          ++ variantTypeCount["SNP"];
-          isBiallelicSNP = true;
-        } else if (isMultiallelic(ref,alt)){
-          ++ variantTypeCount["Multiallelic"];
-        } else if (isMonomorphic(ref,alt)){
-          ++ variantTypeCount["Monomorphic"];
+      int GTidx = r.getFormatIndex("GT");
+      for (size_t i = 0; i < people.size(); i++) {
+        indv = people[i];
+        int geno = indv->justGet(GTidx).getGenotype();
+        if (geno < 0 || geno == MISSING_GENOTYPE) {
+          ++missing;
+        } else if (geno == 0) {
+          ++homRef;
+        } else if (geno == 1) {
+          ++het;
+        } else if (geno == 2) {
+          ++homAlt;
         } else {
-          ++ variantTypeCount["Indel"];
+          ++missing;
         }
-        if (hasNonACGT(ref)) {
-          ++ nonStandardRefCount[ref];
-        }
-        if (hasNonACGT(alt)) {
-          ++ nonStandardAltCount[alt];
-        }
+      }
+      int numAllele = homRef + het + homAlt;
+      double af = numAllele == 0 ? 0.0 : 0.5 * (het + 2.0 * homAlt) / numAllele;
+      double maf = af > 0.5 ? 1.0 - af : af;
+      double cr = 1.0 * numAllele / (numAllele + missing + 1e-10);
+      double hwe = (het > 0 || homAlt > 0 || homRef > 0)
+                       ? SNPHWE(het, homAlt, homRef)
+                       : 0.0;
+      bool nonvariantSite = (het == 0 && (homAlt == 0 || homRef == 0));
 
-        // check individual 
-        if (isBiallelicSNP && FLAG_checkGeno) {
-          int homRef = 0;
-          int het = 0;
-          int homAlt = 0;
-          int missing = 0;
-          
-          int GTidx = r.getFormatIndex("GT");
-          for (size_t i = 0; i < people.size() ;i ++) {
-            indv = people[i];
-            int geno = indv->justGet(GTidx).getGenotype();
-            if (geno <0 || geno == MISSING_GENOTYPE) {
-              ++ missing;
-            } else if (geno == 0) {
-              ++ homRef;
-            } else if (geno == 1) {
-              ++ het;
-            } else if (geno == 2) {
-              ++ homAlt;
-            } else {
-              ++ missing;
-            }
-          }
-          int numAllele = homRef + het + homAlt;
-          double af = numAllele == 0 ? 0.0 : 0.5 * (het + 2.0 * homAlt) / numAllele;
-          double maf = af > 0.5 ? 1.0 - af : af;
-          double cr = 1.0 * numAllele / (numAllele + missing + 1e-10);
-          double hwe = (het > 0 || homAlt > 0 || homRef > 0) ?
-                       SNPHWE(het, homAlt, homRef) : 0.0;
-          bool nonvariantSite = (het == 0  && (homAlt == 0 || homRef == 0));
-
-          afBinCount.add(af);
-          mafBinCount.add(maf);
-          callRateBinCount.add(cr);
-          hweBinCount.add(hwe);
-          ++ monoCount[nonvariantSite ? "Monomorphic" : "Polymorphic"];
-        }
+      afBinCount.add(af);
+      mafBinCount.add(maf);
+      callRateBinCount.add(cr);
+      hweBinCount.add(hwe);
+      ++monoCount[nonvariantSite ? "Monomorphic" : "Polymorphic"];
+    }
         
 #if 0        
         if (FLAG_passFilter && PassFilter != r.getFilt()) continue;

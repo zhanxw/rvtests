@@ -454,97 +454,97 @@ void welcome() {
   fprintf(stdout, "\n");
 }
 
-Logger* logger = NULL;
-int main(int argc, char** argv) {
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-  ADD_PARAMETER_GROUP(pl, "Input/Output")
-  ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "Input VCF File")
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "Input VCF File")
 
-  ADD_STRING_PARAMETER(pl, outPrefix, "--out",
-                       "Output prefix for autosomal kinship calculation")
+ADD_STRING_PARAMETER(outPrefix, "--out",
+                     "Output prefix for autosomal kinship calculation")
 
-  ADD_PARAMETER_GROUP(pl, "Chromsome X Analysis Options")
-  ADD_BOOL_PARAMETER(
-      pl, xHemi, "--xHemi",
-      "Calculate kinship using non-PAR region X chromosome markers.")
-  ADD_STRING_PARAMETER(pl, xLabel, "--xLabel",
-                       "Specify X chromosome label (default: 23,X")
-  ADD_STRING_PARAMETER(pl, xParRegion, "--xRegion",
-                       "Specify PAR region (default: hg19), can be build "
-                       "number e.g. hg38, b37; or specify region, e.g. "
-                       "'60001-2699520,154931044-155260560'")
+ADD_PARAMETER_GROUP("Chromsome X Analysis Options")
+ADD_BOOL_PARAMETER(
+    xHemi, "--xHemi",
+    "Calculate kinship using non-PAR region X chromosome markers.")
+ADD_STRING_PARAMETER(xLabel, "--xLabel",
+                     "Specify X chromosome label (default: 23,X")
+ADD_STRING_PARAMETER(xParRegion, "--xRegion",
+                     "Specify PAR region (default: hg19), can be build "
+                     "number e.g. hg38, b37; or specify region, e.g. "
+                     "'60001-2699520,154931044-155260560'")
 
-  ADD_PARAMETER_GROUP(pl, "Algorithm")
-  ADD_STRING_PARAMETER(
-      pl, ped, "--ped",
-      "Use pedigree method or specify ped file for X chromosome analysis.")
-  ADD_BOOL_PARAMETER(pl, ibs, "--ibs", "Use IBS method.")
-  ADD_BOOL_PARAMETER(pl, bn, "--bn", "Use Balding-Nicols method.")
-  ADD_BOOL_PARAMETER(pl, pca, "--pca",
-                     "Decomoposite calculated kinship matrix.")
-  ADD_BOOL_PARAMETER(pl, storeGenotype, "--storeGenotype", "Store genotye matrix (sample by genotype).")
+ADD_PARAMETER_GROUP("Algorithm")
+ADD_STRING_PARAMETER(
+    ped, "--ped",
+    "Use pedigree method or specify ped file for X chromosome analysis.")
+ADD_BOOL_PARAMETER(ibs, "--ibs", "Use IBS method.")
+ADD_BOOL_PARAMETER(bn, "--bn", "Use Balding-Nicols method.")
+ADD_BOOL_PARAMETER(pca, "--pca", "Decomoposite calculated kinship matrix.")
+ADD_BOOL_PARAMETER(storeGenotype, "--storeGenotype",
+                   "Store genotye matrix (sample by genotype).")
 
-  ADD_PARAMETER_GROUP(pl, "Specify Genotype")
-  ADD_STRING_PARAMETER(pl, dosageTag, "--dosage",
-                       "Specify which dosage tag to use (e.g. EC/DS). Typical "
-                       "dosage are between 0.0 and 2.0.")
+ADD_PARAMETER_GROUP("Specify Genotype")
+ADD_STRING_PARAMETER(dosageTag, "--dosage",
+                     "Specify which dosage tag to use (e.g. EC/DS). Typical "
+                     "dosage are between 0.0 and 2.0.")
 
-  ADD_PARAMETER_GROUP(pl, "People Filter")
-  ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID",
-                       "List IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(
-      pl, peopleIncludeFile, "--peopleIncludeFile",
-      "From given file, set IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID",
-                       "List IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(
-      pl, peopleExcludeFile, "--peopleExcludeFile",
-      "From given file, set IDs of people that will be included in study")
-  ADD_PARAMETER_GROUP(pl, "Range Filter")
-  ADD_STRING_PARAMETER(
-      pl, rangeList, "--rangeList",
-      "Specify some ranges to use, please use chr:begin-end format.")
-  ADD_STRING_PARAMETER(
-      pl, rangeFile, "--rangeFile",
-      "Specify the file containing ranges, please use chr:begin-end format.")
-  ADD_PARAMETER_GROUP(pl, "Site Filter")
-  ADD_DOUBLE_PARAMETER(pl, minMAF, "--minMAF",
-                       "Specify the minimum MAF threshold to be included in "
-                       "calculating kinship.")
-  ADD_DOUBLE_PARAMETER(pl, maxMissing, "--maxMiss",
-                       "Specify the maximum allows missing rate to be inclued "
-                       "in calculating kinship.")
-  ADD_DOUBLE_PARAMETER(pl, minSiteQual, "--minSiteQual",
-                       "Specify minimum site qual")
-  ADD_STRING_PARAMETER(
-      pl, annoType, "--anno",
-      "Specify the annotation type to be included in calculating kinship.")
-  ADD_PARAMETER_GROUP(pl, "Genotype Filter")
-  ADD_DOUBLE_PARAMETER(pl, minGQ, "--minGQ",
-                       "Specify the minimum genotype quality, otherwise marked "
-                       "as missing genotype")
-  ADD_DOUBLE_PARAMETER(pl, minGD, "--minGD",
-                       "Specify the minimum genotype depth, otherwise marked "
-                       "as missing genotype")
+ADD_PARAMETER_GROUP("People Filter")
+ADD_STRING_PARAMETER(peopleIncludeID, "--peopleIncludeID",
+                     "List IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleIncludeFile, "--peopleIncludeFile",
+    "From given file, set IDs of people that will be included in study")
+ADD_STRING_PARAMETER(peopleExcludeID, "--peopleExcludeID",
+                     "List IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleExcludeFile, "--peopleExcludeFile",
+    "From given file, set IDs of people that will be included in study")
+ADD_PARAMETER_GROUP("Range Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_DOUBLE_PARAMETER(minMAF, "--minMAF",
+                     "Specify the minimum MAF threshold to be included in "
+                     "calculating kinship.")
+ADD_DOUBLE_PARAMETER(maxMissing, "--maxMiss",
+                     "Specify the maximum allows missing rate to be inclued "
+                     "in calculating kinship.")
+ADD_DOUBLE_PARAMETER(minSiteQual, "--minSiteQual",
+                     "Specify minimum site qual")
+ADD_STRING_PARAMETER(
+    annoType, "--anno",
+    "Specify the annotation type to be included in calculating kinship.")
+ADD_PARAMETER_GROUP("Genotype Filter")
+ADD_DOUBLE_PARAMETER(minGQ, "--minGQ",
+                     "Specify the minimum genotype quality, otherwise marked "
+                     "as missing genotype")
+ADD_DOUBLE_PARAMETER(minGD, "--minGD",
+                     "Specify the minimum genotype depth, otherwise marked "
+                     "as missing genotype")
 
-  ADD_PARAMETER_GROUP(pl, "Other Function")
-  ADD_STRING_PARAMETER(pl, updateId, "--update-id",
-                       "Update VCF sample id using given file (column 1 and 2 "
-                       "are old and new id).")
-  ADD_DEFAULT_INT_PARAMETER(pl, thread, 1, "--thread",
-                            "Specify number of parallel threads to speed up")
-  ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
-  END_PARAMETER_LIST(pl);
+ADD_PARAMETER_GROUP("Other Function")
+ADD_STRING_PARAMETER(updateId, "--update-id",
+                     "Update VCF sample id using given file (column 1 and 2 "
+                     "are old and new id).")
+ADD_DEFAULT_INT_PARAMETER(thread, 1, "--thread",
+                          "Specify number of parallel threads to speed up")
+ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message")
+END_PARAMETER_LIST();
 
-  pl.Read(argc, argv);
+Logger *logger = NULL;
+int main(int argc, char **argv) {
+  PARSE_PARAMETER(argc, argv);
   if (FLAG_help) {
-    pl.Help();
+    PARAMETER_HELP();
     return 0;
   }
 
   welcome();
-  pl.Status();
+  PARAMETER_STATUS();
 
   if (FLAG_REMAIN_ARG.size() > 0) {
     fprintf(stderr, "Unparsed arguments: ");
@@ -561,7 +561,7 @@ int main(int argc, char** argv) {
   logger->infoToFile("Git Version");
   logger->infoToFile("%s", GIT_VERSION);
   logger->infoToFile("Parameters BEGIN");
-  pl.WriteToFile(logger->getHandle());
+  PARAMETER_INSTANCE().WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
   logger->sync();
 

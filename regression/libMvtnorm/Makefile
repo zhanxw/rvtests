@@ -1,4 +1,6 @@
-FC=gfortran
+FC?=gfortran
+CXX?=g++
+
 
 release: CXXFLAGS=-O2 -DNDEBUG
 release: FCFLAGS=-O2 -DNDEBUG

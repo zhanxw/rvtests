@@ -23,7 +23,7 @@ class Socket {
   struct addrinfo* servinfo;
   int fd;
   bool usable;
-  char buffer[4096];
+  // char buffer[4096];
   bool quiet;
 };
 

@@ -12,8 +12,7 @@ CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/gsl/include -I../
 ../../third/tabix/libtabix.a \
 -DUSE_ACCURATE_TIMER \
 -std=c++0x \
--Wall \
--lrt
+-Wall
 
 define BUILD_each
   TAR := $(1)

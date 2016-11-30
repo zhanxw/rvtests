@@ -9,6 +9,7 @@ void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* _EigenM) {
   for (int i = 0; i < GM.rows; i++)
     for (int j = 0; j < GM.cols; j++) EigenM(i, j) = GM[i][j];
 }
+
 void G_to_Eigen(Vector& GV, Eigen::VectorXf* _EigenV) {
   Eigen::VectorXf& EigenV = *_EigenV;
   EigenV.resize(GV.Length());

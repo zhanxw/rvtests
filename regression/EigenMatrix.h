@@ -1,9 +1,10 @@
 #ifndef _EIGENMATRIX_H_
 #define _EIGENMATRIX_H_
 
-#include "Eigen/Core"
+#include "third/eigen/Eigen/Core"
 /**
- * This class is just a wrapper to Eigen::MatrixXf to speed compling up
+ * This class is just a wrapper to Eigen::MatrixXf to speed compling up:
+ * other classes just need to forward declare class EigenMatrix
  */
 class EigenMatrix {
  public:

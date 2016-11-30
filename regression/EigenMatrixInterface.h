@@ -1,8 +1,8 @@
 #ifndef _EIGENMATRIXINTERFACE_H_
 #define _EIGENMATRIXINTERFACE_H_
 
-#include <Eigen/Core>
-#include "MathMatrix.h"
+#include "libsrc/MathMatrix.h"
+#include "third/eigen/Eigen/Core"
 
 void Eigen_to_G(const Eigen::MatrixXf& EigenM, Matrix* GM);
 void Eigen_to_G(const Eigen::VectorXf& EigenV, Vector* GV);

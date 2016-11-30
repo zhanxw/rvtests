@@ -1,7 +1,7 @@
 #include "SkatO.h"
 
-#include <Eigen/Core>
 #include <Eigen/Cholesky>
+#include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 #include <vector>
 
@@ -17,6 +17,7 @@
 #undef DEBUG
 #ifdef DEBUG
 #include <fstream>
+#include "MatrixOperation.h"
 template <class T>
 void dumpEigen(const char* fn, T& m) {
   std::ofstream k(fn);
@@ -84,8 +85,9 @@ class SkatO::SkatOImpl {
     } else {
       W = G.transpose() * v.asDiagonal() * G -
           (G.transpose() * v.asDiagonal() * X) *
-              (X.transpose() * v.asDiagonal() * X).ldlt().solve(
-                  X.transpose() * v.asDiagonal() * G);
+              (X.transpose() * v.asDiagonal() * X)
+                  .ldlt()
+                  .solve(X.transpose() * v.asDiagonal() * G);
     }
     W = W / 2;  // follow SKAT R package convension to divide 2 here.
     getEigen(W, &lambda);
@@ -148,8 +150,9 @@ class SkatO::SkatOImpl {
       Eigen::VectorXd v_sqrt = v.cwiseSqrt();
       Z1 = v_sqrt.asDiagonal() * G -
            v_sqrt.asDiagonal() * X *
-               (X.transpose() * v.asDiagonal() * X).ldlt().solve(
-                   X.transpose() * v.asDiagonal() * G);
+               (X.transpose() * v.asDiagonal() * X)
+                   .ldlt()
+                   .solve(X.transpose() * v.asDiagonal() * G);
     }
     Z1 = Z1 / sqrt(2);  // follow SKAT R package convention (divides sqrt{2})
 
@@ -175,9 +178,10 @@ class SkatO::SkatOImpl {
     this->VarQ = 2.0 * (lambda.array() * lambda.array()).sum() + VarZeta;
 
     double temp = (lambda.array() * lambda.array()).sum();
-    double KerQ = (lambda.array() * lambda.array() * lambda.array() *
-                   lambda.array()).sum() /
-                  temp / temp * 12;
+    double KerQ =
+        (lambda.array() * lambda.array() * lambda.array() * lambda.array())
+            .sum() /
+        temp / temp * 12;
     this->Df = 12 / KerQ;
 
     // calculate tau
@@ -287,7 +291,7 @@ class SkatO::SkatOImpl {
   }
 
   double computeIntegrandDavies(double x) {
-    double kappa;
+    double kappa = DBL_MAX;
     for (int i = 0; i < nRho; ++i) {
       double v = (Qs_minP[i] - taus[i] * x) / (1.0 - rhos[i]);
       if (i == 0) {

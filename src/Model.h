@@ -3751,16 +3751,14 @@ class MetaScoreTest : public ModelFitter {
     LogisticRegression logisticAlt;
   };
 
-  class MetaFamQtlBolt: public MetaBase {
+  class MetaFamQtlBolt : public MetaBase {
    public:
-    MetaFamQtlBolt() {
-      fprintf(stderr, "MetaFamQtlBolt model started\n");
-    }
+    MetaFamQtlBolt() { fprintf(stderr, "MetaFamQtlBolt model started\n"); }
     int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
       Matrix& phenotype = dc->getPhenotype();
       Matrix& covariate = dc->getCovariate();
       EigenMatrix& fullGenotype = *dc->getFullGenotype();
-          
+
       // fit null model
       bool fitOK = bolt_.FitNullModel(covariate, phenotype, fullGenotype);
       if (!fitOK) return -1;
@@ -3772,7 +3770,8 @@ class MetaScoreTest : public ModelFitter {
       Matrix& covariate = dc->getCovariate();
       EigenMatrix& fullGenotype = *dc->getFullGenotype();
 
-      bool fitOK = bolt_.TestCovariate(covariate, phenotype, genotype, fullGenotype);
+      bool fitOK =
+          bolt_.TestCovariate(covariate, phenotype, genotype, fullGenotype);
       if (!fitOK) return -1;
       return 0;
     }
@@ -3782,11 +3781,10 @@ class MetaScoreTest : public ModelFitter {
       return 0.0;
     }
     void PrintNullModel(FileWriter* fp,
-                        const std::vector<std::string>& covLabel) {
-    }
+                        const std::vector<std::string>& covLabel) {}
     double GetU() { return bolt_.GetU(); }
     double GetV() { return bolt_.GetV(); }
-    double GetEffect() { return bolt_.GetEffect();}
+    double GetEffect() { return bolt_.GetEffect(); }
     double GetPvalue() { return bolt_.GetPvalue(); }
 
    private:
@@ -3795,14 +3793,14 @@ class MetaScoreTest : public ModelFitter {
   MetaBase* createModel(bool familyModel, bool binaryOutcome) {
     MetaBase* ret = NULL;
     if (this->useBolt) {
-      if(binaryOutcome) {
+      if (binaryOutcome) {
         fprintf(stderr, "BoltLMM does not support binary outcomes! Exit...\n");
         exit(1);
       }
-      ret =  new MetaFamQtlBolt;
+      ret = new MetaFamQtlBolt;
       return ret;
     }
-      
+
     if (familyModel && !binaryOutcome) {
       ret = new MetaFamQtl;
     }
@@ -3830,7 +3828,7 @@ class MetaScoreTest : public ModelFitter {
   MetaBase* modelAuto;
   MetaBase* modelX;
   bool useBolt;
-  
+
   double af;  // overall af (unadjust or adjusted by family structure)
 
   bool fitOK;

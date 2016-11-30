@@ -199,8 +199,10 @@ int DataConsolidator::preRegressionCheck(Matrix& pheno, Matrix& cov) {
 
 int DataConsolidator::checkColinearity(Matrix& cov) {
   // no covariate => no colienarity problem
-  if (cov.cols == 0) {return 0;}
-  
+  if (cov.cols == 0) {
+    return 0;
+  }
+
   int r = matrixRank(cov);
   int m = (cov.rows > cov.cols) ? cov.cols : cov.rows;
   // fprintf(stderr, "rank of cov is %d, and min(r,c) = %d\n", r, m);
@@ -404,6 +406,4 @@ int DataConsolidator::loadNormalizedGenotype(const std::string& prefix) {
   return 0;
 }
 
-EigenMatrix* DataConsolidator::getFullGenotype() {
-  return fullGenotype_;
-}
+EigenMatrix* DataConsolidator::getFullGenotype() { return fullGenotype_; }

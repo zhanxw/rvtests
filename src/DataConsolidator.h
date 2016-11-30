@@ -482,13 +482,13 @@ class DataConsolidator {
   /**
    * Load sample by genotype matrix
    */
-  int loadGenotype(const std::string& prefix);  
+  int loadGenotype(const std::string& prefix);
   /**
    * Load sample by genotype matrix, fill missing to mean, and equalize variance
    */
   int loadNormalizedGenotype(const std::string& prefix);
-  EigenMatrix* getFullGenotype() ;
-  
+  EigenMatrix* getFullGenotype();
+
  private:
   // don't copy
   DataConsolidator(const DataConsolidator&);
@@ -510,7 +510,7 @@ class DataConsolidator {
   std::vector<std::string> rowLabel;
   KinshipHolder kinship[2];  // 2: include both AUTO and X kinships
   EigenMatrix* fullGenotype_;
-  
+
   // sex chromosome adjustment
   const std::vector<int>* sex;
   // store formulae

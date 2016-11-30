@@ -928,11 +928,12 @@ int main(int argc, char** argv) {
 
   if (!FLAG_genotype.empty()) {
     if (dc.loadGenotype(FLAG_genotype)) {
-      logger->error("Failed to load genotype file with prefix [ %s ]!", FLAG_genotype.c_str());
+      logger->error("Failed to load genotype file with prefix [ %s ]!",
+                    FLAG_genotype.c_str());
       exit(1);
     }
   }
-    
+
   // set imputation method
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");

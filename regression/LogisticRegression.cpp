@@ -218,7 +218,8 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& succ,
   G_to_Eigen(total, &this->w->total);
 
   int rounds = 0;
-  double lastDeviance, currentDeviance;
+  double lastDeviance = -99999;  // since deviance is usually positive
+  double currentDeviance = -9999;
   const int nSample = this->w->X.rows();
   // Newton-Raphson
   while (rounds < nrrounds) {
@@ -280,7 +281,8 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& y, int nrrounds) {
   G_to_Eigen(y, &this->w->y);
 
   int rounds = 0;
-  double lastDeviance, currentDeviance;
+  double lastDeviance = -99999;  // since deviance is usually positive
+  double currentDeviance = -9999;
   // const int nSample = this->w->X.rows();
   while (rounds < nrrounds) {
     this->w->eta = this->w->X * this->w->beta;

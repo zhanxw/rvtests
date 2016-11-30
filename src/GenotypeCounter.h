@@ -17,8 +17,7 @@ class GenotypeCounter {
     // 1 <= g < 2  => (2 - g) het and (g - 1) homAlt
     if (g < 0) {
       ++(nMissing);
-    }
-    if (g < 2.0 / 3) {
+    } else if (g < 2.0 / 3) {
       ++(nHomRef);
       sumAC += g;
     } else if (g < 4.0 / 3) {

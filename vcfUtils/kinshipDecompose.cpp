@@ -50,30 +50,30 @@ void welcome() {
 }
 int loadSample(const std::string& FLAG_in, std::vector<std::string>* samples);
 
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(in, "--in", "Input kinship file")
+
+ADD_STRING_PARAMETER(outPrefix, "--out",
+                     "Output prefix for autosomal kinship calculation")
+
+ADD_PARAMETER_GROUP("Other Function")
+// ADD_DEFAULT_INT_PARAMETER(pl, thread, 1, "--thread",
+//                           "Specify number of parallel threads to speed up")
+ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message")
+END_PARAMETER_LIST();
+
 Logger* logger = NULL;
 int main(int argc, char** argv) {
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-  ADD_PARAMETER_GROUP(pl, "Input/Output")
-  ADD_STRING_PARAMETER(pl, in, "--in", "Input kinship file")
-
-  ADD_STRING_PARAMETER(pl, outPrefix, "--out",
-                       "Output prefix for autosomal kinship calculation")
-
-  ADD_PARAMETER_GROUP(pl, "Other Function")
-  // ADD_DEFAULT_INT_PARAMETER(pl, thread, 1, "--thread",
-  //                           "Specify number of parallel threads to speed up")
-  ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
-  END_PARAMETER_LIST(pl);
-
-  pl.Read(argc, argv);
+  PARSE_PARAMETER(argc, argv);
   if (FLAG_help) {
-    pl.Help();
+    PARAMETER_HELP();
     return 0;
   }
 
   welcome();
-  pl.Status();
+  PARAMETER_STATUS();
 
   if (FLAG_REMAIN_ARG.size() > 0) {
     fprintf(stderr, "Unparsed arguments: ");
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
   logger->infoToFile("Git Version");
   logger->infoToFile("%s", GIT_VERSION);
   logger->infoToFile("Parameters BEGIN");
-  pl.WriteToFile(logger->getHandle());
+  PARAMETER_INSTANCE().WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
   logger->sync();
 

@@ -2,28 +2,28 @@
 #include "IO.h"
 #include "tabix.h"
 
-#include <cassert>
-#include <string>
-#include <set>
-#include <map>
-#include <vector>
 #include <algorithm>
+#include <cassert>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 #include "Utils.h"
 #include "VCFUtil.h"
 
-#include "MathVector.h"
 #include "MathMatrix.h"
+#include "MathVector.h"
 
 #include "SiteSet.h"
 
 class Value;
 
-typedef std::unordered_map< std::string, Value > ConcordanceType;
+typedef std::unordered_map<std::string, Value> ConcordanceType;
 typedef std::map<std::string, ConcordanceType> AllConcordanceType;
-typedef std::vector< std::string > StringArray;
+typedef std::vector<std::string> StringArray;
 
-class Value{
+class Value {
  public:
   const static int HOMREF = 1;
   const static int HET = 2;
@@ -32,20 +32,18 @@ class Value{
   const static int UNDEF = 0;
   const static int REFERENCE = 0;
   const static int COMPARISON = 1;
-  int& operator[] (const int idx){
-    assert (0<=idx && idx <= 1);
+  int& operator[](const int idx) {
+    assert(0 <= idx && idx <= 1);
     return geno[idx];
   }
-  void clearComparison() {
-    geno[Value::COMPARISON] = Value::UNDEF;
-  }
+  void clearComparison() { geno[Value::COMPARISON] = Value::UNDEF; }
   Value() {
     geno[0] = UNDEF;
     geno[1] = UNDEF;
   };
- public:
-  int geno[2]; // VALUE
 
+ public:
+  int geno[2];  // VALUE
 };
 
 void dump(const StringArray& a) {
@@ -59,8 +57,8 @@ int loadGenotype(VCFInputFile& vin, AllConcordanceType* input, int idx) {
   AllConcordanceType& data = *input;
   std::string key;
   int lineNo = 0;
-  while (vin.readRecord()){
-    lineNo ++;
+  while (vin.readRecord()) {
+    lineNo++;
     key.clear();
     VCFRecord& r = vin.getVCFRecord();
     key += r.getChrom();
@@ -99,34 +97,33 @@ int loadGenotype(VCFInputFile& vin, AllConcordanceType* input, int idx) {
 
 void clearGenotype(AllConcordanceType* input) {
   AllConcordanceType& data = *input;
-  for (AllConcordanceType::iterator iter = data.begin();
-       iter != data.end();
-       iter ++) {
+  for (AllConcordanceType::iterator iter = data.begin(); iter != data.end();
+       iter++) {
     ConcordanceType& v = iter->second;
-    for (ConcordanceType::iterator i = v.begin();
-         i != v.end();
-         i++) {
+    for (ConcordanceType::iterator i = v.begin(); i != v.end(); i++) {
       i->second.clearComparison();
     }
   }
 };
 
-void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const StringArray&names) {
+void printComparision(const VCFInputFile& vin, AllConcordanceType& data,
+                      const StringArray& names) {
   std::set<std::string> nameSet;
-  for (unsigned int i = 0; i < names.size(); i++){
+  for (unsigned int i = 0; i < names.size(); i++) {
     nameSet.insert(names[i]);
   }
 
-  for (AllConcordanceType::iterator iter = data.begin();
-       iter != data.end();
-       iter ++) {
+  for (AllConcordanceType::iterator iter = data.begin(); iter != data.end();
+       iter++) {
     if (nameSet.find(iter->first) == nameSet.end()) {
-      // fprintf(stderr, "Skip people [ %s ] as it is not in reference VCF\n", iter->first.c_str());
+      // fprintf(stderr, "Skip people [ %s ] as it is not in reference VCF\n",
+      // iter->first.c_str());
       continue;
     }
 
-    // count type (fill in 4 by 4 matrix) , we intentionally left row 0 and column 0 unused.
-    int c[5][5] = {{0},{0},{0},{0},{0}}; // concordance matrix
+    // count type (fill in 4 by 4 matrix) , we intentionally left row 0 and
+    // column 0 unused.
+    int c[5][5] = {{0}, {0}, {0}, {0}, {0}};  // concordance matrix
 
     // calculate non-ref concordance
     // calculate discovery rate
@@ -134,36 +131,35 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
     int discoveredVariant = 0;
     int undiscoveredVariant = 0;
     for (ConcordanceType::iterator i = iter->second.begin();
-         i != iter->second.end();
-         i ++) {
+         i != iter->second.end(); i++) {
       // concordance table
-      c[ (i->second)[Value::REFERENCE] ] [ (i->second)[Value::COMPARISON] ] ++;
+      c[(i->second)[Value::REFERENCE]][(i->second)[Value::COMPARISON]]++;
       // discovery rate
-      if ( (i->second)[Value::REFERENCE] == Value::HET ||
-           (i->second)[Value::REFERENCE] == Value::HOMALT) { // ref is variant site
-        if ( (i->second)[Value::COMPARISON] == Value::HOMREF) {
-          undiscoveredVariant ++;
-        } else if ( (i->second)[Value::COMPARISON] == Value::HET ||
-                    (i->second)[Value::COMPARISON] == Value::HOMALT ) {
-          discoveredVariant ++;
+      if ((i->second)[Value::REFERENCE] == Value::HET ||
+          (i->second)[Value::REFERENCE] ==
+              Value::HOMALT) {  // ref is variant site
+        if ((i->second)[Value::COMPARISON] == Value::HOMREF) {
+          undiscoveredVariant++;
+        } else if ((i->second)[Value::COMPARISON] == Value::HET ||
+                   (i->second)[Value::COMPARISON] == Value::HOMALT) {
+          discoveredVariant++;
         }
       }
     }
 
     // outputs
     // printf("Comparison for people %s\n", iter->first.c_str());
-    int nonRefConcordNum = c[Value::HET][Value::HET] +
-                           c[Value::HOMALT][Value::HOMALT];
-    int nonRefConcordDom = nonRefConcordNum +
-                           c[Value::HOMREF][Value::HET] +
-                           c[Value::HOMREF][Value::HOMALT] +
-                           c[Value::HET][Value::HOMREF] +
-                           c[Value::HET][Value::HOMALT] +
-                           c[Value::HOMALT][Value::HET] +
-                           c[Value::HOMALT][Value::HOMREF];
+    int nonRefConcordNum =
+        c[Value::HET][Value::HET] + c[Value::HOMALT][Value::HOMALT];
+    int nonRefConcordDom =
+        nonRefConcordNum + c[Value::HOMREF][Value::HET] +
+        c[Value::HOMREF][Value::HOMALT] + c[Value::HET][Value::HOMREF] +
+        c[Value::HET][Value::HOMALT] + c[Value::HOMALT][Value::HET] +
+        c[Value::HOMALT][Value::HOMREF];
     // printf("Nonref-Concordance= %10f \t DiscoveryRate = %10f \n",
     //        1.0 * nonRefConcordNum / nonRefConcordDom,
-    //        1.0 * discoveredVariant / (discoveredVariant + undiscoveredVariant));
+    //        1.0 * discoveredVariant / (discoveredVariant +
+    //        undiscoveredVariant));
     // printf("%d\t%d\n", discoveredVariant, undiscoveredVariant);
 
     // // print the 5 by 5 table
@@ -181,37 +177,57 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
     // }
     // printf("\n");
 
-    // following counts does not take 'missing' (bottom row and right most column)
+    // following counts does not take 'missing' (bottom row and right most
+    // column)
     // overlap: 3 (homref, het, homalt) by 3 matrix
-    int overlap = c[Value::HOMREF][Value::HOMREF] + c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
-                  c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
-                  c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
+    int overlap =
+        c[Value::HOMREF][Value::HOMREF] + c[Value::HOMREF][Value::HET] +
+        c[Value::HOMREF][Value::HOMALT] + c[Value::HET][Value::HOMREF] +
+        c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
+        c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] +
+        c[Value::HOMALT][Value::HOMALT];
     // stdTotal: 3 (homref, het, homalt) by 4 matrix
-    int stdTotal = c[Value::HOMREF][Value::UNDEF] + c[Value::HOMREF][Value::HOMREF] + c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
-                   c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
-                   c[Value::HOMALT][Value::UNDEF] + c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
+    int stdTotal =
+        c[Value::HOMREF][Value::UNDEF] + c[Value::HOMREF][Value::HOMREF] +
+        c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
+        c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] +
+        c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
+        c[Value::HOMALT][Value::UNDEF] + c[Value::HOMALT][Value::HOMREF] +
+        c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
     // inputTotal: 4 (undef, hom, het, homalt) by 3 matrix
-    int inputTotal = c[Value::UNDEF][Value::HOMREF] + c[Value::UNDEF][Value::HET] + c[Value::UNDEF][Value::HOMALT] +
-                     c[Value::HOMREF][Value::HOMREF] + c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
-                     c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
-                     c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
-//     // 8 cells in overlap, removing bottom top one
-//     int nonRefOverlap = overlap - c[Value::HOMREF][Value::HOMREF];
+    int inputTotal =
+        c[Value::UNDEF][Value::HOMREF] + c[Value::UNDEF][Value::HET] +
+        c[Value::UNDEF][Value::HOMALT] + c[Value::HOMREF][Value::HOMREF] +
+        c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
+        c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] +
+        c[Value::HET][Value::HOMALT] + c[Value::HOMALT][Value::HOMREF] +
+        c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
+    //     // 8 cells in overlap, removing bottom top one
+    //     int nonRefOverlap = overlap - c[Value::HOMREF][Value::HOMREF];
     // stdVariant: 2 (het, homalt) by 4 matrix
-    int stdVariant = c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
-                     c[Value::HOMALT][Value::UNDEF] + c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
+    int stdVariant =
+        c[Value::HET][Value::UNDEF] + c[Value::HET][Value::HOMREF] +
+        c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
+        c[Value::HOMALT][Value::UNDEF] + c[Value::HOMALT][Value::HOMREF] +
+        c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
     // inputTotal: 4 (undef, hom, het, homalt) by 2 matrix
-    int inputVariant = c[Value::UNDEF][Value::HET] + c[Value::UNDEF][Value::HOMALT] +
-                       c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
-                       c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
-                       c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
+    int inputVariant =
+        c[Value::UNDEF][Value::HET] + c[Value::UNDEF][Value::HOMALT] +
+        c[Value::HOMREF][Value::HET] + c[Value::HOMREF][Value::HOMALT] +
+        c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
+        c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
     // stdVariantInInput: 2 (het, homalt) by 3 matrix (homref, het, homalt)
-    int stdVariantInInput = c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] + c[Value::HET][Value::HOMALT] +
-                            c[Value::HOMALT][Value::HOMREF] + c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
+    int stdVariantInInput =
+        c[Value::HET][Value::HOMREF] + c[Value::HET][Value::HET] +
+        c[Value::HET][Value::HOMALT] + c[Value::HOMALT][Value::HOMREF] +
+        c[Value::HOMALT][Value::HET] + c[Value::HOMALT][Value::HOMALT];
     // stdOnly: 3 by 1 matrix
-    int stdOnly = c[Value::HOMREF][Value::UNDEF] + c[Value::HET][Value::UNDEF] + c[Value::HOMALT][Value::UNDEF] ;
+    int stdOnly = c[Value::HOMREF][Value::UNDEF] + c[Value::HET][Value::UNDEF] +
+                  c[Value::HOMALT][Value::UNDEF];
     // inputOnly: 1 by 3 matrix
-    int inputOnly = c[Value::UNDEF][Value::HOMREF] +  c[Value::UNDEF][Value::HET] + c[Value::UNDEF][Value::HOMALT] ;
+    int inputOnly = c[Value::UNDEF][Value::HOMREF] +
+                    c[Value::UNDEF][Value::HET] +
+                    c[Value::UNDEF][Value::HOMALT];
 
     // printf("File\t"
     //        "PeopleId\t"
@@ -255,8 +271,7 @@ void printComparision(const VCFInputFile& vin, AllConcordanceType& data, const S
   return;
 };
 
-size_t set_union(const StringArray& input,
-                 StringArray* output) {
+size_t set_union(const StringArray& input, StringArray* output) {
   // sort input
   StringArray tmp = input;
   sort(tmp.begin(), tmp.end());
@@ -264,12 +279,11 @@ size_t set_union(const StringArray& input,
   output->resize(tmp.size());
   StringArray::iterator i;
   i = set_union(tmp.begin(), tmp.end(), tmp.end(), tmp.end(), output->begin());
-  output->resize( i - output->begin());
+  output->resize(i - output->begin());
   return output->size();
 };
 
-size_t set_intersection(const StringArray& input1,
-                        const StringArray& input2,
+size_t set_intersection(const StringArray& input1, const StringArray& input2,
                         StringArray* output) {
   StringArray t1 = input1;
   StringArray t2 = input2;
@@ -278,29 +292,34 @@ size_t set_intersection(const StringArray& input1,
 
   output->resize(std::max(t1.size(), t2.size()));
   StringArray::iterator i;
-  i = set_intersection(t1.begin(), t1.end(), t2.begin(), t2.end(), output->begin());
-  output->resize( i - output->begin());
+  i = set_intersection(t1.begin(), t1.end(), t2.begin(), t2.end(),
+                       output->begin());
+  output->resize(i - output->begin());
   return output->size();
 };
 
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(s, "-s", "standard VCF file (to which other files compare")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    siteFile, "--siteFile",
+    "Specify the file containing chromosomal sites, please use chr:pos")
+END_PARAMETER_LIST();
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, s, "-s", "standard VCF file (to which other files compare")
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, siteFile, "--siteFile", "Specify the file containing chromosomal sites, please use chr:pos")
-      END_PARAMETER_LIST(pl)
-      ;
-
-  pl.Read(argc, argv);
-  pl.Status();
+  PARSE_PARAMETER(argc, argv);
+  PARAMETER_STATUS();
 
   REQUIRE_STRING_PARAMETER(FLAG_s, "Please provide input file using: -s");
 
@@ -310,7 +329,7 @@ int main(int argc, char** argv){
   StringArray refPeople;
   vin.getVCFHeader()->getPeopleName(&refPeople);
 
-  VCFInputFile** compareVcfs = new VCFInputFile* [FLAG_REMAIN_ARG.size()];
+  VCFInputFile** compareVcfs = new VCFInputFile*[FLAG_REMAIN_ARG.size()];
   StringArray comparePeopleNames;
   for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
     compareVcfs[i] = new VCFInputFile(FLAG_REMAIN_ARG[i]);
@@ -328,7 +347,7 @@ int main(int argc, char** argv){
   vin.excludeAllPeople();
   vin.includePeople(commonNames);
   fprintf(stderr, "Total %d samples are included.\n", (int)commonNames.size());
-  
+
   // set range filters here
   // e.g.
   // vin.setRangeList("1:69500-69600");
@@ -338,27 +357,28 @@ int main(int argc, char** argv){
   AllConcordanceType data;
   loadGenotype(vin, &data, Value::REFERENCE);
 
-  printf("File\t"
-         "PeopleId\t"
-         "Overlap\t"
-         "Std_total\t"
-         "Input_total\t"
-         "Std_only\t"
-         "Input_only\t"
-         "nonRefConcord_overlap\t"
-         "Std_variants\t"
-         "Input_variants\t"
-         "Std_variants_in_Input\t"
-         "Ptg_Std_variants_in_Input\t"
-         "HomR/HomR\tHomR/Het\tHomR/HomA\t"
-         "Het/HomR\tHet/Het\tHet/HomA\t"
-         "HomA/HomR\tHomA/Het\tHomA/HomA\n");
+  printf(
+      "File\t"
+      "PeopleId\t"
+      "Overlap\t"
+      "Std_total\t"
+      "Input_total\t"
+      "Std_only\t"
+      "Input_only\t"
+      "nonRefConcord_overlap\t"
+      "Std_variants\t"
+      "Input_variants\t"
+      "Std_variants_in_Input\t"
+      "Ptg_Std_variants_in_Input\t"
+      "HomR/HomR\tHomR/Het\tHomR/HomA\t"
+      "Het/HomR\tHet/Het\tHet/HomA\t"
+      "HomA/HomR\tHomA/Het\tHomA/HomA\n");
 
   for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
     fprintf(stderr, "Process %s ... \n", FLAG_REMAIN_ARG[i].c_str());
     compareVcfs[i]->setRangeList(FLAG_rangeList.c_str());
     compareVcfs[i]->setRangeFile(FLAG_rangeList.c_str());
-    compareVcfs[i]->setSiteFile(FLAG_siteFile.c_str());    
+    compareVcfs[i]->setSiteFile(FLAG_siteFile.c_str());
     loadGenotype(*compareVcfs[i], &data, Value::COMPARISON);
 
     StringArray names;

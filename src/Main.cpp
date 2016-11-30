@@ -224,183 +224,183 @@ void welcome() {
   fprintf(stdout, "\n");
 }
 
+//////////////////////////////////////////////////
+// Parameter list
+//////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST();
+ADD_PARAMETER_GROUP("Basic Input/Output");
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "Input VCF File");
+ADD_STRING_PARAMETER(outPrefix, "--out", "Output prefix");
+ADD_BOOL_PARAMETER(outputRaw, "--outputRaw",
+                   "Output genotypes, phenotype, covariates(if any); and "
+                   "collapsed genotype to tabular files");
+
+ADD_PARAMETER_GROUP("Specify Covariate");
+ADD_STRING_PARAMETER(cov, "--covar", "Specify covariate file");
+ADD_STRING_PARAMETER(
+    covName, "--covar-name",
+    "Specify the column name in covariate file to be included in analysis");
+ADD_BOOL_PARAMETER(sex, "--sex",
+                   "Include sex (5th column in the PED file); as a covariate");
+
+ADD_PARAMETER_GROUP("Specify Phenotype");
+ADD_STRING_PARAMETER(pheno, "--pheno", "Specify phenotype file");
+ADD_BOOL_PARAMETER(inverseNormal, "--inverseNormal",
+                   "Transform phenotype like normal distribution");
+ADD_BOOL_PARAMETER(
+    useResidualAsPhenotype, "--useResidualAsPhenotype",
+    "Fit covariate ~ phenotype, use residual to replace phenotype");
+ADD_STRING_PARAMETER(mpheno, "--mpheno",
+                     "Specify which phenotype column to read (default: 1);");
+ADD_STRING_PARAMETER(phenoName, "--pheno-name",
+                     "Specify which phenotype column to read by header");
+ADD_BOOL_PARAMETER(qtl, "--qtl", "Treat phenotype as quantitative trait");
+ADD_STRING_PARAMETER(
+    multiplePheno, "--multiplePheno",
+    "Specify aa template file for analyses of more than one phenotype");
+
+ADD_PARAMETER_GROUP("Specify Genotype");
+ADD_STRING_PARAMETER(dosageTag, "--dosage",
+                     "Specify which dosage tag to use. (e.g. EC or DS);");
+
+ADD_PARAMETER_GROUP("Chromosome X Options");
+ADD_STRING_PARAMETER(xLabel, "--xLabel",
+                     "Specify X chromosome label (default: 23|X);");
+ADD_STRING_PARAMETER(xParRegion, "--xParRegion",
+                     "Specify PAR region (default: hg19);, can be build "
+                     "number e.g. hg38, b37; or specify region, e.g. "
+                     "'60001-2699520,154931044-155260560'");
+
+ADD_PARAMETER_GROUP("People Filter");
+ADD_STRING_PARAMETER(peopleIncludeID, "--peopleIncludeID",
+                     "List IDs of people that will be included in study");
+ADD_STRING_PARAMETER(
+    peopleIncludeFile, "--peopleIncludeFile",
+    "From given file, set IDs of people that will be included in study");
+ADD_STRING_PARAMETER(peopleExcludeID, "--peopleExcludeID",
+                     "List IDs of people that will be included in study");
+ADD_STRING_PARAMETER(
+    peopleExcludeFile, "--peopleExcludeFile",
+    "From given file, set IDs of people that will be included in study");
+
+ADD_PARAMETER_GROUP("Site Filter");
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.");
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.");
+ADD_STRING_PARAMETER(siteFile, "--siteFile",
+                     "Specify the file containing sites to include, please "
+                     "use \"chr pos\" format.");
+ADD_INT_PARAMETER(
+    siteDepthMin, "--siteDepthMin",
+    "Specify minimum depth(inclusive); to be included in analysis");
+ADD_INT_PARAMETER(
+    siteDepthMax, "--siteDepthMax",
+    "Specify maximum depth(inclusive); to be included in analysis");
+ADD_INT_PARAMETER(siteMACMin, "--siteMACMin",
+                  "Specify minimum Minor Allele Count(inclusive); to be "
+                  "included in analysis");
+ADD_STRING_PARAMETER(annoType, "--annoType",
+                     "Specify annotation type that is followed by ANNO= in "
+                     "the VCF INFO field, regular expression is allowed ");
+
+ADD_PARAMETER_GROUP("Genotype Filter");
+ADD_INT_PARAMETER(
+    indvDepthMin, "--indvDepthMin",
+    "Specify minimum depth(inclusive); of a sample to be included in analysis");
+ADD_INT_PARAMETER(
+    indvDepthMax, "--indvDepthMax",
+    "Specify maximum depth(inclusive); of a sample to be included in analysis");
+ADD_INT_PARAMETER(
+    indvQualMin, "--indvQualMin",
+    "Specify minimum depth(inclusive); of a sample to be included in analysis");
+
+ADD_PARAMETER_GROUP("Association Model");
+ADD_STRING_PARAMETER(modelSingle, "--single",
+                     "Single variant tests, choose from: score, wald, exact, "
+                     "famScore, famLrt, famGrammarGamma, firth");
+ADD_STRING_PARAMETER(modelBurden, "--burden",
+                     "Burden tests, choose from: cmc, zeggini, mb, exactCMC, "
+                     "rarecover, cmat, cmcWald");
+ADD_STRING_PARAMETER(modelVT, "--vt",
+                     "Variable threshold tests, choose from: price, analytic");
+ADD_STRING_PARAMETER(
+    modelKernel, "--kernel",
+    "Kernal-based tests, choose from: SKAT, KBAC, FamSKAT, SKATO");
+ADD_STRING_PARAMETER(modelMeta, "--meta",
+                     "Meta-analysis related functions to generate summary "
+                     "statistics, choose from: score, cov, dominant, "
+                     "recessive");
+
+ADD_PARAMETER_GROUP("Family-based Models");
+ADD_STRING_PARAMETER(kinship, "--kinship",
+                     "Specify a kinship file for autosomal analysis, use "
+                     "vcf2kinship to generate");
+ADD_STRING_PARAMETER(xHemiKinship, "--xHemiKinship",
+                     "Provide kinship for the chromosome X hemizygote region");
+ADD_STRING_PARAMETER(kinshipEigen, "--kinshipEigen",
+                     "Specify eigen decomposition results of a kinship file "
+                     "for autosomal analysis");
+ADD_STRING_PARAMETER(
+    xHemiKinshipEigen, "--xHemiKinshipEigen",
+    "Specify eigen decomposition results of a kinship file for X analysis");
+ADD_STRING_PARAMETER(genotype, "--genotype", "Specify a genotype file prefix")
+
+ADD_PARAMETER_GROUP("Grouping Unit ");
+ADD_STRING_PARAMETER(geneFile, "--geneFile",
+                     "Specify a gene file (for burden tests);");
+ADD_STRING_PARAMETER(gene, "--gene", "Specify which genes to test");
+ADD_STRING_PARAMETER(setList, "--setList",
+                     "Specify a list to test (for burden tests);");
+ADD_STRING_PARAMETER(setFile, "--setFile",
+                     "Specify a list file (for burden tests, first 2 "
+                     "columns: setName chr:beg-end);");
+ADD_STRING_PARAMETER(set, "--set", "Specify which set to test (1st column);");
+
+ADD_PARAMETER_GROUP("Frequency Cutoff");
+/*ADD_BOOL_PARAMETER(freqFromFile, "--freqFromFile", "Obtain frequency
+ * from external file");*/
+// ADD_BOOL_PARAMETER(freqFromControl, "--freqFromControl", "Calculate
+// frequency from case samples");
+ADD_DOUBLE_PARAMETER(
+    freqUpper, "--freqUpper",
+    "Specify upper minor allele frequency bound to be included in analysis");
+ADD_DOUBLE_PARAMETER(
+    freqLower, "--freqLower",
+    "Specify lower minor allele frequency bound to be included in analysis");
+
+ADD_PARAMETER_GROUP("Missing Data");
+ADD_STRING_PARAMETER(
+    impute, "--impute",
+    "Impute missing genotype (default:mean);:  mean, hwe, and drop");
+ADD_BOOL_PARAMETER(
+    imputePheno, "--imputePheno",
+    "Impute phenotype to mean of those have genotypes but no phenotypes");
+ADD_BOOL_PARAMETER(imputeCov, "--imputeCov",
+                   "Impute each covariate to its mean, instead of drop "
+                   "samples with missing covariates");
+
+ADD_PARAMETER_GROUP("Conditional Analysis");
+ADD_STRING_PARAMETER(condition, "--condition",
+                     "Specify markers to be conditions (specify range);");
+
+ADD_PARAMETER_GROUP("Auxiliary Functions");
+ADD_BOOL_PARAMETER(noweb, "--noweb", "Skip checking new version");
+ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message");
+END_PARAMETER_LIST();
+
 int main(int argc, char** argv) {
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-  ADD_PARAMETER_GROUP(pl, "Basic Input/Output")
-  ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "Input VCF File")
-  ADD_STRING_PARAMETER(pl, outPrefix, "--out", "Output prefix")
-  ADD_BOOL_PARAMETER(pl, outputRaw, "--outputRaw",
-                     "Output genotypes, phenotype, covariates(if any) and "
-                     "collapsed genotype to tabular files")
-
-  ADD_PARAMETER_GROUP(pl, "Specify Covariate")
-  ADD_STRING_PARAMETER(pl, cov, "--covar", "Specify covariate file")
-  ADD_STRING_PARAMETER(
-      pl, covName, "--covar-name",
-      "Specify the column name in covariate file to be included in analysis")
-  ADD_BOOL_PARAMETER(pl, sex, "--sex",
-                     "Include sex (5th column in the PED file) as a covariate")
-
-  ADD_PARAMETER_GROUP(pl, "Specify Phenotype")
-  ADD_STRING_PARAMETER(pl, pheno, "--pheno", "Specify phenotype file")
-  ADD_BOOL_PARAMETER(pl, inverseNormal, "--inverseNormal",
-                     "Transform phenotype like normal distribution")
-  ADD_BOOL_PARAMETER(
-      pl, useResidualAsPhenotype, "--useResidualAsPhenotype",
-      "Fit covariate ~ phenotype, use residual to replace phenotype")
-  ADD_STRING_PARAMETER(pl, mpheno, "--mpheno",
-                       "Specify which phenotype column to read (default: 1)")
-  ADD_STRING_PARAMETER(pl, phenoName, "--pheno-name",
-                       "Specify which phenotype column to read by header")
-  ADD_BOOL_PARAMETER(pl, qtl, "--qtl", "Treat phenotype as quantitative trait")
-  ADD_STRING_PARAMETER(
-      pl, multiplePheno, "--multiplePheno",
-      "Specify aa template file for analyses of more than one phenotype")
-
-  ADD_PARAMETER_GROUP(pl, "Specify Genotype")
-  ADD_STRING_PARAMETER(pl, dosageTag, "--dosage",
-                       "Specify which dosage tag to use. (e.g. EC or DS)")
-
-  ADD_PARAMETER_GROUP(pl, "Chromosome X Options")
-  ADD_STRING_PARAMETER(pl, xLabel, "--xLabel",
-                       "Specify X chromosome label (default: 23|X)")
-  ADD_STRING_PARAMETER(pl, xParRegion, "--xParRegion",
-                       "Specify PAR region (default: hg19), can be build "
-                       "number e.g. hg38, b37; or specify region, e.g. "
-                       "'60001-2699520,154931044-155260560'")
-
-  ADD_PARAMETER_GROUP(pl, "People Filter")
-  ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID",
-                       "List IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(
-      pl, peopleIncludeFile, "--peopleIncludeFile",
-      "From given file, set IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID",
-                       "List IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(
-      pl, peopleExcludeFile, "--peopleExcludeFile",
-      "From given file, set IDs of people that will be included in study")
-
-  ADD_PARAMETER_GROUP(pl, "Site Filter")
-  ADD_STRING_PARAMETER(
-      pl, rangeList, "--rangeList",
-      "Specify some ranges to use, please use chr:begin-end format.")
-  ADD_STRING_PARAMETER(
-      pl, rangeFile, "--rangeFile",
-      "Specify the file containing ranges, please use chr:begin-end format.")
-  ADD_STRING_PARAMETER(pl, siteFile, "--siteFile",
-                       "Specify the file containing sites to include, please "
-                       "use \"chr pos\" format.")
-  ADD_INT_PARAMETER(
-      pl, siteDepthMin, "--siteDepthMin",
-      "Specify minimum depth(inclusive) to be included in analysis")
-  ADD_INT_PARAMETER(
-      pl, siteDepthMax, "--siteDepthMax",
-      "Specify maximum depth(inclusive) to be included in analysis")
-  ADD_INT_PARAMETER(pl, siteMACMin, "--siteMACMin",
-                    "Specify minimum Minor Allele Count(inclusive) to be "
-                    "included in analysis")
-  ADD_STRING_PARAMETER(pl, annoType, "--annoType",
-                       "Specify annotation type that is followed by ANNO= in "
-                       "the VCF INFO field, regular expression is allowed ")
-
-  ADD_PARAMETER_GROUP(pl, "Genotype Filter")
-  ADD_INT_PARAMETER(
-      pl, indvDepthMin, "--indvDepthMin",
-      "Specify minimum depth(inclusive) of a sample to be included in analysis")
-  ADD_INT_PARAMETER(
-      pl, indvDepthMax, "--indvDepthMax",
-      "Specify maximum depth(inclusive) of a sample to be included in analysis")
-  ADD_INT_PARAMETER(
-      pl, indvQualMin, "--indvQualMin",
-      "Specify minimum depth(inclusive) of a sample to be included in analysis")
-
-  ADD_PARAMETER_GROUP(pl, "Association Model")
-  ADD_STRING_PARAMETER(pl, modelSingle, "--single",
-                       "Single variant tests, choose from: score, wald, exact, "
-                       "famScore, famLrt, famGrammarGamma, firth")
-  ADD_STRING_PARAMETER(pl, modelBurden, "--burden",
-                       "Burden tests, choose from: cmc, zeggini, mb, exactCMC, "
-                       "rarecover, cmat, cmcWald")
-  ADD_STRING_PARAMETER(pl, modelVT, "--vt",
-                       "Variable threshold tests, choose from: price, analytic")
-  ADD_STRING_PARAMETER(
-      pl, modelKernel, "--kernel",
-      "Kernal-based tests, choose from: SKAT, KBAC, FamSKAT, SKATO")
-  ADD_STRING_PARAMETER(pl, modelMeta, "--meta",
-                       "Meta-analysis related functions to generate summary "
-                       "statistics, choose from: score, cov, dominant, "
-                       "recessive")
-
-  ADD_PARAMETER_GROUP(pl, "Family-based Models")
-  ADD_STRING_PARAMETER(pl, kinship, "--kinship",
-                       "Specify a kinship file for autosomal analysis, use "
-                       "vcf2kinship to generate")
-  ADD_STRING_PARAMETER(pl, xHemiKinship, "--xHemiKinship",
-                       "Provide kinship for the chromosome X hemizygote region")
-  ADD_STRING_PARAMETER(pl, kinshipEigen, "--kinshipEigen",
-                       "Specify eigen decomposition results of a kinship file "
-                       "for autosomal analysis")
-  ADD_STRING_PARAMETER(
-      pl, xHemiKinshipEigen, "--xHemiKinshipEigen",
-      "Specify eigen decomposition results of a kinship file for X analysis")
-  ADD_STRING_PARAMETER(pl, genotype, "--genotype",
-                       "Specify a genotype file prefix")
-
-  ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
-  ADD_STRING_PARAMETER(pl, geneFile, "--geneFile",
-                       "Specify a gene file (for burden tests)")
-  ADD_STRING_PARAMETER(pl, gene, "--gene", "Specify which genes to test")
-  ADD_STRING_PARAMETER(pl, setList, "--setList",
-                       "Specify a list to test (for burden tests)")
-  ADD_STRING_PARAMETER(pl, setFile, "--setFile",
-                       "Specify a list file (for burden tests, first 2 "
-                       "columns: setName chr:beg-end)")
-  ADD_STRING_PARAMETER(pl, set, "--set",
-                       "Specify which set to test (1st column)")
-
-  ADD_PARAMETER_GROUP(pl, "Frequency Cutoff")
-  /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency
-   * from external file")*/
-  // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate
-  // frequency from case samples")
-  ADD_DOUBLE_PARAMETER(
-      pl, freqUpper, "--freqUpper",
-      "Specify upper minor allele frequency bound to be included in analysis")
-  ADD_DOUBLE_PARAMETER(
-      pl, freqLower, "--freqLower",
-      "Specify lower minor allele frequency bound to be included in analysis")
-
-  ADD_PARAMETER_GROUP(pl, "Missing Data")
-  ADD_STRING_PARAMETER(
-      pl, impute, "--impute",
-      "Impute missing genotype (default:mean):  mean, hwe, and drop")
-  ADD_BOOL_PARAMETER(
-      pl, imputePheno, "--imputePheno",
-      "Impute phenotype to mean of those have genotypes but no phenotypes")
-  ADD_BOOL_PARAMETER(pl, imputeCov, "--imputeCov",
-                     "Impute each covariate to its mean, instead of drop "
-                     "samples with missing covariates")
-
-  ADD_PARAMETER_GROUP(pl, "Conditional Analysis")
-  ADD_STRING_PARAMETER(pl, condition, "--condition",
-                       "Specify markers to be conditions (specify range)")
-
-  ADD_PARAMETER_GROUP(pl, "Auxiliary Functions")
-  ADD_BOOL_PARAMETER(pl, noweb, "--noweb", "Skip checking new version")
-  ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
-  END_PARAMETER_LIST(pl);
-
-  pl.Read(argc, argv);
+  PARSE_PARAMETER(argc, argv);
 
   if (FLAG_help) {
-    pl.Help();
+    PARAMETER_HELP();
     return 0;
   }
 
   welcome();
-  pl.Status();
+  PARAMETER_STATUS();
   if (FLAG_REMAIN_ARG.size() > 0) {
     fprintf(stderr, "Unparsed arguments: ");
     for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
@@ -435,7 +435,7 @@ int main(int argc, char** argv) {
   logger->info("Program version: %s", VERSION);
   logger->infoToFile("Git Version: %s", GIT_VERSION);
   logger->infoToFile("Parameters BEGIN");
-  pl.WriteToFile(logger->getHandle());
+  PARAMETER_INSTANCE().WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
   logger->sync();
 

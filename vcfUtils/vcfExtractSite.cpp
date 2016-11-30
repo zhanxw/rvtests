@@ -2,55 +2,63 @@
 #include "IO.h"
 #include "tabix.h"
 
-#include <cassert>
-#include <string>
-#include <set>
-#include <map>
-#include <vector>
 #include <algorithm>
+#include <cassert>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 #include "Utils.h"
 #include "VCFUtil.h"
 
-#include "MathVector.h"
 #include "MathMatrix.h"
+#include "MathVector.h"
 
 #include "SiteSet.h"
 
-int main(int argc, char** argv){
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "input VCF File")
+ADD_STRING_PARAMETER(outVcf, "--outVcf", "output VCF File")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(site, "--site",
+                     "input site file (.rod file: 0-based position)")
+ADD_BOOL_PARAMETER(inverse, "--inverse", "Inverse site")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_BOOL_PARAMETER(snpOnly, "--snpOnly", "Specify only extract SNP site")
+END_PARAMETER_LIST();
+
+int main(int argc, char** argv) {
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-      ADD_PARAMETER_GROUP(pl, "Input/Output")
-      ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-      ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output VCF File")      
-      ADD_PARAMETER_GROUP(pl, "Site Filter")
-      ADD_STRING_PARAMETER(pl, site, "--site", "input site file (.rod file: 0-based position)")
-      ADD_BOOL_PARAMETER(pl, inverse, "--inverse", "Inverse site")
-      ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-      ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-      ADD_BOOL_PARAMETER(pl, snpOnly, "--snpOnly", "Specify only extract SNP site")      
-      END_PARAMETER_LIST(pl)
-      ;
+  PARSE_PARAMETER(argc, argv);
+  PARAMETER_STATUS();
 
-  pl.Read(argc, argv);
-  pl.Status();
-
-  if (FLAG_REMAIN_ARG.size() > 0){
+  if (FLAG_REMAIN_ARG.size() > 0) {
     fprintf(stderr, "Unparsed arguments: ");
-    for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++){
+    for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
       fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
     }
     fprintf(stderr, "\n");
     abort();
   }
 
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
-  REQUIRE_STRING_PARAMETER(FLAG_outVcf, "Please provide output file using: --outVcf");
-  
-  const char defaultDbSnp[] = "/net/fantasia/home/zhanxw/amd/data/umake-resources/dbSNP/dbsnp_129_b37.rod.map";
+  REQUIRE_STRING_PARAMETER(FLAG_inVcf,
+                           "Please provide input file using: --inVcf");
+  REQUIRE_STRING_PARAMETER(FLAG_outVcf,
+                           "Please provide output file using: --outVcf");
+
+  const char defaultDbSnp[] =
+      "/net/fantasia/home/zhanxw/amd/data/umake-resources/dbSNP/"
+      "dbsnp_129_b37.rod.map";
   if (FLAG_site == "") {
     FLAG_site = defaultDbSnp;
     fprintf(stderr, "Use default dbsnp: [ %s ]\n", defaultDbSnp);
@@ -68,7 +76,7 @@ int main(int argc, char** argv){
     vout = new VCFOutputFile(FLAG_outVcf.c_str());
   };
   if (vout) vout->writeHeader(vin.getVCFHeader());
-  
+
   // set range filters here
   // e.g.
   // vin.setRangeList("1:69500-69600");
@@ -80,8 +88,8 @@ int main(int argc, char** argv){
   bool keep;
   int lineNo = 0;
   int lineOut = 0;
-  while (vin.readRecord()){
-    lineNo ++;
+  while (vin.readRecord()) {
+    lineNo++;
     VCFRecord& r = vin.getVCFRecord();
     keep = snpSet.isIncluded(r.getChrom(), r.getPos());
     if (FLAG_inverse) {
@@ -89,21 +97,21 @@ int main(int argc, char** argv){
     }
     if (!keep) continue;
     if (FLAG_snpOnly) {
-      if ( strlen(r.getRef()) != 1) continue;
-      if ( strlen(r.getAlt()) != 1) continue;
-      if ( r.getAlt()[0] == '.') continue;  //deletion e.g. A -> .
+      if (strlen(r.getRef()) != 1) continue;
+      if (strlen(r.getAlt()) != 1) continue;
+      if (r.getAlt()[0] == '.') continue;  // deletion e.g. A -> .
     }
-    if (vout) vout->writeRecord(& r);
-    lineOut ++;
+    if (vout) vout->writeRecord(&r);
+    lineOut++;
   };
 
   delete vout;
-  
-  fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
-  fprintf(stdout, "Total %d VCF records have outputted successfully\n", lineOut);
 
+  fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+  fprintf(stdout, "Total %d VCF records have outputted successfully\n",
+          lineOut);
 
   currentTime = time(0);
-  fprintf(stderr, "Analysis end at: %s", ctime(&currentTime));  
+  fprintf(stderr, "Analysis end at: %s", ctime(&currentTime));
   return 0;
 };

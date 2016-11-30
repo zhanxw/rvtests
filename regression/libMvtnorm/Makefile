@@ -1,4 +1,11 @@
-FC=gfortran
+# Default value of FC in Makefile is f77,
+# but it does not necessarily exist
+HAS_F77:=$(shell command -v $(FC) 2>/dev/null)
+ifndef HAS_F77
+	FC=gfortran
+endif
+CXX?=g++
+
 
 release: CXXFLAGS=-O2 -DNDEBUG
 release: FCFLAGS=-O2 -DNDEBUG

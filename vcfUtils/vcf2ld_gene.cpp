@@ -252,96 +252,96 @@ double calculateR2(Matrix& genotype, const int i, const int j){
 };
 #endif
 
+////////////////////////////////////////////////
+BEGIN_PARAMETER_LIST()
+ADD_PARAMETER_GROUP("Input/Output")
+ADD_STRING_PARAMETER(inVcf, "--inVcf", "input VCF File")
+ADD_STRING_PARAMETER(outPrefix, "--out", "output prefix")
+// ADD_BOOL_PARAMETER(outVcf, "--outVcf", "output [prefix].vcf in VCF
+// format")
+// ADD_BOOL_PARAMETER(outStdout, "--stdout", "output to stdout")
+// ADD_BOOL_PARAMETER(outPlink, "--make-bed", "output
+// [prefix].{fam,bed,bim} in Plink BED format")
+
+ADD_PARAMETER_GROUP("People Filter")
+ADD_STRING_PARAMETER(peopleIncludeID, "--peopleIncludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleIncludeFile, "--peopleIncludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_STRING_PARAMETER(peopleExcludeID, "--peopleExcludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleExcludeFile, "--peopleExcludeFile",
+    "from given file, set IDs of people that will be included in study")
+// ADD_INT_PARAMETER(indvMinDepth, "--indvDepthMin", "Specify minimum
+// depth(inclusive) of a sample to be incluced in analysis");
+// ADD_INT_PARAMETER(indvMaxDepth, "--indvDepthMax", "Specify maximum
+// depth(inclusive) of a sample to be incluced in analysis");
+// ADD_INT_PARAMETER(indvMinQual,  "--indvQualMin",  "Specify minimum
+// depth(inclusive) of a sample to be incluced in analysis");
+
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(siteFile, "--siteFile",
+                     "Specify the file containing sites to include, please "
+                     "use \"chr pos\" format.")
+// ADD_INT_PARAMETER(siteMinDepth, "--siteDepthMin", "Specify minimum
+// depth(inclusive) to be incluced in analysis");
+// ADD_INT_PARAMETER(siteMaxDepth, "--siteDepthMax", "Specify maximum
+// depth(inclusive) to be incluced in analysis");
+// ADD_DOUBLE_PARAMETER(minMAF,    "--siteMAFMin",   "Specify minimum
+// Minor Allele Frequency to be incluced in analysis");
+// ADD_INT_PARAMETER(minMAC,       "--siteMACMin",   "Specify minimum
+// Minor Allele Count(inclusive) to be incluced in analysis");
+// ADD_STRING_PARAMETER(annotation, "--siteAnnotation", "Specify regular
+// expression to select certain annotations (ANNO) ")
+// ADD_STRING_PARAMETER(annoGene, "--annoGene", "Specify gene name that is
+// followed by ANNO= in the VCF INFO field")
+// ADD_STRING_PARAMETER(annoType, "--annoType", "Specify annotation type
+// that is follwed by ANNO= in the VCF INFO field")
+// ADD_STRING_PARAMETER(filterExpression, "--siteFilterExp", "Specify any
+// valid Python expression, will output if eval is > 0")
+
+ADD_PARAMETER_GROUP("Gene Parameter")
+ADD_STRING_PARAMETER(geneFile, "--geneFile",
+                     "specify a gene file (for burden tests)")
+ADD_STRING_PARAMETER(geneToTest, "--gene", "specify which genes to test")
+
+ADD_PARAMETER_GROUP("Analysis Frequency")
+/*ADD_BOOL_PARAMETER(freqFromFile, "--freqFromFile", "Obtain frequency
+ * from external file")*/
+// ADD_BOOL_PARAMETER(freqFromControl, "--freqFromControl", "Calculate
+// frequency from case samples")
+// ADD_DOUBLE_PARAMETER(freqUpper, "--freqUpper", "Specify upper frequency
+// bound to be included in analysis")
+// ADD_DOUBLE_PARAMETER(freqLower, "--freqLower", "Specify lower frequency
+// bound to be included in analysis")
+/*ADD_PARAMETER_GROUP("Missing Data") */
+/*ADD_STRING_PARAMETER(missing, "--missing", "Specify mean/random")*/
+ADD_PARAMETER_GROUP("Auxilliary Functions")
+// ADD_STRING_PARAMETER(outputRaw, "--outputRaw", "Output genotypes,
+// phenotype, covariates(if any) and collapsed genotype to tabular files")
+ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message")
+END_PARAMETER_LIST();
+
 int main(int argc, char** argv) {
   time_t currentTime = time(0);
   fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
 
-  ////////////////////////////////////////////////
-  BEGIN_PARAMETER_LIST(pl)
-  ADD_PARAMETER_GROUP(pl, "Input/Output")
-  ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-  ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
-  // ADD_BOOL_PARAMETER(pl, outVcf, "--outVcf", "output [prefix].vcf in VCF
-  // format")
-  // ADD_BOOL_PARAMETER(pl, outStdout, "--stdout", "output to stdout")
-  // ADD_BOOL_PARAMETER(pl, outPlink, "--make-bed", "output
-  // [prefix].{fam,bed,bim} in Plink BED format")
-
-  ADD_PARAMETER_GROUP(pl, "People Filter")
-  ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID",
-                       "give IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(
-      pl, peopleIncludeFile, "--peopleIncludeFile",
-      "from given file, set IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID",
-                       "give IDs of people that will be included in study")
-  ADD_STRING_PARAMETER(
-      pl, peopleExcludeFile, "--peopleExcludeFile",
-      "from given file, set IDs of people that will be included in study")
-  // ADD_INT_PARAMETER(pl, indvMinDepth, "--indvDepthMin", "Specify minimum
-  // depth(inclusive) of a sample to be incluced in analysis");
-  // ADD_INT_PARAMETER(pl, indvMaxDepth, "--indvDepthMax", "Specify maximum
-  // depth(inclusive) of a sample to be incluced in analysis");
-  // ADD_INT_PARAMETER(pl, indvMinQual,  "--indvQualMin",  "Specify minimum
-  // depth(inclusive) of a sample to be incluced in analysis");
-
-  ADD_PARAMETER_GROUP(pl, "Site Filter")
-  ADD_STRING_PARAMETER(
-      pl, rangeList, "--rangeList",
-      "Specify some ranges to use, please use chr:begin-end format.")
-  ADD_STRING_PARAMETER(
-      pl, rangeFile, "--rangeFile",
-      "Specify the file containing ranges, please use chr:begin-end format.")
-  ADD_STRING_PARAMETER(pl, siteFile, "--siteFile",
-                       "Specify the file containing sites to include, please "
-                       "use \"chr pos\" format.")
-  // ADD_INT_PARAMETER(pl, siteMinDepth, "--siteDepthMin", "Specify minimum
-  // depth(inclusive) to be incluced in analysis");
-  // ADD_INT_PARAMETER(pl, siteMaxDepth, "--siteDepthMax", "Specify maximum
-  // depth(inclusive) to be incluced in analysis");
-  // ADD_DOUBLE_PARAMETER(pl, minMAF,    "--siteMAFMin",   "Specify minimum
-  // Minor Allele Frequency to be incluced in analysis");
-  // ADD_INT_PARAMETER(pl, minMAC,       "--siteMACMin",   "Specify minimum
-  // Minor Allele Count(inclusive) to be incluced in analysis");
-  // ADD_STRING_PARAMETER(pl, annotation, "--siteAnnotation", "Specify regular
-  // expression to select certain annotations (ANNO) ")
-  // ADD_STRING_PARAMETER(pl, annoGene, "--annoGene", "Specify gene name that is
-  // followed by ANNO= in the VCF INFO field")
-  // ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify annotation type
-  // that is follwed by ANNO= in the VCF INFO field")
-  // ADD_STRING_PARAMETER(pl, filterExpression, "--siteFilterExp", "Specify any
-  // valid Python expression, will output if eval is > 0")
-
-  ADD_PARAMETER_GROUP(pl, "Gene Parameter")
-  ADD_STRING_PARAMETER(pl, geneFile, "--geneFile",
-                       "specify a gene file (for burden tests)")
-  ADD_STRING_PARAMETER(pl, geneToTest, "--gene", "specify which genes to test")
-
-  ADD_PARAMETER_GROUP(pl, "Analysis Frequency")
-  /*ADD_BOOL_PARAMETER(pl, freqFromFile, "--freqFromFile", "Obtain frequency
-   * from external file")*/
-  // ADD_BOOL_PARAMETER(pl, freqFromControl, "--freqFromControl", "Calculate
-  // frequency from case samples")
-  // ADD_DOUBLE_PARAMETER(pl, freqUpper, "--freqUpper", "Specify upper frequency
-  // bound to be included in analysis")
-  // ADD_DOUBLE_PARAMETER(pl, freqLower, "--freqLower", "Specify lower frequency
-  // bound to be included in analysis")
-  /*ADD_PARAMETER_GROUP(pl, "Missing Data") */
-  /*ADD_STRING_PARAMETER(pl, missing, "--missing", "Specify mean/random")*/
-  ADD_PARAMETER_GROUP(pl, "Auxilliary Functions")
-  // ADD_STRING_PARAMETER(pl, outputRaw, "--outputRaw", "Output genotypes,
-  // phenotype, covariates(if any) and collapsed genotype to tabular files")
-  ADD_BOOL_PARAMETER(pl, help, "--help", "Print detailed help message")
-  END_PARAMETER_LIST(pl);
-
-  pl.Read(argc, argv);
+  PARSE_PARAMETER(argc, argv);
 
   if (FLAG_help) {
-    pl.Help();
+    PARAMETER_HELP();
     return 0;
   }
 
-  pl.Status();
+  PARAMETER_STATUS();
   if (FLAG_REMAIN_ARG.size() > 0) {
     fprintf(stderr, "Unparsed arguments: ");
     for (unsigned int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {

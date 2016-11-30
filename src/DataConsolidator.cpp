@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "base/CommonFunction.h"
+#include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
-
-#include "LinearAlgebra.h"
+#include "src/LinearAlgebra.h"
 
 void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
   Matrix& m = *g;
@@ -198,6 +198,9 @@ int DataConsolidator::preRegressionCheck(Matrix& pheno, Matrix& cov) {
 }
 
 int DataConsolidator::checkColinearity(Matrix& cov) {
+  // no covariate => no colienarity problem
+  if (cov.cols == 0) {return 0;}
+  
   int r = matrixRank(cov);
   int m = (cov.rows > cov.cols) ? cov.cols : cov.rows;
   // fprintf(stderr, "rank of cov is %d, and min(r,c) = %d\n", r, m);
@@ -304,4 +307,103 @@ int DataConsolidator::setKinshipEigenFile(int kinshipType,
 }
 int DataConsolidator::loadKinship(int kinshipType) {
   return this->kinship[kinshipType].load();
+}
+
+int DataConsolidator::loadGenotype(const std::string& prefix) {
+  std::string fn = prefix;
+  fn += ".dim";
+
+  int nrow = 0;
+  int ncol = 0;
+  FILE* fp = fopen(fn.c_str(), "rt");
+  fscanf(fp, "%d", &nrow);
+  fscanf(fp, "%d", &ncol);
+  fclose(fp);
+
+  fullGenotype_ = new EigenMatrix;
+  Eigen::MatrixXf& geno = fullGenotype_->mat;
+  geno.resize(nrow, ncol);
+
+  fn = prefix;
+  fn += ".data";
+  fp = fopen(fn.c_str(), "rb");
+  double* buff = new double[nrow];
+
+  for (int i = 0; i < ncol; i++) {
+    // process column by column
+    fread(buff, sizeof(double), nrow, fp);
+    for (int j = 0; j < nrow; ++j) {
+      geno(j, i) = buff[j];
+    }
+  }
+  delete[] buff;
+  fclose(fp);
+
+  return 0;
+}
+
+int DataConsolidator::loadNormalizedGenotype(const std::string& prefix) {
+  std::string fn = prefix;
+  fn += ".dim";
+
+  int nrow = 0;
+  int ncol = 0;
+  FILE* fp = fopen(fn.c_str(), "rt");
+  fscanf(fp, "%d", &nrow);
+  fscanf(fp, "%d", &ncol);
+  fclose(fp);
+
+  fullGenotype_ = new EigenMatrix;
+  Eigen::MatrixXf& geno = fullGenotype_->mat;
+  geno.resize(nrow, ncol);
+
+  fn = prefix;
+  fn += ".data";
+  fp = fopen(fn.c_str(), "rb");
+  double* buff = new double[nrow];
+  double sum = 0;
+  double sum2 = 0;
+  int nonMiss = 0;
+
+  double avg, sdInv;
+  for (int i = 0; i < ncol; i++) {
+    // process column by column
+    fread(buff, sizeof(double), nrow, fp);
+    sum = 0;
+    sum2 = 0;
+    nonMiss = 0;
+    for (int j = 0; j < nrow; ++j) {
+      if (buff[j] < 0) {
+        continue;
+      }
+      geno(j, i) = buff[j];
+      sum += buff[j];
+      sum2 += buff[j] * buff[j];
+      nonMiss++;
+    }
+
+    if (nonMiss == 0) {
+      avg = 0.0;
+      sdInv = 1.0;
+    } else {
+      avg = sum / nonMiss;
+      sdInv = 1.0 / sqrt(sum2 / nonMiss - avg * avg);
+    }
+
+    for (int j = 0; j < nrow; ++j) {
+      if (buff[j] < 0) {
+        geno(j, i) = 0.;
+      } else {
+        geno(j, i) = (geno(j, i) - avg) * sdInv;
+      }
+    }
+  }
+  delete[] buff;
+  fclose(fp);
+
+  return 0;
+}
+
+EigenMatrix* DataConsolidator::getFullGenotype() {
+  return fullGenotype_;
 }

@@ -6,10 +6,10 @@
 #include "libsrc/MathMatrix.h"
 #include "libsrc/Random.h"
 
-#include "Formula.h"
-#include "GenotypeCounter.h"
-#include "KinshipHolder.h"
-#include "Result.h"
+#include "base/KinshipHolder.h"
+#include "regression/Formula.h"
+#include "src/GenotypeCounter.h"
+#include "src/Result.h"
 
 extern Logger* logger;
 
@@ -478,6 +478,17 @@ class DataConsolidator {
     return this->hasKinshipForAuto() || this->hasKinshipForX();
   }
 
+ public:
+  /**
+   * Load sample by genotype matrix
+   */
+  int loadGenotype(const std::string& prefix);  
+  /**
+   * Load sample by genotype matrix, fill missing to mean, and equalize variance
+   */
+  int loadNormalizedGenotype(const std::string& prefix);
+  EigenMatrix* getFullGenotype() ;
+  
  private:
   // don't copy
   DataConsolidator(const DataConsolidator&);
@@ -498,7 +509,8 @@ class DataConsolidator {
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
   KinshipHolder kinship[2];  // 2: include both AUTO and X kinships
-
+  EigenMatrix* fullGenotype_;
+  
   // sex chromosome adjustment
   const std::vector<int>* sex;
   // store formulae

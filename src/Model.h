@@ -9,6 +9,7 @@
 #include "libsrc/MathMatrix.h"
 
 #include "base/ParRegion.h"
+#include "regression/BoltLMM.h"
 #include "regression/EigenMatrixInterface.h"
 #include "regression/FamSkat.h"
 #include "regression/FastLMM.h"
@@ -3133,7 +3134,7 @@ class FamSkatTest : public ModelFitter {
 // need careful tests before any change
 class MetaScoreTest : public ModelFitter {
  public:
-  MetaScoreTest() : model(NULL), modelAuto(NULL), modelX(NULL) {
+  MetaScoreTest() : model(NULL), modelAuto(NULL), modelX(NULL), useBolt(false) {
     this->modelName = "MetaScore";
     af = -1.;
     fitOK = false;
@@ -3156,6 +3157,7 @@ class MetaScoreTest : public ModelFitter {
   virtual int setParameter(const ModelParser& parser) {
     this->outputGwama = parser.hasTag("gwama");
     this->outputSE = parser.hasTag("se");
+    this->useBolt = parser.hasTag("bolt");
     return 0;
   }
   // fitting model
@@ -3749,8 +3751,58 @@ class MetaScoreTest : public ModelFitter {
     LogisticRegression logisticAlt;
   };
 
+  class MetaFamQtlBolt: public MetaBase {
+   public:
+    MetaFamQtlBolt() {
+      fprintf(stderr, "MetaFamQtlBolt model started\n");
+    }
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+      EigenMatrix& fullGenotype = *dc->getFullGenotype();
+          
+      // fit null model
+      bool fitOK = bolt_.FitNullModel(covariate, phenotype, fullGenotype);
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+      return 0;
+    }
+    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
+      Matrix& phenotype = dc->getPhenotype();
+      Matrix& covariate = dc->getCovariate();
+      EigenMatrix& fullGenotype = *dc->getFullGenotype();
+
+      bool fitOK = bolt_.TestCovariate(covariate, phenotype, genotype, fullGenotype);
+      if (!fitOK) return -1;
+      return 0;
+    }
+    double GetAF(Matrix& geno, DataConsolidator* dc) {
+      assert(false);
+      ;  // should not reach here
+      return 0.0;
+    }
+    void PrintNullModel(FileWriter* fp,
+                        const std::vector<std::string>& covLabel) {
+    }
+    double GetU() { return bolt_.GetU(); }
+    double GetV() { return bolt_.GetV(); }
+    double GetEffect() { return bolt_.GetEffect();}
+    double GetPvalue() { return bolt_.GetPvalue(); }
+
+   private:
+    BoltLMM bolt_;
+  };
   MetaBase* createModel(bool familyModel, bool binaryOutcome) {
     MetaBase* ret = NULL;
+    if (this->useBolt) {
+      if(binaryOutcome) {
+        fprintf(stderr, "BoltLMM does not support binary outcomes! Exit...\n");
+        exit(1);
+      }
+      ret =  new MetaFamQtlBolt;
+      return ret;
+    }
+      
     if (familyModel && !binaryOutcome) {
       ret = new MetaFamQtl;
     }
@@ -3777,7 +3829,8 @@ class MetaScoreTest : public ModelFitter {
   MetaBase* model;
   MetaBase* modelAuto;
   MetaBase* modelX;
-
+  bool useBolt;
+  
   double af;  // overall af (unadjust or adjusted by family structure)
 
   bool fitOK;

@@ -27,7 +27,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20160630";
+const char* VERSION = "20160930";
 
 void banner(FILE* fp) {
   const char* string =
@@ -38,7 +38,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      April 2016                        | \n"
+      "|      September 2016                    | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -345,6 +345,8 @@ int main(int argc, char** argv) {
   ADD_STRING_PARAMETER(
       pl, xHemiKinshipEigen, "--xHemiKinshipEigen",
       "Specify eigen decomposition results of a kinship file for X analysis")
+  ADD_STRING_PARAMETER(pl, genotype, "--genotype",
+                       "Specify a genotype file prefix")
 
   ADD_PARAMETER_GROUP(pl, "Grouping Unit ")
   ADD_STRING_PARAMETER(pl, geneFile, "--geneFile",
@@ -924,6 +926,13 @@ int main(int argc, char** argv) {
         "ignored here.");
   }
 
+  if (!FLAG_genotype.empty()) {
+    if (dc.loadGenotype(FLAG_genotype)) {
+      logger->error("Failed to load genotype file with prefix [ %s ]!", FLAG_genotype.c_str());
+      exit(1);
+    }
+  }
+    
   // set imputation method
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");

@@ -12,6 +12,7 @@ EXE = testGSLIntegration \
       testLMM \
       testMixtureChiSquare \
       testMultipleTraitScoreTest \
+      testBoltLMM \
 
 all: $(EXE)
 debug: $(EXE)
@@ -20,7 +21,7 @@ debug: $(EXE)
 	$(MAKE) -C .. debug
 
 LIBS =  ../lib-dbg-regression.a ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a
-CXX_FLAGS = -fopenmp -O0 -ggdb -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
+CXX_FLAGS = -fopenmp -O0 -ggdb -I../.. -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
             $(LIBS) \
             ../../third/tabix/libtabix.a \
             ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \

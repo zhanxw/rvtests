@@ -34,6 +34,8 @@ BASE = LogisticRegression \
        SkatO \
        MultipleTraitLinearRegressionScoreTest \
        Formula \
+       ConjugateGradientSolver \
+       BoltLMM
 
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)

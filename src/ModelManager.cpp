@@ -68,7 +68,7 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new MultipleTraitScoreTest);
     } else {
       logger->error("Unknown model name: %s .", modelName.c_str());
-      abort();
+      exit(1);
     }
   } else if (modelType == "burden") {
     if (modelName == "cmc") {
@@ -112,7 +112,7 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new FamFp);
     } else {
       logger->error("Unknown model name: [ %s ].", modelName.c_str());
-      abort();
+      exit(1);
     }
   } else if (modelType == "vt") {
     if (modelName == "cmc") {
@@ -137,7 +137,7 @@ int ModelManager::create(const std::string& modelType,
       logger->error("Not yet implemented.");
     } else {
       logger->error("Unknown model name: %s .", modelName.c_str());
-      abort();
+      exit(1);
     }
   } else if (modelType == "kernel") {
     if (modelName == "skat") {
@@ -177,7 +177,7 @@ int ModelManager::create(const std::string& modelType,
           beta1, beta2);
     } else {
       logger->error("Unknown model name: %s .", modelName.c_str());
-      abort();
+      exit(1);
     };
   } else if (modelType == "meta") {
     if (modelName == "score") {
@@ -221,14 +221,14 @@ int ModelManager::create(const std::string& modelType,
 #endif
     else {
       logger->error("Unknown model name: %s .", modelName.c_str());
-      abort();
+      exit(1);
     }
   } else if (modelType == "outputRaw") {
     if (modelName == "dump") {
       model.push_back(new DumpModel(prefix.c_str()));
     } else {
       logger->error("Unknown model name: %s .", modelName.c_str());
-      abort();
+      exit(1);
     }
   } else {
     logger->error("Unrecognized model type [ %s ]", modelType.c_str());
@@ -245,6 +245,7 @@ int ModelManager::create(const std::string& modelType,
       model[i]->setQuantitativeOutcome();
     }
   }
+
   // create output files
   for (size_t i = previousModelNumber; i < model.size(); ++i) {
     std::string s = this->prefix;

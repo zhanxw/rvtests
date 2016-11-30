@@ -493,7 +493,7 @@ int main(int argc, char** argv) {
       fprintf(stderr, " %s", FLAG_REMAIN_ARG[i].c_str());
     }
     fprintf(stderr, "\n");
-    abort();
+    exit(1);
   }
 
   Logger _logger((FLAG_outPrefix + ".vcf2kinship.log").c_str());
@@ -514,7 +514,7 @@ int main(int argc, char** argv) {
   // Set threads
   if (FLAG_thread < 1) {
     logger->error("Invalid thread number: %d", FLAG_thread);
-    abort();
+    exit(1);
   } else if (FLAG_thread > 1) {
     logger->info("Multiple ( %d ) threads will be used.", FLAG_thread);
   }
@@ -526,7 +526,7 @@ int main(int argc, char** argv) {
   // --inVcf");
   if (FLAG_inVcf.empty() && FLAG_ped.empty()) {
     logger->error("Please provide input file using: --inVcf or --ped");
-    abort();
+    exit(1);
   }
   REQUIRE_STRING_PARAMETER(FLAG_outPrefix,
                            "Please provide output prefix using: --out");
@@ -549,18 +549,18 @@ int main(int argc, char** argv) {
         logger->error(
             "Failed to calculate kinship from X chromosome as PED file is "
             "missing! Please specify --ped input.ped and --xHemi together.");
-        abort();
+        exit(1);
       }
       if (FLAG_ibs) {
         logger->error(
             "Calculate kinship from X chromosome using IBS method is not "
             "supported!");
-        abort();
+        exit(1);
       }
     }
   } else {
     logger->error("Parameter errors!");
-    abort();
+    exit(1);
   }
 
   // load pedigree
@@ -674,7 +674,7 @@ int main(int argc, char** argv) {
 
       if (vcfName.size() == (size_t)nExclude) {
         logger->error("No samples left for analysis, aborting...");
-        abort();
+        exit(1);
       }
     }
   }
@@ -711,7 +711,7 @@ int main(int argc, char** argv) {
     logger->error(
         "More than one or none of the empirical kinsip calculation methods "
         "specified.");
-    abort();
+    exit(1);
   }
   EmpiricalKinship* kinship = NULL;
   EmpiricalKinship* kinshipForX = NULL;

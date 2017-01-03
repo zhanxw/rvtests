@@ -29,8 +29,8 @@ class SimpleMatrix;
  */
 class PlinkOutputFile {
  public:
-  PlinkOutputFile(const char* fnPrefix) { init(fnPrefix); };
-  PlinkOutputFile(const std::string& fnPrefix) { init(fnPrefix.c_str()); };
+  PlinkOutputFile(const char* fnPrefix) { init(fnPrefix); }
+  PlinkOutputFile(const std::string& fnPrefix) { init(fnPrefix.c_str()); }
   void init(const char* fnPrefix) {
     std::string prefix = fnPrefix;
     this->fpBed = fopen((prefix + ".bed").c_str(), "wb");
@@ -50,225 +50,74 @@ class PlinkOutputFile {
     // snp major mode
     c = 0x01;  // 0b00000001;
     fwrite(&c, sizeof(char), 1, this->fpBed);
-  };
-  ~PlinkOutputFile() {
-    fclose(this->fpBed);
-    fclose(this->fpBim);
-    fclose(this->fpFam);
-  };
+  }
+  ~PlinkOutputFile() { close(); }
+  void close() {
+    if (this->fpFam) {
+      fclose(this->fpFam);
+      this->fpFam = NULL;
+    }
+    if (this->fpBim) {
+      fclose(this->fpBim);
+      this->fpBim = NULL;
+    }
+    if (this->fpBed) {
+      fclose(this->fpBed);
+      this->fpBed = NULL;
+    }
+  }
   void writeHeader(const VCFHeader* h) {
     std::vector<std::string> people;
     h->getPeopleName(&people);
     this->writeFAM(people);
-  };
+  }
   // @pos is from 0 to 3
   void setGenotype(unsigned char* c, const int pos, const int geno) {
     (*c) |= (geno << (pos << 1));
   }
 
-  int writeRecord(VCFRecord* r) {
-    int ret;
-    // write BIM
-    // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
-    ret = this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(),
-                         r->getAlt());
-    if (ret) return ret;  // unsuccess
-    // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
+  int writeRecord(VCFRecord* r);
 
-    // write BED
-    int GTidx = r->getFormatIndex("GT");
-    VCFPeople& people = r->getPeople();
-    unsigned char c = 0;
-    VCFIndividual* indv;
-    int offset;
-    for (unsigned int i = 0; i < people.size(); i++) {
-      indv = people[i];
-      offset = i & (4 - 1);
-      if (indv->justGet(GTidx).isHaploid()) {  // 0: index of GT
-        int a1 = indv->justGet(GTidx).getAllele1();
-        if (a1 == 0)
-          setGenotype(&c, offset, HOM_REF);
-        else if (a1 == 1)
-          setGenotype(&c, offset, HET);
-        else
-          setGenotype(&c, offset, MISSING);
-      } else {
-        int a1 = indv->justGet(GTidx).getAllele1();
-        int a2 = indv->justGet(GTidx).getAllele2();
-        if (a1 == 0) {
-          if (a2 == 0) {
-            // homo ref: 0b00
-          } else if (a2 == 1) {
-            setGenotype(&c, offset, HET);  // het: 0b01
-          } else {
-            setGenotype(&c, offset, MISSING);  // missing 0b10
-          }
-        } else if (a1 == 1) {
-          if (a2 == 0) {
-            setGenotype(&c, offset, HET);  // het: 0b01
-          } else if (a2 == 1) {
-            setGenotype(&c, offset, HOM_ALT);  // hom alt: 0b11
-          } else {
-            setGenotype(&c, offset, MISSING);  // missing
-          }
-        } else {
-          // NOTE: Plink does not support tri-allelic
-          // so have to set genotype as missing.
-          setGenotype(&c, offset, MISSING);  // missing
-        };
-      }
-      if (offset == 3) {  // 3: 4 - 1, so every 4 genotype we will flush
-        fwrite(&c, sizeof(char), 1, this->fpBed);
-        c = 0;
-      }
-    };
-    if (people.size() % 4 != 0)  // remaining some bits
-      fwrite(&c, sizeof(char), 1, this->fpBed);
-
-    return 0;
-  }
   int writeRecordWithFilter(VCFRecord* r, const double minGD,
-                            const double minGQ) {
-    int ret;
-    // write BIM
-    // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
-    ret = this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(),
-                         r->getAlt());
-    if (ret) return ret;  // unsuccess
-    // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
-
-    // write BED
-    int GTidx = r->getFormatIndex("GT");
-    int GDidx = r->getFormatIndex("GD");
-    int GQidx = r->getFormatIndex("GQ");
-    bool missing = false;
-
-    VCFPeople& people = r->getPeople();
-    unsigned char c = 0;
-    VCFIndividual* indv;
-    int offset;
-    for (unsigned int i = 0; i < people.size(); i++) {
-      indv = people[i];
-      offset = i & (4 - 1);
-
-      missing = false;
-      if (minGD > 0 &&
-          (GDidx < 0 ||
-           (GDidx > 0 && indv->justGet(GDidx).toDouble() < minGD))) {
-        missing = true;
-      }
-      if (missing && minGQ > 0 &&
-          (GQidx < 0 ||
-           (GQidx > 0 && indv->justGet(GQidx).toDouble() < minGQ))) {
-        missing = true;
-      }
-      if (!missing) {
-        if (indv->justGet(GTidx).isHaploid()) {  // 0: index of GT
-          int a1 = indv->justGet(GTidx).getAllele1();
-          if (a1 == 0)
-            setGenotype(&c, offset, HOM_REF);
-          else if (a1 == 1)
-            setGenotype(&c, offset, HET);
-          else
-            setGenotype(&c, offset, MISSING);
-        } else {
-          int a1 = indv->justGet(GTidx).getAllele1();
-          int a2 = indv->justGet(GTidx).getAllele2();
-          if (a1 == 0) {
-            if (a2 == 0) {
-              // homo ref: 0b00
-            } else if (a2 == 1) {
-              setGenotype(&c, offset, HET);  // het: 0b01
-            } else {
-              setGenotype(&c, offset, MISSING);  // missing 0b10
-            }
-          } else if (a1 == 1) {
-            if (a2 == 0) {
-              setGenotype(&c, offset, HET);  // het: 0b01
-            } else if (a2 == 1) {
-              setGenotype(&c, offset, HOM_ALT);  // hom alt: 0b11
-            } else {
-              setGenotype(&c, offset, MISSING);  // missing
-            }
-          } else {
-            // NOTE: Plink does not support tri-allelic
-            // so have to set genotype as missing.
-            setGenotype(&c, offset, MISSING);  // missing
-          };
-        }
-      } else {                             // lower GD or GT
-        setGenotype(&c, offset, MISSING);  // missing
-      }
-      if (offset == 3) {  // 3: 4 - 1, so every 4 genotype we will flush
-        fwrite(&c, sizeof(char), 1, this->fpBed);
-        c = 0;
-      }
-    };
-    if (people.size() % 4 != 0)  // remaining some bits
-      fwrite(&c, sizeof(char), 1, this->fpBed);
-
-    return 0;
-  }
+                            const double minGQ);
   /**
    * @return 0: success
    */
-  int writeBIM(const char* chr, const char* id, int mapDist, int pos,
-               const char* ref, const char* alt) {
-    // printf("In writeBIM(), id = %s and its address is id = %p \n", id, id);
-    int refLen = strlen(ref);
-    int altLen = strlen(alt);
-    if (refLen > 1) {
-      if (ref[1] != ',') {
-        fprintf(stdout, "skip with ref = %s and alt = %s\n", ref, alt);
-        return -1;
-      }
-    }
-    if (altLen > 1) {
-      if (alt[1] != ',') {
-        fprintf(stdout, "skip with ref = %s and alt= %s\n", ref, alt);
-        return -1;
-      }
-    }
+  int writeBIM(const char* chr, const char* id, double mapDist, int pos,
+               const char* ref, const char* alt);
 
-    std::string chrom = chr;
-    if (atoi(chr) > 0) {
-      fputs(chr, this->fpBim);
-      fputc('\t', this->fpBim);
-    } else if (chrom == "X")
-      fputs("23\t", this->fpBim);
-    else if (chrom == "Y")
-      fputs("24\t", this->fpBim);
-    else if (chrom == "MT")
-      fputs("25\t", this->fpBim);
-    else {
-      fprintf(stdout, "skip chrom %s\n", chr);
-      return -1;
-    }
-    if (id && id[0] != '.')
-      fprintf(this->fpBim, "%s\t", id);
-    else
-      fprintf(this->fpBim, "%s:%d\t", chrom.c_str(), pos);
+  /**
+   * @return 0: success
+   */
+  int writeBIM(const std::vector<std::string>& chr,
+               const std::vector<std::string>& id,
+               const std::vector<double>& mapDist, const std::vector<int>& pos,
+               const std::vector<std::string>& ref,
+               const std::vector<std::string>& alt);
 
-    fprintf(this->fpBim, "0\t");
-    fprintf(this->fpBim, "%d\t", pos);
-    fprintf(this->fpBim, "%c\t", ref[0]);
-    fprintf(this->fpBim, "%c\n", alt[0]);
-    return 0;
-  };
-  void writeFAM(std::vector<std::string>& people) {
-    for (unsigned int i = 0; i < people.size(); i++) {
-      fprintf(this->fpFam, "%s\t%s\t0\t0\t0\t-9\n", people[i].c_str(),
-              people[i].c_str());
-    };
-  };
+  void writeFAM(const std::string& people);
+  void writeFAM(const std::vector<std::string>& people);
+  void writeFAM(const std::vector<std::string>& fid,
+                const std::vector<std::string>& iid,
+                std::vector<double>& pheno);
+
   // NOTE: m should be: marker x people
   void writeBED(SimpleMatrix* mat, int nPeople, int nMarker);
+
+  /**
+   * Extract a subset of SNP and/or samples for binary PLINK file with @param
+   * prefix
+   * @param snpIdx indices for markers (should be >= 0)
+   * @param sampleIdx indices for samples (should be >=0)
+   */
+  int extract(const std::string& prefix, const std::vector<int>& snpIdx,
+              const std::vector<int>& sampleIdx);
 
  private:
   // we reverse the two bits as defined in PLINK format,
   // so we can process 2-bit at a time.
   const static unsigned char HOM_REF = 0x0;  // 0b00 ;
-  const static unsigned char HET = 0x2;  // 0b10 ;
+  const static unsigned char HET = 0x2;      // 0b10 ;
   const static unsigned char HOM_ALT = 0x3;  // 0b11 ;
   const static unsigned char MISSING = 0x1;  // 0b01 ;
 

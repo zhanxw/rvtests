@@ -133,7 +133,7 @@ class PlinkInputFile {
   // utility functions
   // get PLINK 2bit genotype for the @param sample'th sample and @param
   // marker'th marker
-  int get2BitGenotype(int sample, int marker);
+  unsigned char get2BitGenotype(int sample, int marker);
   int getMarkerIdx(const std::string& m) {
     if (this->snp2Idx.find(m) == this->snp2Idx.end()) {
       return -1;

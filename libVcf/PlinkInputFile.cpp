@@ -339,18 +339,24 @@ int PlinkInputFile::readBED(unsigned char* buf, int n) {
   return nRead;
 }
 
-int PlinkInputFile::get2BitGenotype(int sample, int marker) {
+unsigned char PlinkInputFile::get2BitGenotype(int sample, int marker) {
+  assert(0 <= sample && sample < getNumSample());
+  assert(0 <= marker && marker < getNumMarker());
+
+  const int M = getNumMarker();
+  const int N = getNumSample();
+
   unsigned char c;
   if (snpMajorMode) {
-    int stride = ROUND_UP_TO_4X(sample);
+    int stride = ROUND_UP_TO_4X(N) / 4;
     fseek(this->fpBed, 3 + stride * marker + (sample >> 2), SEEK_SET);
     fread(&c, sizeof(unsigned char), 1, this->fpBed);
-    return (c >> ((sample & 0x03) >> 1) & 0x03);
+    return extract2Bit(c, sample & 0x03);
   } else {
-    int stride = ROUND_UP_TO_4X(marker);
+    int stride = ROUND_UP_TO_4X(M) / 4;
     fseek(this->fpBed, 3 + stride * sample + (marker >> 2), SEEK_SET);
     fread(&c, sizeof(unsigned char), 1, this->fpBed);
-    return (c >> ((marker & 0x03) >> 1) & 0x03);
+    return extract2Bit(c, sample & 0x03);
   }
 }
 

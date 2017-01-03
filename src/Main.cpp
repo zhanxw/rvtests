@@ -18,16 +18,16 @@
 #include "libsrc/MathMatrix.h"
 #include "libsrc/MathVector.h"
 
-#include "DataConsolidator.h"
-#include "DataLoader.h"
-#include "GenotypeExtractor.h"
-#include "ModelFitter.h"
-#include "ModelManager.h"
-#include "Result.h"
+#include "src/DataConsolidator.h"
+#include "src/DataLoader.h"
+#include "src/GenotypeExtractor.h"
+#include "src/ModelFitter.h"
+#include "src/ModelManager.h"
+#include "src/Result.h"
 
 Logger* logger = NULL;
 
-const char* VERSION = "20160930";
+const char* VERSION = "20170103";
 
 void banner(FILE* fp) {
   const char* string =
@@ -346,7 +346,8 @@ ADD_STRING_PARAMETER(kinshipEigen, "--kinshipEigen",
 ADD_STRING_PARAMETER(
     xHemiKinshipEigen, "--xHemiKinshipEigen",
     "Specify eigen decomposition results of a kinship file for X analysis");
-ADD_STRING_PARAMETER(genotype, "--genotype", "Specify a genotype file prefix")
+ADD_STRING_PARAMETER(boltPlink, "--boltPlink",
+                     "Specify a prefix of binary PLINK inputs for BoltLMM")
 
 ADD_PARAMETER_GROUP("Grouping Unit ");
 ADD_STRING_PARAMETER(geneFile, "--geneFile",
@@ -926,10 +927,13 @@ int main(int argc, char** argv) {
         "ignored here.");
   }
 
-  if (!FLAG_genotype.empty()) {
-    if (dc.loadGenotype(FLAG_genotype)) {
-      logger->error("Failed to load genotype file with prefix [ %s ]!",
-                    FLAG_genotype.c_str());
+  if (!FLAG_boltPlink.empty()) {
+    if (dc.prepareBoltModel(FLAG_boltPlink,
+                            dataLoader.getPhenotype().getRowName())) {
+      logger->error(
+          "Failed to prepare inputs for BOLT-LMM association test model with "
+          "this prefix [ %s ]!",
+          FLAG_boltPlink.c_str());
       exit(1);
     }
   }

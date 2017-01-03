@@ -20,7 +20,7 @@ debug: $(EXE)
 ../lib-dbg-regression.a: $(wildcard ../*.cpp) $(wildcard ../*.h)
 	$(MAKE) -C .. debug
 
-LIBS =  ../lib-dbg-regression.a ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a
+LIBS =  ../../libVcf/lib-dbg-vcf.a ../lib-dbg-regression.a ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a
 CXX_FLAGS = -fopenmp -O0 -ggdb -I../.. -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
             $(LIBS) \
             ../../third/tabix/libtabix.a \

@@ -480,6 +480,18 @@ class DataConsolidator {
 
  public:
   /**
+   * Create data files for BOLT-LMM heritability estimation, inlcudes
+   *  - a set of binary PLINK file (genotype, phentoype)
+   *  - an optional .covar file that stores covariates
+   * the outputted sample has to follow the given order @param sampleName
+   */
+  int prepareBoltModel(const std::string& prefix,
+                       const std::vector<std::string>& sampleName);
+  const std::string& getBoltGenotypeFilePrefix() const {
+    return this->boltPrefix;
+  }
+#if 0
+  /**
    * Load sample by genotype matrix
    */
   int loadGenotype(const std::string& prefix);
@@ -488,6 +500,7 @@ class DataConsolidator {
    */
   int loadNormalizedGenotype(const std::string& prefix);
   EigenMatrix* getFullGenotype();
+#endif
 
  private:
   // don't copy
@@ -509,7 +522,7 @@ class DataConsolidator {
   std::vector<std::string> originalRowLabel;
   std::vector<std::string> rowLabel;
   KinshipHolder kinship[2];  // 2: include both AUTO and X kinships
-  EigenMatrix* fullGenotype_;
+  std::string boltPrefix;    // prefix for a set of file for BoltLMM model
 
   // sex chromosome adjustment
   const std::vector<int>* sex;

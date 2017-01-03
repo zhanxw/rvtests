@@ -212,7 +212,7 @@ inline int match(const std::vector<std::string>& a,
                  int nomatch = -1) {
   int numMatched = 0;
   Indexer idx(b);
-  index->resize(a.size());
+  index->reserve(a.size());
   for (size_t i = 0; i != a.size(); ++i) {
     index->push_back(idx[a[i]]);
     if (index->back() == -1) {

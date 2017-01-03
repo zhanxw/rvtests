@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "base/CommonFunction.h"
+#include "libVcf/PlinkInputFile.h"
+#include "libVcf/PlinkOutputFile.h"
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
 #include "src/LinearAlgebra.h"
@@ -311,6 +313,82 @@ int DataConsolidator::loadKinship(int kinshipType) {
   return this->kinship[kinshipType].load();
 }
 
+int DataConsolidator::prepareBoltModel(
+    const std::string& prefix, const std::vector<std::string>& sampleName) {
+  this->boltPrefix = prefix;
+
+  PlinkInputFile pin(prefix);
+  assert(isUnique(sampleName));
+  assert(isSubset(sampleName, pin.getIndv()));
+
+  const int M = pin.getNumMarker();
+  const int N = pin.getNumIndv();
+
+  // calculate MAF
+  std::vector<double> maf(M);
+  pin.calculateMAF(&maf);
+
+  // calculate missing rate
+  std::vector<double> imiss(N);  // individual
+  std::vector<double> lmiss(M);  // marker
+  pin.calculateMissing(&imiss, &lmiss);
+
+  // check missingness for samples
+  for (int i = 0; i != N; ++i) {
+    if (imiss[i] > 0.05) {
+      logger->warn("Sample [ %s ] has high rate of missing genotype [ %g ]!\n",
+                   pin.getIID()[i].c_str(), lmiss[i]);
+    }
+  }
+
+  // choose SNPs to keep
+  std::vector<int> snpIdx;  // keep these SNPs
+  for (size_t i = 0; i != maf.size(); ++i) {
+    if (maf[i] < 0.05 || lmiss[i] > 0.05) {
+      continue;
+    } else {
+      snpIdx.push_back(i);
+    }
+  }
+
+  // build a sample index, such that plink.fam[index] is in the same order as
+  // @param sampleName
+  std::vector<int> sampleIdx;
+  match(sampleName, pin.getIID(), &sampleIdx);
+  sampleIdx.erase(std::remove(sampleIdx.begin(), sampleIdx.end(), -1),
+                  sampleIdx.end());
+
+  // write a new set of PLINK file
+  PlinkOutputFile pout(prefix + ".out");
+  pout.extract(prefix, snpIdx, sampleIdx);
+
+  // write covariate, even there is no covaraite
+  FILE* fpCov = fopen((prefix + ".covar").c_str(), "wt");
+  if (covariate.cols == 0) {  // no covariate
+    fprintf(fpCov, "FID\tIID\n");
+    for (size_t i = 0; i != sampleIdx.size(); ++i) {
+      fprintf(fpCov, "%s\t%s\n", sampleName[sampleIdx[i]].c_str(),
+              sampleName[sampleIdx[i]].c_str());
+    }
+  } else {
+    fprintf(fpCov, "FID\tIID");
+    for (int j = 0; j < covariate.cols; ++j) {
+      fprintf(fpCov, "\t%s", (char*)covariate.GetColumnLabel(j));
+    }
+    fprintf(fpCov, "\n");
+    for (int i = 0; i < covariate.rows; ++i) {
+      fprintf(fpCov, "%s\t%s", sampleName[i].c_str(), sampleName[i].c_str());
+      for (int j = 0; j < covariate.cols; ++j) {
+        fprintf(fpCov, "\t%g", covariate[i][j]);
+      }
+      fputs("\n", fpCov);
+    }
+  }
+  fclose(fpCov);
+  return 0;
+}
+
+#if 0
 int DataConsolidator::loadGenotype(const std::string& prefix) {
   std::string fn = prefix;
   fn += ".dim";
@@ -407,3 +485,4 @@ int DataConsolidator::loadNormalizedGenotype(const std::string& prefix) {
 }
 
 EigenMatrix* DataConsolidator::getFullGenotype() { return fullGenotype_; }
+#endif

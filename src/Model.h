@@ -3755,31 +3755,20 @@ class MetaScoreTest : public ModelFitter {
    public:
     MetaFamQtlBolt() { fprintf(stderr, "MetaFamQtlBolt model started\n"); }
     int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-      Matrix& phenotype = dc->getPhenotype();
-      Matrix& covariate = dc->getCovariate();
-      EigenMatrix& fullGenotype = *dc->getFullGenotype();
+      const std::string& fn = dc->getBoltGenotypeFilePrefix();
 
       // fit null model
-      bool fitOK = bolt_.FitNullModel(covariate, phenotype, fullGenotype);
+      bool fitOK = 0 == bolt_.FitNullModel(fn);
       if (!fitOK) return -1;
       needToFitNullModel = false;
       return 0;
     }
     int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
-      Matrix& phenotype = dc->getPhenotype();
-      Matrix& covariate = dc->getCovariate();
-      EigenMatrix& fullGenotype = *dc->getFullGenotype();
-
-      bool fitOK =
-          bolt_.TestCovariate(covariate, phenotype, genotype, fullGenotype);
+      bool fitOK = 0 == bolt_.TestCovariate(genotype);
       if (!fitOK) return -1;
       return 0;
     }
-    double GetAF(Matrix& geno, DataConsolidator* dc) {
-      assert(false);
-      ;  // should not reach here
-      return 0.0;
-    }
+    double GetAF(Matrix& geno, DataConsolidator* dc) { return bolt_.GetAF(); }
     void PrintNullModel(FileWriter* fp,
                         const std::vector<std::string>& covLabel) {}
     double GetU() { return bolt_.GetU(); }

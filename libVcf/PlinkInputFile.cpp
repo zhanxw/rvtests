@@ -5,8 +5,10 @@
 #define UNUSED(x) (void)(x)
 #endif
 
+#define ROUND_UP_TO_4X(x) (((x) + 3) & ~0x03)
+
 // @param m: people by marker matrix
-int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) {
+int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) const {
   assert(mat);
 
   // read bed
@@ -86,9 +88,9 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) {
   return this->getNumMarker() * this->getNumIndv();
 };
 
-int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat,
-                                   std::vector<std::string>* peopleNames,
-                                   std::vector<std::string>* markerNames) {
+int PlinkInputFile::readIntoMatrix(
+    SimpleMatrix* mat, std::vector<std::string>* peopleNames,
+    std::vector<std::string>* markerNames) const {
   assert(mat);
 
   // read bed
@@ -105,10 +107,16 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat,
     peopleIdx.resize(pid2Idx.size());
     for (unsigned int i = 0; i < pid2Idx.size(); i++) peopleIdx[i] = (i);
   } else {
-    for (unsigned int i = 0; i < peopleNames->size(); i++)
-      if (pid2Idx.find((*peopleNames)[i]) != pid2Idx.end()) {
-        peopleIdx.push_back(pid2Idx[(*peopleNames)[i]]);
+    for (unsigned int i = 0; i < peopleNames->size(); i++) {
+      std::map<std::string, int>::const_iterator iter =
+          pid2Idx.find((*peopleNames)[i]);
+      if (iter != pid2Idx.end()) {
+        peopleIdx.push_back(iter->second);
+      } else {
+        fprintf(stderr, "Skip reading the non-exist sample [ %s ]\n",
+                (*peopleNames)[i].c_str());
       }
+    }
   }
 
   // get marker index
@@ -118,10 +126,16 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat,
     markerIdx.resize(snp.size());
     for (unsigned int i = 0; i < snp.size(); i++) markerIdx[i] = (i);
   } else {
-    for (unsigned int i = 0; i < markerNames->size(); i++)
-      if (snp2Idx.find((*markerNames)[i]) != snp2Idx.end()) {
-        markerIdx.push_back(snp2Idx[(*markerNames)[i]]);
+    for (unsigned int i = 0; i < markerNames->size(); i++) {
+      std::map<std::string, int>::const_iterator iter =
+          snp2Idx.find((*markerNames)[i]);
+      if (iter != snp2Idx.end()) {
+        markerIdx.push_back(iter->second);
+      } else {
+        fprintf(stderr, "Skip reading the non-exist marker [ %s ]\n",
+                (*markerNames)[i].c_str());
       }
+    }
   }
 
   int peopleToRead = peopleIdx.size();
@@ -194,4 +208,153 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat,
     }
   }
   return this->getNumMarker() * this->getNumIndv();
-};
+}
+
+int PlinkInputFile::calculateMAF(std::vector<double>* maf) {
+  assert(this->fpBed);
+
+  int N = getNumIndv();
+  int M = getNumMarker();
+  maf->resize(M);
+
+  long fpPrevPosition = ftell(this->fpBed);
+  fseek(this->fpBed, 3, SEEK_SET);
+  if (snpMajorMode) {
+    int stride = ROUND_UP_TO_4X(N) / 4;
+    unsigned char* buf = new unsigned char[stride];
+    for (int i = 0; i < M; ++i) {
+      fread(buf, sizeof(unsigned char), stride, this->fpBed);
+      int numAllele = 0;
+      int numMiss = 0;
+      for (int j = 0; j < N; ++j) {
+        switch (extract2Bit(buf[j >> 2], j & 0x03)) {
+          case HET:
+            numAllele++;
+            break;
+          case HOM_ALT:
+            numAllele += 2;
+            break;
+          case MISSING:
+            numMiss++;
+        }
+      }
+      if (N == numMiss) {
+        (*maf)[i] = 0;
+      } else {
+        (*maf)[i] = 0.5 * (numAllele) / (N - numMiss);
+      }
+    }
+
+    delete[] buf;
+  } else {  // individual-major mode
+    int stride = ROUND_UP_TO_4X(M) / 4;
+    unsigned char* buf = new unsigned char[stride];
+    std::vector<int> numAllele(N);
+    std::vector<int> numMiss(N);
+    for (int i = 0; i < N; ++i) {
+      fread(buf, sizeof(unsigned char), stride, this->fpBed);
+      for (int j = 0; j < M; ++j) {
+        switch (extract2Bit(buf[j >> 2], j & 0x03)) {
+          case HET:
+            numAllele[j] += 1;
+            break;
+          case HOM_ALT:
+            numAllele[j] += 2;
+            break;
+          case MISSING:
+            numMiss[i] += 1;
+        }
+      }
+    }
+    for (int j = 0; j < M; ++j) {
+      if (N == numMiss[j]) {
+        (*maf)[j] = 0.;
+      } else {
+        (*maf)[j] = 0.5 * numAllele[j] / (N - numMiss[j]);
+      }
+    }
+    delete[] buf;
+  }
+  fseek(this->fpBed, fpPrevPosition, SEEK_SET);
+  return 0;
+}
+
+int PlinkInputFile::calculateMissing(std::vector<double>* imiss,
+                                     std::vector<double>* lmiss) {
+  assert(this->fpBed);
+
+  int N = getNumIndv();
+  int M = getNumMarker();
+  imiss->resize(N);
+  lmiss->resize(M);
+
+  long fpPrevPosition = ftell(this->fpBed);
+  fseek(this->fpBed, 3, SEEK_SET);
+  if (snpMajorMode) {
+    int stride = ROUND_UP_TO_4X(N) / 4;
+    unsigned char* buf = new unsigned char[stride];
+    for (int i = 0; i < M; ++i) {
+      fread(buf, sizeof(unsigned char), stride, this->fpBed);
+      for (int j = 0; j < N; ++j) {
+        if (extract2Bit(buf[j >> 2], (j & 0x03)) == MISSING) {
+          (*imiss)[j]++;
+          (*lmiss)[i]++;
+        }
+      }
+    }
+
+    delete[] buf;
+  } else {  // individual-major mode
+    int stride = ROUND_UP_TO_4X(M) / 4;
+    unsigned char* buf = new unsigned char[stride];
+    std::vector<int> numAllele(N);
+    std::vector<int> numMiss(N);
+    for (int i = 0; i < N; ++i) {
+      fread(buf, sizeof(unsigned char), stride, this->fpBed);
+      for (int j = 0; j < M; ++j) {
+        if ((buf[j >> 2] >> ((j & ~0x03) >> 1)) == MISSING) {
+          (*imiss)[i]++;
+          (*lmiss)[j]++;
+        }
+      }
+    }
+    delete[] buf;
+  }
+  fseek(this->fpBed, fpPrevPosition, SEEK_SET);
+
+  for (int i = 0; i < N; ++i) {
+    (*imiss)[i] /= M;
+  }
+  for (int i = 0; i < M; ++i) {
+    (*lmiss)[i] /= N;
+  }
+  return 0;
+}
+
+int PlinkInputFile::readBED(unsigned char* buf, int n) {
+  int nRead = 0;
+  while (nRead < n) {
+    nRead += fread(buf + nRead, sizeof(unsigned char), n, this->fpBed);
+  }
+  return nRead;
+}
+
+int PlinkInputFile::get2BitGenotype(int sample, int marker) {
+  unsigned char c;
+  if (snpMajorMode) {
+    int stride = ROUND_UP_TO_4X(sample);
+    fseek(this->fpBed, 3 + stride * marker + (sample >> 2), SEEK_SET);
+    fread(&c, sizeof(unsigned char), 1, this->fpBed);
+    return (c >> ((sample & 0x03) >> 1) & 0x03);
+  } else {
+    int stride = ROUND_UP_TO_4X(marker);
+    fseek(this->fpBed, 3 + stride * sample + (marker >> 2), SEEK_SET);
+    fread(&c, sizeof(unsigned char), 1, this->fpBed);
+    return (c >> ((marker & 0x03) >> 1) & 0x03);
+  }
+}
+
+unsigned char PlinkInputFile::extract2Bit(unsigned char g, int i) {
+  assert(0 <= i && i <= 3);
+  return (g >> (i << 1)) & 3;
+}

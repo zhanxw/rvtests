@@ -4,14 +4,14 @@
 #include <map>
 #include <string>
 
-#include "Exception.h"
-#include "IO.h"
+#include "base/Exception.h"
+#include "base/IO.h"
 
 class SimpleMatrix;
 
 class PlinkInputFile {
  public:
-  PlinkInputFile(const char* fnPrefix) {
+  PlinkInputFile(const std::string& fnPrefix) {
     this->prefix = fnPrefix;
     this->fpBed = fopen((prefix + ".bed").c_str(), "rb");
     this->fpBim = fopen((prefix + ".bim").c_str(), "rt");
@@ -79,12 +79,12 @@ class PlinkInputFile {
             snp2Idx.size() - 1;  //  -1 since fd[1] will be created using []
         mapDist.push_back(atof(fd[2].c_str()));
         pos.push_back(atoi(fd[3].c_str()));
-        ref.push_back(fd[4][0]);
-        alt.push_back(fd[5][0]);
+        ref.push_back(fd[4]);
+        alt.push_back(fd[5]);
       } else {
         fprintf(stderr, "duplicate marker name [%s], ignore!\n", fd[1].c_str());
       }
-    };
+    }
     delete lr;
 
     // read fam
@@ -95,7 +95,7 @@ class PlinkInputFile {
         continue;
       }
 
-      // will skip loading fam, pid, mid
+      // will skip loading fam, fatherid, motherid
       if (pid2Idx.find(fd[1]) == pid2Idx.end()) {
         pid2Idx[fd[1]] =
             pid2Idx.size() - 1;  //  -1 since fd[1] will be created using []
@@ -106,55 +106,82 @@ class PlinkInputFile {
         fprintf(stderr, "duplicated person id [ %s ], ignore!\n",
                 fd[1].c_str());
       }
-    };
+    }
     delete lr;
 
-    fprintf(stderr, "Finished loading %s. %zu chrom, %zu indv\n", fnPrefix,
-            snp2Idx.size(), indv.size());
-  };
+    fprintf(stderr, "Finished loading %s. %zu chrom, %zu indv\n",
+            fnPrefix.c_str(), snp2Idx.size(), indv.size());
+  }
   ~PlinkInputFile() {
     fclose(this->fpBed);
     fclose(this->fpBim);
     fclose(this->fpFam);
-  };
+  }
 
   // @param m: people by marker matrix
-  int readIntoMatrix(SimpleMatrix* mat);
+  int readIntoMatrix(SimpleMatrix* mat) const;
   int readIntoMatrix(SimpleMatrix* mat, std::vector<std::string>* peopleNames,
-                     std::vector<std::string>* markerNames);
+                     std::vector<std::string>* markerNames) const;
 
+  // summary statistics calculations
+  int calculateMAF(std::vector<double>* maf);
+  int calculateMissing(std::vector<double>* imiss, std::vector<double>* lmiss);
+
+  // read BED file
+  int readBED(unsigned char* buf, int n);
+
+  // utility functions
+  // get PLINK 2bit genotype for the @param sample'th sample and @param
+  // marker'th marker
+  int get2BitGenotype(int sample, int marker);
   int getMarkerIdx(const std::string& m) {
     if (this->snp2Idx.find(m) == this->snp2Idx.end()) {
       return -1;
     } else {
       return (this->snp2Idx[m]);
     }
-  };
-
-  int getNumIndv() const { return this->indv.size(); };
-  int getNumMarker() const { return this->snp2Idx.size(); };
+  }
+  // get the @param i-th 2-bit genotype
+  // NOTE: when g = |ddcc|bbaa| (8bits)
+  // extract2Bit(g, 0) = |0000|00aa| (8bits)
+  static unsigned char extract2Bit(unsigned char g, int i);
+  int getNumIndv() const { return this->indv.size(); }
+  int getNumSample() const { return this->indv.size(); }
+  int getNumMarker() const { return this->snp2Idx.size(); }
+  const std::vector<std::string>& getIndv() const { return this->indv; }
+  const std::vector<std::string>& getSampleName() const { return this->indv; }
+  const std::vector<std::string>& getIID() const { return this->indv; }
+  const std::vector<std::string>& getChrom() const { return this->chrom; }
+  const std::vector<std::string>& getMarkerName() const { return this->snp; }
+  const std::vector<double>& getMapDist() const { return this->mapDist; }
+  const std::vector<int>& getPosition() const { return this->pos; }
+  const std::vector<std::string>& getRef() const { return this->ref; }
+  const std::vector<std::string>& getAlt() const { return this->alt; }
+  const std::vector<double>& getPheno() const { return this->pheno; }
 
  public:
   std::vector<std::string> chrom;
   std::vector<std::string> snp;
   std::vector<double> mapDist;
   std::vector<int> pos;
-  std::vector<char> ref;
-  std::vector<char> alt;
+  std::vector<std::string> ref;
+  std::vector<std::string> alt;
 
   std::vector<std::string> indv;  /// people ids
   std::vector<int> sex;
   std::vector<double> pheno;
 
- private:
-  std::map<std::string, int> snp2Idx;
-  std::map<std::string, int> pid2Idx;
+ public:
   // we reverse the two bits as defined in PLINK format,
   // so we can process 2-bit at a time.
   const static unsigned char HOM_REF = 0x0;  // 0b00;
-  const static unsigned char HET = 0x2;  // 0b10;
+  const static unsigned char HET = 0x2;      // 0b10;
   const static unsigned char HOM_ALT = 0x3;  // 0b11;
   const static unsigned char MISSING = 0x1;  // 0b01;
+
+ private:
+  std::map<std::string, int> snp2Idx;
+  std::map<std::string, int> pid2Idx;
 
   FILE* fpBed;
   FILE* fpBim;

@@ -11,6 +11,9 @@
  *
  * v = ["a", "b", "c"]
  * indexer will store {"a": 0,  "b": 1, "c": 2}
+ *
+ * NOTE: duplicated element is ignored by default
+ * in another word, only the first unique elements are used.
  */
 class Indexer {
  public:

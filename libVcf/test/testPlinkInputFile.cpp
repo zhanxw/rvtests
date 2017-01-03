@@ -5,8 +5,8 @@ void printMatrix(SimpleMatrix& m, PlinkInputFile& f1) {
   for (int i = 0; i < m.nrow(); i++ ) {
     for (int j = 0; j < m.ncol(); j++) {
       int geno = (int) m[i][j];
-      char ref = f1.ref[j];
-      char alt = f1.alt[j];
+      char ref = f1.ref[j][0];
+      char alt = f1.alt[j][0];
       switch(geno) {
         case 0:
           printf("%c %c\t", ref, ref);
@@ -37,10 +37,11 @@ int main(int argc, char *argv[])
   for (int i = 0; i < m.nrow(); i++ ) {
     for (int j = 0; j < m.ncol(); j++) {
       int geno = (int) m[i][j];
-      printf("%d ", geno);
+      printf("%d\t", geno);
     }
     printf("\n");
   }
+  printf("----------------------------------------------------------------------\n");  
   printMatrix(m, f1);
 
   // loading some people and marker

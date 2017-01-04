@@ -69,7 +69,7 @@ class PlinkInputFile {
     while (lr->readLineBySep(&fd, " \t")) {
       if (fd.size() != 6) {
         fprintf(stderr, "Wrong format in bim file.\n");
-        continue;
+        exit(1);
       }
 
       if (snp2Idx.find(fd[1]) == snp2Idx.end()) {
@@ -83,6 +83,7 @@ class PlinkInputFile {
         alt.push_back(fd[5]);
       } else {
         fprintf(stderr, "duplicate marker name [%s], ignore!\n", fd[1].c_str());
+        exit(1);        
       }
     }
     delete lr;
@@ -92,7 +93,7 @@ class PlinkInputFile {
     while (lr->readLineBySep(&fd, " \t")) {
       if (fd.size() != 6) {
         fprintf(stderr, "Wrong format in fam file.\n");
-        continue;
+        exit(1);
       }
 
       // will skip loading fam, fatherid, motherid
@@ -105,11 +106,12 @@ class PlinkInputFile {
       } else {
         fprintf(stderr, "duplicated person id [ %s ], ignore!\n",
                 fd[1].c_str());
+        exit(1);
       }
     }
     delete lr;
 
-    fprintf(stderr, "Finished loading %s. %zu chrom, %zu indv\n",
+    fprintf(stderr, "Finished loading %s. %zu markers, %zu samples\n",
             fnPrefix.c_str(), snp2Idx.size(), indv.size());
   }
   ~PlinkInputFile() {
@@ -134,11 +136,22 @@ class PlinkInputFile {
   // get PLINK 2bit genotype for the @param sample'th sample and @param
   // marker'th marker
   unsigned char get2BitGenotype(int sample, int marker);
+  // @param m is the maker name.
+  // can be used to check whether a marker exists
   int getMarkerIdx(const std::string& m) {
     if (this->snp2Idx.find(m) == this->snp2Idx.end()) {
       return -1;
     } else {
       return (this->snp2Idx[m]);
+    }
+  }
+  // @param p is the sample name
+  // can be used to check whether a sample exists
+  int getSampleIdx(const std::string& p) {
+    if (this->pid2Idx.find(p) == this->pid2Idx.end()) {
+      return -1;
+    } else {
+      return (this->pid2Idx[p]);
     }
   }
   // get the @param i-th 2-bit genotype
@@ -157,6 +170,7 @@ class PlinkInputFile {
   const std::vector<int>& getPosition() const { return this->pos; }
   const std::vector<std::string>& getRef() const { return this->ref; }
   const std::vector<std::string>& getAlt() const { return this->alt; }
+  const std::vector<int>& getSex() const { return this->sex; }
   const std::vector<double>& getPheno() const { return this->pheno; }
 
  public:

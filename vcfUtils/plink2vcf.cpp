@@ -112,10 +112,10 @@ int main(int argc, char* argv[]) {
     if (reference.size() > 0 && reference.count(pin->snp[m]) > 0) {
       char refGiven = reference[pin->snp[m]];
 
-      if (pin->ref[m] == refGiven) {
+      if (pin->ref[m][0] == refGiven) {
         switchRefAlt = false;
       } else {
-        if (pin->alt[m] == refGiven) {
+        if (pin->alt[m][0] == refGiven) {
           switchRefAlt = true;
           ++switchSite;
           fprintf(flog, "Marker [ %s ] switched ref and alt.\n",
@@ -130,8 +130,8 @@ int main(int argc, char* argv[]) {
       fprintf(fout, "%s\t", pin->chrom[m].c_str());  // CHROM
       fprintf(fout, "%d\t", pin->pos[m]);            // POS
       fprintf(fout, "%s\t", pin->snp[m].c_str());    // ID
-      fprintf(fout, "%c\t", pin->ref[m]);            // REF
-      fprintf(fout, "%c\t", pin->alt[m]);            // ALT
+      fprintf(fout, "%c\t", pin->ref[m][0]);         // REF
+      fprintf(fout, "%c\t", pin->alt[m][0]);         // ALT
       fprintf(fout, ".\t");                          // QUAL
       fprintf(fout, ".\t");                          // FILTER
       fprintf(fout, ".\t");                          // INFO
@@ -160,8 +160,8 @@ int main(int argc, char* argv[]) {
       fprintf(fout, "%s\t", pin->chrom[m].c_str());  // CHROM
       fprintf(fout, "%d\t", pin->pos[m]);            // POS
       fprintf(fout, "%s\t", pin->snp[m].c_str());    // ID
-      fprintf(fout, "%c\t", pin->alt[m]);            // REF
-      fprintf(fout, "%c\t", pin->ref[m]);            // ALT
+      fprintf(fout, "%c\t", pin->alt[m][0]);         // REF
+      fprintf(fout, "%c\t", pin->ref[m][0]);         // ALT
       fprintf(fout, ".\t");                          // QUAL
       fprintf(fout, ".\t");                          // FILTER
       fprintf(fout, ".\t");                          // INFO

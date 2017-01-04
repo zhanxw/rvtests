@@ -692,19 +692,20 @@ class BoltLMM::BoltLMMImpl {
       pvalue_ = 1.0;
     }
 
-    af_ = gg.sum() / gg.rows();
+    af_ = 0.5 * gg.sum() / gg.rows();
 
     return 0;
   }
-
+#if 0
   void CalculateAlpha() {
     // // refer to GetAF() for formula details
     // const int N = g_.rows();
     Eigen::MatrixXf one = Eigen::MatrixXf::Ones(N_, 1);
     Eigen::MatrixXf k_inv_1(N_, 1);
-    solveKinv(one, &k_inv_1);
+    solveKinv(one, &k_inv_1); // => does not work well, GRM not invertable
     alpha_ = 0.5 / (one.transpose() * k_inv_1)(0, 0) * k_inv_1;
   }
+#endif
   double GetAF() {
     // af = 0.5 * (1' * inv(K) * 1)^(-1) * (1' * inv(K) * g)
     //    = 0.5 * (1' * inv(K) * 1)^(-1) * (g' * inv(K) * 1)

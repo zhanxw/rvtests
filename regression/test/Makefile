@@ -113,6 +113,12 @@ check10: testMultipleTraitScoreTest.out
 testMultipleTraitScoreTest.out : $(EXE)
 	./testMultipleTraitScoreTest > $@
 
+######################################################################
+check11: testBoltLMM.out
+	Rscript compare.bolt.corr.R $^ correct.testBoltLMM.out
+testBoltLMM.out : $(EXE)
+	./testBoltLMM $@
+
 deepclean: clean
 	-rm output.* input.*
 clean:

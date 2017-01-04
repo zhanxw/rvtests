@@ -516,7 +516,7 @@ int DataLoader::useResidualAsPhenotype() {
   const int numCovariate = covariate.ncol();
 
   copyPhenotype(phenotype, &pheno);
-  copyCovariateAndIntercept(covariate.nrow(), covariate, &covAndInt);
+  copyCovariateAndIntercept(pheno.Length(), covariate, &covAndInt);
   if (!lr.FitLinearModel(covAndInt, pheno)) {
     if (numCovariate > 0) {
       logger->error(

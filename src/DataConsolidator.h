@@ -11,6 +11,8 @@
 #include "src/GenotypeCounter.h"
 #include "src/Result.h"
 
+class SimpleMatrix;
+
 extern Logger* logger;
 
 class WarningOnce {
@@ -483,10 +485,11 @@ class DataConsolidator {
    * Create data files for BOLT-LMM heritability estimation, inlcudes
    *  - a set of binary PLINK file (genotype, phentoype)
    *  - an optional .covar file that stores covariates
-   * the outputted sample has to follow the given order @param sampleName
+   * the outputted sample has to follow the given order in @param sampleName
    */
   int prepareBoltModel(const std::string& prefix,
-                       const std::vector<std::string>& sampleName);
+                       const std::vector<std::string>& sampleName,
+                       const SimpleMatrix& phenotype);
   const std::string& getBoltGenotypeFilePrefix() const {
     return this->boltPrefix;
   }

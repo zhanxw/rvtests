@@ -833,7 +833,7 @@ int main(int argc, char** argv) {
   const std::vector<FileWriter*>& fOuts = modelManager.getResultFile();
   const size_t numModel = model.size();
 
-  // TODO: optimize this by avoidding data copying
+  // TODO: optimize this to avoid data copying
   Matrix phenotypeMatrix;
   Matrix covariate;
   toMatrix(dataLoader.getPhenotype(), &phenotypeMatrix);
@@ -927,17 +927,6 @@ int main(int argc, char** argv) {
         "ignored here.");
   }
 
-  if (!FLAG_boltPlink.empty()) {
-    if (dc.prepareBoltModel(FLAG_boltPlink,
-                            dataLoader.getPhenotype().getRowName())) {
-      logger->error(
-          "Failed to prepare inputs for BOLT-LMM association test model with "
-          "this prefix [ %s ]!",
-          FLAG_boltPlink.c_str());
-      exit(1);
-    }
-  }
-
   // set imputation method
   if (FLAG_impute.empty()) {
     logger->info("Impute missing genotype to mean (by default)");
@@ -999,7 +988,21 @@ int main(int argc, char** argv) {
                  FLAG_indvQualMin);
   }
 
+  // e.g. check colinearity and correlations between predictors
   dc.preRegressionCheck(phenotypeMatrix, covariate);
+
+  // prepare PLINK files for BoltLMM model
+  if (!FLAG_boltPlink.empty()) {
+    if (dc.prepareBoltModel(FLAG_boltPlink,
+                            dataLoader.getPhenotype().getRowName(),
+                            dataLoader.getPhenotype())) {
+      logger->error(
+          "Failed to prepare inputs for BOLT-LMM association test model with "
+          "this prefix [ %s ]!",
+          FLAG_boltPlink.c_str());
+      exit(1);
+    }
+  }
 
   logger->info("Analysis started");
   Result& buf = dc.getResult();

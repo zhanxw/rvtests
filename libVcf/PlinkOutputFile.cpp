@@ -3,14 +3,22 @@
 #include "base/SimpleMatrix.h"
 #include "libVcf/PlinkInputFile.h"
 
+int PlinkOutputFile::isMultiAllelic(const char* r) {
+  if (strchr(r, ',') == NULL) return 0;
+
+  return -1;
+}
+
 int PlinkOutputFile::writeRecord(VCFRecord* r) {
-  int ret;
   // write BIM
-  // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
-  ret = this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(),
-                       r->getAlt());
-  if (ret) return ret;  // unsuccess
-  // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
+  if (isMultiAllelic(r->getRef()) || isMultiAllelic(r->getAlt())) {
+    fprintf(stdout, "%s:%d Skip with ref = [ %s ] and alt= [ %s ]\n", __FILE__,
+            __LINE__, r->getRef(), r->getAlt());
+    return -1;
+  }
+
+  this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(),
+                 r->getAlt());
 
   // write BED
   int GTidx = r->getFormatIndex("GT");
@@ -59,21 +67,23 @@ int PlinkOutputFile::writeRecord(VCFRecord* r) {
       c = 0;
     }
   }
-  if (people.size() % 4 != 0)  // remaining some bits
+  if (people.size() % 4 != 0) {  // remaining some bits
     fwrite(&c, sizeof(char), 1, this->fpBed);
-
+  }
   return 0;
 }
 
 int PlinkOutputFile::writeRecordWithFilter(VCFRecord* r, const double minGD,
                                            const double minGQ) {
-  int ret;
   // write BIM
-  // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
-  ret = this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(),
-                       r->getAlt());
-  if (ret) return ret;  // unsuccess
-  // printf("id= %s and its address id = %p\n", r->getID(), r->getID());
+  if (isMultiAllelic(r->getRef()) || isMultiAllelic(r->getAlt())) {
+    fprintf(stdout, "%s:%d Skip with ref = [ %s ] and alt= [ %s ]\n", __FILE__,
+            __LINE__, r->getRef(), r->getAlt());
+    return -1;
+  }
+
+  this->writeBIM(r->getChrom(), r->getID(), 0, r->getPos(), r->getRef(),
+                 r->getAlt());
 
   // write BED
   int GTidx = r->getFormatIndex("GT");
@@ -149,20 +159,6 @@ int PlinkOutputFile::writeRecordWithFilter(VCFRecord* r, const double minGD,
 int PlinkOutputFile::writeBIM(const char* chr, const char* id, double mapDist,
                               int pos, const char* ref, const char* alt) {
   // printf("In writeBIM(), id = %s and its address is id = %p \n", id, id);
-  int refLen = strlen(ref);
-  int altLen = strlen(alt);
-  if (refLen > 1) {
-    if (ref[1] != ',') {
-      fprintf(stdout, "skip with ref = %s and alt = %s\n", ref, alt);
-      return -1;
-    }
-  }
-  if (altLen > 1) {
-    if (alt[1] != ',') {
-      fprintf(stdout, "skip with ref = %s and alt= %s\n", ref, alt);
-      return -1;
-    }
-  }
 
   std::string chrom = chr;
   if (atoi(chr) > 0) {
@@ -223,6 +219,11 @@ void PlinkOutputFile::writeFAM(const std::vector<std::string>& fid,
   }
 }
 
+void PlinkOutputFile::writeFAM(const PlinkInputFile& pin, int i) {
+  fprintf(this->fpFam, "%s\t%s\t0\t0\t%d\t%g\n", pin.getSampleName()[i].c_str(),
+          pin.getSampleName()[i].c_str(), pin.getSex()[i], pin.getPheno()[i]);
+}
+
 // NOTE: m should be: marker x people
 void PlinkOutputFile::writeBED(SimpleMatrix* mat, int nPeople, int nMarker) {
   /* int nPeople = mat->cols; */
@@ -263,25 +264,57 @@ void PlinkOutputFile::writeBED(SimpleMatrix* mat, int nPeople, int nMarker) {
  * This is barely minimal extraction with low efficiency.
  */
 int PlinkOutputFile::extract(const std::string& prefix,
-                             const std::vector<int>& snpIdx,
-                             const std::vector<int>& sampleIdx) {
+                             const std::vector<int>& sampleIdx,
+                             const std::vector<int>& snpIdx) {
   PlinkInputFile pin(prefix);
+  return extract(pin, sampleIdx, snpIdx);
+}
 
+int PlinkOutputFile::extract(PlinkInputFile& pin,
+                             const std::vector<int>& sampleIdx,
+                             const std::vector<int>& snpIdx) {
+  extractFAM(pin, sampleIdx);
+  extractBIM(pin, snpIdx);
+  extractBED(pin, sampleIdx, snpIdx);
+  return 0;
+}
+
+int PlinkOutputFile::extractFAM(PlinkInputFile& pin,
+                                const std::vector<int>& sampleIdx) {
   for (size_t i = 0; i != sampleIdx.size(); ++i) {
-    this->writeFAM(pin.getIID()[i]);
+    this->writeFAM(pin, i);  /// TODO: should also output family id
   }
-
+  return 0;
+}
+int PlinkOutputFile::extractFAMWithPhenotype(PlinkInputFile& pin,
+                                             const std::vector<int>& sampleIdx,
+                                             const SimpleMatrix& pheno) {
+  assert((int)sampleIdx.size() == pheno.nrow());
+  for (size_t i = 0; i != sampleIdx.size(); ++i) {
+    /// TODO: should also output family id
+    fprintf(this->fpFam, "%s\t%s\t0\t0\t%d\t%g\n",
+            pin.getSampleName()[i].c_str(), pin.getSampleName()[i].c_str(),
+            pin.getSex()[i], pheno[i][0]);
+  }
+  return 0;
+}
+int PlinkOutputFile::extractBIM(PlinkInputFile& pin,
+                                const std::vector<int>& snpIdx) {
   for (size_t i = 0; i != snpIdx.size(); ++i) {
     this->writeBIM(pin.getChrom()[i].c_str(), pin.getMarkerName()[i].c_str(),
                    pin.getMapDist()[i], pin.getPosition()[i],
                    pin.getRef()[i].c_str(), pin.getAlt()[i].c_str());
   }
-
+  return 0;
+}
+int PlinkOutputFile::extractBED(PlinkInputFile& pin,
+                                const std::vector<int>& sampleIdx,
+                                const std::vector<int>& snpIdx) {
   const int M = snpIdx.size();
   const int N = sampleIdx.size();
   unsigned char c = 0;
   int offset = 0;
-  for (int i = 0; i < M; ++i) {
+  for (int i = 0; i < M; ++i) {  // assume SNP-major
     for (int j = 0; j < N; ++j) {
       offset = j & (4 - 1);
       setGenotype(&c, offset, pin.get2BitGenotype(sampleIdx[j], snpIdx[i]));
@@ -295,6 +328,5 @@ int PlinkOutputFile::extract(const std::string& prefix,
       c = 0;
     }
   }  // end for i
-
   return 0;
 }

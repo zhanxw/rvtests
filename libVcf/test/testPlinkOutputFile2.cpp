@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
   std::vector<int> sampleIdx = seq(6);
   std::vector<int> markerIdx = seq(3);
 
-  pout.extract("testPlinkInputFile", markerIdx, sampleIdx);
+  pout.extract("testPlinkInputFile", sampleIdx, markerIdx);
 
   fprintf(stderr, "Done\n");
 

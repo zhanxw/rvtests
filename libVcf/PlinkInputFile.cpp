@@ -81,7 +81,7 @@ int PlinkInputFile::readIntoMatrix(SimpleMatrix* mat) const {
           default:
             REPORT("Read PLINK genotype error!\n");
             break;
-        };
+        }
       }
     }
   }

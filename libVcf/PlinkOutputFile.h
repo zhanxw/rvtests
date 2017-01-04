@@ -4,6 +4,7 @@
 #include "VCFUtil.h"
 
 class SimpleMatrix;
+class PlinkInputFile;
 
 /****************************/
 /*    Binary PLINK format   */
@@ -100,6 +101,7 @@ class PlinkOutputFile {
   void writeFAM(const std::vector<std::string>& fid,
                 const std::vector<std::string>& iid,
                 std::vector<double>& pheno);
+  void writeFAM(const PlinkInputFile& pin, int idx);
 
   // NOTE: m should be: marker x people
   void writeBED(SimpleMatrix* mat, int nPeople, int nMarker);
@@ -110,8 +112,20 @@ class PlinkOutputFile {
    * @param snpIdx indices for markers (should be >= 0)
    * @param sampleIdx indices for samples (should be >=0)
    */
-  int extract(const std::string& prefix, const std::vector<int>& snpIdx,
-              const std::vector<int>& sampleIdx);
+  int extract(const std::string& prefix, const std::vector<int>& sampleIdx,
+              const std::vector<int>& snpIdx);
+  int extract(PlinkInputFile& pin, const std::vector<int>& sampleIdx,
+              const std::vector<int>& snpIdx);
+  int extractFAM(PlinkInputFile& pin, const std::vector<int>& sampleIdx);
+  int extractFAMWithPhenotype(PlinkInputFile& pin,
+                              const std::vector<int>& sampleIdx,
+                              const SimpleMatrix& pheno);
+  int extractBIM(PlinkInputFile& pin, const std::vector<int>& sampleIdx);
+  int extractBED(PlinkInputFile& pin, const std::vector<int>& sampleIdx,
+                 const std::vector<int>& snpIdx);
+
+ private:
+  int isMultiAllelic(const char* r);
 
  private:
   // we reverse the two bits as defined in PLINK format,

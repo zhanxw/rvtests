@@ -83,7 +83,7 @@ class PlinkInputFile {
         alt.push_back(fd[5]);
       } else {
         fprintf(stderr, "duplicate marker name [%s], ignore!\n", fd[1].c_str());
-        exit(1);        
+        exit(1);
       }
     }
     delete lr;

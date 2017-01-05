@@ -1,0 +1,11 @@
+image: gcc
+before_script:
+    - sudo apt-get install -qq gfortran git
+stages:
+    - build
+    - test
+job1:
+    stage: build
+    script:
+        - git clone ...
+        - cd rvtests && make

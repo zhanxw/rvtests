@@ -1,11 +1,18 @@
-image: gcc
+image: ubuntu:latest
 before_script:
-    - sudo apt-get install -qq gfortran git
+    - export http_proxy=http://proxy.swmed.edu:3128
+    - export https_proxy=http://proxy.swmed.edu:3128
+    - export ftp_proxy=http://proxy.swmed.edu:3128
+    - export no_proxy="127.0.0.1,localhost"
+    - apt-get update && apt-get install -qq gfortran git make wget
+    - uname -a
+    - free -m
+    - df -h
+    - ulimit -a
 stages:
     - build
     - test
 job1:
     stage: build
     script:
-        - git clone ...
-        - cd rvtests && make
+        - make

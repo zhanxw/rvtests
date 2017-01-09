@@ -19,6 +19,8 @@ job2:
     stage: deploy
     script:
         - echo "Deploy"
+        - make
+        - cp exeutable/rvtest /dist
     environment:
         name: staging
         url: http:staging-rvtests.bunny.swmed.edu

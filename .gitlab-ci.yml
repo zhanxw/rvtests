@@ -1,18 +1,25 @@
-image: ubuntu:latest
+image: zhanxw/rvtests.build:latest
 before_script:
     - export http_proxy=http://proxy.swmed.edu:3128
     - export https_proxy=http://proxy.swmed.edu:3128
     - export ftp_proxy=http://proxy.swmed.edu:3128
     - export no_proxy="127.0.0.1,localhost"
-    - apt-get update && apt-get install -qq gfortran git make wget bzip2 zlib1g-dev g++ gfortran
     - uname -a
     - free -m
     - df -h
     - ulimit -a
 stages:
     - build
-    - test
+    - deploy
 job1:
     stage: build
     script:
         - make
+job2:
+    stage: depoly
+    script:
+        - echo "Deploy"
+    environment:
+        name: staging
+        url: http:staging-rvtests.bunny.swmed.edu
+    when: "manual"

@@ -16,7 +16,7 @@ job1:
     script:
         - make
 job2:
-    stage: depoly
+    stage: deploy
     script:
         - echo "Deploy"
     environment:

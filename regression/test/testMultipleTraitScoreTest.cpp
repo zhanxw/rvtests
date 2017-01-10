@@ -9,15 +9,6 @@
 #include "SimpleTimer.h"
 
 int main(int argc, char* argv[]) {
-  // int T = 10;
-  // int N = 10000;
-  // if (argc >= 2) {
-  //   T = atoi(argv[1]);
-  // }
-  // if (argc >= 3) {
-  //   N = atoi(argv[2]);
-  // }
-
   Matrix G;
   Matrix Y;
   Matrix Cov;
@@ -32,15 +23,11 @@ int main(int argc, char* argv[]) {
   Y.SetColumnLabel(2, "y3");
 
   FormulaVector tests;
-  // std::vector<std::vector<std::string> > v(2);
   {
     const char* tp1[] = {"y1"};
     const char* tc1[] = {"c1"};
     std::vector<std::string> p1(tp1, tp1 + 1);
     std::vector<std::string> c1(tc1, tc1 + 1);
-    // v[0] = p1;
-    // v[1] = c1;
-    // tests.push_back(v);
     tests.add(p1, c1);
   }
 
@@ -49,21 +36,22 @@ int main(int argc, char* argv[]) {
     const char* tc1[] = {"c2"};
     std::vector<std::string> p1(tp1, tp1 + 1);
     std::vector<std::string> c1(tc1, tc1 + 1);
-    // v[0] = p1;
-    // v[1] = c1;
-    // tests.push_back(v);
     tests.add(p1, c1);
   }
 
-  // for (int i = 0; i < T - 2; ++i) {
   {
     const char* tp1[] = {"y2"};
     const char* tc1[] = {"c1", "c2"};
     std::vector<std::string> p1(tp1, tp1 + 1);
     std::vector<std::string> c1(tc1, tc1 + 2);
-    // v[0] = p1;
-    // V[1] = c1;
-    // tests.push_back(v);
+    tests.add(p1, c1);
+  }
+
+  {
+    const char* tp1[] = {"y1"};
+    const char* tc1[] = {"1"};
+    std::vector<std::string> p1(tp1, tp1 + 1);
+    std::vector<std::string> c1(tc1, tc1 + 1);
     tests.add(p1, c1);
   }
 
@@ -77,8 +65,7 @@ int main(int argc, char* argv[]) {
       exit(1);
     }
 
-    // for (int i = 0; i < N; ++i) {
-    ret = mt.AddCovariate(G);
+    ret = mt.AddGenotype(G);
     if (ret == false) {
       printf("Add covariate failed!\n");
       exit(1);
@@ -88,13 +75,21 @@ int main(int argc, char* argv[]) {
       printf("Test covariate block failed!\n");
       exit(1);
     }
-    //}
+
+    const Vector& u = mt.GetU(0);
+    printf("u\t");
+    Print(u);
+    printf("\n");
+
+    const Vector& v = mt.GetV(0);
+    printf("v\t");
+    Print(v);
+    printf("\n");
+
     const Vector& pval = mt.GetPvalue(0);
+    printf("pval\t");
     Print(pval);
     printf("\n");
   }
-
-  // printf("T = %d\tN = %d\telapsed %.5f\n", T, N, t.stop());
-
   return 0;
 }

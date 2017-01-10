@@ -46,6 +46,7 @@ class MultipleTraitLinearRegressionScoreTestInternal {
   EMatVec groupedL;
 };
 
+/// Column names of @param m are stored in @param dict
 void makeColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
   std::map<std::string, int>& d = *dict;
   for (int i = 0; i < m.cols; ++i) {
@@ -53,6 +54,7 @@ void makeColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
   }
 }
 
+/// Extract columns, specified by @param index, from @param m, to @param out
 void makeMatrix(Matrix& m, const std::vector<int>& index, EMat* out) {
   (*out).resize(m.rows, index.size());
   for (int i = 0; i < m.rows; ++i) {
@@ -63,6 +65,7 @@ void makeMatrix(Matrix& m, const std::vector<int>& index, EMat* out) {
   }
 }
 
+/// Check whether row @param r has missing elements (denoted by NAN).
 bool hasMissingInRow(const EMat& m, int r) {
   const int nc = m.cols();
   for (int i = 0; i < nc; ++i) {
@@ -90,11 +93,18 @@ void removeRow(const std::vector<bool>& missingIndicator, EMat* m) {
   (*m).conservativeResize(idx, (*m).cols());
 }
 
+/**
+ * Scale matrix @param m to have zero mean, and unit variance.
+ * NOTE: assume @param m does not have missing values
+ */
 void scale(EMat* m) {
   (*m).rowwise() -= (*m).colwise().sum() / (*m).rows();
   // (*m).colwise().normalize();
 }
 
+/**
+ * Get a string of 0 and 1, it represents @param v
+ */
 std::string toString(const std::vector<bool> v) {
   std::string s;
   for (size_t i = 0; i != v.size(); ++i) {
@@ -121,6 +131,7 @@ MultipleTraitLinearRegressionScoreTest::
     this->work = NULL;
   }
 }
+
 bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
     Matrix& cov, Matrix& pheno, const FormulaVector& tests) {
   MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
@@ -178,7 +189,7 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
       makeMatrix(cov, covCol, &w.Z[i]);
     }
 
-    // create index to indicate missingness
+    // create missing indicators for Y[i] (and Z[i] if covariates used)
     w.missingIndex[i].resize(w.N);
     for (int j = 0; j < w.N; ++j) {
       if (hasMissingInRow(w.Y[i], j)) {
@@ -216,7 +227,6 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
     } else {
       w.sigma2[i] = w.Y[i].col(0).squaredNorm() / w.Y[i].rows();
     }
-
   }  // end for i
 
   // Make groups based on model covariats and missing patterns of (Y, Z)
@@ -228,9 +238,10 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
   // test_2 => group 1, offset 0
   // test_3 => group 0, offset 1
   //
-  // For each test, we will use its specific
-  // [covar_name_1, covar_name_2, ...., missing_pattern], as the value to
-  // distingish groups
+  // For each test, we will use
+  // [covar_name_1, covar_name_2, ...., missing_pattern],
+  // as the dict key to distingish groups, and the dict value is the index of
+  // the test
   std::map<std::vector<std::string>, int> groupDict;
   groupSize = 0;
   for (int i = 0; i < w.nTest; ++i) {
@@ -290,16 +301,18 @@ bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
   return true;
 }
 
-bool MultipleTraitLinearRegressionScoreTest::AddCovariate(const Matrix& g) {
+bool MultipleTraitLinearRegressionScoreTest::AddGenotype(const Matrix& g) {
   MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
   assert(resultLength < blockSize);
   for (int i = 0; i < groupSize; ++i) {
-    // Convert g to suitable g matrix
-    int idx = 0;
-    const std::vector<bool>& missingIndex = w.missingIndex[group[i][0]];
+    // Assign g to G[, resultLength] accoring to missing pattern
+    const std::vector<bool>& missingIndex =
+        w.missingIndex[group[i][0]];  // 0: within the same group, missingIndex
+                                      // are the same
     const int n = missingIndex.size();
     EMat& G = w.G[i];
 
+    int idx = 0;
     for (int j = 0; j < n; ++j) {
       if (!missingIndex[j]) {
         G(idx, resultLength) = g[j][0];

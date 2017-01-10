@@ -33,6 +33,7 @@ BASE = LogisticRegression \
        cdflib \
        SkatO \
        MultipleTraitLinearRegressionScoreTest \
+       FastMultipleTraitLinearRegressionScoreTest \
        Formula \
        ConjugateGradientSolver \
        BoltLMM

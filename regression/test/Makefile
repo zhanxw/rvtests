@@ -12,6 +12,8 @@ EXE = testGSLIntegration \
       testLMM \
       testMixtureChiSquare \
       testMultipleTraitScoreTest \
+      testFastMultipleTraitScoreTest \
+      testFastMultipleTraitScoreTest.NA \
       testBoltLMM \
 
 all: $(EXE)
@@ -108,10 +110,13 @@ test.linear.mvt.out: $(EXE)
 	./testLinearVT > $@
 
 ######################################################################
-check10: testMultipleTraitScoreTest.out
-	diff $^ correct.testMultipleTraitScoreTest.out
+check10: testMultipleTraitScoreTest.out testFastMultipleTraitScoreTest.out
+	diff testMultipleTraitScoreTest.out correct.testMultipleTraitScoreTest.out
+	diff testFastMultipleTraitScoreTest.out correct.testMultipleTraitScoreTest.out
 testMultipleTraitScoreTest.out : $(EXE)
 	./testMultipleTraitScoreTest > $@
+testFastMultipleTraitScoreTest.out : $(EXE)
+	./testFastMultipleTraitScoreTest > $@
 
 ######################################################################
 check11: testBoltLMM.out

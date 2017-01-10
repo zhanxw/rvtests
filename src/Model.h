@@ -13,6 +13,7 @@
 #include "regression/EigenMatrixInterface.h"
 #include "regression/FamSkat.h"
 #include "regression/FastLMM.h"
+#include "regression/FastMultipleTraitLinearRegressionScoreTest.h"
 #include "regression/FirthRegression.h"
 #include "regression/GrammarGamma.h"
 #include "regression/LinearRegression.h"
@@ -5165,7 +5166,7 @@ class MultipleTraitScoreTest : public ModelFitter {
         }
         needToFitNullModel = false;
       }
-      fitOK = linear.AddCovariate(genotype);
+      fitOK = linear.AddGenotype(genotype);
     } else {
       warnOnce(
           "Multiple trait score test model does not support binary trait yet.");
@@ -5305,6 +5306,191 @@ class MultipleTraitScoreTest : public ModelFitter {
   std::vector<std::string> sites;
   // Matrix cov;
 };  // MultipleTraitScoreTest
+
+class FastMultipleTraitScoreTest : public ModelFitter {
+ public:
+  FastMultipleTraitScoreTest()
+      : nSample(-1),
+        linear(MULTIPLE_TRAIT_SCORE_TEST_BLOCK_SIZE),
+        fitOK(false),
+        needToFitNullModel(true),
+        numResult(0),
+        blockSize(MULTIPLE_TRAIT_SCORE_TEST_BLOCK_SIZE),
+        sites(MULTIPLE_TRAIT_SCORE_TEST_BLOCK_SIZE) {
+    this->modelName = "FastMultipleTraitScore";
+  }
+  ~FastMultipleTraitScoreTest() { flushOutput(); }
+  // fitting model
+  int fit(DataConsolidator* dc) {
+    Matrix& phenotype = dc->getPhenotype();
+    Matrix& genotype = dc->getGenotype();
+    Matrix& covariate = dc->getCovariate();
+    const FormulaVector& tests = *dc->getFormula();
+
+    if (genotype.cols != 1) {
+      fitOK = false;
+      return -1;
+    }
+    nSample = genotype.rows;
+
+    // af = getMarkerFrequency(genotype, 0);
+    // if (isMonomorphicMarker(genotype, 0)) {
+    //   fitOK = false;
+    //   return -1;
+    // }
+    // copyCovariateAndIntercept(genotype.rows, covariate, &cov);
+    // copyPhenotype(phenotype, &this->pheno);
+
+    if (!isBinaryOutcome()) {  // qtl
+      if (needToFitNullModel || dc->isPhenotypeUpdated() ||
+          dc->isCovariateUpdated()) {
+        fitOK = linear.FitNullModel(covariate, phenotype, tests);
+        if (!fitOK) {
+          warnOnce("Multiple trait score test failed when fitting null model.");
+          return -1;
+        }
+        needToFitNullModel = false;
+      }
+      fitOK = linear.AddGenotype(genotype);
+    } else {
+      warnOnce(
+          "Multiple trait score test model does not support binary trait yet.");
+      return -1;
+      // if (needToFitNullModel || dc->isPhenotypeUpdated() ||
+      //     dc->isCovariateUpdated()) {
+      //   fitOK = logistic.FitNullModel(cov, pheno, 100);
+      //   if (!fitOK) {
+      //     warnOnce("Single variant score test failed in fitting null
+      //     model.");
+      //     return -1;
+      //   }
+      //   calculateConstant(phenotype);
+      //   needToFitNullModel = false;
+      // }
+      // fitOK = logistic.TestCovariate(cov, pheno, genotype);
+    }
+    return (fitOK ? 0 : -1);
+  }
+
+  // write result header
+  void writeHeader(FileWriter* fp, const Result& siteInfo) {
+    siteInfo.writeHeaderTab(fp);
+    // result.addHeader("AF");
+    // result.addHeader("U");
+    // result.addHeader("V");
+    // result.addHeader("STAT");
+    // result.addHeader("DIRECTION");
+    // result.addHeader("EFFECT");
+    // result.addHeader("SE");
+    result.addHeader("U_STAT");
+    result.addHeader("V_STAT");
+    result.addHeader("PVALUE");
+    result.writeHeaderLine(fp);
+    this->fp = fp;
+  }
+  // write model output
+  void writeOutput(FileWriter* fp, const Result& siteInfo) {
+    // siteInfo.writeValueTab(fp);
+    // result.clearValue();
+    // result.updateValue("AF", af);
+    sites[numResult].clear();
+    siteInfo.writeValueTab(&sites[numResult]);
+    numResult++;
+    if (fitOK) {
+      if (!isBinaryOutcome()) {
+        // formatValue(linear.GetU(), &ustat);
+        // formatValue(linear.GetV(), &vstat);
+        // formatValue(linear.GetPvalue(), &pvalue);
+
+        // result.updateValue("U_STAT", ustat);
+        // result.updateValue("V_STAT", vstat);
+        // result.updateValue("PVALUE", pvalue);
+        if (numResult == blockSize) {
+          flushOutput();
+        }
+        // const double u = linear.GetU()[0][0];
+        // const double v = linear.GetV()[0][0];
+        // result.updateValue("U", u);
+        // result.updateValue("V", v);
+        // result.updateValue("STAT", linear.GetStat());
+        // if (u != 0) {
+        //   result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" :
+        //   "-");
+        // }
+        // if (v > 0) {
+        //   result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+        //   result.updateValue("SE", 1.0 / sqrt(v));
+        // }
+        // result.updateValue("PVALUE", linear.GetPvalue());
+      } else {
+        // const double u = logistic.GetU()[0][0];
+        // const double v = logistic.GetV()[0][0];
+        // result.updateValue("U", u);
+        // result.updateValue("V", v);
+        // result.updateValue("STAT", logistic.GetStat());
+        // if (u != 0) {
+        //   result.updateValue("DIRECTION",
+        //                      logistic.GetU()[0][0] > 0 ? "+" : "-");
+        // }
+        // if (v > 0 && b > 0) {
+        //   result.updateValue("EFFECT", u / v / b);
+        //   result.updateValue("SE", 1.0 / sqrt(v) / b);  // need to verify
+        // }
+        // result.updateValue("PVALUE", logistic.GetPvalue());
+      }
+    }
+    // result.writeValueLine(fp);
+  }
+  void flushOutput() {
+    fitOK = linear.TestCovariateBlock();
+    if (fitOK) {
+      if (!isBinaryOutcome()) {
+        for (int i = 0; i < numResult; ++i) {
+          fp->write(sites[i]);
+
+          formatValue(linear.GetU(i), &ustat);
+          formatValue(linear.GetV(i), &vstat);
+          formatValue(linear.GetPvalue(i), &pvalue);
+
+          result.updateValue("U_STAT", ustat);
+          result.updateValue("V_STAT", vstat);
+          result.updateValue("PVALUE", pvalue);
+
+          result.writeValueLine(fp);
+        }
+      }
+    }
+    linear.flush();
+    numResult = 0;
+  }
+  void formatValue(const Vector& v, std::string* out) {
+    const int n = v.Length();
+    (*out).clear();
+    for (int i = 0; i < n; ++i) {
+      if (i) {
+        (*out) += ",";
+      }
+      (*out) += toString(v[i]);
+    }
+  }
+
+ private:
+  // double b;  // a constant
+  // double af;
+  int nSample;
+  // Vector pheno;
+  FastMultipleTraitLinearRegressionScoreTest linear;
+  bool fitOK;
+  bool needToFitNullModel;
+  int numResult;
+  int blockSize;
+  std::string ustat;
+  std::string vstat;
+  std::string pvalue;
+  FileWriter* fp;
+  std::vector<std::string> sites;
+  // Matrix cov;
+};  // FastMultipleTraitScoreTest
 
 class DumpModel : public ModelFitter {
  public:

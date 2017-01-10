@@ -27,7 +27,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20170103";
+const char* VERSION = "20170106";
 
 void banner(FILE* fp) {
   const char* string =
@@ -38,7 +38,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      September 2016                    | \n"
+      "|      January 2017                      | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";

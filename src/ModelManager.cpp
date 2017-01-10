@@ -66,6 +66,8 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new SingleVariantFirthTest);
     } else if (modelName == "mtscore") {
       model.push_back(new MultipleTraitScoreTest);
+    } else if (modelName == "fastmtscore") {
+      model.push_back(new FastMultipleTraitScoreTest);
     } else {
       logger->error("Unknown model name: %s .", modelName.c_str());
       exit(1);

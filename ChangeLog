@@ -1,3 +1,13 @@
+2017-01-10  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Add more test cases
+	* Add support for loading multiple phenotypes (--multiplePheno)
+	* Add a score model for multiple phenotypes (--single mtscore)
+	* Add an approx model for multiple phenotypes (--single fastmtscore)
+	* Change bolt model options (--meta score[bolt] --boltPlink)
+	* Fix a bug that crashed SKAT-O
+	* Clean codes
+
 2016-09-28  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Add a new fast meta-analysis models (--meta bolt[genotypeFile=XXX])

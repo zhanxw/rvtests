@@ -407,7 +407,10 @@ int DataLoader::loadMultiplePhenotype(const std::string& multiplePhenotype,
 
   // read in ped
   TextMatrix pedMat;
-  pedMat.readFile(FLAG_pheno, TextMatrix::HAS_HEADER);
+  if (pedMat.readFile(FLAG_pheno, TextMatrix::HAS_HEADER)) {
+    logger->error("Failed to load phenotype file [ %s ]!", FLAG_pheno.c_str());
+    exit(1);
+  }
   if (pedMat.nrow() == 0 || pedMat.header()[0] != "fid" ||
       pedMat.header()[1] != "iid") {
     logger->warn("Wrong phenotype file [ %s ]", pheno.c_str());
@@ -425,10 +428,15 @@ int DataLoader::loadMultiplePhenotype(const std::string& multiplePhenotype,
 
   // read in cov
   TextMatrix covMat;
-  covMat.readFile(FLAG_cov, TextMatrix::HAS_HEADER);
-  if (covMat.nrow() == 0 || covMat.header()[0] != "fid" ||
-      covMat.header()[1] != "iid") {
-    logger->warn("Wrong covariate file [ %s ]", covar.c_str());
+  if (covMat.readFile(FLAG_cov, TextMatrix::HAS_HEADER)) {
+    logger->error("Failed to load covariate file [ %s ]!", FLAG_cov.c_str());
+    exit(1);
+  }
+  if (covMat.nrow() == 0 || tolower(covMat.header()[0]) != "fid" ||
+      tolower(covMat.header()[1]) != "iid") {
+    logger->warn(
+        "Wrong covariate file - empty or unrecognized header line [ %s ]",
+        covar.c_str());
     exit(1);
   }
   covMat.setRowNameByCol("iid");

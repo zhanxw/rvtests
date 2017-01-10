@@ -34,12 +34,21 @@ int TextMatrix::readFile(const std::string& fn, int flag) {
         rowName.push_back(fd[0]);
         this->mat.push_back(d);
       } else {
+        if (lineNo != 1 && fd.size() != this->colName.size()) {
+          fprintf(
+              stderr,
+              "At line %d, the number of columns does not equal to [ %d ]!\n",
+              lineNo, (int)colName.size());
+          return -1;
+        }
         this->mat.push_back(fd);
         this->rowName.push_back("R");
-        this->rowName[rowName.size() - 1] += toString(rowName.size());
+        this->rowName.back() += toString(rowName.size());
       }
     }
   }
+  assert(this->rowName.size() == (size_t) this->nrow());
+  assert(this->colName.size() == (size_t) this->ncol());
   return 0;
 }
 const std::vector<std::string> TextMatrix::header() const { return colName; }
@@ -61,6 +70,7 @@ int TextMatrix::keepCol(const std::vector<std::string>& name) {
   for (int i = 0; i < nr; ++i) {
     removeByIndex(indexToRemove, &mat[i]);
   }
+  assert(name.size() == (size_t)ncol());
   return 0;
 }
 

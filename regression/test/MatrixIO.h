@@ -1,6 +1,8 @@
 #ifndef _MATRIXIO_H_
 #define _MATRIXIO_H_
 
+#include "base/TypeConversion.h"
+
 void LoadVector(const char* fn, Vector& v) {
   LineReader lr(fn);
   std::vector<std::string> s;
@@ -8,7 +10,13 @@ void LoadVector(const char* fn, Vector& v) {
   while (lr.readLineBySep(&s, " \t")) {
     lineNo++;
     v.Dimension(lineNo);
-    v[lineNo - 1] = atof(s[0].c_str());
+    // v[lineNo - 1] = atof(s[0].c_str());
+    double d;
+    if (str2double(s[0], &d)) {
+      v[lineNo - 1] = d;
+    } else {
+      v[lineNo - 1] = NAN;
+    }
   }
 }
 
@@ -20,7 +28,13 @@ void LoadMatrix(const char* fn, Matrix& m) {
     lineNo++;
     m.Dimension(lineNo, s.size());
     for (int j = 0; j < s.size(); j++) {
-      m[lineNo - 1][j] = atof(s[j].c_str());
+      // m[lineNo - 1][j] = atof(s[j].c_str());
+      double d;
+      if (str2double(s[j], &d)) {
+        m[lineNo - 1][j] = d;
+      } else {
+        m[lineNo - 1][j] = NAN;
+      }
     }
   }
 }
@@ -36,15 +50,13 @@ void Print(const Vector& v) {
 
 void Print(const Matrix& m) {
   for (int i = 0; i < m.rows; i++) {
-    if (i) {
-      fprintf(stdout, "\t");
-    }
     for (int j = 0; j < m.cols; j++) {
       if (j) {
         fprintf(stdout, "\t");
       }
       fprintf(stdout, "%.3f", m[i][j]);
     }
+    fprintf(stdout, "\n");
   }
 }
 

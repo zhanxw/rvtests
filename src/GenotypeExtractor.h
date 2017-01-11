@@ -99,8 +99,8 @@ class GenotypeExtractor {
   void setSex(const std::vector<int>* sex) { this->sex = sex; }
   // coding male chromX as 0/2 instead of 0/1
   // similarly, for dosage, just multiply 2.0 from original dosage
-  void enableClaytonCoding() { this->claytonCoding = true; }
-  void disableClaytonCoding() { this->claytonCoding = false; }
+  // void enableClaytonCoding() { this->claytonCoding = true; }
+  // void disableClaytonCoding() { this->claytonCoding = false; }
 
  public:
   const static int SUCCEED = 0;
@@ -130,7 +130,7 @@ class GenotypeExtractor {
   std::vector<bool>
       hemiRegion;               // true: if the extracted variant in hemi region
   const std::vector<int>* sex;  // external sex information
-  bool claytonCoding;  // code male hemi region genotype from 0/1 to 0/2
-};                     // class GenotypeExtractor
+  // bool claytonCoding;  // code male hemi region genotype from 0/1 to 0/2
+};  // class GenotypeExtractor
 
 #endif /* GENOTYPEEXTRACTOR_H */

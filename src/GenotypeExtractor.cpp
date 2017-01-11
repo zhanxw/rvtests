@@ -21,8 +21,7 @@ GenotypeExtractor::GenotypeExtractor(const std::string& fn)
       GQmax(-1),
       needGQ(false),
       parRegion(NULL),
-      sex(NULL),
-      claytonCoding(true) {
+      sex(NULL) {
   this->vin = new VCFExtractor(fn.c_str());
 }
 

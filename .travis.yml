@@ -128,6 +128,8 @@ matrix:
       compiler: g++
       env:
         - COMPILER=g++
+# refer: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60670
+# for install a gcc on mac with OpenMP support
 before_install:
   - uname -a
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then free -m; fi
@@ -135,5 +137,5 @@ before_install:
   - df -h
   - ulimit -a
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q && sudo apt-get install -y -qq gfortran; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install gcc; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install gcc; brew reinstall gcc --without-multilib; fi
 script: make CXX=$COMPILER

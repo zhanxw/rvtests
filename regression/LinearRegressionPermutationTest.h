@@ -1,13 +1,13 @@
 #ifndef _LINEARREGRESSIONPERMUTATIONTEST_H_
 #define _LINEARREGRESSIONPERMUTATIONTEST_H_
 
-#include "MathMatrix.h"
-#include "MathCholesky.h"
-#include "StringHash.h"
-#include "StringArray.h"
 #include <cmath>
-#include "MathStats.h"
+#include "MathCholesky.h"
+#include "MathMatrix.h"
 #include "MathSVD.h"
+#include "MathStats.h"
+#include "StringArray.h"
+#include "StringHash.h"
 
 #include "LinearRegression.h"
 
@@ -196,8 +196,8 @@ class LinearRegressionPermutationTest {
       y[i] = Y[i] - yAvg;
     };
 
-    double xy;
-    double xx;
+    double xy = 0.;
+    double xx = 0.;
     for (int i = 0; i < y.Length(); i++) {
       xy += (X[i][0] * y[i]);
       xx += (X[i][0] * X[i][0]);

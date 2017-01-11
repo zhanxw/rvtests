@@ -20,7 +20,7 @@ class IndexMap {
   }
   const TYPE& operator[](const int& key) const {
     if (key < 0 || key >= (int)value.size()) {
-      fprintf(stderr, "%s:%d Wrong key [ %d ]\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s:%d Wrong key [ %d ]\n", __FILE__, __LINE__, key);
       exit(1);
     }
     return value[key];

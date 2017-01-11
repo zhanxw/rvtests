@@ -115,9 +115,10 @@ matrix:
         - COMPILER=clang++
 before_install:
   - uname -a
-  - free -m
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then free -m; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then vm_stat; fi
   - df -h
   - ulimit -a
-# - sudo apt-get install -qq libatlas-dev libatlas-base-dev gfortran
-  - sudo apt-get install -qq gfortran
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q && sudo apt-get install -y -qq gfortran; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gfortran; fi
 script: make CXX=$COMPILER 

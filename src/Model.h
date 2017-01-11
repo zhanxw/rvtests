@@ -8,6 +8,7 @@
 
 #include "libsrc/MathMatrix.h"
 
+#include "base/Argument.h"
 #include "base/ParRegion.h"
 #include "regression/BoltLMM.h"
 #include "regression/EigenMatrixInterface.h"
@@ -31,14 +32,14 @@
 #include "regression/Table2by2.h"
 #include "regression/kbac_interface.h"
 
-#include "DataConsolidator.h"
-#include "LinearAlgebra.h"
-#include "ModelFitter.h"
-#include "ModelParser.h"
-#include "ModelUtil.h"
-#include "Permutation.h"
-#include "Result.h"
-#include "Summary.h"
+#include "src/DataConsolidator.h"
+#include "src/LinearAlgebra.h"
+#include "src/ModelFitter.h"
+#include "src/ModelParser.h"
+#include "src/ModelUtil.h"
+#include "src/Permutation.h"
+#include "src/Result.h"
+#include "src/Summary.h"
 
 #if 0
 // may decrease speed.
@@ -47,6 +48,8 @@
 #pragma message "Enable multithread using OpenMP"
 #endif
 #endif
+
+DECLARE_BOOL_PARAMETER(hideCovar);
 
 extern SummaryHeader* g_SummaryHeader;
 
@@ -138,6 +141,9 @@ class SingleVariantWaldTest : public ModelFitter {
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     // skip interecept (column 0)
     for (int i = 1; i < this->X.cols; ++i) {
+      if (FLAG_hideCovar && i > 1) {
+        continue;
+      }
       siteInfo.writeValueTab(fp);
       result.updateValue("Test", this->X.GetColumnLabel(i));
       if (fitOK) {
@@ -152,8 +158,6 @@ class SingleVariantWaldTest : public ModelFitter {
           pval = logistic.GetAsyPvalue()[i];
         }
 
-        // fprintf(fp, "%s\t%g\t%g\t%g\n", this->X.GetColumnLabel(i), beta, se,
-        // pval);
         result.updateValue("Beta", beta);
         result.updateValue("SE", se);
         result.updateValue("Pvalue", pval);

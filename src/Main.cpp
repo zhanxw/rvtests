@@ -389,6 +389,8 @@ ADD_STRING_PARAMETER(condition, "--condition",
 
 ADD_PARAMETER_GROUP("Auxiliary Functions");
 ADD_BOOL_PARAMETER(noweb, "--noweb", "Skip checking new version");
+ADD_BOOL_PARAMETER(hideCovar, "--hide-covar",
+                   "Surpress output lines of covariates");
 ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message");
 END_PARAMETER_LIST();
 

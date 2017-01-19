@@ -8,3 +8,4 @@ GRTAGS
 GTAGS
 test
 example/out*
+.Rproj.user

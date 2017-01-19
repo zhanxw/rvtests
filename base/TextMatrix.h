@@ -8,10 +8,17 @@ class SimpleMatrix;
 
 class TextMatrix {
  public:
+  enum ReadOption { HAS_NONE = 0, HAS_HEADER = 1, HAS_ROWNAME = 2 };
+  enum WriteOption { OUTPUT_NONE = 0, OUTPUT_HEADER = 1, OUTPUT_ROWNAME = 2 };
+
+ public:
   /**
    * read in a text file
+   * @param fn the input file name
+   * @param flag bit masked flags, e.g. HAS_HEADER, HAS_ROWNAME
    */
-  int readFile(const std::string& fn, int flag = 0);
+  int readFile(const std::string& fn, int flag = HAS_NONE);
+  int writeFile(const std::string& fn, int flag = OUTPUT_NONE) const;
   std::vector<std::string>& operator[](int i) { return mat[i]; }
   const std::vector<std::string> header() const;
   void clear() {
@@ -44,10 +51,6 @@ class TextMatrix {
   std::vector<std::string> extractCol(int col) const;
   void extractCol(const std::string& col, std::vector<std::string>* v) const;
   std::vector<std::string> extractCol(const std::string& col) const;
-
- public:
-  const static int HAS_HEADER = 1;
-  const static int HAS_ROWNAME = 2;
 
  private:
   std::vector<std::string> rowName;

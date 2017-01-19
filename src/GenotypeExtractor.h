@@ -54,8 +54,8 @@ class GenotypeExtractor {
   void setSiteDepthMax(int d);
   // @return true if GD is valid
   // if GD is missing, we will take GD = 0
-  bool checkGD(VCFIndividual* indv, int gdIdx);
-  bool checkGQ(VCFIndividual* indv, int gqIdx);
+  bool checkGD(VCFIndividual& indv, int gdIdx);
+  bool checkGQ(VCFIndividual& indv, int gqIdx);
   void setGDmin(int m);
   void setGDmax(int m);
   void setGQmin(int m);
@@ -102,6 +102,13 @@ class GenotypeExtractor {
   // void enableClaytonCoding() { this->claytonCoding = true; }
   // void disableClaytonCoding() { this->claytonCoding = false; }
 
+  // check how many alt alleles at this site
+  void countAltAllele(const char* s);
+  double getGenotype(VCFIndividual& indv, const bool useDosage,
+                     const bool hemiRegion, const int sex, const int genoIdx,
+                     const int GDidx, const int GQidx);
+  void assign(const std::vector<double>& from, int nrow, int ncol, Matrix* to);
+
  public:
   const static int SUCCEED = 0;
   const static int ERROR = -1;
@@ -131,6 +138,11 @@ class GenotypeExtractor {
       hemiRegion;               // true: if the extracted variant in hemi region
   const std::vector<int>* sex;  // external sex information
   // bool claytonCoding;  // code male hemi region genotype from 0/1 to 0/2
-};  // class GenotypeExtractor
+  std::vector<double> genotype;  // store extracted genotypes
+  std::vector<std::string> altAllele;
+  int altAlleleToParse;                  // number of alleles to parse
+  std::vector<std::string> variantName;  // store extract variant names
+  int sampleSize;                        // number of extract vcf samples
+};                                       // class GenotypeExtractor
 
 #endif /* GENOTYPEEXTRACTOR_H */

@@ -33,20 +33,34 @@ GenotypeExtractor::~GenotypeExtractor() {
 }
 
 int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
-  static Matrix m;  // make it static to reduce memory allocation
+  // static Matrix m;  // make it static to reduce memory allocation
   int row = 0;
-  std::vector<std::string> colNames;
-  std::string name;
-  this->hemiRegion.clear();
-  GenotypeCounter genoCounter;
-  while (this->vin->readRecord()) {
+  // std::vector<std::string> colNames;
+  // std::string name;
+  //   GenotypeCounter genoCounter;
+  this->genotype.clear();
+  this->altAlleleToParse = 0;
+  while (true) {
+    if (altAlleleToParse == 0) {
+      if (!this->vin->readRecord()) {
+        // finished reading
+        break;
+      }
+    }
+    // parse alt allele one at a time
     VCFRecord& r = this->vin->getVCFRecord();
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;
+    countAltAllele(r.getAlt());
 
-    m.Dimension(row + 1, people.size());
-    genoCounter.reset();
+    this->sampleSize = people.size();
+    // m.Dimension(row + 1, people.size());
+    row++;
+    this->variantName.resize(row);
+    this->counter.resize(row);
+    this->hemiRegion.resize(row);
 
+    // get GT index and cannot assume it is a constant
     int genoIdx;
     const bool useDosage = (!this->dosageTag.empty());
     if (useDosage) {
@@ -54,73 +68,80 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     } else {
       genoIdx = r.getFormatIndex("GT");
     }
+    if (useDosage && altAlleleToParse > 1) {
+      logger->error(
+          "Unsupported scenario: multiple alleles and use dosage as "
+          "genotypes! - we will only use dosage");
+      altAlleleToParse = 1;
+    }
     int GDidx = r.getFormatIndex("GD");
     int GQidx = r.getFormatIndex("GQ");
     assert(this->parRegion);
-    bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
+    bool isHemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
     // e.g.: Loop each (selected) people in the same order as in the VCF
-    const int numPeople = (int)people.size();
-    for (int i = 0; i < numPeople; i++) {
+    for (int i = 0; i < sampleSize; i++) {
       indv = people[i];
-      // get GT index. if you are sure the index will not change, call this
-      // function only once!
+      const double geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i],
+                                      genoIdx, GDidx, GQidx);
+      genotype.push_back(geno);
+      counter.back().add(geno);
+
+#if 0
       if (genoIdx >= 0) {
-        // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
-        // field of each individual
         if (useDosage) {
-          if (!hemiRegion) {
-            m[row][i] = indv->justGet(genoIdx).toDouble();
+          if (!isHemiRegion) {
+            // m[row][i] = indv->justGet(genoIdx).toDouble();
+            genotype.push_back(indv->justGet(genoIdx).toDouble());
           } else {
             // for male hemi region, imputated dosage is usually between 0 and 1
             // need to multiply by 2.0
             if ((*sex)[i] == PLINK_MALE) {
-              m[row][i] = indv->justGet(genoIdx).toDouble() * 2.0;
+              //m[row][i] = indv->justGet(genoIdx).toDouble() * 2.0;
+              genotype.push_back(indv->justGet(genoIdx).toDouble() * 2.0);
             }
           }
-        } else {
-          if (!hemiRegion) {
-            m[row][i] = indv->justGet(genoIdx).getGenotype();
+        } else { // use hard-coded genotypes
+          if (!isHemiRegion) {
+            //m[row][i] = indv->justGet(genoIdx).getGenotype();
+            genotype.push_back(indv->justGet(genoIdx).getGenotype());
           } else {
             if ((*sex)[i] == PLINK_MALE) {
-              m[row][i] = indv->justGet(genoIdx).getMaleNonParGenotype02();
+              // m[row][i] = indv->justGet(genoIdx).getMaleNonParGenotype02();
+              genotype.push_back(indv->justGet(genoIdx).getMaleNonParGenotype02());
             } else if ((*sex)[i] == PLINK_FEMALE) {
-              m[row][i] = indv->justGet(genoIdx).getGenotype();
+              // m[row][i] = indv->justGet(genoIdx).getGenotype();
+              genotype.push_back(indv->justGet(genoIdx).getGenotype());
             } else {
-              m[row][i] = MISSING_GENOTYPE;
+              // m[row][i] = MISSING_GENOTYPE;
+              genotype.push_back(MISSING_GENOTYPE);
             }
           }
         }
         if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
-          m[row][i] = MISSING_GENOTYPE;
+          // m[row][i] = MISSING_GENOTYPE;
+          genotype.back() = MISSING_GENOTYPE;
         }
-        genoCounter.add(m[row][i]);
+        //genoCounter.add(m[row][i]);
+        genoCounter.add(genotype.back());
       } else {
         logger->error("Cannot find %s field!",
                       this->dosageTag.empty() ? "GT" : dosageTag.c_str());
         return -1;
       }
-    }
+#endif
+    }  // end for i
 
     // check frequency cutoffs
-    // int numNonMissingPeople = 0;
-    // double maf = 0.;
-    // for (int i = 0; i < numPeople; ++i) {
-    //   if (m[row][i] < 0) continue;
-    //   maf += m[row][i];
-    //   ++numNonMissingPeople;
-    // }
-    // if (numNonMissingPeople) {
-    //   maf = maf / (2. * numNonMissingPeople);
-    // } else {
-    //   maf = 0.0;
-    // }
-    // if (maf > .5) {
-    //   maf = 1.0 - maf;
-    // }
-    const double maf = genoCounter.getMAF();
+    const double maf = counter.back().getMAF();
     if (this->freqMin > 0. && this->freqMin > maf) continue;
     if (this->freqMax > 0. && this->freqMax < maf) continue;
 
+    this->variantName.back() = r.getChrom();
+    this->variantName.back() += ":";
+    this->variantName.back() += r.getPosStr();
+    this->hemiRegion.back() = (isHemiRegion);
+
+#if 0
     // store genotype results
     name = r.getChrom();
     name += ":";
@@ -136,22 +157,28 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
       this->hemiRegion.push_back(false);
     }
     this->counter.push_back(genoCounter);
+#endif
+    this->altAlleleToParse--;
   }  // end while (this->vin->readRecord())
 
-  // delete rows (ugly code here, as we may allocate extra row in previous
-  // loop)
-  m.Dimension(row, m.cols);
+  // // delete rows (ugly code here, as we may allocate extra row in previous
+  // // loop)
+  // m.Dimension(row, m.cols);
+  // todo: store to g
 
   // now transpose (marker by people -> people by marker)
-  g->Transpose(m);
+  // g->Transpose(m);
+  assert((int)genotype.size() == this->sampleSize * row);
+  assign(this->genotype, sampleSize, row, g);
   for (int i = 0; i < row; ++i) {
-    g->SetColumnLabel(i, colNames[i].c_str());
+    g->SetColumnLabel(i, variantName[i].c_str());
   }
   return SUCCEED;
 }  // end GenotypeExtractor
 
 int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
-  Matrix& genotype = *g;
+  // Matrix& genotype = *g;
+  this->genotype.clear();
   Result& buf = *b;
 
   bool hasRead = this->vin->readRecord();
@@ -166,8 +193,11 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   buf.updateValue("REF", r.getRef());
   buf.updateValue("ALT", r.getAlt());
 
-  genotype.Dimension(people.size(), 1);
-  counter.resize(1);
+  // genotype.Dimension(people.size(), 1);
+  this->sampleSize = people.size();
+  this->variantName.resize(1);
+  this->counter.resize(1);
+  this->hemiRegion.resize(1);
 
   // get GT index. if you are sure the index will not change, call this
   // function only once!
@@ -178,25 +208,34 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   } else {
     genoIdx = r.getFormatIndex("GT");
   }
-  // int GTidx = r.getFormatIndex("GT");
   int GDidx = r.getFormatIndex("GD");
   int GQidx = r.getFormatIndex("GQ");
 
-  bool hemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
+  bool isHemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
   // e.g.: Loop each (selected) people in the same order as in the VCF
-  const int numPeople = (int)people.size();
-  for (int i = 0; i < numPeople; i++) {
+  for (int i = 0; i < sampleSize; i++) {
     indv = people[i];
+    const double geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i],
+                                    genoIdx, GDidx, GQidx);
+    genotype.push_back(geno);
+    counter.back().add(geno);
 
+#if 0
     if (genoIdx >= 0) {
-      // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
-      // field of each individual
       if (useDosage) {
-        genotype[i][0] = indv->justGet(genoIdx).toDouble();
+        if (!hemiRegion) {
+          genotype[i][0] = indv->justGet(genoIdx).toDouble();
+        } else {
+          // for male hemi region, imputated dosage is usually between 0 and 1
+          // need to multiply by 2.0
+          if ((*sex)[i] == PLINK_MALE) {
+            genotype[i][0] = indv->justGet(genoIdx).toDouble() * 2.0;
+          }
+        }
       } else {
         if (!hemiRegion) {
           genotype[i][0] = indv->justGet(genoIdx).getGenotype();
-        } else {
+        } else {  // use hard-coded genotypes
           if ((*sex)[i] == PLINK_MALE) {
             genotype[i][0] = indv->justGet(genoIdx).getMaleNonParGenotype02();
           } else if ((*sex)[i] == PLINK_FEMALE) {
@@ -206,7 +245,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
           }
         }
       }
-      if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
+      if (!checkGD(*indv, GDidx) || !checkGQ(*indv, GQidx)) {
         genotype[i][0] = MISSING_GENOTYPE;
       }
       counter[0].add(genotype[i][0]);
@@ -219,36 +258,31 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
           this->dosageTag.empty() ? "GT" : this->dosageTag.c_str(), s.c_str());
       return ERROR;
     }
+#endif
   }
 
   // check frequency cutoffs
-  // double maf = 0.;
-  // if (this->freqMin > 0.0 || this->freqMax > 0.) {
-  //   for (int i = 0; i < numPeople; ++i) {
-  //     maf += genotype[i][0];
-  //   }
-  //   maf = maf / (2. * numPeople);
-  //   if (maf > .5) {
-  //     maf = 1.0 - maf;
-  //   }
-  // }
   const double maf = counter[0].getMAF();
   if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
   if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
 
-  std::string label = r.getChrom();
-  label += ':';
-  label += r.getPosStr();
-  genotype.SetColumnLabel(0, label.c_str());
+  variantName.back() = r.getChrom();
+  variantName.back() += ':';
+  variantName.back() += r.getPosStr();
+  hemiRegion.back() = isHemiRegion;
 
-  this->hemiRegion.resize(1);
-  assert(this->parRegion);
-  if (this->parRegion &&
-      this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
-    this->hemiRegion[0] = true;
-  } else {
-    this->hemiRegion[0] = false;
-  }
+  assert((int)genotype.size() == sampleSize);
+  assign(genotype, sampleSize, 1, g);
+  g->SetColumnLabel(0, variantName.back().c_str());
+
+  // this->hemiRegion.resize(1);
+  // assert(this->parRegion);
+  // if (this->parRegion &&
+  //     this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
+  //   this->hemiRegion[0] = true;
+  // } else {
+  //   this->hemiRegion[0] = false;
+  // }
   return SUCCEED;
 }  // end extractSingleGenotype()
 
@@ -326,16 +360,16 @@ void GenotypeExtractor::setSiteDepthMax(int d) {
 
 // @return true if GD is valid
 // if GD is missing, we will take GD = 0
-bool GenotypeExtractor::checkGD(VCFIndividual* indv, int gdIdx) {
+bool GenotypeExtractor::checkGD(VCFIndividual& indv, int gdIdx) {
   if (!needGD) return true;
-  int gd = indv->justGet(gdIdx).toInt();
+  int gd = indv.justGet(gdIdx).toInt();
   if (this->GDmin > 0 && gd < this->GDmin) return false;
   if (this->GDmax > 0 && gd > this->GDmax) return false;
   return true;
 }
-bool GenotypeExtractor::checkGQ(VCFIndividual* indv, int gqIdx) {
+bool GenotypeExtractor::checkGQ(VCFIndividual& indv, int gqIdx) {
   if (!needGQ) return true;
-  int gq = indv->justGet(gqIdx).toInt();
+  int gq = indv.justGet(gqIdx).toInt();
   if (this->GQmin > 0 && gq < this->GQmin) return false;
   if (this->GQmax > 0 && gq > this->GQmax) return false;
   return true;
@@ -405,4 +439,73 @@ void GenotypeExtractor::getIncludedPeopleName(
     std::vector<std::string>* p) const {
   this->vin->getIncludedPeopleName(p);
   return;
+}
+
+void GenotypeExtractor::countAltAllele(const char* s) {
+  stringTokenize(s, ",", &altAllele);
+  altAlleleToParse = altAllele.size();
+}
+
+double GenotypeExtractor::getGenotype(VCFIndividual& indv, const bool useDosage,
+                                      const bool hemiRegion, const int sex,
+                                      const int genoIdx, const int GDidx,
+                                      const int GQidx) {
+  double ret;
+  if (genoIdx >= 0) {
+    if (useDosage) {
+      if (!hemiRegion) {
+        // m[row][i] = indv->justGet(genoIdx).toDouble();
+        ret = (indv.justGet(genoIdx).toDouble());
+      } else {
+        // for male hemi region, imputated dosage is usually between 0 and 1
+        // need to multiply by 2.0
+        if (sex == PLINK_MALE) {
+          // m[row][i] = indv.justGet(genoIdx).toDouble() * 2.0;
+          ret = (indv.justGet(genoIdx).toDouble() * 2.0);
+        } else {
+          ret = (indv.justGet(genoIdx).toDouble());
+        }
+      }
+    } else {  // use hard-coded genotypes
+      if (!hemiRegion) {
+        // m[row][i] = indv.justGet(genoIdx).getGenotype();
+        ret = (indv.justGet(genoIdx).getGenotype());
+      } else {
+        if (sex == PLINK_MALE) {
+          // m[row][i] = indv.justGet(genoIdx).getMaleNonParGenotype02();
+          ret = (indv.justGet(genoIdx).getMaleNonParGenotype02());
+        } else if (sex == PLINK_FEMALE) {
+          // m[row][i] = indv.justGet(genoIdx).getGenotype();
+          ret = (indv.justGet(genoIdx).getGenotype());
+        } else {
+          // m[row][i] = MISSING_GENOTYPE;
+          ret = (MISSING_GENOTYPE);
+        }
+      }
+    }
+    if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
+      // m[row][i] = MISSING_GENOTYPE;
+      return MISSING_GENOTYPE;
+    }
+    // genoCounter.add(m[row][i]);
+    // genoCounter.add(genotype.back());
+  } else {
+    logger->error("Cannot find %s field!",
+                  this->dosageTag.empty() ? "GT" : dosageTag.c_str());
+    // return -1;
+    return MISSING_GENOTYPE;
+  }
+}
+
+void GenotypeExtractor::assign(const std::vector<double>& from, int nrow,
+                               int ncol, Matrix* to) {
+  assert(to);
+  Matrix& out = *to;
+  out.Dimension(nrow, ncol);
+  assert((int)from.size() == nrow * ncol);
+  for (int i = 0; i < nrow; ++i) {
+    for (int j = 0; j < ncol; ++j) {
+      out[i][j] = from[nrow * j + i];
+    }
+  }
 }

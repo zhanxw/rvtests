@@ -17,7 +17,7 @@ class SimpleMatrix {
   SimpleMatrix(){};
   SimpleMatrix(int nr, int nc) { this->resize(nr, nc); }
   int readFile(const char* f);
-  int writeFile(const char* f);
+  int writeFile(const char* f) const;
   std::vector<double>& operator[](int i) { return mat[i]; }
   const std::vector<double>& operator[](int i) const { return mat[i]; }
   void resize(int nrow, int ncol);

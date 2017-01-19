@@ -906,14 +906,13 @@ bool fileExists(std::string fn) {
   return false;
 }
 
-FileWriter::FileWriter(const char* fileName, bool append) {
-  // int l = strlen(fileName);
-  if (this->checkSuffix(fileName, ".gz")) {
-    this->fpRaw = new GzipFileWriter(fileName, append);
-  } else if (this->checkSuffix(fileName, ".bz2")) {
-    this->fpRaw = new Bzip2FileWriter(fileName, append);
+FileWriter::FileWriter(const std::string& fileName, bool append) {
+  if (this->checkSuffix(fileName.c_str(), ".gz")) {
+    this->fpRaw = new GzipFileWriter(fileName.c_str(), append);
+  } else if (this->checkSuffix(fileName.c_str(), ".bz2")) {
+    this->fpRaw = new Bzip2FileWriter(fileName.c_str(), append);
   } else {
-    this->fpRaw = new TextFileWriter(fileName, append);
+    this->fpRaw = new TextFileWriter(fileName.c_str(), append);
   }
   this->fp = new BufferedFileWriter(this->fpRaw);
   if (!this->fpRaw || !this->fp) {
@@ -923,6 +922,7 @@ FileWriter::FileWriter(const char* fileName, bool append) {
 
   this->createBuffer();
 }
+
 FileWriter::FileWriter(const char* fileName, FileType t) {
   bool append = false;
   if (PLAIN == t) {

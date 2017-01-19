@@ -189,7 +189,7 @@ class AbstractFileWriter {
  */
 class FileWriter {
  public:
-  FileWriter(const char* fileName, bool append = false);
+  FileWriter(const std::string& fileName, bool append = false);
   FileWriter(const char* fileName, FileType t);
   void createBuffer() {
     // create buffer for formatted string

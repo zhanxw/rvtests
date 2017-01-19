@@ -33,11 +33,7 @@ GenotypeExtractor::~GenotypeExtractor() {
 }
 
 int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
-  // static Matrix m;  // make it static to reduce memory allocation
   int row = 0;
-  // std::vector<std::string> colNames;
-  // std::string name;
-  //   GenotypeCounter genoCounter;
   this->genotype.clear();
   this->altAlleleToParse = 0;
   while (true) {
@@ -85,50 +81,6 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
                                       genoIdx, GDidx, GQidx);
       genotype.push_back(geno);
       counter.back().add(geno);
-
-#if 0
-      if (genoIdx >= 0) {
-        if (useDosage) {
-          if (!isHemiRegion) {
-            // m[row][i] = indv->justGet(genoIdx).toDouble();
-            genotype.push_back(indv->justGet(genoIdx).toDouble());
-          } else {
-            // for male hemi region, imputated dosage is usually between 0 and 1
-            // need to multiply by 2.0
-            if ((*sex)[i] == PLINK_MALE) {
-              //m[row][i] = indv->justGet(genoIdx).toDouble() * 2.0;
-              genotype.push_back(indv->justGet(genoIdx).toDouble() * 2.0);
-            }
-          }
-        } else { // use hard-coded genotypes
-          if (!isHemiRegion) {
-            //m[row][i] = indv->justGet(genoIdx).getGenotype();
-            genotype.push_back(indv->justGet(genoIdx).getGenotype());
-          } else {
-            if ((*sex)[i] == PLINK_MALE) {
-              // m[row][i] = indv->justGet(genoIdx).getMaleNonParGenotype02();
-              genotype.push_back(indv->justGet(genoIdx).getMaleNonParGenotype02());
-            } else if ((*sex)[i] == PLINK_FEMALE) {
-              // m[row][i] = indv->justGet(genoIdx).getGenotype();
-              genotype.push_back(indv->justGet(genoIdx).getGenotype());
-            } else {
-              // m[row][i] = MISSING_GENOTYPE;
-              genotype.push_back(MISSING_GENOTYPE);
-            }
-          }
-        }
-        if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
-          // m[row][i] = MISSING_GENOTYPE;
-          genotype.back() = MISSING_GENOTYPE;
-        }
-        //genoCounter.add(m[row][i]);
-        genoCounter.add(genotype.back());
-      } else {
-        logger->error("Cannot find %s field!",
-                      this->dosageTag.empty() ? "GT" : dosageTag.c_str());
-        return -1;
-      }
-#endif
     }  // end for i
 
     // check frequency cutoffs
@@ -141,33 +93,10 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     this->variantName.back() += r.getPosStr();
     this->hemiRegion.back() = (isHemiRegion);
 
-#if 0
-    // store genotype results
-    name = r.getChrom();
-    name += ":";
-    name += r.getPosStr();
-    colNames.push_back(name);
-    ++row;
-
-    assert(this->parRegion);
-    if (this->parRegion &&
-        this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
-      this->hemiRegion.push_back(true);
-    } else {
-      this->hemiRegion.push_back(false);
-    }
-    this->counter.push_back(genoCounter);
-#endif
     this->altAlleleToParse--;
   }  // end while (this->vin->readRecord())
 
-  // // delete rows (ugly code here, as we may allocate extra row in previous
-  // // loop)
-  // m.Dimension(row, m.cols);
-  // todo: store to g
-
   // now transpose (marker by people -> people by marker)
-  // g->Transpose(m);
   assert((int)genotype.size() == this->sampleSize * row);
   assign(this->genotype, sampleSize, row, g);
   for (int i = 0; i < row; ++i) {
@@ -219,46 +148,6 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
                                     genoIdx, GDidx, GQidx);
     genotype.push_back(geno);
     counter.back().add(geno);
-
-#if 0
-    if (genoIdx >= 0) {
-      if (useDosage) {
-        if (!hemiRegion) {
-          genotype[i][0] = indv->justGet(genoIdx).toDouble();
-        } else {
-          // for male hemi region, imputated dosage is usually between 0 and 1
-          // need to multiply by 2.0
-          if ((*sex)[i] == PLINK_MALE) {
-            genotype[i][0] = indv->justGet(genoIdx).toDouble() * 2.0;
-          }
-        }
-      } else {
-        if (!hemiRegion) {
-          genotype[i][0] = indv->justGet(genoIdx).getGenotype();
-        } else {  // use hard-coded genotypes
-          if ((*sex)[i] == PLINK_MALE) {
-            genotype[i][0] = indv->justGet(genoIdx).getMaleNonParGenotype02();
-          } else if ((*sex)[i] == PLINK_FEMALE) {
-            genotype[i][0] = indv->justGet(genoIdx).getGenotype();
-          } else {
-            genotype[i][0] = MISSING_GENOTYPE;
-          }
-        }
-      }
-      if (!checkGD(*indv, GDidx) || !checkGQ(*indv, GQidx)) {
-        genotype[i][0] = MISSING_GENOTYPE;
-      }
-      counter[0].add(genotype[i][0]);
-      // logger->info("%d ", int(genotype[i][0]));
-    } else {
-      std::string s;
-      indv->toStr(&s);
-      logger->error(
-          "Cannot find [ %s ] field when read individual information [ %s ]!",
-          this->dosageTag.empty() ? "GT" : this->dosageTag.c_str(), s.c_str());
-      return ERROR;
-    }
-#endif
   }
 
   // check frequency cutoffs
@@ -275,14 +164,6 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   assign(genotype, sampleSize, 1, g);
   g->SetColumnLabel(0, variantName.back().c_str());
 
-  // this->hemiRegion.resize(1);
-  // assert(this->parRegion);
-  // if (this->parRegion &&
-  //     this->parRegion->isHemiRegion(r.getChrom(), r.getPos())) {
-  //   this->hemiRegion[0] = true;
-  // } else {
-  //   this->hemiRegion[0] = false;
-  // }
   return SUCCEED;
 }  // end extractSingleGenotype()
 
@@ -454,13 +335,11 @@ double GenotypeExtractor::getGenotype(VCFIndividual& indv, const bool useDosage,
   if (genoIdx >= 0) {
     if (useDosage) {
       if (!hemiRegion) {
-        // m[row][i] = indv->justGet(genoIdx).toDouble();
         ret = (indv.justGet(genoIdx).toDouble());
       } else {
         // for male hemi region, imputated dosage is usually between 0 and 1
         // need to multiply by 2.0
         if (sex == PLINK_MALE) {
-          // m[row][i] = indv.justGet(genoIdx).toDouble() * 2.0;
           ret = (indv.justGet(genoIdx).toDouble() * 2.0);
         } else {
           ret = (indv.justGet(genoIdx).toDouble());
@@ -468,31 +347,23 @@ double GenotypeExtractor::getGenotype(VCFIndividual& indv, const bool useDosage,
       }
     } else {  // use hard-coded genotypes
       if (!hemiRegion) {
-        // m[row][i] = indv.justGet(genoIdx).getGenotype();
         ret = (indv.justGet(genoIdx).getGenotype());
       } else {
         if (sex == PLINK_MALE) {
-          // m[row][i] = indv.justGet(genoIdx).getMaleNonParGenotype02();
           ret = (indv.justGet(genoIdx).getMaleNonParGenotype02());
         } else if (sex == PLINK_FEMALE) {
-          // m[row][i] = indv.justGet(genoIdx).getGenotype();
           ret = (indv.justGet(genoIdx).getGenotype());
         } else {
-          // m[row][i] = MISSING_GENOTYPE;
           ret = (MISSING_GENOTYPE);
         }
       }
     }
     if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
-      // m[row][i] = MISSING_GENOTYPE;
       return MISSING_GENOTYPE;
     }
-    // genoCounter.add(m[row][i]);
-    // genoCounter.add(genotype.back());
   } else {
     logger->error("Cannot find %s field!",
                   this->dosageTag.empty() ? "GT" : dosageTag.c_str());
-    // return -1;
     return MISSING_GENOTYPE;
   }
 }

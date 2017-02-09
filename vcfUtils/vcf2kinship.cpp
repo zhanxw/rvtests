@@ -806,6 +806,7 @@ int main(int argc, char** argv) {
   int variantX = 0;
   int variantAutoUsed = 0;
   int variantXUsed = 0;
+  int multiAllelicSite = 0;
   int lowSiteFreq = 0;  // counter of low site qualities
   int filterSite = 0;   // counter of site with too many bad genotypes
   int numMaleHemiMissing = 0;
@@ -834,6 +835,10 @@ int main(int argc, char** argv) {
     int pos = r.getPos();
 
     // site filter
+    if (strchr(r.getAlt(), ',') != NULL) {
+      ++multiAllelicSite;
+      continue;
+    }
     if (FLAG_minSiteQual > 0 && r.getQualDouble() < FLAG_minSiteQual) {
       ++lowSiteFreq;
       continue;
@@ -842,10 +847,8 @@ int main(int argc, char** argv) {
       bool isMissing = false;
       const char* tag = r.getInfoTag("ANNO", &isMissing).toStr();
       if (isMissing) continue;
-      // fprintf(stdout, "ANNO = %s", tag);
+
       bool match = regex.match(tag);
-      // fprintf(stdout, " %s \t", match ? "match": "noMatch");
-      // fprintf(stdout, " %s \n", exists ? "exists": "missing");
       if (!match) {
         continue;
       }
@@ -1009,6 +1012,9 @@ int main(int argc, char** argv) {
   // }
   if (nonVariantSite) {
     logger->info("Skipped [ %d ] non-variant VCF records", nonVariantSite);
+  }
+  if (multiAllelicSite) {
+    logger->info("Skipped [ %d ] multi-allelic sites", multiAllelicSite);
   }
   if (lowSiteFreq) {
     logger->info("Skipped [ %d ] low sites due to site quality lower than %f",

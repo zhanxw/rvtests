@@ -21,7 +21,9 @@ GenotypeExtractor::GenotypeExtractor(const std::string& fn)
       GQmax(-1),
       needGQ(false),
       parRegion(NULL),
-      sex(NULL) {
+      sex(NULL),
+      multiAllelicMode(false),
+      altAlleleToParse(-1) {
   this->vin = new VCFExtractor(fn.c_str());
 }
 
@@ -35,19 +37,30 @@ GenotypeExtractor::~GenotypeExtractor() {
 int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
   int row = 0;
   this->genotype.clear();
-  this->altAlleleToParse = 0;
+  this->altAlleleToParse = -1;
+
   while (true) {
-    if (altAlleleToParse == 0) {
+    if (this->altAlleleToParse <= 0) {
       if (!this->vin->readRecord()) {
-        // finished reading
+        // reached the end
         break;
+      } else {
+        const char* alt = this->vin->getVCFRecord().getAlt();
+        if (multiAllelicMode) {
+          parseAltAllele(alt);
+          this->altAlleleToParse = altAllele.size();
+        } else {
+          this->altAllele.resize(1);
+          this->altAllele[0] = alt;
+          this->altAlleleToParse = 1;
+        }
       }
     }
+    assert(this->altAlleleToParse > 0);
     // parse alt allele one at a time
     VCFRecord& r = this->vin->getVCFRecord();
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;
-    countAltAllele(r.getAlt());
 
     this->sampleSize = people.size();
     // m.Dimension(row + 1, people.size());
@@ -56,7 +69,7 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     this->counter.resize(row);
     this->hemiRegion.resize(row);
 
-    // get GT index and cannot assume it is a constant
+    // get GT index and cannot assume it is a constant across variants
     int genoIdx;
     const bool useDosage = (!this->dosageTag.empty());
     if (useDosage) {
@@ -64,21 +77,29 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     } else {
       genoIdx = r.getFormatIndex("GT");
     }
-    if (useDosage && altAlleleToParse > 1) {
+    if (useDosage && multiAllelicMode) {
       logger->error(
-          "Unsupported scenario: multiple alleles and use dosage as "
+          "Unsupported scenario: multiple mode and use dosage as "
           "genotypes! - we will only use dosage");
-      altAlleleToParse = 1;
+      this->altAlleleToParse = 1;
     }
-    int GDidx = r.getFormatIndex("GD");
-    int GQidx = r.getFormatIndex("GQ");
+    const int GDidx = r.getFormatIndex("GD");
+    const int GQidx = r.getFormatIndex("GQ");
     assert(this->parRegion);
-    bool isHemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
+    const bool isHemiRegion =
+        this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
     // e.g.: Loop each (selected) people in the same order as in the VCF
+    double geno;
     for (int i = 0; i < sampleSize; i++) {
       indv = people[i];
-      const double geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i],
-                                      genoIdx, GDidx, GQidx);
+      if (multiAllelicMode) {
+        geno = getGenotypeForAltAllele(
+            *indv, useDosage, isHemiRegion, (*sex)[i], genoIdx, GDidx, GQidx,
+            this->altAllele.size() - this->altAlleleToParse);
+      } else {
+        geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i], genoIdx,
+                           GDidx, GQidx);
+      }
       genotype.push_back(geno);
       counter.back().add(geno);
     }  // end for i
@@ -91,6 +112,12 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     this->variantName.back() = r.getChrom();
     this->variantName.back() += ":";
     this->variantName.back() += r.getPosStr();
+    if (multiAllelicMode) {
+      this->variantName.back() += r.getRef();
+      this->variantName.back() += "/";
+      this->variantName.back() +=
+          altAllele[altAllele.size() - this->altAlleleToParse];
+    }
     this->hemiRegion.back() = (isHemiRegion);
 
     this->altAlleleToParse--;
@@ -106,13 +133,25 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
 }  // end GenotypeExtractor
 
 int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
-  // Matrix& genotype = *g;
   this->genotype.clear();
   Result& buf = *b;
 
-  bool hasRead = this->vin->readRecord();
-  if (!hasRead) return FILE_END;
-
+  if (this->altAlleleToParse <= 0) {
+    if (!this->vin->readRecord()) {
+      return FILE_END;
+    } else {
+      const char* alt = this->vin->getVCFRecord().getAlt();
+      if (multiAllelicMode) {
+        parseAltAllele(alt);
+        this->altAlleleToParse = altAllele.size();
+      } else {
+        this->altAllele.resize(1);
+        this->altAllele[0] = alt;
+        this->altAlleleToParse = 1;
+      }
+    }
+  }
+  assert(this->altAlleleToParse >= 0);
   VCFRecord& r = this->vin->getVCFRecord();
   VCFPeople& people = r.getPeople();
   VCFIndividual* indv;
@@ -120,7 +159,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   buf.updateValue("CHROM", r.getChrom());
   buf.updateValue("POS", r.getPosStr());
   buf.updateValue("REF", r.getRef());
-  buf.updateValue("ALT", r.getAlt());
+  buf.updateValue("ALT", altAllele[altAllele.size() - this->altAlleleToParse]);
 
   // genotype.Dimension(people.size(), 1);
   this->sampleSize = people.size();
@@ -137,15 +176,21 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   } else {
     genoIdx = r.getFormatIndex("GT");
   }
-  int GDidx = r.getFormatIndex("GD");
-  int GQidx = r.getFormatIndex("GQ");
-
+  const int GDidx = r.getFormatIndex("GD");
+  const int GQidx = r.getFormatIndex("GQ");
   bool isHemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
   // e.g.: Loop each (selected) people in the same order as in the VCF
+  double geno;
   for (int i = 0; i < sampleSize; i++) {
     indv = people[i];
-    const double geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i],
-                                    genoIdx, GDidx, GQidx);
+    if (multiAllelicMode) {
+      geno = getGenotypeForAltAllele(
+          *indv, useDosage, isHemiRegion, (*sex)[i], genoIdx, GDidx, GQidx,
+          this->altAllele.size() - this->altAlleleToParse);
+    } else {
+      geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i], genoIdx,
+                         GDidx, GQidx);
+    }
     genotype.push_back(geno);
     counter.back().add(geno);
   }
@@ -322,9 +367,8 @@ void GenotypeExtractor::getIncludedPeopleName(
   return;
 }
 
-void GenotypeExtractor::countAltAllele(const char* s) {
+void GenotypeExtractor::parseAltAllele(const char* s) {
   stringTokenize(s, ",", &altAllele);
-  altAlleleToParse = altAllele.size();
 }
 
 double GenotypeExtractor::getGenotype(VCFIndividual& indv, const bool useDosage,
@@ -360,6 +404,53 @@ double GenotypeExtractor::getGenotype(VCFIndividual& indv, const bool useDosage,
     }
     if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
       return MISSING_GENOTYPE;
+    } else {
+      return ret;
+    }
+  } else {
+    logger->error("Cannot find %s field!",
+                  this->dosageTag.empty() ? "GT" : dosageTag.c_str());
+    return MISSING_GENOTYPE;
+  }
+}
+
+double GenotypeExtractor::getGenotypeForAltAllele(
+    VCFIndividual& indv, const bool useDosage, const bool hemiRegion,
+    const int sex, const int genoIdx, const int GDidx, const int GQidx,
+    const int alt) {
+  double ret;
+  if (genoIdx >= 0) {
+    if (useDosage) {
+      if (!hemiRegion) {
+        ret = (indv.justGet(genoIdx).toDouble());
+      } else {
+        // for male hemi region, imputated dosage is usually between 0 and 1
+        // need to multiply by 2.0
+        if (sex == PLINK_MALE) {
+          ret = (indv.justGet(genoIdx).toDouble() * 2.0);
+        } else {
+          ret = (indv.justGet(genoIdx).toDouble());
+        }
+      }
+    } else {  // use hard-coded genotypes
+      if (!hemiRegion) {
+        ret = indv.justGet(genoIdx).countAltAllele(alt);
+      } else {
+        if (sex == PLINK_MALE) {
+          // ret = (indv.justGet(genoIdx).getMaleNonParGenotype02());
+          ret = (indv.justGet(genoIdx).countMaleNonParAltAllele2(alt));
+        } else if (sex == PLINK_FEMALE) {
+          // ret = (indv.justGet(genoIdx).getGenotype());
+          ret = indv.justGet(genoIdx).countAltAllele(alt);
+        } else {
+          ret = (MISSING_GENOTYPE);
+        }
+      }
+    }
+    if (!checkGD(indv, GDidx) || !checkGQ(indv, GQidx)) {
+      return MISSING_GENOTYPE;
+    } else {
+      return ret;
     }
   } else {
     logger->error("Cannot find %s field!",

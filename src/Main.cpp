@@ -262,6 +262,8 @@ ADD_STRING_PARAMETER(
 ADD_PARAMETER_GROUP("Specify Genotype");
 ADD_STRING_PARAMETER(dosageTag, "--dosage",
                      "Specify which dosage tag to use. (e.g. EC or DS);");
+ADD_BOOL_PARAMETER(multiAllele, "--multipleAllele",
+                   "Support multi-allelic genotypes");
 
 ADD_PARAMETER_GROUP("Chromosome X Options");
 ADD_STRING_PARAMETER(xLabel, "--xLabel",
@@ -707,7 +709,6 @@ int main(int argc, char** argv) {
   // record raw phenotype
   g_SummaryHeader->recordPhenotype("Trait",
                                    dataLoader.getPhenotype().extractCol(0));
-
   // adjust phenotype
   // bool binaryPhenotype;
   if (FLAG_qtl) {
@@ -799,7 +800,6 @@ int main(int argc, char** argv) {
   //   logger->fatal("There are 0 samples with valid phenotypes, quitting...");
   //   exit(1);
   // }
-
   logger->info("Analysis begins with [ %d ] samples...",
                dataLoader.getPhenotype().nrow());
   //////////////////////////////////////////////////////////////////////////////
@@ -971,6 +971,10 @@ int main(int argc, char** argv) {
     ge.setDosageTag(FLAG_dosageTag);
     logger->info("Use dosage genotype from VCF flag %s.",
                  FLAG_dosageTag.c_str());
+  }
+  if (FLAG_multiAllele) {
+    ge.enableMultiAllelicMode();
+    logger->info("Enable analysis using multiple allelic models");
   }
 
   // genotype QC options

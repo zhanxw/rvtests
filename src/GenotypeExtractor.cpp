@@ -197,8 +197,11 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
 
   // check frequency cutoffs
   const double maf = counter[0].getMAF();
-  if (this->freqMin > 0. && this->freqMin > maf) return FAIL_FILTER;
-  if (this->freqMax > 0. && this->freqMax < maf) return FAIL_FILTER;
+  if ((this->freqMin > 0. && this->freqMin > maf) ||
+      (this->freqMax > 0. && this->freqMax < maf)) {
+    --this->altAlleleToParse;
+    return FAIL_FILTER;
+  }
 
   variantName.back() = r.getChrom();
   variantName.back() += ':';
@@ -209,6 +212,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   assign(genotype, sampleSize, 1, g);
   g->SetColumnLabel(0, variantName.back().c_str());
 
+  --this->altAlleleToParse;
   return SUCCEED;
 }  // end extractSingleGenotype()
 

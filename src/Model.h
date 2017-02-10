@@ -2193,7 +2193,7 @@ class AnalyticVT : public ModelFitter {
                          *dc->getKinshipSForAuto(), &u, &v);
     }
     if (mvvt.compute(af, u, v)) {
-      warnOnce("Analytic VT test failed in computing multivarate statistics.");
+      warnOnce("Analytic VT test failed in computing multivariate statistics.");
       fitOK = false;
       return -1;
     }

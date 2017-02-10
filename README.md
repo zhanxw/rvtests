@@ -248,7 +248,7 @@ FamZeggini      |  famzeggini   |Q  |     Y      |         R           | Aggrega
 Single variant | Model(#)    |Traits(##) | Covariates | Related / unrelated | Description
 :--------------|:---------:|:------:|:----------:|:-------------------:|:-----------
 Variable threshold model by permutation     |  price    |B, Q  |     N      |         U           | Every rare-variant frequency cutoffs are tests by Alkes Price.
-Variable threshold model by analytic form   |  analytic    |B, Q  |     Y      |         U   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
+Variable threshold model by analytic form   |  analytic    | Q  |     Y      |         U   | Every rare-variant frequency cutoffs are tests by Danyu Lin.
 Variable threshold model by analytic form   |  famAnalytic    | Q  |     Y      |         R   | Every rare-variant frequency cutoffs are tests by Dajiang Liu.
 
 (#) Model columns list the recognized names in rvtests. For example, use `--vt price` will variable threshold test.

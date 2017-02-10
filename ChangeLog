@@ -1,3 +1,9 @@
+2017-02-10  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix bugs (issue #13)
+	* Improve supports for multi-allelic variants
+	* Improve codes (more functions), revise documentation
+
 2017-01-10  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Add more test cases

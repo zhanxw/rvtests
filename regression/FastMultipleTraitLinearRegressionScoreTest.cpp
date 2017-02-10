@@ -17,24 +17,28 @@ typedef Eigen::MatrixXf EMat;
 typedef std::vector<EMat> EMatVec;
 typedef Eigen::Map<Eigen::MatrixXf> EMap;
 
+// Stores column indice for y and z in the concatenated matrix (y||z)
 struct TestIndex {
   int y;
   std::vector<int> z;
 };
 
+// Store sufficient statistics and scaling factors for each test
 struct TestSet {
-  // note: x [ block x resultLength ]
-  EVec xy;  // TODO: change to Map, [ resultLength  x 1 ]
+  EVec xy;  // TODO: maybe change to Map, [ resultLength  x 1 ]
   float scale_xy;
   EMat xz;        // [ resultLength x C ]
   EVec scale_xz;  // [ C ]
   float scale_xx;
-  EMat zz_inv;   // scaled
-  EVec zy;       // scaled
-  EMat L;        // derived from scaled zz_inv
-  float sigma2;  // var(y)
-  EVec ustat;    // block by 1
-  EVec vstat;    // block by 1
+  EMat zz_inv;      // scaled
+  EVec zy;          // scaled
+  EMat L;           // derived from scaled zz_inv
+  float sigma2;     // var(y)
+  EVec af;          // block by 1
+  EVec ustat;       // block by 1
+  EVec vstat;       // block by 1
+  EVec correction;  // block by 1, when x is rare, need to further correct it
+  EVec indice;      // index for non-missing samples for given Y and Z
 };
 
 class FastMultipleTraitLinearRegressionScoreTestInternal {
@@ -45,6 +49,7 @@ class FastMultipleTraitLinearRegressionScoreTestInternal {
   EMat Y_Z;    // N by (uniqT + uniqC)
   EMat yz;     // uniqT by uniqC (Y' * Z)
   EMat G;      // N by block
+  EVec af;     // block by nTest
   EMat G_Y_Z;  // block by (uniqT + uniqC)
 };
 
@@ -57,6 +62,7 @@ void addColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
   }
 }
 
+#if 0
 void createMissingInd(const EMat& m, EMat* out) {
   EMat& ret = *out;
   const int M = m.rows();
@@ -68,6 +74,7 @@ void createMissingInd(const EMat& m, EMat* out) {
     }
   }
 }
+#endif
 
 void createObsInd(const EMat& m, EMat* out) {
   EMat& ret = *out;
@@ -180,6 +187,30 @@ std::vector<T> minus(const std::vector<T>& in, T x) {
   return out;
 }
 
+#if 0
+void adjustForRareAllele(const EMat& g, const EVec& indice, int resultLen,
+                         const EMat& vstat, Matrix* outAf, EVec* correctScale) {
+  const int N = g.rows();
+  assert(N == indice.size());
+  assert(correctScale);
+  assert(outAf);
+
+  Matrix& af = *outAf;
+  int threshold = sqrt(2.0 * N);
+  int nModel = indice.sum();
+  (*correctScale).resize(resultLen);
+  for (int i = 0; i < resultLen; ++i) {
+    float sumGeno = (g.col(i).transpose().array() * indice.array()).sum();
+    af[i] = 0.5 * sumGeno / nModel;
+    if (sumGeno < threshold) {
+      (*correctScale)(i) = 2.0 * af * (1.0 - 2.0 * af) * nModel / vstat(i);
+    } else {
+      (*correctScale)(i) = 1.0;
+    }
+  }
+}
+#endif
+
 FastMultipleTraitLinearRegressionScoreTest::
     FastMultipleTraitLinearRegressionScoreTest(int blockSize) {
   this->work = new FastMultipleTraitLinearRegressionScoreTestInternal;
@@ -287,8 +318,10 @@ bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
     ts.zz_inv.resize(C, C);
     ts.zy.resize(C);
     ts.L.resize(C, C);
+    ts.af.resize(blockSize);
     ts.ustat.resize(blockSize);
     ts.vstat.resize(blockSize);
+    ts.correction.resize(blockSize);
   }
 
   // pre-calculate sufficient statistics
@@ -303,13 +336,13 @@ bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
     ts.scale_xy = (OBS_MODEL / indY.col(0).sum());
     ts.scale_xz = OBS_MODEL / indZ.colwise().sum().array();
     ts.scale_xx = OBS_MODEL / N;
+    ts.indice = indModel;
 
     EMat Y = extract(w.Y_Z, testIndex[i].y);
     EMat Z = extract(w.Y_Z, testIndex[i].z);
 
-    ts.sigma2 = ((Y.col(0).array() * indY.col(0).array()).square().sum() *
-                 OBS_MODEL / indY.col(0).sum()) /
-                OBS_MODEL;
+    ts.sigma2 = (Y.col(0).array() * indY.col(0).array()).square().sum() *
+                OBS_MODEL / indY.sum();
     // handle covariate
     if (testIndex[i].z.size()) {
       ts.zz_inv = (((Z.transpose() * Z).array() * OBS_MODEL /
@@ -325,9 +358,9 @@ bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
           extract(zy, minus(testIndex[i].z, uniqT), testIndex[i].y).array() *
           OBS_MODEL / indZY.array();
 
-      ts.sigma2 -=
-          (ts.zy.transpose() * ts.zz_inv * ts.zy)(0, 0) / indY.col(0).sum();
+      ts.sigma2 -= (ts.zy.transpose() * ts.zz_inv * ts.zy)(0, 0);
     }
+    ts.sigma2 /= OBS_MODEL;
   }
 
   // allocate memory for results
@@ -354,18 +387,39 @@ bool FastMultipleTraitLinearRegressionScoreTest::AddGenotype(const Matrix& g) {
 bool FastMultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
   FastMultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
   EMat& g = w.G;  // N by resultLength
+  const float thresholdAC = sqrt(2.0 * g.rows());
+  const int nTest = w.testSet.size();
+
+  EVec nmiss;
+  for (int i = 0; i < nTest; ++i) {
+    TestSet& ts = w.testSet[i];
+    // // correct V stat if necessary
+    nmiss = g.transpose() * ts.indice;  // sum(geno, is.na = F)
+    ts.af = 0.5 * nmiss /
+            ts.indice.sum();  // num of non-missing elements in this test
+    for (int j = 0; j < resultLength; ++j) {
+      const float af = ts.af(j);
+      if (nmiss(j) < thresholdAC) {
+        ts.correction(j) =
+            2.0 * af * (1.0 - 2.0 * af) * ts.indice.sum() / ts.vstat(j);
+      } else {
+        ts.correction(j) = 1.0;
+      }
+    }
+  }
+
+  // calculate G'Y || G'Z
+  // assume g does not have missing values
   center(&g);
   w.G_Y_Z = g.transpose() * w.Y_Z;  // resultLength x (uniqT + uniqC)
 
-  const int nTest = w.testSet.size();
   for (int i = 0; i < nTest; ++i) {
     TestSet& ts = w.testSet[i];
     TestIndex& testIndex = w.testIndex[i];
     ts.xy = extract(w.G_Y_Z, testIndex.y).array() * ts.scale_xy;
     ts.ustat.noalias() = ts.xy;
-    ts.vstat.noalias() =
-        ((g.colwise().squaredNorm()).transpose() * ts.scale_xx) *
-        ts.sigma2;  // blockSize by 1
+    ts.vstat.noalias() = ((g.colwise().squaredNorm()).transpose() *
+                          ts.scale_xx);  // blockSize by 1
 
     if (testIndex.z.size()) {
       ts.xz = extract(w.G_Y_Z, testIndex.z) * ts.scale_xz.asDiagonal();
@@ -376,8 +430,12 @@ bool FastMultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
       // v_ii = norm(g.col(i) )^2 - norm((L' z' g).col(i))^2
       //      = norm(g.col(i) )^2 - norm((g' z L).row(i))^2
       ts.vstat.noalias() -=
-          (ts.xz * ts.L).rowwise().squaredNorm() * ts.sigma2;  // blockSize by 1
+          (ts.xz * ts.L).rowwise().squaredNorm();  // blockSize by 1
     }
+    ts.vstat *= ts.sigma2;
+
+    // apply correction
+    ts.vstat.array() *= ts.correction.array();
   }
 
   // assign u, v; calculat p-values

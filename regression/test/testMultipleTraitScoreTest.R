@@ -15,21 +15,11 @@ write.table(g, "input.mt.g", row.names = F, col.names = F)
 
 source("~/mylib/R/scoreTest-function.R")
 
-
-scale <- function(g){
-  apply(g, 2, function(x) {
-  a <- x - mean(x)
-  a / sqrt(sum(a^2))
-})}
-cov <- scale(cov)
-y <- scale(y)
-g <- scale(g)
-
 linear.score(cov[,1], y[,1], g)
 linear.score(cov[,2], y[,2], g)
 linear.score(cov, y[,2], g)
 linear.score(NULL, y[,1], g)
 
-sum(y[,1]*g)
-sum(cov[,1]*g)
-sum(cov[,1]*y[,1])
+## sum(y[,1]*g)
+## sum(cov[,1]*g)
+## sum(cov[,1]*y[,1])

@@ -25,9 +25,10 @@ class FastMultipleTraitLinearRegressionScoreTest {
       const FastMultipleTraitLinearRegressionScoreTest&);
 
  private:
-  Matrix ustat;
-  Matrix vstat;
-  Matrix pvalue;
+  Matrix freq;    // [ resultLen x nTest ]
+  Matrix ustat;   // [ resultLen x nTest ]
+  Matrix vstat;   // [ resultLen x nTest ]
+  Matrix pvalue;  // [ resultLen x nTest ]
   FastMultipleTraitLinearRegressionScoreTestInternal*
       work;          // store working data
   int blockSize;     // unit of grouped computational units

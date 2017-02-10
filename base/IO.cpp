@@ -860,7 +860,7 @@ int removeEmptyField(std::vector<std::string>* fields) {
   int s = fields->size();
   fields->erase(
       std::remove_if(fields->begin(), fields->end(),
-                     [](const std::string& a) { return a.size() > 0; }),
+                     [](const std::string& a) { return a.size() == 0; }),
       fields->end());
   s -= fields->size();
   return s;

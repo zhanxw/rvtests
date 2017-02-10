@@ -380,7 +380,7 @@ class BaldingNicolsKinshipForX : public EmpiricalKinship {
 //   prefix.rowName
 class GenotypeWriter {
  public:
-  explicit GenotypeWriter(){};
+  explicit GenotypeWriter() : fGeno_(NULL), nVariant_(-1){};
   int open(const std::vector<std::string>& sampleName,
            const std::string& prefix) {
     sampleName_ = (sampleName);

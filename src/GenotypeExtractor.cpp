@@ -90,12 +90,13 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
         this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
     // e.g.: Loop each (selected) people in the same order as in the VCF
     double geno;
+    const int altAlleleGT = this->altAllele.size() - this->altAlleleToParse + 1;
     for (int i = 0; i < sampleSize; i++) {
       indv = people[i];
       if (multiAllelicMode) {
-        geno = getGenotypeForAltAllele(
-            *indv, useDosage, isHemiRegion, (*sex)[i], genoIdx, GDidx, GQidx,
-            this->altAllele.size() - this->altAlleleToParse);
+        geno =
+            getGenotypeForAltAllele(*indv, useDosage, isHemiRegion, (*sex)[i],
+                                    genoIdx, GDidx, GQidx, altAlleleGT);
       } else {
         geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i], genoIdx,
                            GDidx, GQidx);
@@ -181,12 +182,12 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   bool isHemiRegion = this->parRegion->isHemiRegion(r.getChrom(), r.getPos());
   // e.g.: Loop each (selected) people in the same order as in the VCF
   double geno;
+  const int altAlleleGT = this->altAllele.size() - this->altAlleleToParse + 1;
   for (int i = 0; i < sampleSize; i++) {
     indv = people[i];
     if (multiAllelicMode) {
-      geno = getGenotypeForAltAllele(
-          *indv, useDosage, isHemiRegion, (*sex)[i], genoIdx, GDidx, GQidx,
-          this->altAllele.size() - this->altAlleleToParse);
+      geno = getGenotypeForAltAllele(*indv, useDosage, isHemiRegion, (*sex)[i],
+                                     genoIdx, GDidx, GQidx, altAlleleGT);
     } else {
       geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i], genoIdx,
                          GDidx, GQidx);

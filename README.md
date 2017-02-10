@@ -590,11 +590,14 @@ For advanced users, qvalues can be calculated from the qvalue package provided b
 # Feedback/Contact
 
 Questions and requests can be sent to
+Github isssue page ([link](https://github.com/zhanxw/rvtests/issues))
+or
 Xiaowei Zhan ([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
 or
 Dajiang Liu ([dajiang.liu@outlook.com](mailto:dajiang.liu@outlook.com "mailto:dajiang.liu@outlook.com"))
 or
 Goncalo Abecasis ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
+
 
 Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.
 

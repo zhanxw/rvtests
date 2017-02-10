@@ -41,7 +41,7 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: March 2016)
+(Updated: February 2017)
 
 # Introduction
 
@@ -69,7 +69,7 @@ Here is a quick example of how to use *rvtests* software in typical use cases.
 
 ## Single variant tests
 
-    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --single wald,score
+    rvtest --inVcf input.vcf --pheno phenotype.ped --out output --single wald,score
 
 This specifies single variant Wald and score test for association
 tests for every variant in the `input.vcf` file. The 6th column of the phenotype file, `phenotype.ped`, which is in PLINK format, is used. Rvtests will automatically check whether the phenotype is binary trait or quantitative trait.
@@ -91,7 +91,7 @@ To perform rare variant tests by gene, you need to use `--geneFile` to specify t
 The following command line demonstrate how to use CMC method, variable threshold method(proposed by Price) and kernel based method (SKAT by Shawn Lee and KBAC by
 Dajiang Liu) to test every gene listed in *refFlat\_hg19.txt.gz*.
 
-    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --geneFile refFlat_hg19.txt.gz --burden cmc --vt price --kernel skat,kbac
+    rvtest --inVcf input.vcf --pheno phenotype.ped --out output --geneFile refFlat_hg19.txt.gz --burden cmc --vt price --kernel skat,kbac
 
 
 ## Related individual tests
@@ -104,7 +104,7 @@ The option `--bn` means calculating empirical kinship using Balding-Nicols metho
 
 Then you can use linear mixed model based association tests such as Fast-LMM score test, Fast-LMM LRT test and Grammar-gamma tests. An exemplar command is shown: 
 
-    rvtests --inVcf input.vcf --pheno phenotype.ped --out output --kinship output.kinship --single famScore,famLRT,famGrammarGamma
+    rvtest --inVcf input.vcf --pheno phenotype.ped --out output --kinship output.kinship --single famScore,famLRT,famGrammarGamma
 
 ## Meta-analysis tests
 
@@ -112,18 +112,18 @@ The meta-analysis models outputs association test results and genotype covarianc
 We provide single variant score test and generate genotype covariance matrix. 
 You can use command:
    
-    rvtests --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output
+    rvtest --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output
 
 In a more realistic scenario, you may want to adjust for covariates and want to inverse normalized residuals obtained in null model ([link](http://www.nature.com/ng/journal/vaop/ncurrent/full/ng.2852.html) to our methodology paper), then this command will work:
    
-    rvtests --inVcf input.vcf --pheno phenotype.ped --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out output
+    rvtest --inVcf input.vcf --pheno phenotype.ped --covar example.covar --covar-name age,bmi --inverseNormal --useResidualAsPhenotype  --meta score,cov --out output
 
 
 Here the `--covar` specify a covariate file, and `--covar-name` specify which covariates can used in the analysis. Covariate file format can be found [here](#Covariate file). `--inverseNormal --useResidualAsPhenotype` specifies trait transformation method. That means first fit a regression model of the phenotype on covariates (intercept automatically added), then the residuals are inverse normalized. Trait transformation details can be found [here](#Trait transformation).
 
 We support both unrelated individuals and related individuals (e.g. family data). You need to append `--kinship input.kinship` to the command line:
 
-    rvtests --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output --kinship input.kinship
+    rvtest --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output --kinship input.kinship
 
 The file `input.kinship` is calculated by `vcf2kinship` program, and usage to this program is described in [Related individual tests](#related-individual-tests).
 
@@ -151,7 +151,7 @@ Rvtests support genotype dosages. Use `--dosage DosageTag` to specify the dosage
 
 ## Phenotype file
 
-You can use `--mpheno $phenoypeColumnNumber` or `--pheno-name` to specify a given phenotype.
+You can use `--mpheno $phenotypeColumnNumber` or `--pheno-name` to specify a given phenotype.
 
 An example phenotype file, (`example.pheno`), has the following format: 
 
@@ -252,7 +252,7 @@ Variable threshold model by analytic form   |  analytic    | Q  |     Y      |  
 Variable threshold model by analytic form   |  famAnalytic    | Q  |     Y      |         R   | Every rare-variant frequency cutoffs are tests by Dajiang Liu.
 
 (#) Model columns list the recognized names in rvtests. For example, use `--vt price` will variable threshold test.
-NOTE: our implementatino of Price's test diffs from the original method descrbied in Price's publcation. We test every minor allele frequency cutoff (instead of reference allele counts) and this is a two-sided test (instead of one-sided test).
+NOTE: our implementation of Price's test diffs from the original method described in Price's publication. We test every minor allele frequency cutoff (instead of reference allele counts) and this is a two-sided test (instead of one-sided test).
 
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
@@ -325,7 +325,7 @@ covariances between K covariates (C.1, C.1), (C.1, C.2), ... (C.1, C.K), (C.2, C
 ## Utility models
 
 
-Rvtests has an convinient option `--outputRaw`. When specifing this, rvtests can output genotypes, phenotype, covariates (if any) and collapsed genotype to tabular files. These files can be imported into other software (e.g. R) for further analyses.
+Rvtests has an convenient option `--outputRaw`. When specifying this, rvtests can output genotypes, phenotype, covariates (if any) and collapsed genotype to tabular files. These files can be imported into other software (e.g. R) for further analyses.
 
 
 # Association test options
@@ -486,7 +486,7 @@ In VCF files, male genotypes can be written as "0", "1", "0|0", "0/0", "1|1", "1
 *Genotype in regression models*. For consistence, male genotypes are converted to 0 or 2. When male dosages are provided, we expect the values in the VCF file are between 0.0 and 1.0, and then will model them as twice the value.
 
 *MetaScore results*. If `--meta score` is specified, the output file `prefix.MetaScore.assoc.gz` includes both PAR-region and non-PAR region analysis. 
-However, in the non-PAR region, the difference is that Hardy-Weinberg P-value and homeozygous-reference/heterzygous/homozygous-alternative sample sizes are calculated **using female samples only**.
+However, in the non-PAR region, the difference is that Hardy-Weinberg P-value and homozygous-reference/heterzygous/homozygous-alternative sample sizes are calculated **using female samples only**.
 
 *Related individuals*. Just append `--xHemi` to the `vcf2kinship` (more details in [Kinship generation](#kinship-generation)) and `rvtest` command lines. Rvtests can recognize non-PAR region kinship file and use it in the analysis.
 
@@ -518,7 +518,7 @@ To generate empirical kinship (`--inVcf`) on both autosomal region and X chromos
 
     vcf2kinship --inVcf input.vcf.gz --ped input.ped --bn --xHemi --out output
 
-NOTE: you need to provide a pedigree file (PED) in the above case, as `vcf2kinship` need the sex information of samples.
+NOTE: you need to provide a pedigree file (PED) in the above case, as `vcf2kinship` needs the sex information of samples to construct kinship for sex chromosome.
 
 # Resources
 
@@ -545,7 +545,7 @@ File link: <http://qbrc.swmed.edu/zhanxw/seqminer/data/refFlat.gencode.v19.gz>
 
 * Does rvtests support binary traits of related-individuals?
 
-Yes for meta-anlaysis models and no for most other models.
+Yes for meta-analysis models and no for most other models.
 Proper analyses of related-individual are supported in meta-analysis model. You can refer to section [Meta-analysis tests](#meta-analysis-tests).
 For many other association models, we notice that supporting binary traits for related individuals is complex and at current stage we have not found good solutions.
 
@@ -571,13 +571,14 @@ However, this should rarely happen. Please contact us if you have further questi
 * Why SKAT Q-values reported by rvtests are different from the SKAT R package?
 
 We strictly follow the notations in the SKAT publication ([Wu et al. (2011) AJHG](http://www.hsph.harvard.edu/skat/)). However, in SKAT R package, its implementation is slightly different.
-For example, in quantitative trait anlaysis, Q is divided by (2 * \hat{sigma2}) in the R package, but not in rvtests.
-Although Q values can be different, the P-values from the two software packges should match (only in rare cases, numerical accrucy may cause minor differences).
+For example, in quantitative trait analysis, Q is divided by (2 * \hat{sigma2}) in the R package, but not in rvtests.
+Although Q values can be different, the P-values from the two software packages should match (only in rare cases, numerical accuracy may cause minor differences).
 
 * How rvtests handle multi-allelic variants?
 
-In rvtests, we focus on bi-allelic variants, and thus treat multi-allelic variants as bi-allelic variants. Any genotype that includes other than reference allele and the first alternative allele will be treated as missing.
-For example, when reference allele is 'A' and alternative alleles are 'T/G', genotype '0/2' will be treated as a missing genotype.
+In rvtests, we focus on bi-allelic variants, and thus by-default treat multi-allelic variants as bi-allelic variants. Any genotype that includes other than reference allele and the first alternative allele will be treated as missing.
+For example, when the reference allele is 'A' in the VCF REF column and the alternative alleles are 'T,G' in the VCF ALT column, the genotype '0/2' will be treated as a missing genotype.
+
 
 * How to adjust for multiple comparisons?
 
@@ -590,16 +591,16 @@ For advanced users, qvalues can be calculated from the qvalue package provided b
 # Feedback/Contact
 
 Questions and requests can be sent to
-Github isssue page ([link](https://github.com/zhanxw/rvtests/issues))
+Github issue page ([link](https://github.com/zhanxw/rvtests/issues))
 or
 Xiaowei Zhan ([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
 or
 Dajiang Liu ([dajiang.liu@outlook.com](mailto:dajiang.liu@outlook.com "mailto:dajiang.liu@outlook.com"))
 or
-Goncalo Abecasis ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
+Goncalo Abecasis ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu")).
 
 
 Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.
 
-We wawnt to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, the GIANT consoritum, the GLGC consortium and the GSCAN consortium.
+We want to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, the GIANT consortium, the GLGC consortium and the GSCAN consortium.
 

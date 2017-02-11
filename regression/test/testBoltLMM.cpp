@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
   writeToPlink(y, g.mat, cov, fn);
 
   // normalize(&g.mat);
-  if (bolt.FitNullModel(fn) != 0) {
+  if (bolt.FitNullModel(fn, NULL) != 0) {
     fprintf(stderr, "Fit null model failed!");
     exit(1);
   }

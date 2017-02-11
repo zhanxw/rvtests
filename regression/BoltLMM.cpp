@@ -191,11 +191,17 @@ class PlinkLoader {
 
     return 0;
   }
-  int preparePhenotype() {
+  int preparePhenotype(const Matrix* phenotype) {
     y_ = Eigen::MatrixXf::Zero(N_ + C_, 1);
-    const std::vector<double>& pheno = pin_->getPheno();
-    for (int i = 0; i < N_; ++i) {
-      y_(i, 0) = pheno[i];
+    if (phenotype) {
+      for (int i = 0; i < N_; ++i) {
+        y_(i, 0) = (*phenotype)[i][0];
+      }
+    } else {
+      const std::vector<double>& pheno = pin_->getPheno();
+      for (int i = 0; i < N_; ++i) {
+        y_(i, 0) = pheno[i];
+      }
     }
     float avg = y_.sum() / N_;
     y_.array() -= avg;
@@ -628,8 +634,7 @@ class BoltLMM::BoltLMMImpl {
         MCtrial_(cv.MCtrial_),
         BatchSize_(cv.BatchSize_),
         NumBatch_(cv.NumBatch_) {}
-  // assume @param covar does not include intercept
-  int FitNullModel(const std::string& prefix) {
+  int FitNullModel(const std::string& prefix, Matrix* phenotype) {
     // load phenotype, genotype
     std::string fn = prefix;
     if (pl.open(prefix)) {
@@ -646,7 +651,7 @@ class BoltLMM::BoltLMMImpl {
     pl.extractCovariateBasis();
 
     // regress out covariate from phenotype
-    pl.preparePhenotype();
+    pl.preparePhenotype(phenotype);
 
     // project Z to G and
     // record mean and sd for each SNP
@@ -1244,8 +1249,8 @@ class BoltLMM::BoltLMMImpl {
 BoltLMM::BoltLMM() { impl_ = new BoltLMMImpl; }
 BoltLMM::~BoltLMM() { delete impl_; }
 
-int BoltLMM::FitNullModel(const std::string& prefix) {
-  return impl_->FitNullModel(prefix);
+int BoltLMM::FitNullModel(const std::string& prefix, Matrix* phenotype) {
+  return impl_->FitNullModel(prefix, phenotype);
 }
 int BoltLMM::TestCovariate(Matrix& Xcol) { return impl_->TestCovariate(Xcol); }
 
@@ -1269,7 +1274,7 @@ double BoltLMM::GetPvalue() { return impl_->GetPvalue(); }
       Eigen::MatrixXf cov;
       G_to_Eigen(covar, &cov);
 
-      // subtract intercept
+     // subtract intercept
       cov.rowwise() -= cov.colwise().mean();
 
       proj_covar = -cov * (cov.transpose() * cov).ldlt().solve(cov.transpose());

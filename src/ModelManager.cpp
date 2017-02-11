@@ -180,7 +180,7 @@ int ModelManager::create(const std::string& modelType,
     } else {
       logger->error("Unknown model name: %s .", modelName.c_str());
       exit(1);
-    };
+    }
   } else if (modelType == "meta") {
     if (modelName == "score") {
       model.push_back(new MetaScoreTest());

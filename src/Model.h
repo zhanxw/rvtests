@@ -3763,7 +3763,7 @@ class MetaScoreTest : public ModelFitter {
       const std::string& fn = dc->getBoltGenotypeFilePrefix();
 
       // fit null model
-      bool fitOK = 0 == bolt_.FitNullModel(fn);
+      bool fitOK = 0 == bolt_.FitNullModel(fn, &dc->getPhenotype());
       if (!fitOK) return -1;
       needToFitNullModel = false;
       return 0;

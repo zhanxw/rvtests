@@ -217,7 +217,7 @@ void welcome() {
           VERSION, GIT_VERSION);
 #endif
   fprintf(stdout,
-          "  For documentation, refer to http://zhanxw.github.io/rvtests/\n");
+          "  For documentations, refer to http://zhanxw.github.io/rvtests/\n");
   fprintf(stdout,
           "  For questions and comments, send to Xiaowei Zhan "
           "<zhanxw@umich.edu>\n");

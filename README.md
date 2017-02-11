@@ -108,9 +108,10 @@ Then you can use linear mixed model based association tests such as Fast-LMM sco
 
 ## Meta-analysis tests
 
-The meta-analysis models outputs association test results and genotype covariance matrix. These statistics can be used in rare variant association analysis.
-We provide single variant score test and generate genotype covariance matrix. 
-You can use command:
+The meta-analysis models outputs association test results and genotype covariance matrix. 
+These calculated summary statistics can be used in rare variant association analysis ([details](#meta-analysis-models)).
+We provide single variant score test and generate a genotype covariance matrix. 
+You can use this command:
    
     rvtest --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output
 
@@ -126,6 +127,10 @@ We support both unrelated individuals and related individuals (e.g. family data)
     rvtest --inVcf input.vcf --pheno phenotype.ped --meta score,cov --out output --kinship input.kinship
 
 The file `input.kinship` is calculated by `vcf2kinship` program, and usage to this program is described in [Related individual tests](#related-individual-tests).
+
+**NOTE:** by default, the covariance matrix are calculated in a sliding-window of 1 million base pairs. You can change this setting via  the option `windowSize`.
+For example, `--meta cov[windowSize=500000]` specify a 500k-bp sliding window.
+
 
 ### Dominant models and recessive models
 
@@ -563,9 +568,10 @@ For example, if SQRT_V_STAT = 2, that means the standard error of estimated beta
 
 These counts are calculated from female individuals. If your study only has male samples, rvtests cannot report these counts. Because if a male carries a non-reference allele, we cannot conclude that this is heterozygous (0/1) site or homozygous alternatives (1/1) site.
 
-* Why P-values can be -1?
+* What happens when P-values equals to -1?
 
-If rvtests fails to fit using a certain model, it cannot calculate P-value reliably. Rvtests will print P-value as -1 instead of any number between 0 and 1 to indicate that an error occurred.
+If rvtests fails to fit a certain model, it also fails to calculate P-value reliably. 
+Rvtests will output P-value as -1 instead of any number between 0 and 1 to indicate that an error has occurred.
 However, this should rarely happen. Please contact us if you have further questions.
 
 * Why SKAT Q-values reported by rvtests are different from the SKAT R package?
@@ -579,6 +585,22 @@ Although Q values can be different, the P-values from the two software packages 
 In rvtests, we focus on bi-allelic variants, and thus by-default treat multi-allelic variants as bi-allelic variants. Any genotype that includes other than reference allele and the first alternative allele will be treated as missing.
 For example, when the reference allele is 'A' in the VCF REF column and the alternative alleles are 'T,G' in the VCF ALT column, the genotype '0/2' will be treated as a missing genotype.
 
+To properly analyze multi-allelic sites, we recommend coding multiple alternative alleles in separate lines. 
+For example, a tri-allelic site A/T/G can be represented in two lines: 
+the first line uses A as the reference allele, T as the alternative allele, and 0 or 1 to represent the frequency of alternative alleles; 
+similary, the second line uses A as the reference allele, G as the alternative allele, and 0 or 1 to represent the frequency of alternative allele G.
+The following table can be helpful to understand this coding scheme.
+
+Genotype                     | A/A | A/T | A/G | T/T | T/G | G/G 
+:----------------------------|:---:|:---:|:---:|:---:|:---:|:---
+1st line (REF = A, ALT = T)  | 0/0 | 0/1 | 0/0 | 1/1 | 1/0 | 0/0 
+2nd line (REF = A, ALT = G)  | 0/0 | 0/0 | 0/1 | 0/0 | 0/1 | 1/1 
+
+The rationale of coding multi-allelic sites as multiple lines of bi-allelic sites is as follows:
+(1) the majority of existing analysis software does not support multi-allelic sites coded in one line;
+(2) imputation outputs (e.g. Michigan Imputation Server) multi-allelic sites in multiple lines.
+If your genotype file cannot be encoded as multiple bi-allelic variants, rvtests has an experimental option `--multipleAllele`.
+Specifying this option will enable the analysis of multi-allelic variants similar to the anlaysis of multiple bi-alleleic variants on-the-fly. 
 
 * How to adjust for multiple comparisons?
 

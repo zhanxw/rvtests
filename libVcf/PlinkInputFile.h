@@ -111,7 +111,8 @@ class PlinkInputFile {
     }
     delete lr;
 
-    fprintf(stderr, "Finished loading %s. %zu markers, %zu samples\n",
+    fprintf(stderr,
+            "Finished loading %s.{fam,bim,bed}, %zu markers, %zu samples\n",
             fnPrefix.c_str(), snp2Idx.size(), indv.size());
   }
   ~PlinkInputFile() {

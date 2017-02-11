@@ -151,7 +151,7 @@ void DataConsolidator::imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
       }
     }
   }
-};
+}
 
 /**
  * Impute missing genotype (<0) according to its mean genotype
@@ -185,7 +185,7 @@ void DataConsolidator::imputeGenotypeToMean(Matrix* genotype) {
     }
     // fprintf(stderr, "impute to mean = %g, ac = %d, an = %d\n", g, ac, an);
   }
-};
+}
 
 int DataConsolidator::preRegressionCheck(Matrix& pheno, Matrix& cov) {
   if (this->checkColinearity(cov)) {
@@ -380,16 +380,26 @@ int DataConsolidator::prepareBoltModel(
     sampleIdx.push_back(pin.getSampleIdx(sampleName[i]));
   }
 
-  // write a new set of PLINK file
-  this->boltPrefix = prefix + ".out";
-  PlinkOutputFile pout(prefix + ".out");
-  pout.extractFAMWithPhenotype(pin, sampleIdx, phenotype);
-  pout.extractBIM(pin, snpIdx);
-  pout.extractBED(pin, sampleIdx, snpIdx);
+  if (badSampleIdx.size() || snpIdx.size() != maf.size()) {
+    // write a new set of PLINK file
+    this->boltPrefix = prefix + ".out";
+    logger->info("Need to create new binary PLINK files with prefix [ %s ].",
+                 this->boltPrefix.c_str());
+    PlinkOutputFile pout(prefix + ".out");
+    pout.extractFAMWithPhenotype(pin, sampleIdx, phenotype);
+    pout.extractBIM(pin, snpIdx);
+    pout.extractBED(pin, sampleIdx, snpIdx);
+  } else {
+    this->boltPrefix = prefix;
+    logger->info("Use binary PLINK file [ %s ] in BoltLMM model",
+                 this->boltPrefix.c_str());
+  }
 
-  // write covariate, even there is no covaraite
+  // write covariate file if there are covariates
   if (covariate.cols > 0) {
-    FILE* fpCov = fopen((prefix + ".covar").c_str(), "wt");
+    std::string covarFn = this->boltPrefix + ".covar";
+    logger->info("Create covariate file [ %s ]", covarFn.c_str());
+    FILE* fpCov = fopen((covarFn).c_str(), "wt");
     fprintf(fpCov, "FID\tIID");
     for (int j = 0; j < covariate.cols; ++j) {
       fprintf(fpCov, "\t%s", (char*)covariate.GetColumnLabel(j));

@@ -25,7 +25,6 @@ struct TestIndex {
 
 // Store sufficient statistics and scaling factors for each test
 struct TestSet {
-  EVec xy;  // TODO: maybe change to Map, [ resultLength  x 1 ]
   float scale_xy;
   EMat xz;        // [ resultLength x C ]
   EVec scale_xz;  // [ C ]
@@ -308,11 +307,11 @@ bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
   // Need to create zy for each model
   EMat zy = w.Y_Z.rightCols(uniqC).transpose() * w.Y_Z.leftCols(uniqT);
 
-  // allocate memorys
+  // allocate memory
   for (int i = 0; i < nTest; ++i) {
     const int C = testIndex[i].z.size();
     TestSet& ts = testSet[i];
-    ts.xy.resize(blockSize);
+    // ts.xy.resize(blockSize);
     ts.xz.resize(blockSize, C);
     ts.scale_xz.resize(C);
     ts.zz_inv.resize(C, C);
@@ -400,10 +399,9 @@ bool FastMultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
     for (int j = 0; j < resultLength; ++j) {
       const float af = ts.af(j);
       if (nmiss(j) < thresholdAC) {
-        ts.correction(j) =
-            2.0 * af * (1.0 - 2.0 * af) * ts.indice.sum() / ts.vstat(j);
+        ts.correction(j) = 2.0 * af * (1.0 - 2.0 * af) * ts.indice.sum();
       } else {
-        ts.correction(j) = 1.0;
+        ts.correction(j) = -1.0;
       }
     }
   }
@@ -416,10 +414,18 @@ bool FastMultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
   for (int i = 0; i < nTest; ++i) {
     TestSet& ts = w.testSet[i];
     TestIndex& testIndex = w.testIndex[i];
-    ts.xy = extract(w.G_Y_Z, testIndex.y).array() * ts.scale_xy;
-    ts.ustat.noalias() = ts.xy;
+    ts.ustat.noalias() =
+        (extract(w.G_Y_Z, testIndex.y).array() * ts.scale_xy).matrix();
     ts.vstat.noalias() = ((g.colwise().squaredNorm()).transpose() *
                           ts.scale_xx);  // blockSize by 1
+
+    for (int j = 0; j < resultLength; ++j) {
+      if (ts.correction(j) > 0) {
+        ts.correction(j) /= ts.vstat(j);
+      } else {
+        ts.correction(j) = 1.0;
+      }
+    }
 
     if (testIndex.z.size()) {
       ts.xz = extract(w.G_Y_Z, testIndex.z) * ts.scale_xz.asDiagonal();

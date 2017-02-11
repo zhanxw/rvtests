@@ -110,13 +110,18 @@ test.linear.mvt.out: $(EXE)
 	./testLinearVT > $@
 
 ######################################################################
-check10: testMultipleTraitScoreTest.out testFastMultipleTraitScoreTest.out
+check10: testMultipleTraitScoreTest.out \
+         testFastMultipleTraitScoreTest.out \
+         testFastMultipleTraitScoreTest.NA.out
 	diff testMultipleTraitScoreTest.out correct.testMultipleTraitScoreTest.out
-	diff testFastMultipleTraitScoreTest.out correct.testMultipleTraitScoreTest.out
-testMultipleTraitScoreTest.out : $(EXE)
+	diff testFastMultipleTraitScoreTest.out correct.testFastMultipleTraitScoreTest.out
+	diff testFastMultipleTraitScoreTest.NA.out correct.testFastMultipleTraitScoreTest.NA.out
+testMultipleTraitScoreTest.out : testMultipleTraitScoreTest
 	./testMultipleTraitScoreTest > $@
-testFastMultipleTraitScoreTest.out : $(EXE)
+testFastMultipleTraitScoreTest.out : testFastMultipleTraitScoreTest
 	./testFastMultipleTraitScoreTest > $@
+testFastMultipleTraitScoreTest.NA.out : testFastMultipleTraitScoreTest.NA
+	./testFastMultipleTraitScoreTest.NA > $@
 
 ######################################################################
 check11: testBoltLMM.out

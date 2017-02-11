@@ -20,6 +20,12 @@ linear.score(cov[,2], y[,2], g)
 linear.score(cov, y[,2], g)
 linear.score(NULL, y[,1], g)
 
+ret <- mapply(c, 
+       linear.score(cov[,1], y[,1], g),
+        linear.score(cov[,2], y[,2], g),
+        linear.score(cov, y[,2], g),
+        linear.score(NULL, y[,1], g))
+t(ret)
 ## sum(y[,1]*g)
 ## sum(cov[,1]*g)
 ## sum(cov[,1]*y[,1])

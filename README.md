@@ -418,11 +418,13 @@ Genotype with low depth or low quality can be filtered out by these options:
 
 When genotypes are filtered, they are marked as missing genotypes. 
 Consequently, samples with missing genotype may or may not be included in the analysis.
-That means samples with genotypes may be dropped (`--impute drop`) 
+That means samples with filtered genotypes may be dropped (`--impute drop`) 
 or may still be included (`--impute mean` or `--impute hwe`). 
-By default, genotypes are imputed to its means.
-See next section about how you like to handle missing genotypes.
+By default, genotypes are imputed to the mean value.
+Please note that `--impute drop` is usually not recommended due to the incurred computational cost, 
+as the null model may be estimated for each marker.
 
+See next section about how you want to handle missing genotypes.
 
 ## Handle missing genotypes and phenotypes
 

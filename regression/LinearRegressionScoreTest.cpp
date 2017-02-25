@@ -3,7 +3,8 @@
 
 #include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
-LinearRegressionScoreTest::LinearRegressionScoreTest() : pvalue(0.0){};
+LinearRegressionScoreTest::LinearRegressionScoreTest()
+    : pvalue(0.0), stat(0.0){};
 
 bool LinearRegressionScoreTest::FitLinearModel(Matrix& X, Vector& y,
                                                int colToTest) {

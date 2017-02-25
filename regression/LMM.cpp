@@ -1,25 +1,26 @@
 #include "LMM.h"
 
-#include <vector>
 #include <limits>
+#include <vector>
 
 #include "nlopt.h"
 
+#include "Eigen/Dense"
 #include "EigenMatrix.h"
 #include "EigenMatrixInterface.h"
-#include "Eigen/Dense"
 
 #include "MathMatrix.h"
 #define PI 3.141592653
 
-double goalFunction(unsigned n, const double *x, double *grad, void *my_func_data);
+double goalFunction(unsigned n, const double* x, double* grad,
+                    void* my_func_data);
 
 #undef DEBUG
 // #define DEBUG
 
 class LMM::Impl {
  public:
-  Impl() {}
+  Impl() : nSample(-1), U(-1), V(-1), llk(NAN) {}
 
   int FitNullModel(Matrix& Xnull, Matrix& Y) {
     G_to_Eigen(Xnull, &this->x);
@@ -27,7 +28,7 @@ class LMM::Impl {
 
     // append identity matrix
     AppendIdentity();
-    
+
     // initialize beta and sigma2
     sigma2.resize(kinship.size());
     for (size_t i = 0; i < sigma2.size(); ++i) {
@@ -35,7 +36,7 @@ class LMM::Impl {
     }
     calculateSigmaMat();
     calculateBeta();
-    
+
     // fit null model
     calculateLLK();
     double oldLLK = llk;
@@ -45,20 +46,21 @@ class LMM::Impl {
       calculateSigma2();
       diff = llk - oldLLK;
       if (diff < 1e-6) {
-#ifdef DEBUG        
+#ifdef DEBUG
         fprintf(stderr, "Model converges or llk cannot be improved\n");
 #endif
         break;
       }
       oldLLK = llk;
-      time ++;
+      time++;
       if (time > 100) {
-#ifdef DEBUG                
-        fprintf(stderr, "Model probably do not converge at 100 times, llk = %g", llk);
+#ifdef DEBUG
+        fprintf(stderr, "Model probably do not converge at 100 times, llk = %g",
+                llk);
 #endif
         break;
-      }      
-    }  
+      }
+    }
     return 0;
   }
   int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol) {
@@ -68,8 +70,11 @@ class LMM::Impl {
     V_XG = (x.transpose() * sigmaMatInv * g);
     V_XX = (x.transpose() * sigmaMatInv * x);
     const int m = V_XX.rows();
-    V = (V_GG - V_XG.transpose() * V_XX.ldlt().solve(Eigen::MatrixXf::Identity(m, m)) * V_XG).sum();
-    
+    V = (V_GG -
+         V_XG.transpose() * V_XX.ldlt().solve(Eigen::MatrixXf::Identity(m, m)) *
+             V_XG)
+            .sum();
+
     return 0;
   }
   int AppendIdentity() {
@@ -82,12 +87,11 @@ class LMM::Impl {
     return 0;
   }
   int AppendKinship(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
-    Eigen::MatrixXf mat = kinshipU.mat * kinshipS.mat * kinshipU.mat.transpose();
+    Eigen::MatrixXf mat =
+        kinshipU.mat * kinshipS.mat * kinshipU.mat.transpose();
     return AppendKinship(mat);
   }
-  int AppendKinship(const EigenMatrix& k) {
-      return AppendKinship(k.mat);
-  }
+  int AppendKinship(const EigenMatrix& k) { return AppendKinship(k.mat); }
   int AppendKinship(Matrix& k) {
     Eigen::MatrixXf mat;
     G_to_Eigen(k, &mat);
@@ -115,7 +119,9 @@ class LMM::Impl {
     sigmaMatInv = cholesky.solve(Eigen::MatrixXf::Identity(nSample, nSample));
   }
   void calculateBeta() {
-    beta = (x.transpose() * sigmaMatInv * x).ldlt().solve( x.transpose() * sigmaMatInv * y);
+    beta = (x.transpose() * sigmaMatInv * x)
+               .ldlt()
+               .solve(x.transpose() * sigmaMatInv * y);
     resid = y - x * beta;
   }
   void calculateSigma2() {
@@ -123,7 +129,7 @@ class LMM::Impl {
     nlopt_opt opt;
     const int nParam = sigma2.size();
     std::vector<double> lb(nParam, 1e-10);
-    
+
     opt = nlopt_create(NLOPT_LN_COBYLA, nParam);
     nlopt_set_lower_bounds(opt, lb.data());
     nlopt_set_min_objective(opt, goalFunction, this);
@@ -132,26 +138,25 @@ class LMM::Impl {
     double minf; /* the minimum objective value, upon return */
     int retCode = nlopt_optimize(opt, sigma2.data(), &minf);
     if (retCode < 0) {
-#ifdef DEBUG              
+#ifdef DEBUG
       printf("nlopt failed [ %d ]!\n", retCode);
 #endif
     } else {
-#ifdef DEBUG              
+#ifdef DEBUG
       printf("found minimum at %g\n", minf);
 #endif
     }
     nlopt_destroy(opt);
   }
   void calculateLLK() {
-    llk = (nSample * log(2.0*PI));
+    llk = (nSample * log(2.0 * PI));
     const Eigen::MatrixXf& choleskyMatrixL = cholesky.matrixL();
     llk += (choleskyMatrixL.diagonal().array().log().sum()) * 2.0;
     llk += (resid.transpose() * sigmaMatInv * resid).sum();
     llk *= -0.5;
   }
-  double getLLK() const {
-    return this->llk;
-  }
+  double getLLK() const { return this->llk; }
+
  private:
   // Vector sigma2_g;
   std::vector<double> sigma2;
@@ -161,26 +166,26 @@ class LMM::Impl {
   double llk;
   Eigen::MatrixXf sigmaMat;
   Eigen::MatrixXf sigmaMatInv;
-  Eigen::MatrixXf x;   //covariate
+  Eigen::MatrixXf x;  // covariate
   Eigen::VectorXf beta;
   Eigen::VectorXf resid;
   Eigen::MatrixXf y;
   Eigen::MatrixXf g;
   Eigen::MatrixXf V_XX;
   Eigen::MatrixXf V_GG;
-  Eigen::MatrixXf V_XG;  
+  Eigen::MatrixXf V_XG;
   std::vector<Eigen::MatrixXf> kinship;
   Eigen::LLT<Eigen::MatrixXf> cholesky;
 };
 
-
 // return minus llk
-double goalFunction(unsigned n, const double *x, double *grad, void *my_func_data) {
-  LMM::Impl* p = (LMM::Impl*) my_func_data;
+double goalFunction(unsigned n, const double* x, double* grad,
+                    void* my_func_data) {
+  LMM::Impl* p = (LMM::Impl*)my_func_data;
 
-#ifdef DEBUG                
+#ifdef DEBUG
   fprintf(stderr, "In goalFunction()\n");
-  // fprintf(stderr, "set sigma2\n");
+// fprintf(stderr, "set sigma2\n");
 #endif
   // p->setSigma2(n, x);
   // fprintf(stderr, "calculate SimgaMat\n");
@@ -189,17 +194,16 @@ double goalFunction(unsigned n, const double *x, double *grad, void *my_func_dat
   p->calculateBeta();
   // fprintf(stderr, "calculate LLK\n");
   p->calculateLLK();
-  // fprintf(stderr, "return llk\n");
+// fprintf(stderr, "return llk\n");
 #ifdef DEBUG
   fprintf(stderr, "sigma2 = ");
   for (unsigned i = 0; i != n; ++i) {
     fprintf(stderr, "%g ", x[i]);
   }
-  fprintf(stderr, " llk = %g\n", - p->getLLK());
+  fprintf(stderr, " llk = %g\n", -p->getLLK());
 #endif
-  return - p->getLLK();
+  return -p->getLLK();
 }
-    
 
 //////////////////////////////////////////////////
 // LMM Interface
@@ -227,4 +231,6 @@ int LMM::AppendKinship(Matrix& kinship) {
 // for Score Test
 double LMM::GetUStat() const { return this->impl->GetUStat(); }
 double LMM::GetVStat() const { return this->impl->GetVStat(); }
-const std::vector<double>& LMM::GetSigma2() const { return this->impl->GetSigma2(); }
+const std::vector<double>& LMM::GetSigma2() const {
+  return this->impl->GetSigma2();
+}

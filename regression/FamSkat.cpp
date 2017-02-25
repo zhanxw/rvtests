@@ -1,15 +1,16 @@
 #include "FamSkat.h"
-#include "MathMatrix.h"
-#include "EigenMatrix.h"
-#include "EigenMatrixInterface.h"
+
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
+#include "EigenMatrix.h"
+#include "EigenMatrixInterface.h"
+#include "MathMatrix.h"
 //#include <Eigen/Dense>
-#include "MixtureChiSquare.h"
 #include "FastLMM.h"
+#include "MixtureChiSquare.h"
 
-#include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_rng.h>
 
 #undef DEBUG
 // #define DEBUG
@@ -21,7 +22,15 @@
 
 class FamSkat::FamSkatImpl {
  public:
-  FamSkatImpl() : lmm(FastLMM::SCORE, FastLMM::MLE), beta1(1), beta2(25) {}
+  FamSkatImpl()
+      : lmm(FastLMM::SCORE, FastLMM::MLE),
+        beta1(1),
+        beta2(25),
+        nPeople(-1),
+        nMarker(-1),
+        nCovariate(-1),
+        pValue(-1),
+        Q(-1) {}
   int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
                    const EigenMatrix& kinshipS) {
     int ret = this->lmm.FitNullModel(Xnull, y, kinshipU, kinshipS);
@@ -84,9 +93,9 @@ class FamSkat::FamSkatImpl {
 
 #ifdef DEBUG
     std::ofstream kin("kin");
-    kin << U* lambda.asDiagonal() * U.transpose();
+    kin << U * lambda.asDiagonal() * U.transpose();
     kin << "\n";
-    kin << U*(lambda.array() + delta).inverse().matrix().asDiagonal() *
+    kin << U * (lambda.array() + delta).inverse().matrix().asDiagonal() *
                U.transpose();
 
     kin.close();

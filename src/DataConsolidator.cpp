@@ -113,6 +113,8 @@ DataConsolidator::DataConsolidator()
       phenotypeUpdated(true),
       covariateUpdated(true),
       sex(NULL),
+      formula(NULL),
+      counter(NULL),
       parRegion(NULL) {}
 
 DataConsolidator::~DataConsolidator() {}

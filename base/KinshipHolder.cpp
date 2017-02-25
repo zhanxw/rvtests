@@ -255,6 +255,12 @@ int KinshipHolder::loadK() {
 
 int KinshipHolder::decompose() {
   // eigen decomposition
+  if (!this->matK) {
+    fprintf(stderr,
+            "%s:%d cannot dereference and decompose a null-pointed matrix!\n",
+            __FILE__, __LINE__);
+    return -1;
+  }
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(this->matK->mat);
   if (es.info() == Eigen::Success) {
     (this->matU->mat) = es.eigenvectors();

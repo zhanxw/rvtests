@@ -15,6 +15,7 @@ class SimpleTimer {
   SimpleTimer() { start(); };
   void start() {
     _start = time(0);
+    _stop = _start;
     _elapsed = 0;
   }
   double stop() {
@@ -124,6 +125,7 @@ class AccurateTimer {
   AccurateTimer() { start(); }
   void start() {
     clock_gettime(CLOCK_MONOTONIC, &_start);
+    _end = _start;
     _elapsed = 0.;
   }
   double stop() {

@@ -74,13 +74,13 @@ class Logger {
     Logger::consoleLevel = Logger::INFO;
   };
   void setConsoleLevel(LogLevel l) {
-    if (l != Logger::consoleLevel && l != Logger::consoleLevel) {
+    if (l != Logger::consoleLevel) {
       info("%s", "Log console level changed\n");
     }
     Logger::consoleLevel = l;
   };
   void setFileLevel(LogLevel l) {
-    if (l != Logger::fileLevel && l != Logger::fileLevel) {
+    if (l != Logger::fileLevel) {
       info("%s", "Log file level changed\n");
     }
     Logger::fileLevel = l;

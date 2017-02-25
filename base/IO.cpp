@@ -716,10 +716,6 @@ class BufferedFileWriter : public AbstractFileWriter {
     }
     this->buf[bufLen] = '\0';
     this->bufPtr = 0;
-
-    if (!this->buf) {
-      fprintf(stderr, "Buffer allocation failed!\n");
-    }
     this->f = f;
   }
   ~BufferedFileWriter() {

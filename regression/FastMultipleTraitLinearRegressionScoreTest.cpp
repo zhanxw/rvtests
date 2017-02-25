@@ -344,8 +344,8 @@ bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
                 OBS_MODEL / indY.sum();
     // handle covariate
     if (testIndex[i].z.size()) {
-      ts.zz_inv = (((Z.transpose() * Z).array() * OBS_MODEL /
-                    (indZ.transpose() * indZ).array()))
+      ts.zz_inv = ((Z.transpose() * Z).array() * OBS_MODEL /
+                   (indZ.transpose() * indZ).array())
                       .matrix()
                       .ldlt()
                       .solve(EMat::Identity(Z.cols(), Z.cols()));

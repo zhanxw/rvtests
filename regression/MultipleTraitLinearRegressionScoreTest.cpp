@@ -122,6 +122,7 @@ MultipleTraitLinearRegressionScoreTest::MultipleTraitLinearRegressionScoreTest(
   this->work = new MultipleTraitLinearRegressionScoreTestInternal;
   this->blockSize = blockSize;
   this->resultLength = 0;
+  this->groupSize = -1;
 }
 
 MultipleTraitLinearRegressionScoreTest::

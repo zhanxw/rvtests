@@ -76,14 +76,19 @@ struct CommonVariable {
 class PlinkLoader {
  public:
   PlinkLoader(CommonVariable& cv)
-      : M_(cv.M_),
+      : pin_(NULL),
+        M_(cv.M_),
         M2_(cv.M2_),
         N_(cv.N_),
         // N2_(cv.N2_),
         C_(cv.C_),
         BatchSize_(cv.BatchSize_),
         NumBatch_(cv.NumBatch_),
-        random_(cv.random_) {}
+        random_(cv.random_),
+        Nstride_(-1),
+        genotype_(NULL),
+        stage_(NULL),
+        byte2genotype_(NULL) {}
   // PlinkLoader(const std::string& fn) : pin_(fn) {
   int open(const std::string& fn) {
     pin_ = new PlinkInputFile(fn);

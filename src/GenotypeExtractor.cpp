@@ -22,6 +22,7 @@ GenotypeExtractor::GenotypeExtractor(const std::string& fn)
       needGQ(false),
       parRegion(NULL),
       sex(NULL),
+      sampleSize(-1),
       multiAllelicMode(false),
       altAlleleToParse(-1) {
   this->vin = new VCFExtractor(fn.c_str());

@@ -75,8 +75,9 @@ class PlinkInputFile {
       if (snp2Idx.find(fd[1]) == snp2Idx.end()) {
         chrom.push_back(fd[0]);
         snp.push_back(fd[1]);
-        snp2Idx[fd[1]] =
-            snp2Idx.size() - 1;  //  -1 since fd[1] will be created using []
+        snp2Idx[fd[1]] = 0;
+        const int val = snp2Idx.size() - 1;
+        snp2Idx[fd[1]] = val;
         mapDist.push_back(atof(fd[2].c_str()));
         pos.push_back(atoi(fd[3].c_str()));
         ref.push_back(fd[4]);
@@ -98,8 +99,9 @@ class PlinkInputFile {
 
       // will skip loading fam, fatherid, motherid
       if (pid2Idx.find(fd[1]) == pid2Idx.end()) {
-        pid2Idx[fd[1]] =
-            pid2Idx.size() - 1;  //  -1 since fd[1] will be created using []
+        pid2Idx[fd[1]] = -1;
+        const int val = pid2Idx.size() - 1;
+        pid2Idx[fd[1]] = val;
         indv.push_back(fd[1]);
         sex.push_back(atoi(fd[4].c_str()));
         pheno.push_back(atof(fd[5].c_str()));

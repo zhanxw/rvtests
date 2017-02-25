@@ -163,7 +163,6 @@ class VCFInputFile {
 
   Mode mode;
   std::string line;
-  bool isBCF;  // read a bcf file?
 
   // readers
   LineReader* fp;

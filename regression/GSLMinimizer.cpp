@@ -4,7 +4,8 @@
 
 #include "GSLMinimizer.h"
 
-Minimizer::Minimizer() : epsabs(0.001), epsrel(0.0), maxIter(100) {
+Minimizer::Minimizer()
+    : finalX(NAN), finalY(NAN), epsabs(0.001), epsrel(0.0), maxIter(100) {
   T = gsl_min_fminimizer_brent;
   s = gsl_min_fminimizer_alloc(T);
 }

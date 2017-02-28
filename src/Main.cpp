@@ -4,6 +4,9 @@
 #include <set>
 #include <string>
 #include <vector>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "base/Argument.h"
 #include "base/CommonFunction.h"
@@ -377,7 +380,7 @@ ADD_DOUBLE_PARAMETER(
 ADD_PARAMETER_GROUP("Missing Data");
 ADD_STRING_PARAMETER(
     impute, "--impute",
-    "Impute missing genotype (default:mean);:  mean, hwe, and drop");
+    "Impute missing genotype (default:mean):  mean, hwe, and drop");
 ADD_BOOL_PARAMETER(
     imputePheno, "--imputePheno",
     "Impute phenotype to mean of those have genotypes but no phenotypes");
@@ -393,6 +396,8 @@ ADD_PARAMETER_GROUP("Auxiliary Functions");
 ADD_BOOL_PARAMETER(noweb, "--noweb", "Skip checking new version");
 ADD_BOOL_PARAMETER(hideCovar, "--hide-covar",
                    "Surpress output lines of covariates");
+ADD_DEFAULT_INT_PARAMETER(numThread, 1, "--numThread",
+                          "Specify number of threads (default:1)");
 ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message");
 END_PARAMETER_LIST();
 
@@ -443,6 +448,27 @@ int main(int argc, char** argv) {
   PARAMETER_INSTANCE().WriteToFile(logger->getHandle());
   logger->infoToFile("Parameters END");
   logger->sync();
+
+// set up multithreading
+#ifdef _OPENMP
+  if (FLAG_numThread <= 0) {
+    fprintf(stderr, "Invalid number of threads [ %d ], reset to single thread",
+            FLAG_numThread);
+    omp_set_num_threads(1);
+  } else if (FLAG_numThread > omp_get_max_threads()) {
+    int maxThreads = omp_get_max_threads();
+    fprintf(stderr,
+            "Reduced your specified number of threads to the maximum of system "
+            "limit [ %d ]",
+            maxThreads);
+    omp_set_num_threads(maxThreads);
+  } else if (FLAG_numThread == 1) {
+    // do nothing
+  } else {
+    logger->info("Set number of threads = [ %d ]", FLAG_numThread);
+    omp_set_num_threads(FLAG_numThread);
+  }
+#endif
 
   // start analysis
   time_t startTime = time(0);
@@ -1140,7 +1166,6 @@ int main(int argc, char** argv) {
     for (size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
       ge.setRange(rangeList);
-
       buf.clearValue();
       int ret = ge.extractMultipleGenotype(&genotype);
 

@@ -1,10 +1,12 @@
 #include "FastLMM.h"
+
+#include "libsrc/MathMatrix.h"
+#include "third/eigen/Eigen/Dense"
+#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
+
 #include "EigenMatrix.h"
 #include "EigenMatrixInterface.h"
-
-#include "Eigen/Dense"
 #include "GSLMinimizer.h"
-#include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
 // #define EIGEN_NO_DEBUG
 #undef DEBUG
@@ -171,7 +173,8 @@ class FastLMM::Impl {
           (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
       double altSumResidual2 =
           ((altUy.array() - (altUx * altBeta).array()).square() /
-           (altLambda.array() + delta)).sum();
+           (altLambda.array() + delta))
+              .sum();
 
       double altSigma2;
       if (model == FastLMM::MLE) {
@@ -196,7 +199,8 @@ class FastLMM::Impl {
             0.5 *
             log((altUx.transpose() *
                  (altLambda.array() + delta).inverse().matrix().asDiagonal() *
-                 altUx).determinant());
+                 altUx)
+                    .determinant());
       }
       this->altLikelihood = ret;
       this->stat = 2.0 * (this->altLikelihood -
@@ -222,9 +226,10 @@ class FastLMM::Impl {
       dumpToFile(u_g_center, "u_g_center");
 #endif
 
-      this->Ustat = (((u_g_center) * (this->uResid).array()) /
-                     (lambda.array() + delta)).sum() /
-                    this->sigma2;
+      this->Ustat =
+          (((u_g_center) * (this->uResid).array()) / (lambda.array() + delta))
+              .sum() /
+          this->sigma2;
       // when there is no covariate: this->Vstat = (u_g_center.square() /
       // (lambda.array() + delta)).sum() / this->sigma2 ;
       this->Vstat = ((u_g_center).matrix().transpose() * this->scaledK *
@@ -283,7 +288,8 @@ class FastLMM::Impl {
   }
   double getSumResidual2(double delta) {
     return ((this->uy.array() - (this->ux * this->beta).array()).square() /
-            (this->lambda.array() + delta)).sum();
+            (this->lambda.array() + delta))
+        .sum();
   }
   void getBetaSigma2(double delta) {
 // Eigen::MatrixXf x = (this->lambda.array() +
@@ -337,7 +343,8 @@ class FastLMM::Impl {
           0.5 *
           log((this->ux.transpose() *
                (this->lambda.array() + delta).inverse().matrix().asDiagonal() *
-               this->ux).determinant());
+               this->ux)
+                  .determinant());
     }
     // printf("ll = %g\n", ret);
     this->nullLikelihood = ret;
@@ -409,7 +416,8 @@ class FastLMM::Impl {
       // alpha = 1' * K^{-1}  = u1' * lambda^{-1} * u
       alpha = (u1.transpose() *
                this->lambda.array().abs().inverse().matrix().asDiagonal() *
-               U.transpose()).row(0);
+               U.transpose())
+                  .row(0);
       initialized = true;
       // fprintf(stderr, "initialized\n");
     }
@@ -519,9 +527,10 @@ class FastLMM::Impl {
     Eigen::Map<const Eigen::MatrixXd> g2D(g2.data(), n, 1);
     Eigen::MatrixXf g2E = g2D.cast<float>();
 
-    *out = (g1E.array() * (this->lambda.array() + delta).inverse() *
-            g2E.array()).sum() /
-           this->sigma2;
+    *out =
+        (g1E.array() * (this->lambda.array() + delta).inverse() * g2E.array())
+            .sum() /
+        this->sigma2;
   }
   void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
                 const EigenMatrix& kinshipS, std::vector<double>* out) {

@@ -1,8 +1,10 @@
 #ifndef _EIGENMATRIXINTERFACE_H_
 #define _EIGENMATRIXINTERFACE_H_
 
-#include "libsrc/MathMatrix.h"
 #include "third/eigen/Eigen/Core"
+
+class Matrix;
+class Vector;
 
 void Eigen_to_G(const Eigen::MatrixXf& EigenM, Matrix* GM);
 void Eigen_to_G(const Eigen::VectorXf& EigenV, Vector* GV);
@@ -29,4 +31,9 @@ double safeSum(const Eigen::MatrixXd& m);
 
 // calculate rank based on LU decomposition
 int matrixRank(Matrix& in);
+
+// dump Eigen contents into files
+void dumpToFile(const Eigen::MatrixXf& mat, const char* fn);
+void dumpToFile(const Eigen::Map<Eigen::MatrixXf>& mat, const char* fn);
+
 #endif /* _EIGENMATRIXINTERFACE_H_ */

@@ -61,7 +61,7 @@ int Socket::connect(const std::string& host, int port) {
 }
 
 void Socket::close() {
-  if (this->fd) {
+  if (this->fd && this->fd != -1) {  // -1: error or not yet openned
     ::close(fd);
     fd = -1;
   }

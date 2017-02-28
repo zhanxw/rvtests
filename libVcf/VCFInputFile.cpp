@@ -23,7 +23,8 @@ void VCFInputFile::setRangeMode() {
     this->tabixReader = new TabixReader(this->fileName);
     if (!this->tabixReader->good()) {
       fprintf(stderr,
-              "[ERROR] Cannot read VCF by range, please check your have index "
+              "[ERROR] Cannot read VCF by range, please verify you have the "
+              "index file"
               "(or create one use tabix).\nQuitting...");
       abort();
     } else {
@@ -37,7 +38,8 @@ void VCFInputFile::setRangeMode() {
   } else if (mode == BCF_MODE) {
     if (!this->bcfReader->good() || !this->bcfReader->indexed()) {
       fprintf(stderr,
-              "[ERROR] Cannot read BCF by range, please check your have index "
+              "[ERROR] Cannot read BCF by range, please verify you have the "
+              "index file "
               "(or create one use bcftools).\nQuitting...");
       abort();
     }

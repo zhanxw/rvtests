@@ -110,11 +110,11 @@ int parseRangeFormat(const std::string& s, std::string* chr,
     return 0;
   }
 
-  i++;                    // skip '-'
-  const int e = 1 << 29;  // that's the constant used in tabix
-  if (s[i] == '\0') {     // format like: 1:100-
-    *end = 1 << 29;       // that's the constant used in tabix
+  i++;                 // skip '-'
+  if (s[i] == '\0') {  // format like: 1:100-
+    *end = 1 << 29;    // that's the constant used in tabix
   } else {
+    int e;
     if (!str2int(s.c_str() + i, &e) || e < 0 || b > e) {
       return -1;
     }

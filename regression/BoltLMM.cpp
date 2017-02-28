@@ -7,6 +7,7 @@
 #include "base/TypeConversion.h"
 #include "base/Utils.h"
 #include "libVcf/PlinkInputFile.h"
+#include "libsrc/MathMatrix.h"
 #include "libsrc/Random.h"
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
@@ -826,7 +827,9 @@ class BoltLMM::BoltLMMImpl {
       fprintf(stderr, "i = %d\tlogDelta = %f\tf = %f\tdelta = %f\th2 = %f\n", i,
               logDelta[i], f[i], exp(logDelta[i]), h2[i]);
     }
-
+    if (i == 7) {
+      --i;
+    }  // boudary case when i reaches its maximum
 #ifdef DEBUG
     // print iterations
     fprintf(stderr, "\ni\tlogDelta\tf\tdelta\th2\n");
@@ -844,6 +847,11 @@ class BoltLMM::BoltLMMImpl {
     sigma2_e_est_ = delta_ * sigma2_g_est_;
     assert(sigma2_g_est_ > 0);
     h2_ = h2[i];
+#ifdef DEBUG
+    fprintf(stderr,
+            "i = %d, delta = %g, sigma2_g = %g, sigma2_e = %g, h2 = %g\n", i,
+            delta_, sigma2_g_est_, sigma2_e_est_, h2_);
+#endif
     // need to multiply this
     // originally we calculate (K/M + delta)^(-1) * y
     // we now need (K/M * sigma2.g + delta * sigma2.e)^(-1) * y
@@ -881,8 +889,9 @@ class BoltLMM::BoltLMMImpl {
     double f = log((r_data[0] / r_data[1]) / (r_rand[0] / r_rand[1]));
     fprintf(stderr, "data = {%g, %g}, rand = {%g, %g}\n", r_data[0], r_data[1],
             r_rand[0], r_rand[1]);
+
+// uncomment to get intermediate results
 #if 0
-    // uncomment to get intermediate results
     dumpToFile(w.y, "tmp.w.y");
     FILE* fp = fopen("tmp.g", "wt");
     for (int b = 0; b < NumBatch_; ++b) {
@@ -994,6 +1003,7 @@ class BoltLMM::BoltLMMImpl {
   // calculate invser(K)*y, aka solve(K, y),
   // where K = G * G' / M
   // y: [ (N) x (1)]
+  // NOTE: when K is GRM, K in singular and cannot be inverted
   void solveKinv(const Eigen::MatrixXf& y, Eigen::MatrixXf* k_inv_y) {
 #ifdef DEBUG
     QuickTimer qt(__PRETTY_FUNCTION__);

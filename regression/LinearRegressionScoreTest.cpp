@@ -1,5 +1,8 @@
 #include "LinearRegressionScoreTest.h"
 #include "MatrixOperation.h"
+#include "libsrc/MathCholesky.h"
+#include "libsrc/MathSVD.h"
+#include "libsrc/MathStats.h"
 
 #include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
@@ -310,4 +313,12 @@ void LinearRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull,
       }
     }
   }
+}
+
+const double LinearRegressionScoreTest::GetSEBeta(int idx) const {
+  const double v = this->Vmatrix[idx][idx];
+  if (v == 0.0) {
+    return 0.0;
+  }
+  return (this->GetSigma2() / sqrt(v));
 }

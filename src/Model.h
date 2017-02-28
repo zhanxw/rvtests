@@ -331,7 +331,7 @@ class SingleVariantScoreTest : public ModelFitter {
         }
         if (v > 0) {
           result.updateValue("EFFECT", linear.GetBeta()[0][0]);
-          result.updateValue("SE", 1.0 / sqrt(v));
+          result.updateValue("SE", linear.GetSEBeta(0));
         }
         result.updateValue("PVALUE", linear.GetPvalue());
       } else {
@@ -346,7 +346,7 @@ class SingleVariantScoreTest : public ModelFitter {
         }
         if (v > 0 && b > 0) {
           result.updateValue("EFFECT", u / v / b);
-          result.updateValue("SE", 1.0 / sqrt(v) / b);  // need to verify
+          result.updateValue("SE", 1.0 / sqrt(v) / b);
         }
         result.updateValue("PVALUE", logistic.GetPvalue());
       }

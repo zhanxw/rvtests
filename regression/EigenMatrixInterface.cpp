@@ -1,7 +1,10 @@
 #include "EigenMatrixInterface.h"
 
-#include <Eigen/Cholesky>
-#include <Eigen/LU>
+#include <fstream>
+
+#include "libsrc/MathMatrix.h"
+#include "third/eigen/Eigen/Cholesky"
+#include "third/eigen/Eigen/LU"
 
 void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* _EigenM) {
   Eigen::MatrixXf& EigenM = *_EigenM;
@@ -122,5 +125,20 @@ int matrixRank(Matrix& in) {
   Eigen::MatrixXf x;
   G_to_Eigen(in, &x);
 
-  return x.fullPivLu().rank();
+  const int rank = x.fullPivLu().rank();
+  return rank;
+}
+
+void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
+  std::ofstream out(fn);
+  out << mat.rows() << "\t" << mat.cols() << "\n";
+  out << mat;
+  out.close();
+}
+
+void dumpToFile(const Eigen::Map<Eigen::MatrixXf>& mat, const char* fn) {
+  std::ofstream out(fn);
+  out << mat.rows() << "\t" << mat.cols() << "\n";
+  out << mat;
+  out.close();
 }

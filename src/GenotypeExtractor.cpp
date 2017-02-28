@@ -66,7 +66,6 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     VCFIndividual* indv;
 
     this->sampleSize = people.size();
-    // m.Dimension(row + 1, people.size());
     row++;
     this->variantName.resize(row);
     this->counter.resize(row);
@@ -104,14 +103,23 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
         geno = getGenotype(*indv, useDosage, isHemiRegion, (*sex)[i], genoIdx,
                            GDidx, GQidx);
       }
-      genotype.push_back(geno);
-      counter.back().add(geno);
+      this->genotype.push_back(geno);
+      this->counter.back().add(geno);
     }  // end for i
 
     // check frequency cutoffs
     const double maf = counter.back().getMAF();
-    if (this->freqMin > 0. && this->freqMin > maf) continue;
-    if (this->freqMax > 0. && this->freqMax < maf) continue;
+    if ((this->freqMin > 0. && this->freqMin > maf) ||
+        (this->freqMax > 0. && this->freqMax < maf)) {
+      // undo loaded contents
+      row--;
+      this->variantName.resize(row);
+      this->counter.resize(row);
+      this->hemiRegion.resize(row);
+      this->genotype.resize(this->genotype.size() - this->sampleSize);
+      this->altAlleleToParse--;
+      continue;
+    }
 
     this->variantName.back() = r.getChrom();
     this->variantName.back() += ":";

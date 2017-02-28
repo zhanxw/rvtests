@@ -163,7 +163,12 @@ class SkatO::SkatOImpl {
       chol.compute(R_rhos[i]);  // R_rhos[i] = L * L^T
       Eigen::MatrixXd Z2 = Z1 * chol.matrixL();
       Eigen::MatrixXd K = Z2.transpose() * Z2;
-      getEigen(K, &lambdas[i]);
+      if (getEigen(K, &lambdas[i])) {
+        // error occured,
+        // e.g. G is in the column space of Z => Z1 = 0 => K is all zeros
+        //      this can happen when many covariates are used
+        return -1;
+      }
     }
 
     // calculate some parameters (for Z(I-M)Z part)

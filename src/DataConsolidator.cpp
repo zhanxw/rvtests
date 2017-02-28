@@ -208,11 +208,13 @@ int DataConsolidator::checkColinearity(Matrix& cov) {
     return 0;
   }
 
-  int r = matrixRank(cov);
-  int m = (cov.rows > cov.cols) ? cov.cols : cov.rows;
-  // fprintf(stderr, "rank of cov is %d, and min(r,c) = %d\n", r, m);
+  const int r = matrixRank(cov);
+  const int m = (cov.rows > cov.cols) ? cov.cols : cov.rows;
   if (m != r) {
-    logger->warn("The covariate matrix may be rank deficient (%d < %d)!", r, m);
+    logger->warn(
+        "The covariate matrix may be rank deficient (rank = [ %d ], dim = [ "
+        "%d, %d ])!",
+        r, cov.rows, cov.cols);
     return -1;
   }
   return 0;
@@ -346,6 +348,7 @@ int DataConsolidator::prepareBoltModel(
   std::vector<double> lmiss(M);  // marker
   pin.calculateMissing(&imiss, &lmiss);
 
+  bool needNewPlink = false;
   // check missingness for samples
   std::set<int> badSampleIdx;
   for (int i = 0; i != N; ++i) {
@@ -353,12 +356,13 @@ int DataConsolidator::prepareBoltModel(
       logger->warn("Sample [ %s ] has high rate of missing genotype [ %g ]!\n",
                    pin.getIID()[i].c_str(), lmiss[i]);
       badSampleIdx.insert(i);
+      needNewPlink = true;
     }
   }
   if (badSampleIdx.size()) {
     logger->warn(
-        "[ %d ] sample(s) have high missing rate, however, we kept them in the "
-        "BOLT model.",
+        "[ %d ] sample(s) have high missing rate, need to create new binary "
+        "PLINK files",
         (int)badSampleIdx.size());
   }
 
@@ -366,10 +370,17 @@ int DataConsolidator::prepareBoltModel(
   std::vector<int> snpIdx;  // keep these SNPs
   for (size_t i = 0; i != maf.size(); ++i) {
     if (maf[i] < 0.05 || lmiss[i] > 0.05) {
+      needNewPlink = true;
       continue;
     } else {
       snpIdx.push_back(i);
     }
+  }
+  if ((int)snpIdx.size() != M) {
+    logger->warn(
+        "[ %d ] markers have high missing rate or low MAF, need to create new "
+        "binary PLINK files",
+        M - (int)snpIdx.size());
   }
 
   // build a sample index, such that plink.fam[index] is in the same order as
@@ -381,8 +392,24 @@ int DataConsolidator::prepareBoltModel(
     }
     sampleIdx.push_back(pin.getSampleIdx(sampleName[i]));
   }
+  // check order
+  for (size_t i = 0; i != sampleName.size(); ++i) {
+    if (pin.getSampleIdx(sampleName[i]) != (int)i) {
+      needNewPlink = true;
+      logger->warn(
+          "To adjust phenotype order, need to create new binary PLINK files");
+      break;
+    }
+  }
+  if ((int)sampleName.size() != N) {
+    logger->warn(
+        "Existing binary PLINK file has more samples [ %d ], need to create "
+        "new binary PLINK files",
+        N - (int)sampleName.size());
+    needNewPlink = true;
+  }
 
-  if (badSampleIdx.size() || snpIdx.size() != maf.size()) {
+  if (needNewPlink) {
     // write a new set of PLINK file
     this->boltPrefix = prefix + ".out";
     logger->info("Need to create new binary PLINK files with prefix [ %s ].",

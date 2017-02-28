@@ -90,7 +90,9 @@ class SkatO::SkatOImpl {
                   .solve(X.transpose() * v.asDiagonal() * G);
     }
     W = W / 2;  // follow SKAT R package convension to divide 2 here.
-    getEigen(W, &lambda);
+    if (getEigen(W, &lambda)) {  // error can occur when lambda are all zeros
+      return -1;
+    }
     this->pValue = getPvalDavies(Q, lambda);
     return 0;
   }
@@ -177,7 +179,9 @@ class SkatO::SkatOImpl {
     Eigen::MatrixXd ZMZ = z_bar.transpose() * Z1;
     ZMZ = (ZMZ.transpose() * ZMZ) / z_norm;
     Eigen::MatrixXd ZIMZ = Z1.transpose() * Z1 - ZMZ;  // Z(I-M)Z' = ZZ' - ZMZ'
-    getEigen(ZIMZ, &this->lambda);
+    if (getEigen(ZIMZ, &this->lambda)) {
+      return -1;
+    }
     this->VarZeta = 4.0 * (ZMZ.array() * ZIMZ.array()).sum();
     this->MuQ = lambda.sum();
     this->VarQ = 2.0 * (lambda.array() * lambda.array()).sum() + VarZeta;

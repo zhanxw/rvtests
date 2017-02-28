@@ -36,6 +36,8 @@ GenotypeExtractor::~GenotypeExtractor() {
 }
 
 int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
+  assert(g);
+  assert(g->rows >= 0 && g->cols >= 0);
   int row = 0;
   this->genotype.clear();
   this->altAlleleToParse = -1;
@@ -126,10 +128,12 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
   }  // end while (this->vin->readRecord())
 
   // now transpose (marker by people -> people by marker)
-  assert((int)genotype.size() == this->sampleSize * row);
-  assign(this->genotype, sampleSize, row, g);
-  for (int i = 0; i < row; ++i) {
-    g->SetColumnLabel(i, variantName[i].c_str());
+  if (row > 0) {
+    assert((int)genotype.size() == this->sampleSize * row);
+    assign(this->genotype, sampleSize, row, g);
+    for (int i = 0; i < row; ++i) {
+      g->SetColumnLabel(i, variantName[i].c_str());
+    }
   }
   return SUCCEED;
 }  // end GenotypeExtractor

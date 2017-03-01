@@ -1,3 +1,11 @@
+2017-02-28  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix a bug when loadindg a group of varaints
+	* Fix SE calculation in '--single score' for quantitative traits
+	* Fix BoltLMM implementation
+	* Improve SkatO robustness
+	* Revise documentation
+
 2017-02-10  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix bugs (issue #13)

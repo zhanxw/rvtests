@@ -38,6 +38,7 @@ GenotypeExtractor::~GenotypeExtractor() {
 int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
   assert(g);
   assert(g->rows >= 0 && g->cols >= 0);
+  g->Dimension(0, 0);
   int row = 0;
   this->genotype.clear();
   this->altAlleleToParse = -1;

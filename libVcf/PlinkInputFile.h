@@ -60,11 +60,12 @@ class PlinkInputFile {
       this->snpMajorMode = false;
     } else {
       fprintf(stderr, "Unrecognized major mode in binary PLINK file.\n");
-      abort();
+      exit(1);
     }
 
     // read bim
     LineReader* lr = new LineReader((this->prefix + ".bim").c_str());
+    std::string chrPos;
     std::vector<std::string> fd;
     while (lr->readLineBySep(&fd, " \t")) {
       if (fd.size() != 6) {
@@ -72,18 +73,29 @@ class PlinkInputFile {
         exit(1);
       }
 
-      if (snp2Idx.find(fd[1]) == snp2Idx.end()) {
+      // when rsid == ".", use "chr:pos" as dict key
+      if (fd[1] == ".") {
+        chrPos = fd[0];
+        chrPos += ":";
+        chrPos += fd[3];
+      } else {
+        chrPos = fd[1];
+      }
+      if (snp2Idx.find(chrPos) == snp2Idx.end()) {
         chrom.push_back(fd[0]);
         snp.push_back(fd[1]);
-        snp2Idx[fd[1]] = 0;
+        snp2Idx[chrPos] = 0;
         const int val = snp2Idx.size() - 1;
-        snp2Idx[fd[1]] = val;
+        snp2Idx[chrPos] = val;
         mapDist.push_back(atof(fd[2].c_str()));
         pos.push_back(atoi(fd[3].c_str()));
         ref.push_back(fd[4]);
         alt.push_back(fd[5]);
       } else {
-        fprintf(stderr, "duplicate marker name [%s], ignore!\n", fd[1].c_str());
+        fprintf(stderr,
+                "Error found: duplicated marker name or chromosomal position [ "
+                "%s ]!\n",
+                fd[1].c_str());
         exit(1);
       }
     }
@@ -133,7 +145,7 @@ class PlinkInputFile {
   int calculateMissing(std::vector<double>* imiss, std::vector<double>* lmiss);
 
   // read BED file
-  int readBED(unsigned char* buf, int n);
+  int readBED(unsigned char* buf, size_t n);
 
   // utility functions
   // get PLINK 2bit genotype for the @param sample'th sample and @param

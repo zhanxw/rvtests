@@ -331,8 +331,8 @@ int PlinkInputFile::calculateMissing(std::vector<double>* imiss,
   return 0;
 }
 
-int PlinkInputFile::readBED(unsigned char* buf, int n) {
-  int nRead = 0;
+int PlinkInputFile::readBED(unsigned char* buf, size_t n) {
+  size_t nRead = 0;
   while (nRead < n) {
     nRead += fread(buf + nRead, sizeof(unsigned char), n, this->fpBed);
   }

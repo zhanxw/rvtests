@@ -30,7 +30,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20170228";
+const char* VERSION = "20170303";
 
 void banner(FILE* fp) {
   const char* string =
@@ -41,7 +41,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      February 2017                     | \n"
+      "|      March 2017                        | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -353,6 +353,8 @@ ADD_STRING_PARAMETER(
     "Specify eigen decomposition results of a kinship file for X analysis");
 ADD_STRING_PARAMETER(boltPlink, "--boltPlink",
                      "Specify a prefix of binary PLINK inputs for BoltLMM")
+ADD_BOOL_PARAMETER(boltPlinkNoCheck, "--boltPlinkNoCheck",
+                   "Not checking MAF and missingness for binary PLINK file")
 
 ADD_PARAMETER_GROUP("Grouping Unit ");
 ADD_STRING_PARAMETER(geneFile, "--geneFile",

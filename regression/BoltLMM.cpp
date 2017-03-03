@@ -21,20 +21,6 @@
 #include "base/SimpleTimer.h"
 #include "base/TimeUtil.h"
 
-void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
-  std::ofstream out(fn);
-  out << mat.rows() << "\t" << mat.cols() << "\n";
-  out << mat;
-  out.close();
-}
-
-void dumpToFile(const Eigen::Map<Eigen::MatrixXf>& mat, const char* fn) {
-  std::ofstream out(fn);
-  out << mat.rows() << "\t" << mat.cols() << "\n";
-  out << mat;
-  out.close();
-}
-
 class QuickTimer {
  public:
   QuickTimer(const std::string& msg) {
@@ -63,14 +49,14 @@ struct Float4 {
 
 // serveral modules share these settings
 struct CommonVariable {
-  int M_;
-  int M2_;  // this is M round up to multiple of BatchSize_
-  int N_;
-  // int N2;       // this is N round up to multiple of 4
-  int C_;  // >= 1 integer (intercept)
-  int MCtrial_;
-  int BatchSize_;  // batch size of marker are processed at a time
-  int NumBatch_;   // number of batches
+  size_t M_;
+  size_t M2_;  // this is M round up to multiple of BatchSize_
+  size_t N_;
+  // size_t N2;       // this is N round up to multiple of 4
+  size_t C_;  // >= 1 size_teger (size_tercept)
+  size_t MCtrial_;
+  size_t BatchSize_;  // batch size of marker are processed at a time
+  size_t NumBatch_;   // number of batches
   Random random_;
 };
 
@@ -105,11 +91,11 @@ class PlinkLoader {
     genotype_ = NULL;  // defer memory allocation in prepareGenotype()
     snpLookupTable_.resize(M2_);
     stage_ = NULL;  // defer memory allocation until covariates are loaded
-    if (omp_get_max_threads() > BatchSize_) {
+    if (omp_get_max_threads() > (int)BatchSize_) {
       fprintf(stderr,
               "Please specify OpenMP threads less than [ %d ], current value "
               "is [ %d ]\n",
-              BatchSize_, omp_get_max_threads());
+              (int)BatchSize_, omp_get_max_threads());
       exit(1);
     }
     byte2genotype_ = new float[omp_get_max_threads() * 256 * 4 * sizeof(float)];
@@ -165,7 +151,7 @@ class PlinkLoader {
           return (-1);
         }
         z_(lineNo - 2, 0) = 1.0;
-        for (int i = 1; i < C_; ++i) {
+        for (size_t i = 1; i != C_; ++i) {
           z_(lineNo - 2, i) = atof(fd[2 + i - 1]);
         }
       }
@@ -178,7 +164,7 @@ class PlinkLoader {
     if (N_ < 16) {
       Eigen::JacobiSVD<Eigen::MatrixXf> svd(z_, Eigen::ComputeThinU);
       float threshold = svd.singularValues()[0] * 1e-8;
-      for (int i = 1; i < C_; ++i) {
+      for (size_t i = 1; i != C_; ++i) {
         if (svd.singularValues()[i] > threshold) {
           numSingularValueKept++;
         }
@@ -187,7 +173,7 @@ class PlinkLoader {
     } else {
       Eigen::BDCSVD<Eigen::MatrixXf> svd(z_, Eigen::ComputeThinU);
       float threshold = svd.singularValues()[0] * 1e-8;
-      for (int i = 1; i < C_; ++i) {
+      for (size_t i = 1; i != C_; ++i) {
         if (svd.singularValues()[i] > threshold) {
           numSingularValueKept++;
         }
@@ -200,12 +186,12 @@ class PlinkLoader {
   int preparePhenotype(const Matrix* phenotype) {
     y_ = Eigen::MatrixXf::Zero(N_ + C_, 1);
     if (phenotype) {
-      for (int i = 0; i < N_; ++i) {
+      for (int i = 0; i < (int)N_; ++i) {
         y_(i, 0) = (*phenotype)[i][0];
       }
     } else {
       const std::vector<double>& pheno = pin_->getPheno();
-      for (int i = 0; i < N_; ++i) {
+      for (int i = 0; i < (int)N_; ++i) {
         y_(i, 0) = pheno[i];
       }
     }
@@ -217,6 +203,14 @@ class PlinkLoader {
   }
   int prepareGenotype() {
     // load .bed file to the memory
+
+    // convert to size_t is necessary
+    // e.g. when Nstride_ * M2_ = 20000 * 123648 = 2.4 x 10^9
+    // since the maximum 32bit integer is ~2 x 109,
+    // there will be integer overflow, and thus crash the program with bad_alloc
+    // NOTE: in gdb, this type of error can be caught using:
+    //       b 'std::bad_alloc::bad_alloc()'
+    // fprintf(stderr, "Allocate unsigned char [ %d * %d]", Nstride_, M2_);
     genotype_ = new unsigned char[Nstride_ * M2_];
     pin_->readBED(genotype_, M_ * Nstride_);
 
@@ -242,7 +236,7 @@ class PlinkLoader {
       }
     }
     unsigned char* p = genotype_;
-    for (int m = 0; m < M_; ++m) {
+    for (size_t m = 0; m != M_; ++m) {
       assert(p == (genotype_ + m * Nstride_));
       int numAllele = 0;
       int numAllele2 = 0;
@@ -251,7 +245,7 @@ class PlinkLoader {
       // the remainder bits are 00 (homozygous REF)
       // since we count alternative alleles, we do not need to deal with the
       // remainder genotypes with special care.
-      for (int n = 0; n < Nstride_; ++n) {
+      for (size_t n = 0; n != Nstride_; ++n) {
         numAllele += alleleCount[(*p)];
         numAllele2 += alleleCount2[(*p)];
         numMissing += missingCount[(*p)];
@@ -274,7 +268,7 @@ class PlinkLoader {
         snpLookupTable_[m][PlinkInputFile::MISSING] = 0.0;
       }
     }
-    for (int m = M_ + 1; m < M2_; ++m) {
+    for (size_t m = M_ + 1; m != M2_; ++m) {
       snpLookupTable_[m][PlinkInputFile::HOM_REF] = 0.0;
       snpLookupTable_[m][PlinkInputFile::HET] = 0.0;
       snpLookupTable_[m][PlinkInputFile::HOM_ALT] = 0.0;
@@ -288,7 +282,7 @@ class PlinkLoader {
     gNorm2_.setZero();
 
     // load SNP in batches
-    for (int batch = 0; batch < NumBatch_; ++batch) {
+    for (size_t batch = 0; batch != NumBatch_; ++batch) {
       loadSNPBatch(batch, stage_);
       int lb = batch * BatchSize_;
       int ub = std::min(lb + BatchSize_, M_);
@@ -305,7 +299,7 @@ class PlinkLoader {
     return 0;
   }
   int projectCovariate(Eigen::MatrixXf* mat) {
-    assert(mat && mat->rows() == N_ + C_);
+    assert(mat && (size_t)mat->rows() == N_ + C_);
     Eigen::MatrixXf& m = *mat;
     m.bottomRows(C_).noalias() = z_.transpose() * m.topRows(N_);
     return 0;
@@ -324,14 +318,14 @@ class PlinkLoader {
   //  @param, marker [batch*BatchSize_, min(
   // (batch+1)*BatchSize_, M_)]
   // will be extracted and stored in gBatchSize_
-  int loadSNPBatch(int batch, float* stage) {
+  int loadSNPBatch(size_t batch, float* stage) {
     // #ifdef DEBUG
     //     QuickTimer qt(__PRETTY_FUNCTION__);
     // #endif
-    int lb = batch * BatchSize_;
-    int ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
+    size_t lb = (size_t)batch * BatchSize_;
+    size_t ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
 #pragma omp parallel for
-    for (int i = lb; i < ub; ++i) {
+    for (size_t i = lb; i < ub; ++i) {
       unsigned char* g = genotype_ + i * Nstride_;
       float* p = stage + (i - lb) * N_;
       // build lookup table
@@ -366,14 +360,15 @@ class PlinkLoader {
   // for a given batch @param, marker [batch*BatchSize_, min(
   // (batch+1)*BatchSize_, M_)]
   // will be extracted and stored in gBatchSize_
-  int loadSNPWithCovBatch(int batch, float* stage) {
+  int loadSNPWithCovBatch(size_t batch, float* stage) {
     // #ifdef DEBUG
     //     QuickTimer qt(__PRETTY_FUNCTION__);
     // #endif
-    int lb = batch * BatchSize_;
-    int ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
+    size_t lb = (size_t)batch * BatchSize_;
+    size_t ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
+
 #pragma omp parallel for
-    for (int i = lb; i < ub; ++i) {
+    for (size_t i = lb; i < ub; ++i) {
       unsigned char* g = genotype_ + i * Nstride_;
       float* p = stage + (i - lb) * (N_ + C_);
       // build lookup table
@@ -419,14 +414,14 @@ class PlinkLoader {
   // for a given batch @param, marker [batch*BatchSize_, min(
   // (batch+1)*BatchSize_, M_)]
   // will be extracted and stored in gBatchSize_
-  int loadSNPWithNegCovBatch(int batch, float* stage) {
+  int loadSNPWithNegCovBatch(size_t batch, float* stage) {
     // #ifdef DEBUG
     //     QuickTimer qt(__PRETTY_FUNCTION__);
     // #endif
-    int lb = batch * BatchSize_;
-    int ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
+    size_t lb = batch * BatchSize_;
+    size_t ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
 #pragma omp parallel for
-    for (int i = lb; i < ub; ++i) {
+    for (size_t i = lb; i < ub; ++i) {
       unsigned char* g = genotype_ + i * Nstride_;
       float* p = stage + (i - lb) * (N_ + C_);
       // build lookup table
@@ -452,7 +447,7 @@ class PlinkLoader {
         p++;
       }
 #endif
-      for (int j = 0; j < C_; ++j) {
+      for (size_t j = 0; j != C_; ++j) {
         *p = -zg_(j, i);
         p++;
       }
@@ -463,9 +458,9 @@ class PlinkLoader {
   // load data in batches
   // @param nSnp into [nSnp * (N_+C_)]
   int loadRandomSNPWithCov(int nSnp, float* stage) {
-    std::vector<int> indice(nSnp);
+    std::vector<size_t> indice(nSnp);
     for (int i = 0; i < nSnp; ++i) {
-      indice[i] = (int)(random_.Next() * M_);
+      indice[i] = (size_t)(random_.Next() * M_);
     }
 
 // #ifdef DEBUG
@@ -513,15 +508,15 @@ class PlinkLoader {
   PlinkInputFile* pin_;
 
   // Common variables
-  int& M_;
-  int& M2_;  // this is M round up to multiple of BatchSize_
-  int& N_;
-  int& C_;
-  int& BatchSize_;  // batch size of marker are processed at a time
-  int& NumBatch_;   // number of batches
+  size_t& M_;
+  size_t& M2_;  // this is M round up to multiple of BatchSize_
+  size_t& N_;
+  size_t& C_;
+  size_t& BatchSize_;  // batch size of marker are processed at a time
+  size_t& NumBatch_;   // number of batches
   Random& random_;
 
-  int Nstride_;
+  size_t Nstride_;
   Eigen::MatrixXf z_;   // covariate [ N x C ] matrix
   Eigen::MatrixXf y_;   // phenotype [ N x C ] matrix
   Eigen::MatrixXf zg_;  // Z' * G , [ C x M ] matrix
@@ -575,26 +570,26 @@ class WorkingData {
   void init(PlinkLoader& pl) {
     // fill beta_rand with N(0, 1/M)
     // fill e_rand with N(0, 1)
-    const double sqrtMInv = 1.0 / sqrt(M_);
+    const double sqrtMInv = 1.0 / sqrt((double)M_);
     Eigen::MatrixXf beta_rand(M2_, MCtrial_);
     beta_rand.setZero();
-    for (int i = 0; i < M_; ++i) {
-      for (int j = 0; j < MCtrial_; ++j) {
+    for (size_t i = 0; i != M_; ++i) {
+      for (size_t j = 0; j != MCtrial_; ++j) {
         beta_rand(i, j) = random_.Normal() * sqrtMInv;
       }
     }
     // calculate X* beta
     x_beta_rand.setZero();
     float* stage_ = pl.getStage();
-    for (int b = 0; b < NumBatch_; ++b) {
+    for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPWithCovBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g(stage_, N_ + C_, BatchSize_);
       x_beta_rand.noalias() +=
           g * beta_rand.block(b * BatchSize_, 0, BatchSize_, MCtrial_);
     }
 
-    for (int i = 0; i < N_; ++i) {
-      for (int j = 0; j < MCtrial_; ++j) {
+    for (size_t i = 0; i != N_; ++i) {
+      for (size_t j = 0; j != MCtrial_; ++j) {
         e_rand(i, j) = random_.Normal();
       }
     }
@@ -602,18 +597,18 @@ class WorkingData {
     y.col(0) = pl.getPhenotype();
     pl.projectCovariate(&e_rand);
 
-    assert(x_beta_rand.rows() == N_ + C_);
-    assert(x_beta_rand.cols() == MCtrial_);
+    assert((size_t)x_beta_rand.rows() == N_ + C_);
+    assert((size_t)x_beta_rand.cols() == MCtrial_);
   }
 
  public:
-  const int& M_;
-  const int& M2_;  // this is M round up to multiple of BatchSize_
-  const int& N_;
-  const int& C_;
-  const int& MCtrial_;
-  const int& BatchSize_;  // batch size of marker are processed at a time
-  const int& NumBatch_;   // number of batches
+  const size_t& M_;
+  const size_t& M2_;  // this is M round up to multiple of BatchSize_
+  const size_t& N_;
+  const size_t& C_;
+  const size_t& MCtrial_;
+  const size_t& BatchSize_;  // batch size of marker are processed at a time
+  const size_t& NumBatch_;   // number of batches
   Random& random_;
 
   Eigen::MatrixXf x_beta_rand;  // [(N+C) x (MCtrial)]
@@ -684,7 +679,7 @@ class BoltLMM::BoltLMMImpl {
   int TestCovariate(Matrix& Xcol) {
     static Eigen::MatrixXf gg;
     G_to_Eigen(Xcol, &gg);
-    if (g_test_.rows() != N_ + C_) {
+    if ((size_t)g_test_.rows() != N_ + C_) {
       g_test_.resize(N_ + C_, 1);
     }
     g_test_.topRows(N_) = gg;
@@ -737,7 +732,7 @@ class BoltLMM::BoltLMMImpl {
 #endif
     MCtrial_ = std::max(std::min((int)(4e9 / N_ / N_), 15), 3);  // follow BOLT
 #ifdef DEBUG
-    fprintf(stderr, "MCtrial_ = %d\n", MCtrial_);
+    fprintf(stderr, "MCtrial_ = %d\n", (int)MCtrial_);
 #endif
     WorkingData w(cv);
     w.init(pl);
@@ -862,7 +857,8 @@ class BoltLMM::BoltLMMImpl {
   }
   double evalREML(double logDelta, WorkingData& w) {
 #ifdef DEBUG
-    PROFILE_FUNCTION()
+    // PROFILE_FUNCTION()
+    QuickTimer qt(__PRETTY_FUNCTION__);
 #endif
     double delta = exp(logDelta);
 
@@ -926,7 +922,7 @@ class BoltLMM::BoltLMMImpl {
     // *beta_hat = g_.transpose() * H_inv_y / M;
     // Done batch load x
     (*beta_hat).resize(M2_, MCtrial_ + 1);
-    for (int b = 0; b < NumBatch_; ++b) {
+    for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPWithCovBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g_z(stage_, N_ + C_, BatchSize_);
       (*beta_hat).block(b * BatchSize_, 0, BatchSize_, MCtrial_ + 1).noalias() =
@@ -961,7 +957,7 @@ class BoltLMM::BoltLMMImpl {
 
     const int MaxIter = 250;  // BOLT-LMM maximum iteration in conjugate solver
     const double Tol = 5e-4;  // BOLT-LMM tolerence
-    const int maxIter = std::min(N_, MaxIter);
+    const int maxIter = std::min((int)N_, MaxIter);
     for (int i = 0; i < maxIter; ++i) {
       computeHx(delta, p, &ap);
       alpha = rsold.array() / projDot(p, ap).array();
@@ -1025,7 +1021,7 @@ class BoltLMM::BoltLMMImpl {
 
     const int MaxIter = 250;  // BOLT-LMM maximum iteration in conjugate solver
     const double Tol = 5e-4;  // BOLT-LMM tolerence
-    const int maxIter = std::min(N_, MaxIter);
+    const int maxIter = std::min((int)N_, MaxIter);
     for (int i = 0; i < maxIter; ++i) {
       computeKx(p, &ap);
       alpha = rsold / p.col(0).dot(ap.col(0));
@@ -1058,14 +1054,14 @@ class BoltLMM::BoltLMMImpl {
     ret->setZero();
     Eigen::MatrixXf X_y =
         Eigen::MatrixXf::Zero(M2_, y.cols());  // X' * y: [ M * (MCtrial + 1) ]
-    for (int b = 0; b < NumBatch_; ++b) {
+    for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPWithNegCovBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g(stage_, N_ + C_, BatchSize_);
       X_y.block(b * BatchSize_, 0, BatchSize_, y.cols()).noalias() =
           g.transpose() * y;
     }
 
-    for (int b = 0; b < NumBatch_; ++b) {
+    for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPWithCovBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g(stage_, N_ + C_, BatchSize_);
       (*ret).noalias() +=
@@ -1087,13 +1083,13 @@ class BoltLMM::BoltLMMImpl {
     // X_y: [X'] [ M by (1) ]
     Eigen::MatrixXf X_y =
         Eigen::MatrixXf::Zero(M2_, y.cols());  // X' * y: [ M * (1) ]
-    for (int b = 0; b < NumBatch_; ++b) {
+    for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g(stage_, N_, BatchSize_);
       X_y.block(b * BatchSize_, 0, BatchSize_, y.cols()).noalias() =
           g.transpose() * y;
     }
-    for (int b = 0; b < NumBatch_; ++b) {
+    for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g(stage_, N_, BatchSize_);
       (*ret).noalias() +=
@@ -1116,10 +1112,10 @@ class BoltLMM::BoltLMMImpl {
     // #endif
     // *y = g_ * beta + sqrt(delta) * e;
     // Done: batch computation
-    assert(x_beta.rows() == N_ + C_);
-    assert(x_beta.cols() == MCtrial_);
-    assert(e.rows() == N_ + C_);
-    assert(e.cols() == MCtrial_);
+    assert((size_t)x_beta.rows() == N_ + C_);
+    assert((size_t)x_beta.cols() == MCtrial_);
+    assert((size_t)e.rows() == N_ + C_);
+    assert((size_t)e.cols() == MCtrial_);
 
     (*y).rightCols(MCtrial_).noalias() = x_beta + sqrt(delta) * e;
   }
@@ -1130,8 +1126,8 @@ class BoltLMM::BoltLMMImpl {
   Eigen::VectorXf projDot(const Eigen::MatrixXf& v1,
                           const Eigen::MatrixXf& v2) {
     assert(C_ > 0);
-    assert(v1.rows() == N_ + C_);
-    assert(v2.rows() == N_ + C_);
+    assert((size_t)v1.rows() == N_ + C_);
+    assert((size_t)v2.rows() == N_ + C_);
     assert(v1.cols() == v2.cols());
 
     Eigen::VectorXf ret =
@@ -1148,8 +1144,8 @@ class BoltLMM::BoltLMMImpl {
   void projDot(const Eigen::MatrixXf& v1, const Eigen::MatrixXf& v2,
                Eigen::VectorXf* ret) {
     assert(C_ > 0);
-    assert(v1.rows() == N_ + C_);
-    assert(v2.rows() == N_ + C_);
+    assert((size_t)v1.rows() == N_ + C_);
+    assert((size_t)v2.rows() == N_ + C_);
     assert(v1.cols() == v2.cols());
 
     (*ret).noalias() = (v1.topRows(N_).array() * v2.topRows(N_).array())
@@ -1175,7 +1171,7 @@ class BoltLMM::BoltLMMImpl {
 
     int nSnp = BatchSize_;
     // BOLT-LMM uses 30
-    nSnp = std::min(30, M_);
+    nSnp = std::min(30, (int)M_);
 
     Eigen::MatrixXf g(N_ + C_, nSnp);
     pl.loadRandomSNPWithCov(nSnp, g.data());
@@ -1228,13 +1224,13 @@ class BoltLMM::BoltLMMImpl {
   PlinkLoader pl;
 
   // Common variables
-  int& M_;
-  int& M2_;  // this is M round up to multiple of BatchSize_
-  int& N_;
-  int& C_;
-  int& MCtrial_;
-  int& BatchSize_;  // batch size of marker are processed at a time
-  int& NumBatch_;   // number of batches
+  size_t& M_;
+  size_t& M2_;  // this is M round up to multiple of BatchSize_
+  size_t& N_;
+  size_t& C_;
+  size_t& MCtrial_;
+  size_t& BatchSize_;  // batch size of marker are processed at a time
+  size_t& NumBatch_;   // number of batches
 
   double sigma2_g_est_;
   double sigma2_e_est_;

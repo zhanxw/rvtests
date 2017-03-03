@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "base/Argument.h"
 #include "base/CommonFunction.h"
 #include "base/SimpleMatrix.h"
 #include "libVcf/PlinkInputFile.h"
@@ -10,6 +11,8 @@
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
 #include "src/LinearAlgebra.h"
+
+DECLARE_BOOL_PARAMETER(boltPlinkNoCheck);
 
 void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
   Matrix& m = *g;
@@ -338,77 +341,82 @@ int DataConsolidator::prepareBoltModel(
 
   const int M = pin.getNumMarker();
   const int N = pin.getNumIndv();
-
-  // calculate MAF
-  std::vector<double> maf(M);
-  pin.calculateMAF(&maf);
-
-  // calculate missing rate
-  std::vector<double> imiss(N);  // individual
-  std::vector<double> lmiss(M);  // marker
-  pin.calculateMissing(&imiss, &lmiss);
-
   bool needNewPlink = false;
-  // check missingness for samples
-  std::set<int> badSampleIdx;
-  for (int i = 0; i != N; ++i) {
-    if (imiss[i] > 0.05) {
-      logger->warn("Sample [ %s ] has high rate of missing genotype [ %g ]!\n",
-                   pin.getIID()[i].c_str(), lmiss[i]);
-      badSampleIdx.insert(i);
-      needNewPlink = true;
-    }
-  }
-  if (badSampleIdx.size()) {
-    logger->warn(
-        "[ %d ] sample(s) have high missing rate, need to create new binary "
-        "PLINK files",
-        (int)badSampleIdx.size());
-  }
+  std::vector<int> sampleIdx;  // keep these samples
+  std::vector<int> snpIdx;     // keep these SNPs
+  if (FLAG_boltPlinkNoCheck) {
+    // do nothing
+    logger->info(
+        "Assume binary PLINK file is ready for use (MAF, missingness)");
+  } else {
+    // calculate MAF
+    std::vector<double> maf(M);
+    pin.calculateMAF(&maf);
 
-  // choose SNPs to keep
-  std::vector<int> snpIdx;  // keep these SNPs
-  for (size_t i = 0; i != maf.size(); ++i) {
-    if (maf[i] < 0.05 || lmiss[i] > 0.05) {
-      needNewPlink = true;
-      continue;
-    } else {
-      snpIdx.push_back(i);
+    // calculate missing rate
+    std::vector<double> imiss(N);  // individual
+    std::vector<double> lmiss(M);  // marker
+    pin.calculateMissing(&imiss, &lmiss);
+    // check missingness for samples
+    std::set<int> badSampleIdx;
+    for (int i = 0; i != N; ++i) {
+      if (imiss[i] > 0.05) {
+        logger->warn(
+            "Sample [ %s ] has high rate of missing genotype [ %g ]!\n",
+            pin.getIID()[i].c_str(), lmiss[i]);
+        badSampleIdx.insert(i);
+        needNewPlink = true;
+      }
     }
-  }
-  if ((int)snpIdx.size() != M) {
-    logger->warn(
-        "[ %d ] markers have high missing rate or low MAF, need to create new "
-        "binary PLINK files",
-        M - (int)snpIdx.size());
-  }
-
-  // build a sample index, such that plink.fam[index] is in the same order as
-  // @param sampleName
-  std::vector<int> sampleIdx;
-  for (size_t i = 0; i != sampleName.size(); ++i) {
-    if (badSampleIdx.count(i)) {
-      continue;
-    }
-    sampleIdx.push_back(pin.getSampleIdx(sampleName[i]));
-  }
-  // check order
-  for (size_t i = 0; i != sampleName.size(); ++i) {
-    if (pin.getSampleIdx(sampleName[i]) != (int)i) {
-      needNewPlink = true;
+    if (badSampleIdx.size()) {
       logger->warn(
-          "To adjust phenotype order, need to create new binary PLINK files");
-      break;
+          "[ %d ] sample(s) have high missing rate, need to create new binary "
+          "PLINK files",
+          (int)badSampleIdx.size());
     }
-  }
-  if ((int)sampleName.size() != N) {
-    logger->warn(
-        "Existing binary PLINK file has more samples [ %d ], need to create "
-        "new binary PLINK files",
-        N - (int)sampleName.size());
-    needNewPlink = true;
-  }
 
+    // choose SNPs to keep
+    for (size_t i = 0; i != maf.size(); ++i) {
+      if (maf[i] < 0.05 || lmiss[i] > 0.05) {
+        needNewPlink = true;
+        continue;
+      } else {
+        snpIdx.push_back(i);
+      }
+    }
+    if ((int)snpIdx.size() != M) {
+      logger->warn(
+          "[ %d ] markers have high missing rate or low MAF, need to create "
+          "new "
+          "binary PLINK files",
+          M - (int)snpIdx.size());
+    }
+
+    // build a sample index, such that plink.fam[index] is in the same order as
+    // @param sampleName
+    for (size_t i = 0; i != sampleName.size(); ++i) {
+      if (badSampleIdx.count(i)) {
+        continue;
+      }
+      sampleIdx.push_back(pin.getSampleIdx(sampleName[i]));
+    }
+    // check order
+    for (size_t i = 0; i != sampleName.size(); ++i) {
+      if (pin.getSampleIdx(sampleName[i]) != (int)i) {
+        needNewPlink = true;
+        logger->warn(
+            "To adjust phenotype order, need to create new binary PLINK files");
+        break;
+      }
+    }
+    if ((int)sampleName.size() != N) {
+      logger->warn(
+          "Existing binary PLINK file has more samples [ %d ], need to create "
+          "new binary PLINK files",
+          N - (int)sampleName.size());
+      needNewPlink = true;
+    }
+  }  // end    if (FLAG_boltPlinkNoCheck) {
   if (needNewPlink) {
     // write a new set of PLINK file
     this->boltPrefix = prefix + ".out";

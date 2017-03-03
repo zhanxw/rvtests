@@ -29,6 +29,9 @@ class KinshipHolder {
 
  private:
   void release(EigenMatrix** m);
+  bool isSpecialFileName();
+  int loadIdentityKinship();
+  int loadDecomposedIdentityKinship();
 
  private:
   // K = U %*% S %*%* t(U)

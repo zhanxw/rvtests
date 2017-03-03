@@ -92,6 +92,16 @@ int KinshipHolder::setEigenFile(const std::string& fileName) {
 
 int KinshipHolder::load() {
   AccurateTimer timer;
+  // deal with special matrix
+  if (isSpecialFileName()) {
+    loadDecomposedIdentityKinship();
+    logger->info(
+        "DONE: Loaded special kinship [ %s ] successfully in [ %.1f ] seconds.",
+        this->fileName.c_str(), timer.stop());
+    this->loaded = true;
+    return 0;
+  }
+
   int ret = 0;
   // load kinship
   ret = loadK();
@@ -150,19 +160,16 @@ int KinshipHolder::load() {
  * Load kinship file and store the kinship matrix internally
  */
 int KinshipHolder::loadK() {
+  // deal with special matrix
+  if (isSpecialFileName()) {
+    loadIdentityKinship();
+    return 0;
+  }
+
   // check kinship file existance
   if (!fileExists(this->fileName)) {
     logger->warn("Cannot open kinship file [ %s ]", this->fileName.c_str());
     return -1;
-  }
-
-  const std::vector<std::string>& names = *this->pSample;
-  if (this->fileName == "IDENTITY" || this->fileName == "UNRELATED") {
-    this->matK->mat.resize(names.size(), names.size());
-    this->matK->mat.setZero();
-    this->matK->mat.diagonal().setOnes();
-    this->matK->mat.diagonal() *= 0.5;
-    return 0;
   }
 
   LineReader lr(this->fileName);
@@ -172,6 +179,7 @@ int KinshipHolder::loadK() {
   std::vector<int> columnToExtract;
   std::vector<std::string> header;  // kinship header line
   Eigen::MatrixXf& mat = this->matK->mat;
+  const std::vector<std::string>& names = *this->pSample;
   std::map<std::string, int> nameMap;
   makeMap(names, &nameMap);
 
@@ -449,5 +457,39 @@ int KinshipHolder::saveDecomposed() {
     }
     fw.write("\n");
   }
+  return 0;
+}
+
+bool KinshipHolder::isSpecialFileName() {
+  if (fileName == "IDENTITY" || fileName == "UNRELATED") {
+    return true;
+  }
+  return false;
+}
+
+int KinshipHolder::loadIdentityKinship() {
+  const std::vector<std::string>& names = *this->pSample;
+  assert(isSpecialFileName());
+
+  this->matK->mat.resize(names.size(), names.size());
+  this->matK->mat.setZero();
+  this->matK->mat.diagonal().setOnes();
+
+  return 0;
+}
+
+int KinshipHolder::loadDecomposedIdentityKinship() {
+  const std::vector<std::string>& names = *this->pSample;
+  assert(isSpecialFileName());
+
+  // this->matK->mat.resize(names.size(), names.size());
+  // this->matK->mat.setZero();
+  // this->matK->mat.diagonal().setOnes();
+  // this->matK->mat.diagonal() *= 0.5;
+
+  const int N = names.size();
+  this->matU->mat = Eigen::MatrixXf::Identity(N, N);
+  this->matS->mat = Eigen::VectorXf::Ones(N);
+
   return 0;
 }

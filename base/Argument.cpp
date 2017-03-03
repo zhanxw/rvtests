@@ -416,6 +416,11 @@ void ParameterParser::Read(int argc, char** argv) {
         *(bool*)data = true;
         break;
       case INT_TYPE:
+        if (i + 1 == argc) {
+          fprintf(stderr, "ERROR: missing parameter value after [ %s ]!\n",
+                  argv[i]);
+          exit(1);
+        }
         if (!str2int(argv[i + 1], (int*)data)) {
           fprintf(stderr,
                   "WARNING: arg \"%s %s\" does not give valid integer\n",
@@ -424,6 +429,11 @@ void ParameterParser::Read(int argc, char** argv) {
         ++i;
         break;
       case DOUBLE_TYPE:
+        if (i + 1 == argc) {
+          fprintf(stderr, "ERROR: missing parameter value after [ %s ]!\n",
+                  argv[i]);
+          exit(1);
+        }
         if (!str2double(argv[i + 1], (double*)data)) {
           fprintf(stderr, "WARNING: arg \"%s %s\" does not give valid double\n",
                   argv[i], argv[i + 1]);
@@ -431,6 +441,11 @@ void ParameterParser::Read(int argc, char** argv) {
         ++i;
         break;
       case STRING_TYPE:
+        if (i + 1 == argc) {
+          fprintf(stderr, "ERROR: missing parameter value after [ %s ]!\n",
+                  argv[i]);
+          exit(1);
+        }
         *(std::string*)data = argv[++i];
         break;
       default:

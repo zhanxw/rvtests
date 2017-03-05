@@ -3342,7 +3342,7 @@ class MetaScoreTest : public ModelFitter {
       result.updateValue("SQRT_V_STAT", sqrt(v));
       result.updateValue("ALT_EFFSIZE", model->GetEffect());
       if (outputSE && v > 0.) {
-        result.updateValue("ALT_EFFSIZE_SE", 1.0 / sqrt(v));
+        result.updateValue("ALT_EFFSIZE_SE", model->GetEffectSE());
       }
       result.updateValue("PVALUE", model->GetPvalue());
     }
@@ -3367,6 +3367,7 @@ class MetaScoreTest : public ModelFitter {
     virtual double GetU() = 0;
     virtual double GetV() = 0;
     virtual double GetEffect() = 0;
+    virtual double GetEffectSE() = 0;
     virtual double GetPvalue() = 0;
 
     bool needToFitNullModel;
@@ -3374,7 +3375,7 @@ class MetaScoreTest : public ModelFitter {
 
    protected:
     Matrix cov;
-  };
+  };  // class MetaBase
   class MetaFamQtl : public MetaBase {
    public:
     MetaFamQtl() : lmm(FastLMM::SCORE, FastLMM::MLE) {}
@@ -3477,11 +3478,12 @@ class MetaScoreTest : public ModelFitter {
     double GetEffect() {
       return lmm.GetVStat() != 0.0 ? lmm.GetUStat() / lmm.GetVStat() : 0.0;
     }
+    double GetEffectSE() { return lmm.GetSE(); }
     double GetPvalue() { return lmm.GetPvalue(); }
 
    private:
     FastLMM lmm;
-  };
+  };  // class MetaFamQtl
   class MetaUnrelatedQtl : public MetaBase {
    public:
     int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
@@ -3529,13 +3531,14 @@ class MetaScoreTest : public ModelFitter {
     double GetEffect() {
       return linear.GetV()[0][0] != 0.0 ? linear.GetBeta()[0][0] : 0.0;
     }
+    double GetEffectSE() { return linear.GetSEBeta(0); }
     double GetPvalue() { return linear.GetPvalue(); }
 
    private:
     LinearRegressionScoreTest linear;
     double sigma2;
     Vector pheno;
-  };
+  };  //   class MetaUnrelatedQtl
   class MetaFamBinary : public MetaBase {
    public:
     MetaFamBinary() : lmm(FastLMM::SCORE, FastLMM::MLE) {
@@ -3636,6 +3639,10 @@ class MetaScoreTest : public ModelFitter {
       }
       return 0.0;
     }
+    double GetEffectSE() {
+      const double v = GetV();
+      return v != 0.0 ? 1.0 / sqrt(v) / b : 0.0;
+    }
     double GetPvalue() { return lmm.GetPvalue(); }
 
    private:
@@ -3645,7 +3652,7 @@ class MetaScoreTest : public ModelFitter {
     FastLMM lmm;
     double alpha;
     double b;
-  };
+  };  // class MetaFamBinary
   class MetaUnrelatedBinary : public MetaBase {
    public:
     MetaUnrelatedBinary() : useMLE(false) {}
@@ -3740,6 +3747,10 @@ class MetaScoreTest : public ModelFitter {
       }
       return 0.0;
     }
+    double GetEffectSE() {
+      const double v = GetV();
+      return v != 0.0 ? 1.0 / sqrt(v) / b : 0.0;
+    }
     double GetPvalue() { return logistic.GetPvalue(); }
 
    private:
@@ -3754,7 +3765,7 @@ class MetaScoreTest : public ModelFitter {
 
     bool useMLE;
     LogisticRegression logisticAlt;
-  };
+  };  // class MetaUnrelatedBinary
 
   class MetaFamQtlBolt : public MetaBase {
    public:
@@ -3779,11 +3790,16 @@ class MetaScoreTest : public ModelFitter {
     double GetU() { return bolt_.GetU(); }
     double GetV() { return bolt_.GetV(); }
     double GetEffect() { return bolt_.GetEffect(); }
+    double GetEffectSE() {
+      const double v = bolt_.GetV();
+      ;
+      return v != 0.0 ? 1.0 / sqrt(v) : 0.0;
+    }
     double GetPvalue() { return bolt_.GetPvalue(); }
 
    private:
     BoltLMM bolt_;
-  };
+  };  // class MetaFamQtlBolt
   MetaBase* createModel(bool familyModel, bool binaryOutcome) {
     MetaBase* ret = NULL;
     if (this->useBolt) {

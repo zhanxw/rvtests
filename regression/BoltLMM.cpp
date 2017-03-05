@@ -322,7 +322,7 @@ class PlinkLoader {
     // #ifdef DEBUG
     //     QuickTimer qt(__PRETTY_FUNCTION__);
     // #endif
-    size_t lb = (size_t)batch * BatchSize_;
+    size_t lb = batch * BatchSize_;
     size_t ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
 #pragma omp parallel for
     for (size_t i = lb; i < ub; ++i) {
@@ -364,7 +364,7 @@ class PlinkLoader {
     // #ifdef DEBUG
     //     QuickTimer qt(__PRETTY_FUNCTION__);
     // #endif
-    size_t lb = (size_t)batch * BatchSize_;
+    size_t lb = batch * BatchSize_;
     size_t ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
 
 #pragma omp parallel for

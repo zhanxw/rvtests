@@ -316,6 +316,11 @@ void LinearRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull,
 }
 
 const double LinearRegressionScoreTest::GetSEBeta(int idx) const {
+  // U = X'Y
+  // V = X'X * sigma2
+  // beta = X'Y / X'X
+  // Var(beta) = Var(U) / (X'X)^2 = V / (V / sigma2)^2 = sigma2^2 / V
+  // SE(beta) = sigma2 / sqrt(V)
   const double v = this->Vmatrix[idx][idx];
   if (v == 0.0) {
     return 0.0;

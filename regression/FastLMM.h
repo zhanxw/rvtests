@@ -47,10 +47,8 @@ class FastLMM {
   double GetNullLogLikelihood() const;
   double GetAltLogLikelihood() const;
   // for Score Test
-  double GetUStat() const;
-  double GetVStat() const;
-  int GetUMatrix(Matrix* u) const;
-  int GetVMatrix(Matrix* v) const;
+  double GetUStat() const;    // X' \Simga^{-1} Y
+  double GetVStat() const;    // X' \Simga^{-1} X
   double GetEffect() const;   // U/V
   double GetSE() const;       // 1/sqrt(V)
   double GetSigmaG2() const;  // sigma_g^2

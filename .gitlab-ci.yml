@@ -19,6 +19,7 @@ jobBuild:
 jobTest:
     stage: test
     script:
+        - make debug
         - make -C base/test && make check -C base/test
 jobDeploy:
     stage: deploy

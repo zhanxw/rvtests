@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   fprintf(stdout, "double = %lf\n", FLAG_dnum);
   fprintf(stdout, "str = %s\n", FLAG_str.c_str());
   fprintf(stdout, "remaining(positional) arguments = ");
-  for (int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
+  for (size_t i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
     fprintf(stdout, "%s\t", FLAG_REMAIN_ARG[i].c_str());
   }
   fprintf(stdout, "\n");
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
   PARAMETER_INSTANCE().ReadFromFile("test.param");
   PARAMETER_INSTANCE().Status();
   fprintf(stdout, "Remaining arguments: ");
-  for (int i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
+  for (size_t i = 0; i < FLAG_REMAIN_ARG.size(); i++) {
     fprintf(stdout, "%s\t", FLAG_REMAIN_ARG[i].c_str());
   }
   fprintf(stdout, "\n");

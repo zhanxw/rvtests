@@ -1,2 +1,2 @@
-[ERROR] Cannot read VCF by range, please check your have index (or create one use tabix).
+[ERROR] Cannot read VCF by range, please verify you have the index file(or create one use tabix).
 Quitting...

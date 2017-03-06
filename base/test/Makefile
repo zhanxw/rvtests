@@ -1,4 +1,4 @@
-EXE = testLogger testIO testRangeList testUtils testRegex testSimpleMatrix \
+EXE = testLogger testIO testIONet testRangeList testUtils testRegex testSimpleMatrix \
       testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
       testCommonFunction testTypeConversion testSimpleTimer testProfiler testVersionChecker \
       testSocket testHttp testIndexer testSimpleString \
@@ -13,16 +13,15 @@ CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/gsl/include -I../
             -I../../third/pcre/include \
             -DUSE_ACCURATE_TIMER \
             -std=c++0x \
-            -Wall \
-            $(LIBS) \
-            -lz -lbz2 
+            -Wall 
+LIB_FLAGS = $(LIBS) -lz -lbz2
 
 define BUILD_each
   TAR := $(1)
   SRC := $(1).cpp
   -include  $(1).d
   $$(TAR): $$(SRC) $(LIBS) 
-	$$(CXX) -o $$@ $$< -MMD $$(CXX_FLAGS)
+	$$(CXX) -o $$@ $$< -MMD $$(CXX_FLAGS) $$(LIB_FLAGS)
 endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
@@ -31,7 +30,8 @@ $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 $(EXE): ../lib-dbg-base.a
 .phony: check
 check: kinship
-	./testIO 
+	./testIO
+	-./testIONet
 	./testLogger 
 	./testRangeList > testRangeList_output 
 	diff testRangeList_output testRangeList_output.correct 
@@ -57,7 +57,7 @@ testArgument.o: testArgument.cpp
 testArgumentAux.o: testArgumentAux.cpp
 	$(CXX) -c $< -MMD $(CXX_FLAGS)
 testArgument: testArgumentAux.o testArgument.o
-	$(CXX) -o $@ $^	 $(CXX_FLAGS)
+	$(CXX) -o $@ $^	 $(CXX_FLAGS) $(LIB_FLAGS)
 clean:
 	-rm -f $(EXE) *.o *.d *.out
 

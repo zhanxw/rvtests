@@ -10,16 +10,17 @@
 
 #include "LogisticRegression.h"
 
-#include <Eigen/Cholesky>
 #include <cmath>  // std::isfinite
-#include "Eigen/Core"
-#include "EigenMatrixInterface.h"
+
+#include "regression/EigenMatrixInterface.h"
+
+#include "third/eigen/Eigen/Cholesky"
+#include "third/eigen/Eigen/Core"
+#include "third/gsl/include/gsl/gsl_cdf.h"
 // #include "MathSVD.h"
 // #include "MathCholesky.h"
 // #include "StringHash.h"
 // #include "MathStats.h"
-
-#include "gsl/gsl_cdf.h"
 
 #ifdef DEBUG
 // for debug usage

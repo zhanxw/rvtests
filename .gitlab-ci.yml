@@ -10,12 +10,17 @@ before_script:
     - ulimit -a
 stages:
     - build
+    - test
     - deploy
-job1:
+jobBuild:
     stage: build
     script:
         - make
-job2:
+jobTest:
+    stage: test
+    script:
+        - make -C base/test && make check -C base/test
+jobDeploy:
     stage: deploy
     script:
         - echo "Packing RVTESTS"

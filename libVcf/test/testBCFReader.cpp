@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  if (false) {
+#if 0
     // this code demonstrate how to temporarily close stdout
     int fd = STDOUT_FILENO;
     int dupFd = dup(fileno(stdout));
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
     fclose(stdout);
     printf("after stdout\n");
     return 0;
-  }
+#endif
 
   const char* fn = "test.bcf.gz";
   {

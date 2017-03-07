@@ -45,7 +45,7 @@ MVTNORM_OBJ = libMvtnorm/mvtnorm.o libMvtnorm/mvt.o libMvtnorm/randomF77.o
 $(MVTNORM_OBJ):
 	cd libMvtnorm; $(MAKE)
 
-DEFAULT_CXXFLAGS ?= -D__STDC_LIMIT_MACROS #-Wall
+DEFAULT_CXXFLAGS ?= -D__STDC_LIMIT_MACROS
 release: CXXFLAGS = -O2 -msse2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
@@ -64,7 +64,7 @@ define BUILD_each
   SRC := $(1).cpp
   -include  $(1).d
   -include  $(1)_dbg.d
-  $$(TAR) $$(TAR_DBG): $$(SRC) $$(EIGEN_INC)
+  $$(TAR) $$(TAR_DBG): $$(SRC) $$(EIGEN_INC) $$(GSL_INC) $$(NLOPT_INC)
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ -I$(ROOT) -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC) -I$(NLOPT_INC)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))

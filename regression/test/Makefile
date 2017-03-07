@@ -29,6 +29,8 @@ CXX_FLAGS = -fopenmp -O0 -ggdb -I../.. -I.. -I../../libsrc -I../../base -I../../
             ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
             ../../third/gsl/lib/libgsl.a \
             ../../third/nlopt/lib/libnlopt.a \
+            ../../third/zlib \
+            ../../third/bzip2 \
             -lz -lbz2 -lrt
 
 define BUILD_each
@@ -41,7 +43,7 @@ endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
 .PHONY: check
-check: check1 check2 check3 check4
+check: check1 check2 check3 check4 check5 check6 check8 check9
 ######################################################################
 check1: output.R.lm output.cpp.lm
 	python compare.py $^

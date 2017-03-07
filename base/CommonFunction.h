@@ -277,6 +277,22 @@ inline void makeMap(const std::vector<std::string>& in,
   }
 }
 
+inline void makeMap(const std::string& in, std::map<char, int>* s) {
+  s->clear();
+  if (in.empty()) return;
+
+  for (size_t i = 0; i < in.size(); i++) {
+    if (s->find(in[i]) != s->end()) continue;
+    (*s)[in[i]] = i;
+  }
+}
+
+inline std::map<char, int> makeMap(const std::string& in) {
+  std::map<char, int> s;
+  makeMap(in, &s);
+  return s;
+}
+
 /**
  *  Test whether all elements in @param x are unique
  */

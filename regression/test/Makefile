@@ -40,7 +40,7 @@ define BUILD_each
 endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
-
+.PHONY: check
 check: check1 check2 check3 check4
 ######################################################################
 check1: output.R.lm output.cpp.lm

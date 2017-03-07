@@ -20,7 +20,8 @@ jobTest:
     stage: test
     script:
         - make debug
-        - make -C base/test && make check -C base/test
+        - (for i in base libVcf regression; do echo "Task = ${i}"; make -C ${i}/test; done)
+        - (for i in base libVcf regression; do echo "Task = ${i}"; make check -C ${i}/test; done)
 jobDeploy:
     stage: deploy
     script:

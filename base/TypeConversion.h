@@ -89,7 +89,9 @@ inline bool str2int(const char* input, int* output) {
 
   if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) ||
       (errno != 0 && val == 0)) {
+#ifndef NDEBUG
     perror("strtol");
+#endif
     return false;
   }
 

@@ -26,7 +26,7 @@ class SimpleString {
 #endif
     int newCap = l * 2;
     char* newBeg = new char[newCap];
-    newBeg[newCap] = '\0';
+    newBeg[newCap - 1] = '\0';
     memcpy(newBeg, beg, current - beg);
     cap = newCap;
     current = newBeg + (current - beg);

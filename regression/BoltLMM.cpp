@@ -49,6 +49,7 @@ struct Float4 {
 
 // serveral modules share these settings
 struct CommonVariable {
+  CommonVariable() : random_(12345) {}
   size_t M_;
   size_t M2_;  // this is M round up to multiple of BatchSize_
   size_t N_;
@@ -935,7 +936,7 @@ class BoltLMM::BoltLMMImpl {
 
   // calculate invser(H)*y, aka solve(H, y),
   // where H = G * G' /M + delta * diag(N)
-  // y: [ (N+C) x (MCtrial+1)]
+  // y: [ (N+C) x (MCtrial+1)] or [ (N+C) x (# of random SNPs) ]
   void solve(const Eigen::MatrixXf& y, const double delta,
              Eigen::MatrixXf* h_inv_y) {
 #ifdef DEBUG
@@ -951,8 +952,10 @@ class BoltLMM::BoltLMMImpl {
     Eigen::MatrixXf p = y;
     Eigen::VectorXf rsold;
     Eigen::VectorXf rsnew;
+    Eigen::VectorXf ratio;  // rsnew / rsold
     Eigen::MatrixXf ap;     // [ (N+C) x (MCtrial+1) ]
     Eigen::VectorXf alpha;  // [ (MCtrial + 1) ]
+    const int NUM_COL = y.cols();
     projNorm2(r, &rsold);
 
     const int MaxIter = 250;  // BOLT-LMM maximum iteration in conjugate solver
@@ -961,6 +964,11 @@ class BoltLMM::BoltLMMImpl {
     for (int i = 0; i < maxIter; ++i) {
       computeHx(delta, p, &ap);
       alpha = rsold.array() / projDot(p, ap).array();
+      for (int ii = 0; ii != NUM_COL; ++ii) {
+        if (!std::isfinite(alpha(ii)) || fabs(alpha(ii)) < Tol) {
+          alpha(ii) = 0.0;
+        }
+      }
       x = x + p * alpha.asDiagonal();
       r = r - ap * alpha.asDiagonal();
       projNorm2(r, &rsnew);
@@ -968,7 +976,14 @@ class BoltLMM::BoltLMMImpl {
       if ((rsnew.array() < Tol).all()) {
         break;
       }
-      p = r + p * (rsnew.array() / rsold.array()).matrix().asDiagonal();
+      ratio = rsnew.array() / rsold.array();
+      for (int ii = 0; ii != NUM_COL; ++ii) {
+        if (rsnew(ii) < Tol || !std::isfinite(ratio(ii))) {
+          ratio(ii) = 0.0;
+        }
+      }
+      p = r + p * ratio.matrix().asDiagonal();
+
       rsold = rsnew;
 #ifdef DEBUG
       fprintf(stderr, "i = %d\tdelta = %g", i, delta);

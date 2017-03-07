@@ -465,7 +465,8 @@ int main(int argc, char** argv) {
             maxThreads);
     omp_set_num_threads(maxThreads);
   } else if (FLAG_numThread == 1) {
-    // do nothing
+    // need to set to one thread, otherwise all CPUs may be used
+    omp_set_num_threads(1);
   } else {
     logger->info("Set number of threads = [ %d ]", FLAG_numThread);
     omp_set_num_threads(FLAG_numThread);

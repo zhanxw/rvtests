@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "SimpleString.h"
+#include "base/SimpleString.h"
 
 /**
  * String related utility functions
@@ -186,7 +186,7 @@ class StringTokenizer {
  * Special case:
  * For empty input string, we will return 1, and @param result will have only 1
  * element (the empty string)
- * When delim is empty, we will give warning, return 1, and @param result will
+ * When delim is empty, we will give warning, return -1, and @param result will
  * have the whole input string
  */
 inline int stringTokenize(const std::string& str, const std::string& delim,
@@ -262,6 +262,76 @@ inline int stringNaturalTokenize(const std::string& str, const char delim,
   std::string d(1, delim);
   return (stringNaturalTokenize(str, d, result));
 };
+
+inline int stringTokenize(const std::string& str, const std::string& delim,
+                          const std::string& leftQuote,
+                          const std::string& rightQuote,
+                          std::vector<std::string>* result) {
+  // check parameters
+  int table[128] = {0};
+  for (size_t i = 0; i != delim.size(); ++i) {
+    table[(int)delim[i]]++;
+  }
+  for (size_t i = 0; i != leftQuote.size(); ++i) {
+    table[(int)leftQuote[i]]++;
+  }
+  for (size_t i = 0; i != rightQuote.size(); ++i) {
+    table[(int)rightQuote[i]]++;
+  }
+  for (int i = 0; i < 128; ++i) {
+    if (table[i] > 1) {
+      fprintf(stderr, "Duplicated character found [ %c ]!\n", (char)i);
+      return -1;
+    }
+  }
+
+  // handle special inputs
+  std::string s;
+  result->clear();
+  if (!delim.size()) {
+    result->push_back(s);
+    return -1;
+  }
+  if (!str.size()) {
+    result->push_back(s);
+    return -1;
+  }
+
+  // normal workflow
+  size_t len = str.size();
+  int state = 0;
+  for (size_t i = 0; i != len; ++i) {
+    const char c = str[i];
+    if (delim.find(c) != std::string::npos) {  // a delim
+      if (state == 0) {
+        result->push_back(s);
+        s.clear();
+      } else {
+        s.push_back(c);
+      }
+    } else if (leftQuote.find(c) != std::string::npos) {  // left quote
+      state++;
+      s.push_back(c);
+    } else if (rightQuote.find(c) != std::string::npos) {  // right quote
+      state--;
+      s.push_back(c);
+      if (state < 0) {
+        fprintf(stderr, "Unbalanced quotes: [ %s ]\n", str.c_str());
+        return -1;
+      }
+    } else {  //
+      s.push_back(c);
+    }
+  }
+  if (state != 0) {
+    fprintf(stderr, "Unbalanced quotes: [ %s ]\n", str.c_str());
+    return -1;
+  }
+  if (s.size()) {
+    result->push_back(s);
+  }
+  return result->size();
+}
 
 inline void stringJoin(const std::vector<std::string>& array, const char delim,
                        std::string* res) {

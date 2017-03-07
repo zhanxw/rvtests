@@ -17,6 +17,10 @@ class ModelManager {
   /**
    * Create models
    */
+  /**
+   * @param type e.g. single/burden/kernel/meta
+   * @param modelList user inputted models, e.g. "score[se],wald"
+   */
   int create(const std::string& type, const std::string& modelList);
   int create(const std::string& modelType, const ModelParser& parser);
   /**

@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "BCFReader.h"
 #include "VCFExtractor.h"
 

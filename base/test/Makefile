@@ -14,7 +14,7 @@ CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/gsl/include -I../
             -DUSE_ACCURATE_TIMER \
             -std=c++0x \
             -Wall 
-LIB_FLAGS = $(LIBS) -lz -lbz2
+LIB_FLAGS = $(LIBS) -L../../third/bzip2 -L../../third/zlib -lz -lbz2
 
 define BUILD_each
   TAR := $(1)

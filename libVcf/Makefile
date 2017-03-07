@@ -63,7 +63,7 @@ define BUILD_each
   TAR_DBG := $(1)_dbg.o
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR) $$(TAR_DBG): $$(SRC) $$(THIRD_INC_FLAGS)
+  $$(TAR) $$(TAR_DBG): $$(SRC) $$(THIRD_INC)
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ $$(CXXFLAGS)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))

@@ -90,7 +90,7 @@ check15:
 	diff -q testPlinkOutputFile.output.bim testPlinkInputFile.bim
 	diff -q testPlinkOutputFile.output.bed testPlinkInputFile.bed
 	./testPlinkOutputFile2 > testPlinkOutputFile2.output
-	awk '{$$1 = NR; $$3 = 0; $$4 = 0; $$5 = 0; print ;}' testPlinkInputFile.fam | diff -b testPlinkOutputFile.output.fam -
+	-awk '{$$1 = NR; $$3 = 0; $$4 = 0; print ;}' testPlinkInputFile.fam | diff -b testPlinkOutputFile.output.fam -
 	diff -q testPlinkOutputFile.output.bim testPlinkInputFile.bim
 	diff -q testPlinkOutputFile.output.bed testPlinkInputFile.bed
 

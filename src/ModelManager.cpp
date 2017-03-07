@@ -30,7 +30,7 @@ int ModelManager::create(const std::string& type,
   std::vector<std::string> argModelName;
   ModelParser parser;
 
-  stringTokenize(modelList, ",", &argModelName);
+  stringTokenize(modelList, ",", "[", "]", &argModelName);
   for (size_t i = 0; i < argModelName.size(); i++) {
     // TODO: check parse results
     parser.parse(argModelName[i]);

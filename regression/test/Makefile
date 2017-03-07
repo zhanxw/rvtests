@@ -23,14 +23,17 @@ debug: $(EXE)
 	$(MAKE) -C .. debug
 
 LIBS =  ../../libVcf/lib-dbg-vcf.a ../lib-dbg-regression.a ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a
-CXX_FLAGS = -fopenmp -O0 -ggdb -I../.. -I.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
+CXX_FLAGS = -fopenmp -O0 -ggdb -I../.. -I.. \
+            -I../../libsrc -I../../base -I../../third/tabix/ \
+            -I../../third/pcre/include \
+            -I../../third/gsl/include \
             $(LIBS) \
             ../../third/tabix/libtabix.a \
             ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
             ../../third/gsl/lib/libgsl.a \
             ../../third/nlopt/lib/libnlopt.a \
-            ../../third/zlib \
-            ../../third/bzip2 \
+            -L../../third/zlib \
+            -L../../third/bzip2 \
             -lz -lbz2 -lrt
 
 define BUILD_each

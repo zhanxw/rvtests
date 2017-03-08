@@ -1,3 +1,11 @@
+2017-03-07  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix SE calculation in '--single score' (continuous/binary traits)
+	* Add --numThreads option (may increase speed)
+	* Improve BoltLMM model
+	* Add more test cases
+	* Fix .dim file outputs from vcf2kinship
+
 2017-02-28  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix a bug when loadindg a group of varaints

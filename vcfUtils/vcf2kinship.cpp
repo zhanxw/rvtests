@@ -415,13 +415,14 @@ class GenotypeWriter {
     // close prefix.data file
     if (fGeno_) {
       fclose(fGeno_);
+
+      // write prefix.dim
+      std::string fileName = prefix_;
+      fileName += ".dim";
+      FILE* fp = fopen(fileName.c_str(), "wt");
+      fprintf(fp, "%d\t%d\t<f8\n", (int)sampleName_.size(), nVariant_);
+      fclose(fp);
     }
-    // write prefix.dim
-    std::string fileName = prefix_;
-    fileName += ".dim";
-    FILE* fp = fopen(fileName.c_str(), "wt");
-    fprintf(fp, "%d\t%d\t<f8\n", (int)sampleName_.size(), nVariant_);
-    fclose(fp);
 
     return 0;
   }
@@ -438,7 +439,7 @@ int output(const std::vector<std::string>& famName,
            bool performPCA, const std::string& outPrefix);
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20170210"
+#define VERSION "20170307"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s, git tag %s)\n", PROGRAM,

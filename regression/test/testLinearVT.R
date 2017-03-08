@@ -1,6 +1,6 @@
 outFile = commandArgs(trailingOnly = TRUE)[1]
 library(mvtnorm)
-source("~/mylib/R/linear.mvt.R")
+source("linear.mvt.R")
 set.seed(0)
 N <- 1000
 M <- 2

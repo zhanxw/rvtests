@@ -1,6 +1,6 @@
 outFile = commandArgs(trailingOnly = TRUE)[1]
 
-source("~/mylib/R/logistic.mvt.R")
+source("logistic.mvt.R")
 set.seed(0)
 N <- 1000
 M <- 2

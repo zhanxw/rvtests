@@ -1,4 +1,4 @@
-image: zhanxw/rvtests.build:latest
+image: zhanxw/rvtests:latest
 before_script:
     - export http_proxy=http://proxy.swmed.edu:3128
     - export https_proxy=http://proxy.swmed.edu:3128

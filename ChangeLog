@@ -1,3 +1,7 @@
+2017-04-12  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Support comma as a separator in parameter options
+
 2017-03-07  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix SE calculation in '--single score' (continuous/binary traits)

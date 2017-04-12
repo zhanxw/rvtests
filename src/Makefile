@@ -22,6 +22,7 @@ BASE = Main \
       ModelFitter \
       TabixUtil \
       ModelManager \
+      ModelParser \
       Model \
       GenotypeExtractor \
       DataLoader \

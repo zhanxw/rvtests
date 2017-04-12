@@ -1,8 +1,10 @@
 #include "ModelFitter.h"
 
-#include "Logger.h"
 #include "ModelParser.h"
 #include "TabixUtil.h"
+#include "base/Logger.h"
+
+extern Logger* logger;
 
 void ModelFitter::warnOnce(const std::string& msg) {
   if (!this->warningOnceUsed) {

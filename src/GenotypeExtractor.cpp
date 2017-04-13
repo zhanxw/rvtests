@@ -70,6 +70,7 @@ int GenotypeExtractor::extractMultipleGenotype(Matrix* g) {
     row++;
     this->variantName.resize(row);
     this->counter.resize(row);
+    this->counter.back().reset();
     this->hemiRegion.resize(row);
 
     // get GT index and cannot assume it is a constant across variants
@@ -180,6 +181,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
   this->sampleSize = people.size();
   this->variantName.resize(1);
   this->counter.resize(1);
+  this->counter.back().reset();
   this->hemiRegion.resize(1);
 
   // get GT index. if you are sure the index will not change, call this

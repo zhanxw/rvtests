@@ -1,6 +1,7 @@
 2017-04-14  Xiaowei Zhan  <zhanxw@bunny.swmed.edu>
 
 	* Fix a critical bug related to AF calculation (issue 15)
+	* Fix siteFile flag and provide prompt when it's used
 
 2017-04-12  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

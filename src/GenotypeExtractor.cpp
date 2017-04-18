@@ -338,6 +338,10 @@ void GenotypeExtractor::setGQmax(int m) {
   this->GQmax = m;
 }
 
+void GenotypeExtractor::setSiteFile(const std::string& fn) {
+  this->vin->setSiteFile(fn);
+}
+
 void GenotypeExtractor::setSiteQualMin(int q) { this->vin->setSiteQualMin(q); }
 void GenotypeExtractor::setSiteMACMin(int n) { this->vin->setSiteMACMin(n); }
 int GenotypeExtractor::setAnnoType(const std::string& s) {

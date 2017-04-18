@@ -30,7 +30,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20170414";
+const char* VERSION = "20170418";
 
 void banner(FILE* fp) {
   const char* string =
@@ -224,6 +224,9 @@ void welcome() {
   fprintf(stdout,
           "  For questions and comments, send to Xiaowei Zhan "
           "<zhanxw@umich.edu>\n");
+  fprintf(stdout,
+          "  For bugs and feature requests, please submit at: "
+          "https://github.com/zhanxw/rvtests/issues\n");
   fprintf(stdout, "\n");
 }
 
@@ -492,6 +495,11 @@ int main(int argc, char** argv) {
   ge.excludePeople(FLAG_peopleExcludeID.c_str());
   ge.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
 
+  if (!FLAG_siteFile.empty()) {
+    ge.setSiteFile(FLAG_siteFile);
+    logger->info("Restrict analysis based on specified site file [ %s ]",
+                 FLAG_siteFile.c_str());
+  }
   if (FLAG_siteDepthMin > 0) {
     ge.setSiteDepthMin(FLAG_siteDepthMin);
     logger->info("Set site depth minimum to %d", FLAG_siteDepthMin);

@@ -61,6 +61,7 @@ class GenotypeExtractor {
   void setGQmin(int m);
   void setGQmax(int m);
 
+  void setSiteFile(const std::string& fn);
   void setSiteQualMin(int q);
   void setSiteMACMin(int n);
   int setAnnoType(const std::string& s);
@@ -149,8 +150,8 @@ class GenotypeExtractor {
   const std::vector<int>* sex;  // external sex information
   // bool claytonCoding;  // code male hemi region genotype from 0/1 to 0/2
   std::vector<double> genotype;          // store extracted genotypes
-  std::vector<std::string> variantName;  // store extract variant names
-  int sampleSize;                        // number of extract vcf samples
+  std::vector<std::string> variantName;  // store extracted variant names
+  int sampleSize;                        // number of extracted vcf samples
   // for multiallelic
   bool multiAllelicMode;               // default is false
   std::vector<std::string> altAllele;  // store alt alleles

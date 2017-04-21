@@ -626,5 +626,5 @@ Goncalo Abecasis ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@u
 
 Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.
 
-We want to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, Michael Nalls, the GIANT consortium, the GLGC consortium and the GSCAN consortium.
+We want to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, Michael Nalls, Jie Huang, [the GIANT consortium](http://portals.broadinstitute.org/collaboration/giant/index.php/GIANT_consortium), [the GLGC consortium](http://lipidgenetics.org) and [the GSCAN consortium](https://ibg.colorado.edu/mediawiki/index.php/GSCAN).
 

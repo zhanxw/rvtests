@@ -291,10 +291,13 @@ Score test           |  score      | B,Q  |     Y      |         R, U           
 Dominant model       |  dominant   | B,Q  |     Y      |         R, U           | score tests and covariance matrix under dominant disease model
 Recessive model      |  recessive  | B,Q  |     Y      |         R, U           | score tests and covariance matrix under recessive disease model
 Covariance           |  cov        | B,Q  |     Y      |         R, U           | covariance matrix
+BOLT-LMM score test           |  score[bolt]      | Q  |     Y      |         R, U           | BOLT-LMM based score tests
 
 (#) Model columns list the recognized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
 
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
+
+(###) This method also requires pruned gneotype data in the PLINK format specified by `--boltPlink`. A minimal example to run BOLT-LMM based score tests is: `rvtest --inVcf $inputVCFfile --boltPlink $binaryPlinkPrefix --pheno $phenotype --meta score[bolt]`. 
 
 The above models are suitable to generate summary statistics which can be later meta-analyzed (see [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html)).
 Rvtests implemented the above methods and the results can be further analyzed by RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)) for quantitative trait and RareMetals2 ([link](http://genome.sph.umich.edu/wiki/RareMETALS2)).

@@ -291,13 +291,20 @@ Score test           |  score      | B,Q  |     Y      |         R, U           
 Dominant model       |  dominant   | B,Q  |     Y      |         R, U           | score tests and covariance matrix under dominant disease model
 Recessive model      |  recessive  | B,Q  |     Y      |         R, U           | score tests and covariance matrix under recessive disease model
 Covariance           |  cov        | B,Q  |     Y      |         R, U           | covariance matrix
-BOLT-LMM score test           |  score[bolt]      | Q  |     Y      |         R, U           | BOLT-LMM based score tests
+BOLT-LMM score test           |  bolt      | Q  |     Y      |         R           | BOLT-LMM based score tests (###)
+BOLT-LMM covariance           |  boltCov      | Q  |     Y      |         R           | BOLT-LMM based score tests (###)
 
 (#) Model columns list the recognized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
 
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
-(###) This method also requires pruned gneotype data in the PLINK format specified by `--boltPlink`. A minimal example to run BOLT-LMM based score tests is: `rvtest --inVcf $inputVCFfile --boltPlink $binaryPlinkPrefix --pheno $phenotype --meta score[bolt]`. 
+(###) This is an experimental feature. 
+This method requires LD-pruned gneotype data in the binary PLINK format specified by `--boltPlink`. 
+A minimal example to run BOLT-LMM based score tests is: `rvtest --inVcf $inputVCFfile --boltPlink $binaryPlinkPrefix --pheno $phenotype --meta bolt`. 
+To prune your genotype data, an example command line is `plink --vcf $inputVCFFile --maf 0.05 --indep-pairwise 50 5 0.5 --make-bed $binaryPlinkPrefix`.
+Please note RVTESTS additionally prohibit duplicated rs IDs in the PLINK BIM file. 
+To remove duplications, you can list all duplicated `cut -f2 $binaryPlinkBIMfile|sort |uniq -d > duplicate.rsid`, and then 
+use `plink --vcf $inputVCFFile --maf 0.05 --indep-pairwise 50 5 0.5 --exclude duplicate.rsid --make-bed $binaryPlinkPrefix`.
 
 The above models are suitable to generate summary statistics which can be later meta-analyzed (see [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html)).
 Rvtests implemented the above methods and the results can be further analyzed by RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)) for quantitative trait and RareMetals2 ([link](http://genome.sph.umich.edu/wiki/RareMETALS2)).

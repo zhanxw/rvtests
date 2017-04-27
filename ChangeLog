@@ -1,4 +1,8 @@
-2017-04-14  Xiaowei Zhan  <zhanxw@bunny.swmed.edu>
+2017-04-27  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Add boltCov model
+
+2017-04-14  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix a critical bug related to AF calculation (issue 15)
 	* Fix siteFile flag and provide prompt when it's used

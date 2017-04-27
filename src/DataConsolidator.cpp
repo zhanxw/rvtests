@@ -335,7 +335,7 @@ int DataConsolidator::prepareBoltModel(
       error(
           "%s:%d Fatal error, PLINK file [ %s ] does not include sample [ %s "
           "]!\n",
-          __FILE__, __LINE__, (prefix + "fam").c_str(), sampleName[i].c_str());
+          __FILE__, __LINE__, (prefix + ".fam").c_str(), sampleName[i].c_str());
     }
   }
 

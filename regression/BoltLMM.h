@@ -2,6 +2,7 @@
 #define _BOLTLMM_H_
 
 #include <string>
+#include <vector>
 
 class Matrix;
 
@@ -28,6 +29,10 @@ class BoltLMM {
   double GetV();
   double GetEffect();
   double GetPvalue();
+
+  // calculate covariances
+  void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
+                double* out);
 
  private:
   // don't copy

@@ -207,6 +207,15 @@ int ModelManager::create(const std::string& modelType,
           "under additive model",
           toStringWithComma(windowSize).c_str());
       model.push_back(new MetaCovTest(windowSize));
+    } else if (modelName == "bolt") {
+      model.push_back(new MetaScoreBoltTest());
+    } else if (modelName == "boltcov") {
+      parser.assign("windowSize", &windowSize, 1000000);
+      logger->info(
+          "Meta analysis uses window size %s to produce covariance statistics "
+          "under additive model",
+          toStringWithComma(windowSize).c_str());
+      model.push_back(new MetaCovBoltTest(windowSize));
     }
 #if 0
     else if (modelName == "skew") {

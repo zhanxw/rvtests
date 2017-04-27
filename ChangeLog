@@ -7,6 +7,10 @@
 	* Fix strtol related warning (possibly) (refer to #33)
 	* Clean codes
 
+2017-04-27  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Add boltCov model
+
 2017-04-14  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix a critical bug related to AF calculation (issue 15)

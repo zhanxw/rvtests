@@ -740,6 +740,28 @@ class BoltLMM::BoltLMMImpl {
   double GetEffect() { return effect_; }
   double GetPvalue() { return pvalue_; }
 
+  void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
+                double* out) {
+    assert(g1.size() == g2.size());
+    assert(g1.size() == N_);
+
+    Eigen::MatrixXf g(g1.size() + C_, 2);  //
+    // copy in data
+    for (size_t i = 0; i != N_; ++i) {
+      g(i, 0) = g1[i];
+      g(i, 1) = g2[i];
+    }
+
+    // project
+    pl.projectCovariate(&g);
+
+    // calculate
+    (*out) = (double)projDot(g.col(0), g.col(1))(0);
+
+    // scale
+    (*out) *= xVx_xx_ratio_;
+  }
+
  private:
   int EstimateHeritability() {
     TIMER(__PRETTY_FUNCTION__);
@@ -820,8 +842,14 @@ class BoltLMM::BoltLMMImpl {
     for (i = 2; i < 7; ++i) {
       logDelta[i] = (logDelta[i - 2] * f[i - 1] - logDelta[i - 1] * f[i - 2]) /
                     (f[i - 1] - f[i - 2]);
-      if (logDelta[i] > 10) {
-        logDelta[i] = 10;
+      if (!std::isfinite(logDelta[i])) {
+        --i;
+        break;
+      }
+      // changed the upper threshold from 10 to 5
+      // as it does not seem to be stable, and causes f(10) = nan
+      if (logDelta[i] > 5) {
+        logDelta[i] = 5;
       }
       if (logDelta[i] < -10) {
         logDelta[i] = -10;
@@ -971,6 +999,13 @@ class BoltLMM::BoltLMMImpl {
     for (int i = 0; i < maxIter; ++i) {
       computeHx(delta, p, &ap);
       alpha = rsold.array() / projDot(p, ap).array();
+#ifdef DEBUG
+      fprintf(stderr, "alpha:");
+      for (int ii = 0; ii != NUM_COL; ++ii) {
+        fprintf(stderr, "\t%f", alpha(ii));
+      }
+      fprintf(stderr, "\n");
+#endif
       for (int ii = 0; ii != NUM_COL; ++ii) {
         if (!std::isfinite(alpha(ii)) || fabs(alpha(ii)) < Tol) {
           alpha(ii) = 0.0;
@@ -983,7 +1018,27 @@ class BoltLMM::BoltLMMImpl {
       if ((rsnew.array() < Tol).all()) {
         break;
       }
+      if ((rsnew - rsold).array().abs().maxCoeff() < Tol) {
+        break;
+      }
       ratio = rsnew.array() / rsold.array();
+#ifdef DEBUG
+      fprintf(stderr, "ratio:");
+      for (int ii = 0; ii != NUM_COL; ++ii) {
+        fprintf(stderr, "\t%f", ratio(ii));
+      }
+      fprintf(stderr, "\n");
+      fprintf(stderr, "rsnew:");
+      for (int ii = 0; ii != NUM_COL; ++ii) {
+        fprintf(stderr, "\t%f", rsnew(ii));
+      }
+      fprintf(stderr, "\n");
+      fprintf(stderr, "rsold:");
+      for (int ii = 0; ii != NUM_COL; ++ii) {
+        fprintf(stderr, "\t%f", rsold(ii));
+      }
+      fprintf(stderr, "\n");
+#endif
       for (int ii = 0; ii != NUM_COL; ++ii) {
         if (rsnew(ii) < Tol || !std::isfinite(ratio(ii))) {
           ratio(ii) = 0.0;
@@ -1072,6 +1127,7 @@ class BoltLMM::BoltLMMImpl {
     // X: [X; Z'X] [ (N+C) x M ]
     //
     // X_y: [X' -X'Z] [ M by (MCtrial+1) ]
+    ret->resize(N_ + C_, y.cols());
     ret->setZero();
     Eigen::MatrixXf X_y =
         Eigen::MatrixXf::Zero(M2_, y.cols());  // X' * y: [ M * (MCtrial + 1) ]
@@ -1235,6 +1291,19 @@ class BoltLMM::BoltLMMImpl {
               prospectiveStat(i) / uncalibratedRetrospectiveStat(i));
     }
     fprintf(stderr, "infStatCalibration_ = %f\n", infStatCalibration_);
+
+    // calculate empirically X'HX / X'X
+    xVx_xx_ratio_ = x_V_inv_x.sum() / x_x.sum();
+    if (!std::isfinite(xVx_xx_ratio_)) {
+      xVx_xx_ratio_ = 1.0;
+    }
+    fprintf(stderr, "\ni\tx_v_inv_x\tx_x\tratio\n");
+    for (int i = 0; i < nSnp; ++i) {
+      fprintf(stderr, "%d\t%f\t%f\t%f\n", i, x_V_inv_x(i), x_x(i),
+              x_x(i) == 0 ? 0.0 : x_V_inv_x(i) / x_x(i));
+    }
+    fprintf(stderr, "ratio = %f\n", x_V_inv_x.sum() / x_x.sum());
+
     return 0;
   }
 
@@ -1269,6 +1338,7 @@ class BoltLMM::BoltLMMImpl {
   Eigen::MatrixXf H_inv_y_;
   double H_inv_y_norm2_;
   double infStatCalibration_;
+  double xVx_xx_ratio_;
   Eigen::MatrixXf g_test_;
   Eigen::MatrixXf alpha_;
 
@@ -1294,6 +1364,10 @@ double BoltLMM::GetU() { return impl_->GetU(); }
 double BoltLMM::GetV() { return impl_->GetV(); }
 double BoltLMM::GetEffect() { return impl_->GetEffect(); }
 double BoltLMM::GetPvalue() { return impl_->GetPvalue(); }
+void BoltLMM::GetCovXX(const std::vector<double>& g1,
+                       const std::vector<double>& g2, double* out) {
+  impl_->GetCovXX(g1, g2, out);
+}
 
 //////////////////////////////////////////////////
 // BoltLMM::BoltLMMImpl class

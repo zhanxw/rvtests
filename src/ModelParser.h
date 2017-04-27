@@ -45,6 +45,7 @@ class ModelParser {
   static const std::string PARAM_DELIM;
 
  private:
+  // Model name
   std::string name;
   // Store parsed parameters
   // use this->value() and this->hasTag() to access this.

@@ -3837,8 +3837,12 @@ class MetaScoreTest : public ModelFitter {
   MetaBase* model;
   MetaBase* modelAuto;
   MetaBase* modelX;
+
+ protected:
+  // allow inherited-class to change
   bool useBolt;
 
+ private:
   double af;  // overall af (unadjust or adjusted by family structure)
 
   bool fitOK;
@@ -3878,6 +3882,16 @@ class MetaRecessiveTest : public MetaScoreTest {
   Matrix geno;
 };
 
+class MetaScoreBoltTest : public MetaScoreTest {
+ public:
+  MetaScoreBoltTest() : MetaScoreTest() { this->modelName = "MetaScoreBolt"; }
+  virtual int setParameter(const ModelParser& parser) {
+    MetaScoreTest::setParameter(parser);
+    this->useBolt = true;
+    return 0;
+  }
+};
+
 class MetaCovTest : public ModelFitter {
  public:
   typedef std::vector<double> Genotype;
@@ -3896,6 +3910,7 @@ class MetaCovTest : public ModelFitter {
       : model(NULL),
         modelAuto(NULL),
         modelX(NULL),
+        useBolt(false),
         fitOK(false),
         useFamilyModel(false),
         isHemiRegion(false) {
@@ -4002,11 +4017,12 @@ class MetaCovTest : public ModelFitter {
     for (int i = 0; i < nSample; ++i) {
       loci.geno[i] = genotype[i][0];
     }
-    model->transformGenotype(&loci.geno, dc);
-    model->calculateXZ(loci.geno, &loci.covXZ);
-    model->calculateZZ(&this->covZZ);
-    CholeskyInverseMatrix(this->covZZ, &this->covZZInv);
-
+    if (!useBolt) {
+      model->transformGenotype(&loci.geno, dc);
+      model->calculateXZ(loci.geno, &loci.covXZ);
+      model->calculateZZ(&this->covZZ);
+      CholeskyInverseMatrix(this->covZZ, &this->covZZInv);
+    }
     fitOK = true;
     return 0;
   }  // fitWithGivenGenotype
@@ -4091,9 +4107,14 @@ class MetaCovTest : public ModelFitter {
     double covX1X2;
     for (int idx = 0; iter != lociQueue.end(); ++iter, ++idx) {
       position[idx] = iter->pos.pos;
-      model->calculateXX(lociQueue.front().geno, iter->geno, &covX1X2);
-      this->covXX[idx] = computeScaledXX(covX1X2, lociQueue.front().covXZ,
-                                         iter->covXZ, this->covZZInv);
+      if (!useBolt) {
+        model->calculateXX(lociQueue.front().geno, iter->geno, &covX1X2);
+        this->covXX[idx] = computeScaledXX(covX1X2, lociQueue.front().covXZ,
+                                           iter->covXZ, this->covZZInv);
+      } else {
+        model->calculateXX(lociQueue.front().geno, iter->geno,
+                           &this->covXX[idx]);
+      }
     }
 
     result.updateValue("CHROM", lociQueue.front().pos.chrom);
@@ -4461,9 +4482,43 @@ class MetaCovTest : public ModelFitter {
     LogisticRegression logistic;
     Vector weight;
   };  // end class MetaCovUnrelatedBinary
+  class MetaCovFamQtlBolt : public MetaCovBase {
+   public:
+    MetaCovFamQtlBolt() {
+      fprintf(stderr, "MetaCovFamQtlBolt model started\n");
+    }
+    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+      const std::string& fn = dc->getBoltGenotypeFilePrefix();
+
+      // fit null model
+      bool fitOK = 0 == bolt_.FitNullModel(fn, &dc->getPhenotype());
+      if (!fitOK) return -1;
+      needToFitNullModel = false;
+      return 0;
+    }
+    int transformGenotype(Genotype* out, DataConsolidator* dc) { return 0; }
+    int calculateXX(const Genotype& x1, const Genotype& x2, double* covXX) {
+      bolt_.GetCovXX(x1, x2, covXX);
+      return 0;
+    }
+    int calculateXZ(const Genotype& x, std::vector<double>* covXZ) { return 0; }
+    int calculateZZ(Matrix* covZZ) { return 0; }
+
+   private:
+    BoltLMM bolt_;
+  };  // class MetaCovFamQtlBolt
 
   MetaCovBase* createModel(bool familyModel, bool binaryOutcome) {
     MetaCovBase* ret = NULL;
+    if (this->useBolt) {
+      if (binaryOutcome) {
+        fprintf(stderr, "BoltLMM does not support binary outcomes! Exit...\n");
+        exit(1);
+      }
+      ret = new MetaCovFamQtlBolt;
+      return ret;
+    }
+
     if (familyModel && !binaryOutcome) {
       ret = new MetaCovFamQtl;
     }
@@ -4484,6 +4539,11 @@ class MetaCovTest : public ModelFitter {
   MetaCovBase* modelAuto;
   MetaCovBase* modelX;
 
+ protected:
+  // allow inherited-class to change
+  bool useBolt;
+
+ private:
   std::deque<Loci> queue;
   int numVariant;
   int nSample;
@@ -4528,6 +4588,18 @@ class MetaRecessiveCovTest : public MetaCovTest {
 
  private:
   Matrix geno;
+};
+
+class MetaCovBoltTest : public MetaCovTest {
+ public:
+  MetaCovBoltTest(int windowSize) : MetaCovTest(windowSize) {
+    this->modelName = "MetaCovBolt";
+  }
+  virtual int setParameter(const ModelParser& parser) {
+    MetaCovTest::setParameter(parser);
+    MetaCovTest::useBolt = true;
+    return 0;
+  }
 };
 
 #if 0

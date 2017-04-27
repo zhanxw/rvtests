@@ -291,10 +291,13 @@ Score test           |  score      | B,Q  |     Y      |         R, U           
 Dominant model       |  dominant   | B,Q  |     Y      |         R, U           | score tests and covariance matrix under dominant disease model
 Recessive model      |  recessive  | B,Q  |     Y      |         R, U           | score tests and covariance matrix under recessive disease model
 Covariance           |  cov        | B,Q  |     Y      |         R, U           | covariance matrix
+BOLT-LMM score test           |  score[bolt]      | Q  |     Y      |         R, U           | BOLT-LMM based score tests
 
 (#) Model columns list the recognized names in rvtests. For example, use `--meta score,cov` will generate score statistics and covariance matrix for meta-analysis.
 
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
+
+(###) This method also requires pruned gneotype data in the PLINK format specified by `--boltPlink`. A minimal example to run BOLT-LMM based score tests is: `rvtest --inVcf $inputVCFfile --boltPlink $binaryPlinkPrefix --pheno $phenotype --meta score[bolt]`. 
 
 The above models are suitable to generate summary statistics which can be later meta-analyzed (see [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html)).
 Rvtests implemented the above methods and the results can be further analyzed by RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)) for quantitative trait and RareMetals2 ([link](http://genome.sph.umich.edu/wiki/RareMETALS2)).
@@ -626,5 +629,5 @@ Goncalo Abecasis ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@u
 
 Rvtests is a collaborative effort from Xiaowei Zhan, Youna Hu, Bingshan Li, Dajiang Liu and Goncalo Abecasis.
 
-We want to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, Michael Nalls, the GIANT consortium, the GLGC consortium and the GSCAN consortium.
+We want to thank rvtests users and especially those who have provided valuable feedbacks. These users include: Xueling Sim, Scott Verize, Shuang Feng, Kevin Lu, Ruth Loos, Tessel Galesloot, Valerie Turcot, Stefan Gustafsson, Corbin Quick, Adam Locke, Michael Nalls, Jie Huang, [the GIANT consortium](http://portals.broadinstitute.org/collaboration/giant/index.php/GIANT_consortium), [the GLGC consortium](http://lipidgenetics.org) and [the GSCAN consortium](https://ibg.colorado.edu/mediawiki/index.php/GSCAN).
 

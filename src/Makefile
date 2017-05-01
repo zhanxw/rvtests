@@ -26,7 +26,12 @@ BASE = Main \
       Model \
       GenotypeExtractor \
       DataLoader \
-      GenotypeCounter
+      GenotypeCounter \
+
+# Add the basename of your model files
+# e.g. put SingleDummy on the right if your source codes are:
+# SingleDummy.h and SingleDummy.cpp
+BASE += SingleDummy
 
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
@@ -49,7 +54,7 @@ $(DIR_EXEC)/$(EXEC):  $(LIBS) \
 $(DIR_EXEC_DBG)/$(EXEC): $(LIBS_DBG) \
                          $(OBJ_DBG) \
                          | $(DIR_EXEC_DBG)
-	$(CXX) -o $@ $(OBJ_DBG) $(CXX_FLAGS) $(CXX_LIB_DBG) 
+	$(CXX) -o $@ $(OBJ_DBG) $(CXX_FLAGS) $(CXX_LIB_DBG)
 
 
 ##################################################
@@ -80,4 +85,3 @@ deepclean: clean libclean
 	rm -rf *~
 	(cd ../third; $(MAKE) deepclean)
 	(cd ../libsrc; $(MAKE) clean)
-

@@ -1,16 +1,16 @@
 #ifndef _VCFUTIL_H_
 #define _VCFUTIL_H_
 
-#include "Exception.h"
-#include "RangeList.h"
-#include "Utils.h"
+#include "base/Exception.h"
+#include "base/RangeList.h"
+#include "base/Utils.h"
 
+#include "PlinkOutputFile.h"
 #include "VCFConstant.h"
+#include "VCFExtractor.h"
 #include "VCFFunction.h"
 #include "VCFHeader.h"
 #include "VCFInputFile.h"
-#include "VCFExtractor.h"
 #include "VCFOutputFile.h"
-#include "PlinkOutputFile.h"
 
 #endif /* _VCFUTIL_H_ */

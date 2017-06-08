@@ -1,10 +1,10 @@
 #ifndef _PEOPLESET_H_
 #define _PEOPLESET_H_
 
-#include "Utils.h"
-#include <string>
 #include <set>
+#include <string>
 #include <vector>
+#include "base/Utils.h"
 
 // this class provides which column to filtered (0-based index)
 class PeopleSet {

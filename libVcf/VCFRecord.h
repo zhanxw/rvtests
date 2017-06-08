@@ -1,17 +1,17 @@
 #ifndef _VCFRECORD_H_
 #define _VCFRECORD_H_
 
-#include "CommonFunction.h"
-#include "Exception.h"
-#include "IO.h"
-#include "IndexMap.h"
-#include "RangeList.h"
-#include "Utils.h"
 #include "VCFBuffer.h"
 #include "VCFFunction.h"
 #include "VCFHeader.h"
 #include "VCFIndividual.h"
 #include "VCFInfo.h"
+#include "base/CommonFunction.h"
+#include "base/Exception.h"
+#include "base/IO.h"
+#include "base/IndexMap.h"
+#include "base/RangeList.h"
+#include "base/Utils.h"
 
 typedef IndexMap<VCFIndividual*> VCFPeople;
 

@@ -2,6 +2,35 @@
 
 #include "base/SimpleMatrix.h"
 #include "libVcf/PlinkInputFile.h"
+#include "libVcf/VCFHeader.h"
+#include "libVcf/VCFRecord.h"
+
+void PlinkOutputFile::init(const char* fnPrefix) {
+  std::string prefix = fnPrefix;
+  this->fpBed = fopen((prefix + ".bed").c_str(), "wb");
+  this->fpBim = fopen((prefix + ".bim").c_str(), "wt");
+  this->fpFam = fopen((prefix + ".fam").c_str(), "wt");
+  if (!this->fpBed || !this->fpBim || !this->fpFam) {
+    REPORT("Cannot create binary PLINK file!");
+    abort();
+  }
+  // write Bed header
+  char c;
+  // magic number
+  c = 0x6c;  // 0b01101100;
+  fwrite(&c, sizeof(char), 1, this->fpBed);
+  c = 0x1b;  // 0b00011011;
+  fwrite(&c, sizeof(char), 1, this->fpBed);
+  // snp major mode
+  c = 0x01;  // 0b00000001;
+  fwrite(&c, sizeof(char), 1, this->fpBed);
+}
+
+void PlinkOutputFile::writeHeader(const VCFHeader* h) {
+  std::vector<std::string> people;
+  h->getPeopleName(&people);
+  this->writeFAM(people);
+}
 
 int PlinkOutputFile::isMultiAllelic(const char* r) {
   if (strchr(r, ',') == NULL) return 0;

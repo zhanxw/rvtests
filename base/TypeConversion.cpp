@@ -3,6 +3,140 @@
 
 #include <algorithm>
 
+class atoi_func {
+ public:
+  atoi_func() : value_() {}
+
+  inline int value() const { return value_; }
+
+  inline bool operator()(const char* str, size_t len) {
+    value_ = 0;
+    int sign = 1;
+    if (str[0] == '-') {  // handle negative
+      sign = -1;
+      ++str;
+      --len;
+    }
+
+    switch (len) {  // handle up to 10 digits, assume we're 32-bit
+      case 10:
+        value_ += (str[len - 10] - '0') * 1000000000;
+      case 9:
+        value_ += (str[len - 9] - '0') * 100000000;
+      case 8:
+        value_ += (str[len - 8] - '0') * 10000000;
+      case 7:
+        value_ += (str[len - 7] - '0') * 1000000;
+      case 6:
+        value_ += (str[len - 6] - '0') * 100000;
+      case 5:
+        value_ += (str[len - 5] - '0') * 10000;
+      case 4:
+        value_ += (str[len - 4] - '0') * 1000;
+      case 3:
+        value_ += (str[len - 3] - '0') * 100;
+      case 2:
+        value_ += (str[len - 2] - '0') * 10;
+      case 1:
+        value_ += (str[len - 1] - '0');
+        value_ *= sign;
+        return value_ > 0;
+      default:
+        return false;
+    }
+  }
+
+ private:
+  int value_;
+};
+
+// convert std::string to integer
+// @return true if conversion succeed
+bool str2int(const char* input, int* output) {
+  // Limitation: this method only works for 32-bit integer
+  // We did not use strtol, as it is slower althought it can convert to
+  // `long` instead of `int`.
+  // The implementaiton may be more compatible than strtol() on musl
+
+  size_t len = 0;
+  unsigned char neg = 0;
+  unsigned long value = 0;
+
+  if (!input) {
+    assert(input && "null input string for str2int()");
+    goto err;
+  }
+  // skip spaces
+  while (*input == ' ') {
+    input++;
+  }
+
+  // check sign
+  if (*input == '-') {
+    neg = 1;
+    input++;
+  }
+
+  if (*input == '\0') {
+    goto err;
+  }
+
+  while (*input == ' ') {
+    input++;
+  }
+
+  while (input[len] >= '0' && input[len] <= '9') {
+    len++;
+  }
+
+  // unroll the computation to speed up
+  switch (len) {  // handle up to 10 digits, assume we're 32-bit
+    case 10:
+      value += (input[len - 10] - '0') * 1000000000;
+    case 9:
+      value += (input[len - 9] - '0') * 100000000;
+    case 8:
+      value += (input[len - 8] - '0') * 10000000;
+    case 7:
+      value += (input[len - 7] - '0') * 1000000;
+    case 6:
+      value += (input[len - 6] - '0') * 100000;
+    case 5:
+      value += (input[len - 5] - '0') * 10000;
+    case 4:
+      value += (input[len - 4] - '0') * 1000;
+    case 3:
+      value += (input[len - 3] - '0') * 100;
+    case 2:
+      value += (input[len - 2] - '0') * 10;
+    case 1:
+      value += (input[len - 1] - '0');
+
+      // check range
+      // valid 32bit int is from [-2147483648, 2147483647]
+      if (neg) {
+        if (value > (unsigned long)INT_MAX + 1) {
+          goto err;
+        } else {
+          *output = -value;
+          return true;
+        }
+      } else {
+        if (value > (unsigned long)INT_MAX) {
+          goto err;
+        }
+        *output = value;
+        return true;
+      }
+
+    default:
+      return false;
+  }
+err:
+  *output = 0;
+  return false;
+}
+
 int chrom2int(const std::string& chrom) {
   int b = 0;
   if (hasLeadingChr(chrom)) b = 3;

@@ -81,28 +81,7 @@ std::string toStringWithComma(int in);
 
 // convert std::string to integer
 // @return true if conversion succeed
-inline bool str2int(const char* input, int* output) {
-  char* endptr;
-  long val;
-  errno = 0;
-  val = strtol(input, &endptr, 10);
-
-  if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) ||
-      (errno != 0 && val == 0)) {
-#ifndef NDEBUG
-    perror("strtol");
-#endif
-    return false;
-  }
-
-  if (endptr == input) {
-    // no digits found
-    return false;
-  }
-
-  *output = val;
-  return true;
-}
+bool str2int(const char* input, int* output);
 
 // convert std::string to integer
 // @return true if conversion succeed

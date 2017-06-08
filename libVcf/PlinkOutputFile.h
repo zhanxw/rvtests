@@ -1,10 +1,13 @@
 #ifndef _PLINKOUTPUTFILE_H_
 #define _PLINKOUTPUTFILE_H_
 
-#include "VCFUtil.h"
+#include <string>
+#include <vector>
 
 class SimpleMatrix;
 class PlinkInputFile;
+class VCFHeader;
+class VCFRecord;
 
 /****************************/
 /*    Binary PLINK format   */
@@ -32,26 +35,7 @@ class PlinkOutputFile {
  public:
   PlinkOutputFile(const char* fnPrefix) { init(fnPrefix); }
   PlinkOutputFile(const std::string& fnPrefix) { init(fnPrefix.c_str()); }
-  void init(const char* fnPrefix) {
-    std::string prefix = fnPrefix;
-    this->fpBed = fopen((prefix + ".bed").c_str(), "wb");
-    this->fpBim = fopen((prefix + ".bim").c_str(), "wt");
-    this->fpFam = fopen((prefix + ".fam").c_str(), "wt");
-    if (!this->fpBed || !this->fpBim || !this->fpFam) {
-      REPORT("Cannot create binary PLINK file!");
-      abort();
-    }
-    // write Bed header
-    char c;
-    // magic number
-    c = 0x6c;  // 0b01101100;
-    fwrite(&c, sizeof(char), 1, this->fpBed);
-    c = 0x1b;  // 0b00011011;
-    fwrite(&c, sizeof(char), 1, this->fpBed);
-    // snp major mode
-    c = 0x01;  // 0b00000001;
-    fwrite(&c, sizeof(char), 1, this->fpBed);
-  }
+  void init(const char* fnPrefix);
   ~PlinkOutputFile() { close(); }
   void close() {
     if (this->fpFam) {
@@ -67,11 +51,7 @@ class PlinkOutputFile {
       this->fpBed = NULL;
     }
   }
-  void writeHeader(const VCFHeader* h) {
-    std::vector<std::string> people;
-    h->getPeopleName(&people);
-    this->writeFAM(people);
-  }
+  void writeHeader(const VCFHeader* h);
   // @pos is from 0 to 3
   void setGenotype(unsigned char* c, const int pos, const int geno) {
     (*c) |= (geno << (pos << 1));

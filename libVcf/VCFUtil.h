@@ -5,12 +5,12 @@
 #include "base/RangeList.h"
 #include "base/Utils.h"
 
-#include "PlinkOutputFile.h"
-#include "VCFConstant.h"
-#include "VCFExtractor.h"
-#include "VCFFunction.h"
-#include "VCFHeader.h"
-#include "VCFInputFile.h"
-#include "VCFOutputFile.h"
+#include "libVcf/PlinkOutputFile.h"
+#include "libVcf/VCFConstant.h"
+#include "libVcf/VCFExtractor.h"
+#include "libVcf/VCFFunction.h"
+#include "libVcf/VCFHeader.h"
+#include "libVcf/VCFInputFile.h"
+#include "libVcf/VCFOutputFile.h"
 
 #endif /* _VCFUTIL_H_ */

@@ -85,7 +85,7 @@ bool str2int(const char* input, int* output) {
     input++;
   }
 
-  while (input[len] != '\0') {
+  while (input[len] >= '0' && input[len] <= '9') {
     len++;
   }
 

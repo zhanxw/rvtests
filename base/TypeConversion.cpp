@@ -52,7 +52,7 @@ class atoi_func {
 
 // convert std::string to integer
 // @return true if conversion succeed
-inline bool str2int(const char* input, int* output) {
+bool str2int(const char* input, int* output) {
   // Limitation: this method only works for 32-bit integer
   // We did not use strtol, as it is slower althought it can convert to
   // `long` instead of `int`.

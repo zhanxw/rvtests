@@ -337,7 +337,11 @@ int KinshipHolder::loadDecomposed() {
         s = "u";
         s += toString(i + 1);
         if (headerMap.count(s) == 0) {
-          logger->error("Missing '%s' column!", s.c_str());
+          logger->warn(
+              "Missing [ %s ] column in the header line of file [ %s ] when we "
+              "are analyzing [ %d ] "
+              "samples!",
+              s.c_str(), NumSample);
           return -1;
         }
         columnToExtract.push_back(headerMap[s]);

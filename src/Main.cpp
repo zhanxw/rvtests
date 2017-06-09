@@ -30,7 +30,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20170418";
+const char* VERSION = "20170609";
 
 void banner(FILE* fp) {
   const char* string =
@@ -41,10 +41,19 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      March 2017                        | \n"
+      "|      June 2017                         | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
+  fputs(string, fp);
+}
+
+void citation(FILE* fp) {
+  const char* string =
+      "  Please consider citing: Zhan, X., Hu, Y., Li, B., Abecasis, G. R., & "
+      "Liu, D. J. (2016). RVTESTS: an efficient and comprehensive tool for "
+      "rare variant association analysis using sequence data. Bioinformatics, "
+      "32(9), 1423-1426.\n";
   fputs(string, fp);
 }
 
@@ -403,6 +412,8 @@ ADD_BOOL_PARAMETER(hideCovar, "--hide-covar",
                    "Surpress output lines of covariates");
 ADD_DEFAULT_INT_PARAMETER(numThread, 1, "--numThread",
                           "Specify number of threads (default:1)");
+ADD_BOOL_PARAMETER(outputID, "--outputID",
+                   "Output VCF IDs in single-variant assocition results");
 ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message");
 END_PARAMETER_LIST();
 
@@ -1057,6 +1068,9 @@ int main(int argc, char** argv) {
   if (rangeMode == "Single" && singleVariantMode) {  // use line by line mode
     buf.addHeader("CHROM");
     buf.addHeader("POS");
+    if (FLAG_outputID) {
+      buf.addHeader("ID");
+    }
     buf.addHeader("REF");
     buf.addHeader("ALT");
     buf.addHeader("N_INFORMATIVE");
@@ -1107,6 +1121,9 @@ int main(int argc, char** argv) {
     buf.addHeader(rangeMode);
     buf.addHeader("CHROM");
     buf.addHeader("POS");
+    if (FLAG_outputID) {
+      buf.addHeader("ID");
+    }
     buf.addHeader("REF");
     buf.addHeader("ALT");
     buf.addHeader("N_INFORMATIVE");
@@ -1225,5 +1242,6 @@ int main(int argc, char** argv) {
   int elapsedSecond = (int)(endTime - startTime);
   logger->info("Analysis took %d seconds", elapsedSecond);
 
+  fputs("RVTESTS successfully exit\n", stdout);
   return 0;
 }

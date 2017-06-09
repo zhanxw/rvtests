@@ -174,6 +174,7 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
 
   buf.updateValue("CHROM", r.getChrom());
   buf.updateValue("POS", r.getPosStr());
+  buf.updateValue("ID", r.getID());
   buf.updateValue("REF", r.getRef());
   buf.updateValue("ALT", altAllele[altAllele.size() - this->altAlleleToParse]);
 

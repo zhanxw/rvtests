@@ -94,7 +94,9 @@ deepclean:
 	-rm -rf tabix-0.2.6
 	-rm -rf pcre-8.36
 	-rm -rf gsl-1.16
-	-rm -rf eigen-3.1.4
+	-rm -rf eigen-3.3.3
 	-rm -rf bzip2-1.0.6
 	-rm -rf samtools-0.1.19
 	-rm -rf rapidjson-1.0.2
+	-rm -rf nlopt-2.4.2
+	-rm -rf zlib-1.2.8

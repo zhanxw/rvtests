@@ -16,19 +16,19 @@ jobBuild:
     stage: build
     script:
         - make
+        - FN=/dist/rvtests-`date +"%Y%m%d"`-`git rev-parse HEAD|cut -c 1-6`-linux64-static.tar.gz; cd .. && tar zvcf ${FN} rvtests/executable/rvtest rvtests/executable/vcf2kinship rvtests/example rvtests/README.md && echo "Output file name is ${FN}"
 jobTest:
     stage: test
     script:
         - make debug
         - (for i in base libVcf regression; do echo "Task = ${i}"; make -C ${i}/test; done)
         - (for i in base libVcf regression; do echo "Task = ${i}"; make check -C ${i}/test; done)
-jobDeploy:
-    stage: deploy
-    script:
-        - echo "Packing RVTESTS"
-        - make
-        - FN=/dist/rvtests-`date +"%Y%m%d"`-`git rev-parse HEAD|cut -c 1-6`-linux64-static.tar.gz; cd .. && tar zvcf ${FN} rvtests/executable/rvtest rvtests/executable/vcf2kinship rvtests/example rvtests/README.md && echo "Output file name is ${FN}"
-    environment:
-        name: staging
-        url: http:staging-rvtests.bunny.swmed.edu
-    when: "manual"
+#jobDeploy:
+#    stage: deploy
+#    script:
+#        - echo "Packing RVTESTS"
+#        - make
+#    environment:
+#        name: staging
+#        url: http:staging-rvtests.bunny.swmed.edu
+#    when: "manual"

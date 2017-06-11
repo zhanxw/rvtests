@@ -1242,6 +1242,6 @@ int main(int argc, char** argv) {
   int elapsedSecond = (int)(endTime - startTime);
   logger->info("Analysis took %d seconds", elapsedSecond);
 
-  fputs("RVTESTS successfully exit\n", stdout);
+  fputs("RVTESTS finished successfully\n", stdout);
   return 0;
 }

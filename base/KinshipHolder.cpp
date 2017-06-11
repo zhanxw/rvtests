@@ -341,7 +341,7 @@ int KinshipHolder::loadDecomposed() {
               "Missing [ %s ] column in the header line of file [ %s ] when we "
               "are analyzing [ %d ] "
               "samples!",
-              s.c_str(), NumSample);
+              s.c_str(), this->eigenFileName.c_str(), NumSample);
           return -1;
         }
         columnToExtract.push_back(headerMap[s]);

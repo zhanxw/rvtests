@@ -80,10 +80,10 @@ class FastLMM::Impl {
       fprintf(stderr, "Cannot optimize\n");
       return -1;
     }
-#if 0
-    fprintf(stderr, "maxIndex = %d\tll=%lf\t\tbeta(0)=%lf\tsigma2=%lf\n",
-            maxIndex, maxLogLik, beta(0), sigma2);
-#endif
+    if (FastLMM::Impl::showDebug) {
+      fprintf(stderr, "maxIndex = %d\tll=%lf\t\tbeta(0)=%lf\tsigma2=%lf\n",
+              maxIndex, maxLogLik, beta(0), sigma2);
+    }
 
     if (maxIndex == 0 || maxIndex == 100) {
       // on the boundary

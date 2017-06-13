@@ -12,26 +12,33 @@
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
 
-#define DEBUG
-#undef DEBUG
+// 0: no debug info
+// 1: some debug info
+// 2: most debug info
+static int BOLTLMM_DEBUG = 0;
 
-#ifdef DEBUG
-#include <fstream>
-#include "base/Profiler.h"
+// #include <fstream>
+// #include "base/Profiler.h"
 #include "base/SimpleTimer.h"
 #include "base/TimeUtil.h"
 
 class QuickTimer {
  public:
-  QuickTimer(const std::string& msg) {
-    msg_ = msg;
-    fprintf(stderr, "%s: Enter %s \n", currentTime().c_str(), msg_.c_str());
-    timer_.start();
+  QuickTimer(const std::string& msg) { start(msg); }
+  ~QuickTimer() { stop(); }
+  void start(const std::string& msg) {
+    if (BOLTLMM_DEBUG >= 2) {
+      msg_ = msg;
+      fprintf(stderr, "%s: Enter %s \n", currentTime().c_str(), msg_.c_str());
+      timer_.start();
+    }
   }
-  ~QuickTimer() {
-    timer_.stop();
-    fprintf(stderr, "%s: Exit %s - elapsed %g seconds \n",
-            currentTime().c_str(), msg_.c_str(), timer_.getSeconds());
+  void stop() {
+    if (BOLTLMM_DEBUG >= 2) {
+      timer_.stop();
+      fprintf(stderr, "%s: Exit %s - elapsed %g seconds \n",
+              currentTime().c_str(), msg_.c_str(), timer_.getSeconds());
+    }
   }
 
  private:
@@ -39,7 +46,7 @@ class QuickTimer {
   std::string msg_;
 };
 
-#endif
+#define TIMER(msg) QuickTimer qt(msg);
 
 struct Float4 {
   float x[4];
@@ -637,6 +644,13 @@ class BoltLMM::BoltLMMImpl {
         BatchSize_(cv.BatchSize_),
         NumBatch_(cv.NumBatch_) {}
   int FitNullModel(const std::string& prefix, Matrix* phenotype) {
+    const char* boltLMMDebugEnv = std::getenv("BOLTLMM_DEBUG");
+    if (boltLMMDebugEnv) {
+      BoltLMM::BoltLMMImpl::showDebug = atoi(boltLMMDebugEnv);
+    } else {
+      BoltLMM::BoltLMMImpl::showDebug = 0;
+    }
+
     // load phenotype, genotype
     std::string fn = prefix;
     if (pl.open(prefix)) {
@@ -728,13 +742,11 @@ class BoltLMM::BoltLMMImpl {
 
  private:
   int EstimateHeritability() {
-#ifdef DEBUG
-    QuickTimer qt(__PRETTY_FUNCTION__);
-#endif
+    TIMER(__PRETTY_FUNCTION__);
     MCtrial_ = std::max(std::min((int)(4e9 / N_ / N_), 15), 3);  // follow BOLT
-#ifdef DEBUG
-    fprintf(stderr, "MCtrial_ = %d\n", (int)MCtrial_);
-#endif
+    if (BOLTLMM_DEBUG >= 1) {
+      fprintf(stderr, "MCtrial_ = %d\n", (int)MCtrial_);
+    }
     WorkingData w(cv);
     w.init(pl);
 
@@ -774,9 +786,9 @@ class BoltLMM::BoltLMMImpl {
 #endif
 #endif
 
-#ifdef DEBUG
-    fprintf(stderr, "bolt 1a) start - %s\n", currentTime().c_str());
-#endif
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "bolt 1a) start - %s\n", currentTime().c_str());
+    }
 #if 0
     double initH2 = minqueH2;
     if (minqueH2 < 0 || minqueH2 > 1) {
@@ -826,16 +838,16 @@ class BoltLMM::BoltLMMImpl {
     if (i == 7) {
       --i;
     }  // boudary case when i reaches its maximum
-#ifdef DEBUG
-    // print iterations
-    fprintf(stderr, "\ni\tlogDelta\tf\tdelta\th2\n");
-    for (int j = 0; j <= i; ++j) {
-      double delta = exp(logDelta[j]);
-      fprintf(stderr, "%d\t%f\t%f\t%f\t%f\n", j, logDelta[j], f[j], delta,
-              h2[j]);
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      // print iterations
+      fprintf(stderr, "\ni\tlogDelta\tf\tdelta\th2\n");
+      for (int j = 0; j <= i; ++j) {
+        double delta = exp(logDelta[j]);
+        fprintf(stderr, "%d\t%f\t%f\t%f\t%f\n", j, logDelta[j], f[j], delta,
+                h2[j]);
+      }
+      fprintf(stderr, "bolt 1a) end - %s\n", currentTime().c_str());
     }
-    fprintf(stderr, "bolt 1a) end - %s\n", currentTime().c_str());
-#endif
 
     delta_ = exp(logDelta[i]);
     // sigma2_g_est_ = (y_.transpose() * w.H_inv_y_data)(0, 0) / (N_ - C_);
@@ -843,11 +855,11 @@ class BoltLMM::BoltLMMImpl {
     sigma2_e_est_ = delta_ * sigma2_g_est_;
     assert(sigma2_g_est_ > 0);
     h2_ = h2[i];
-#ifdef DEBUG
-    fprintf(stderr,
-            "i = %d, delta = %g, sigma2_g = %g, sigma2_e = %g, h2 = %g\n", i,
-            delta_, sigma2_g_est_, sigma2_e_est_, h2_);
-#endif
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr,
+              "i = %d, delta = %g, sigma2_g = %g, sigma2_e = %g, h2 = %g\n", i,
+              delta_, sigma2_g_est_, sigma2_e_est_, h2_);
+    }
     // need to multiply this
     // originally we calculate (K/M + delta)^(-1) * y
     // we now need (K/M * sigma2.g + delta * sigma2.e)^(-1) * y
@@ -857,10 +869,8 @@ class BoltLMM::BoltLMMImpl {
     return 0;
   }
   double evalREML(double logDelta, WorkingData& w) {
-#ifdef DEBUG
-    // PROFILE_FUNCTION()
-    QuickTimer qt(__PRETTY_FUNCTION__);
-#endif
+    TIMER(__PRETTY_FUNCTION__);
+
     double delta = exp(logDelta);
 
     fprintf(stderr, "solve for data\n");
@@ -887,24 +897,23 @@ class BoltLMM::BoltLMMImpl {
     fprintf(stderr, "data = {%g, %g}, rand = {%g, %g}\n", r_data[0], r_data[1],
             r_rand[0], r_rand[1]);
 
-// uncomment to get intermediate results
-#if 0
-    dumpToFile(w.y, "tmp.w.y");
-    FILE* fp = fopen("tmp.g", "wt");
-    for (int b = 0; b < NumBatch_; ++b) {
-      pl.loadSNPWithCovBatch(b, stage_);
-      Eigen::Map<Eigen::MatrixXf> g_z(stage_, N_ + C_, BatchSize_);
-      for (int i = 0; i < BatchSize_; ++i) {
-        for (int j = 0; j < N_ + C_; ++j) {
-          if (j) fputc('\t', fp);
-          fprintf(fp, "%g", g_z(j, i));
+    if (BoltLMM::BoltLMMImpl::showDebug >= 2) {
+      dumpToFile(w.y, "tmp.w.y");
+      FILE* fp = fopen("tmp.g", "wt");
+      for (int b = 0; b < NumBatch_; ++b) {
+        pl.loadSNPWithCovBatch(b, stage_);
+        Eigen::Map<Eigen::MatrixXf> g_z(stage_, N_ + C_, BatchSize_);
+        for (int i = 0; i < BatchSize_; ++i) {
+          for (int j = 0; j < N_ + C_; ++j) {
+            if (j) fputc('\t', fp);
+            fprintf(fp, "%g", g_z(j, i));
+          }
+          fputc('\n', fp);
         }
-        fputc('\n', fp);
       }
+      fclose(fp);
+      dumpToFile(w.y, "tmp.w.y");
     }
-    fclose(fp);
-    dumpToFile(w.y, "tmp.w.y");
-#endif
     return f;
 
   }  // end evalREML
@@ -917,9 +926,8 @@ class BoltLMM::BoltLMMImpl {
   void estimateBetaAndE(const Eigen::MatrixXf& H_inv_y, const double delta,
                         const int M, Eigen::MatrixXf* beta_hat,
                         Eigen::MatrixXf* e_hat) {
-#ifdef DEBUG
-    QuickTimer qt(__PRETTY_FUNCTION__);
-#endif
+    TIMER(__PRETTY_FUNCTION__);
+
     // *beta_hat = g_.transpose() * H_inv_y / M;
     // Done batch load x
     (*beta_hat).resize(M2_, MCtrial_ + 1);
@@ -939,9 +947,8 @@ class BoltLMM::BoltLMMImpl {
   // y: [ (N+C) x (MCtrial+1)] or [ (N+C) x (# of random SNPs) ]
   void solve(const Eigen::MatrixXf& y, const double delta,
              Eigen::MatrixXf* h_inv_y) {
-#ifdef DEBUG
-    QuickTimer qt(__PRETTY_FUNCTION__);
-#endif
+    TIMER(__PRETTY_FUNCTION__);
+
     // 5e-4 is the default threshold used in BoltLMM paper
     // conjugateSolverBolt(g_, y, delta, 5e-4, h_inv_y);
     Eigen::MatrixXf& x = *h_inv_y;
@@ -985,16 +992,16 @@ class BoltLMM::BoltLMMImpl {
       p = r + p * ratio.matrix().asDiagonal();
 
       rsold = rsnew;
-#ifdef DEBUG
-      fprintf(stderr, "i = %d\tdelta = %g", i, delta);
-      for (int ii = 0; ii < rsnew.size(); ++ii) {
-        fprintf(stderr, "\t%g", rsnew(ii));
+      if (BoltLMM::BoltLMMImpl::showDebug >= 2) {
+        fprintf(stderr, "i = %d\tdelta = %g", i, delta);
+        for (int ii = 0; ii < rsnew.size(); ++ii) {
+          fprintf(stderr, "\t%g", rsnew(ii));
+        }
+        fprintf(stderr, "\n");
+        if ((rsnew.array() < -1.0).any()) {
+          fprintf(stderr, "Norm2 should be always positive!\n");
+        }
       }
-      fprintf(stderr, "\n");
-      if ((rsnew.array() < -1.0).any()) {
-        fprintf(stderr, "Norm2 should be always positive!\n");
-      }
-#endif
     }
   }
 
@@ -1016,9 +1023,7 @@ class BoltLMM::BoltLMMImpl {
   // y: [ (N) x (1)]
   // NOTE: when K is GRM, K in singular and cannot be inverted
   void solveKinv(const Eigen::MatrixXf& y, Eigen::MatrixXf* k_inv_y) {
-#ifdef DEBUG
-    QuickTimer qt(__PRETTY_FUNCTION__);
-#endif
+    TIMER(__PRETTY_FUNCTION__);
     // 5e-4 is the default threshold used in BoltLMM paper
     // conjugateSolverBolt(g_, y, delta, 5e-4, h_inv_y);
     Eigen::MatrixXf& x = *k_inv_y;
@@ -1049,9 +1054,10 @@ class BoltLMM::BoltLMMImpl {
       }
       p = r + p * (rsnew / rsold);
       rsold = rsnew;
-#ifdef DEBUG
-      fprintf(stderr, "i = %d\talpha = %g\trsnew = %g\n", i, alpha, rsnew);
-#endif
+
+      if (BOLTLMM_DEBUG >= 1) {
+        fprintf(stderr, "i = %d\talpha = %g\trsnew = %g\n", i, alpha, rsnew);
+      }
     }
   }
 
@@ -1180,9 +1186,7 @@ class BoltLMM::BoltLMMImpl {
 
   // estimate scaling factor using some random SNPs
   int EstimateInfStatCalibration(PlinkLoader& pl) {
-#ifdef DEBUG
-    QuickTimer qt(__PRETTY_FUNCTION__);
-#endif
+    TIMER(__PRETTY_FUNCTION__);
 
     int nSnp = BatchSize_;
     // BOLT-LMM uses 30
@@ -1267,7 +1271,12 @@ class BoltLMM::BoltLMMImpl {
   double infStatCalibration_;
   Eigen::MatrixXf g_test_;
   Eigen::MatrixXf alpha_;
+
+ private:
+  static bool showDebug;
 };
+
+bool BoltLMM::BoltLMMImpl::showDebug = 0;
 
 //////////////////////////////////////////////////
 // BoltLMM class
@@ -1287,11 +1296,13 @@ double BoltLMM::GetEffect() { return impl_->GetEffect(); }
 double BoltLMM::GetPvalue() { return impl_->GetPvalue(); }
 
 //////////////////////////////////////////////////
-// BoltLMM::Impl class
+// BoltLMM::BoltLMMImpl class
 //////////////////////////////////////////////////
 
 #if 0
-// old code in BoltLMM::Impl
+// old code in BoltLMM::BoltLMMImpl
+// not practical for large datasets due to exessive memory consumption
+//
 // P = I - Z * (Z' * Z)^(-1) * Z'
   void makeProjectionMatrix(Matrix& covar, Eigen::MatrixXf* ptr_proj_covar) {
     Eigen::MatrixXf& proj_covar = *ptr_proj_covar;

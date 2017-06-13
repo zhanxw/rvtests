@@ -12,11 +12,21 @@ stages:
     - build
     - test
     - deploy
-jobBuild:
+jobBuildRelease:
     stage: build
     script:
         - make
         - FN=/dist/rvtests-`date +"%Y%m%d"`-`git rev-parse HEAD|cut -c 1-6`-linux64-static.tar.gz; cd .. && tar zvcf ${FN} rvtests/executable/rvtest rvtests/executable/vcf2kinship rvtests/example rvtests/README.md && echo "Output file name is ${FN}"
+jobBuildDebug:
+    stage: build
+    script:
+        - make debug
+        - FN=/dist/rvtests-debug-`date +"%Y%m%d"`-`git rev-parse HEAD|cut -c 1-6`-linux64-static.tar.gz; cd .. && tar zvcf ${FN} rvtests/executable/rvtest rvtests/executable/vcf2kinship rvtests/example rvtests/README.md && echo "Output file name is ${FN}"
+jobBuildProfile:
+    stage: build
+    script:
+        - make profile
+        - FN=/dist/rvtests-profile-`date +"%Y%m%d"`-`git rev-parse HEAD|cut -c 1-6`-linux64-static.tar.gz; cd .. && tar zvcf ${FN} rvtests/executable/rvtest rvtests/executable/vcf2kinship rvtests/example rvtests/README.md && echo "Output file name is ${FN}"
 jobTest:
     stage: test
     script:

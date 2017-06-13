@@ -100,7 +100,13 @@ inline bool str2double(const char* input, double* output) {
 
   if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL)) ||
       (errno != 0 && val == 0.)) {
-    perror("strtod");
+    // Ignore error here to avoid displaying:
+    // "strtod: Invalid argument" (issue #32)
+    // Reason: musl has different implementaiton of strtod,
+    // musl set errno = 22 in strtod("NA")
+    // glibc set errno = 0 in strtod("NA")
+    
+    // perror("strtod");
     return false;
   }
 

@@ -1,3 +1,7 @@
+2017-06-13  Xiaowei Zhan  <zhanxw@bunny.swmed.edu>
+
+	* Fix a bug related Wald test outputs (fix #30)
+
 2017-06-09  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Add "--outputID" to output VCF ID to association results (fix #14, #24)

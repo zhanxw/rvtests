@@ -105,7 +105,7 @@ inline bool str2double(const char* input, double* output) {
     // Reason: musl has different implementaiton of strtod,
     // musl set errno = 22 in strtod("NA")
     // glibc set errno = 0 in strtod("NA")
-    
+
     // perror("strtod");
     return false;
   }

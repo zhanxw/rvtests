@@ -98,18 +98,28 @@ inline bool str2double(const char* input, double* output) {
   errno = 0;
   val = strtod(input, &endptr);
 
-  if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL)) ||
-      (errno != 0 && val == 0.)) {
+  if (errno == ERANGE) {
+#ifndef NDEBUG
+    fprintf(stderr, "Over/under flow happened: %s\n", input);
+    perror("strtod");
+#endif
+    return false;
+  }
+  if (error == EINVAL) {
     // Ignore error here to avoid displaying:
     // "strtod: Invalid argument" (issue #32)
     // Reason: musl has different implementaiton of strtod,
     // musl set errno = 22 in strtod("NA")
     // glibc set errno = 0 in strtod("NA")
-
-    // perror("strtod");
     return false;
   }
-
+  if (errno != 0 && val == 0.) {
+#ifndef NDEBUG
+    fprintf(stderr, "Unknown conversion error happened: %s\n", input);
+    perror("strtod");
+#endif
+    return false;
+  }
   if (endptr == input) {
     // no digits found
     return false;

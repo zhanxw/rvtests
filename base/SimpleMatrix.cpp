@@ -216,7 +216,6 @@ int SimpleMatrix::dropRow(const std::vector<std::string>& name) {
 int SimpleMatrix::dropRow(const std::vector<int>& index) {
   removeByIndex(index, &mat);
   removeByIndex(index, &rowName);
-  removeByIndex(index, &colName);
   return 0;
 }
 

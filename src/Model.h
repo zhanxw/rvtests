@@ -567,7 +567,8 @@ class SingleVariantFamilyScore : public ModelFitter {
                                          *dc->getKinshipSForAuto())
                  ? true
                  : false);
-    af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
+    af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
+                     dc->getGenotype());
     u = model.GetUStat();
     v = model.GetVStat();
     pvalue = model.GetPvalue();
@@ -659,7 +660,8 @@ class SingleVariantFamilyLRT : public ModelFitter {
              model.TestCovariate(cov, phenotype, genotype,
                                  *dc->getKinshipUForAuto(),
                                  *dc->getKinshipSForAuto()));
-    af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto());
+    af = model.GetAF(*dc->getKinshipUForAuto(), *dc->getKinshipSForAuto(),
+                     dc->getGenotype());
     nullLogLik = model.GetNullLogLikelihood();
     altLogLik = model.GetAltLogLikelihood();
     pvalue = model.GetPvalue();

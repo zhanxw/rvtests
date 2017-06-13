@@ -1,6 +1,7 @@
 2017-06-13  Xiaowei Zhan  <zhanxw@bunny.swmed.edu>
 
 	* Fix a bug related Wald test outputs (fix #30)
+	* Fix zero af in famscore (fix #34)
 
 2017-06-09  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

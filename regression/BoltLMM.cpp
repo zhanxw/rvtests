@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "regression/BoltLMM.h"
 
 #include "third/eigen/Eigen/Dense"
@@ -14,7 +15,8 @@
 
 // 0: no debug info
 // 1: some debug info
-// 2: most debug info
+// 2: most debug info (timing)
+// 3: most debug info (timing + intermediate file)
 static int BOLTLMM_DEBUG = 0;
 
 // #include <fstream>
@@ -823,8 +825,10 @@ class BoltLMM::BoltLMMImpl {
     h2[i] = initH2;
     logDelta[i] = getLogDeltaFromH2(h2[i]);
     f[i] = evalREML(logDelta[i], w);
-    fprintf(stderr, "i = %d\tlogDelta = %f\tf = %f\tdelta = %f\th2 = %f\n", i,
-            logDelta[i], f[i], exp(logDelta[i]), h2[i]);
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "i = %d\tlogDelta = %f\tf = %f\tdelta = %f\th2 = %f\n", i,
+              logDelta[i], f[i], exp(logDelta[i]), h2[i]);
+    }
 
     i = 1;
     if (f[i - 1] < 0) {
@@ -836,8 +840,10 @@ class BoltLMM::BoltLMMImpl {
     }
     logDelta[i] = getLogDeltaFromH2(h2[i]);
     f[i] = evalREML(logDelta[i], w);
-    fprintf(stderr, "i = %d\tlogDelta = %f\tf = %f\tdelta = %f\th2 = %f\n", i,
-            logDelta[i], f[i], exp(logDelta[i]), h2[i]);
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "i = %d\tlogDelta = %f\tf = %f\tdelta = %f\th2 = %f\n", i,
+              logDelta[i], f[i], exp(logDelta[i]), h2[i]);
+    }
 
     for (i = 2; i < 7; ++i) {
       logDelta[i] = (logDelta[i - 2] * f[i - 1] - logDelta[i - 1] * f[i - 2]) /
@@ -860,8 +866,10 @@ class BoltLMM::BoltLMMImpl {
       }
       f[i] = evalREML(logDelta[i], w);
 
-      fprintf(stderr, "i = %d\tlogDelta = %f\tf = %f\tdelta = %f\th2 = %f\n", i,
-              logDelta[i], f[i], exp(logDelta[i]), h2[i]);
+      if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+        fprintf(stderr, "i = %d\tlogDelta = %f\tf = %f\tdelta = %f\th2 = %f\n",
+                i, logDelta[i], f[i], exp(logDelta[i]), h2[i]);
+      }
     }
     if (i == 7) {
       --i;
@@ -901,7 +909,9 @@ class BoltLMM::BoltLMMImpl {
 
     double delta = exp(logDelta);
 
-    fprintf(stderr, "solve for data\n");
+    if (BoltLMM::BoltLMMImpl::showDebug) {
+      fprintf(stderr, "solve for data in evalREML()\n");
+    }
     // compute Y_rand (Y_data is the first column)
     computeY(w.x_beta_rand, w.e_rand, delta, &w.y);
     // solve H_inv_y, and beta
@@ -922,10 +932,11 @@ class BoltLMM::BoltLMMImpl {
                 w.e_hat.bottomRightCorner(C_, MCtrial_).squaredNorm();
 
     double f = log((r_data[0] / r_data[1]) / (r_rand[0] / r_rand[1]));
-    fprintf(stderr, "data = {%g, %g}, rand = {%g, %g}\n", r_data[0], r_data[1],
-            r_rand[0], r_rand[1]);
-
-    if (BoltLMM::BoltLMMImpl::showDebug >= 2) {
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "data = {%g, %g}, rand = {%g, %g}\n", r_data[0],
+              r_data[1], r_rand[0], r_rand[1]);
+    }
+    if (BoltLMM::BoltLMMImpl::showDebug >= 3) {
       dumpToFile(w.y, "tmp.w.y");
       FILE* fp = fopen("tmp.g", "wt");
       for (int b = 0; b < NumBatch_; ++b) {
@@ -1283,27 +1294,30 @@ class BoltLMM::BoltLMMImpl {
               r[0], r[1]);
     }
 
-    fprintf(stderr,
-            "\ni\tprospectiveStat\tuncalibratedRetrospectiveStat\tratio\n");
-    for (int i = 0; i < nSnp; ++i) {
-      fprintf(stderr, "%d\t%f\t%f\t%f\n", i, prospectiveStat(i),
-              uncalibratedRetrospectiveStat(i),
-              prospectiveStat(i) / uncalibratedRetrospectiveStat(i));
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr,
+              "\ni\tprospectiveStat\tuncalibratedRetrospectiveStat\tratio\n");
+      for (int i = 0; i < nSnp; ++i) {
+        fprintf(stderr, "%d\t%f\t%f\t%f\n", i, prospectiveStat(i),
+                uncalibratedRetrospectiveStat(i),
+                prospectiveStat(i) / uncalibratedRetrospectiveStat(i));
+      }
+      fprintf(stderr, "infStatCalibration_ = %f\n", infStatCalibration_);
     }
-    fprintf(stderr, "infStatCalibration_ = %f\n", infStatCalibration_);
 
     // calculate empirically X'HX / X'X
     xVx_xx_ratio_ = x_V_inv_x.sum() / x_x.sum();
     if (!std::isfinite(xVx_xx_ratio_)) {
       xVx_xx_ratio_ = 1.0;
     }
-    fprintf(stderr, "\ni\tx_v_inv_x\tx_x\tratio\n");
-    for (int i = 0; i < nSnp; ++i) {
-      fprintf(stderr, "%d\t%f\t%f\t%f\n", i, x_V_inv_x(i), x_x(i),
-              x_x(i) == 0 ? 0.0 : x_V_inv_x(i) / x_x(i));
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "\ni\tx_v_inv_x\tx_x\tratio\n");
+      for (int i = 0; i < nSnp; ++i) {
+        fprintf(stderr, "%d\t%f\t%f\t%f\n", i, x_V_inv_x(i), x_x(i),
+                x_x(i) == 0 ? 0.0 : x_V_inv_x(i) / x_x(i));
+      }
+      fprintf(stderr, "ratio = %f\n", x_V_inv_x.sum() / x_x.sum());
     }
-    fprintf(stderr, "ratio = %f\n", x_V_inv_x.sum() / x_x.sum());
-
     return 0;
   }
 
@@ -1343,10 +1357,10 @@ class BoltLMM::BoltLMMImpl {
   Eigen::MatrixXf alpha_;
 
  private:
-  static bool showDebug;
+  static int showDebug;
 };
 
-bool BoltLMM::BoltLMMImpl::showDebug = 0;
+int BoltLMM::BoltLMMImpl::showDebug = 0;
 
 //////////////////////////////////////////////////
 // BoltLMM class

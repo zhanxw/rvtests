@@ -28,6 +28,7 @@ class Minimizer {
   // GSL stuffs
   const gsl_min_fminimizer_type *T;
   gsl_min_fminimizer *s;
+  int status;
 };
 
 #endif /* _GSLMINIMIZER_H_ */

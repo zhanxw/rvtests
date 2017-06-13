@@ -105,7 +105,7 @@ inline bool str2double(const char* input, double* output) {
 #endif
     return false;
   }
-  if (error == EINVAL) {
+  if (errno == EINVAL) {
     // Ignore error here to avoid displaying:
     // "strtod: Invalid argument" (issue #32)
     // Reason: musl has different implementaiton of strtod,

@@ -50,7 +50,7 @@ release: CXXFLAGS = -O2 -msse2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)
 debug: $(LIB_DBG)
-profile: CXXFLAGS = -Wall -pg -O0 $(DEFAULT_CXXFLAGS)
+profile: CXXFLAGS = -Wall -pg -O0 $(DEFAULT_CXXFLAGS) -DEIGEN_NO_DEBUG  -DEIGEN_NO_STATIC_ASSERT 
 profile: $(LIB_DBG)
 
 $(LIB): $(OBJ) $(MVTNORM_OBJ)

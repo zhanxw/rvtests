@@ -13,9 +13,7 @@ char const* ssechr(char const* s, char ch) {
     // load 128 bit, @param s does not need to be aligned
     // on little endian system, s[0] is the least significant part
     // on memory, it looks like s[15], s[14], ..., s[0]
-    __m128i x = _mm_loadu_si128(
-        (__m128i const*)
-            s);  
+    __m128i x = _mm_loadu_si128((__m128i const*)s);
     // _mm_cmpeq_epi8: compare 16 times on the 8 bit number, set ff for equal or
     // 00 for not equal
     // _mm_movemask_epi8: extract each of the highest significnat bit of the 16
@@ -24,9 +22,11 @@ char const* ssechr(char const* s, char ch) {
     unsigned u = _mm_movemask_epi8(_mm_cmpeq_epi8(zero, x));
     //  ~u, change all 1 to 0, all 0 to 1, e.g. 0110 0000 -> 1001 1111
     // (u-1), least significant 0s and 1 will be flipped, 0110 0000 -> 0101 1111
-    // ~u & (u-1), the large significant part -> 0, the least significat 1 and all traiting zeros -> 1
+    // ~u & (u-1), the large significant part -> 0, the least significat 1 and
+    // all traiting zeros -> 1
     // e.g. 0110 0000 -> 0001 1111
-    // _mm_movemask_epi8(_mm_cmpeq_epi8(cx16, x)): will set the bit where s[i] == ch to 1
+    // _mm_movemask_epi8(_mm_cmpeq_epi8(cx16, x)): will set the bit where s[i]
+    // == ch to 1
     unsigned v = _mm_movemask_epi8(_mm_cmpeq_epi8(cx16, x)) & ~u & (u - 1);
     // ffs find the first bit in a word, e.g. 0110 0000 -> 6
     if (v) return s + ffs(v) - 1;  //

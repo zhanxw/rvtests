@@ -64,7 +64,23 @@ int ModelManager::create(const std::string& modelType,
     } else if (modelName == "famlrt") {
       model.push_back(new SingleVariantFamilyLRT);
     } else if (modelName == "famgrammargamma") {
-      model.push_back(new SingleVariantFamilyGrammarGamma);
+      std::string afMethod;
+      parser.assign("af", &afMethod, "mean");
+      if (afMethod == "kinship") {
+        logger->info(
+            "FamGrammarGamma will output kinship-adjusted allele frequencies");
+        model.push_back(
+            new SingleVariantFamilyGrammarGamma(GrammarGamma::AF_KINSHIP));
+      } else if (afMethod == "mean") {
+        model.push_back(
+            new SingleVariantFamilyGrammarGamma(GrammarGamma::AF_MEAN));
+      } else {
+        logger->info(
+            "FamGrammarGamma cannot recoginized specified kinship calculation "
+            "method [ %s ], exit...",
+            afMethod.c_str());
+        exit(1);
+      }
     } else if (modelName == "firth") {
       model.push_back(new SingleVariantFirthTest);
     } else if (modelName == "mtscore") {

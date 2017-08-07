@@ -48,7 +48,7 @@
 #pragma message "Enable multithread using OpenMP"
 #endif
 #endif
-
+#include <omp.h>
 DECLARE_BOOL_PARAMETER(hideCovar);
 
 extern SummaryHeader* g_SummaryHeader;
@@ -703,8 +703,8 @@ class SingleVariantFamilyLRT : public ModelFitter {
 
 class SingleVariantFamilyGrammarGamma : public ModelFitter {
  public:
-  SingleVariantFamilyGrammarGamma()
-      : model(),
+  SingleVariantFamilyGrammarGamma(GrammarGamma::AFMethod afMethod)
+      : model(afMethod),
         needToFitNullModel(true),
         fitOK(false),
         af(-1.),
@@ -4022,8 +4022,11 @@ class MetaCovTest : public ModelFitter {
     if (!useBolt) {
       model->transformGenotype(&loci.geno, dc);
       model->calculateXZ(loci.geno, &loci.covXZ);
-      model->calculateZZ(&this->covZZ);
-      CholeskyInverseMatrix(this->covZZ, &this->covZZInv);
+      if (model->needToFitNullModel || dc->isPhenotypeUpdated() ||
+          dc->isCovariateUpdated()) {
+        model->calculateZZ(&this->covZZ);
+        CholeskyInverseMatrix(this->covZZ, &this->covZZInv);
+      }
     }
     fitOK = true;
     return 0;
@@ -4271,11 +4274,14 @@ class MetaCovTest : public ModelFitter {
       }
 
       double sum = 0.0;
-      for (size_t i = 0; i < out->size(); ++i) {
+      const size_t n = out->size();
+#pragma omp parallel for
+      for (size_t i = 0; i < n; ++i) {
         sum += out->at(i);
       }
-      const double avg = sum / out->size();
-      for (size_t i = 0; i != out->size(); ++i) {
+      const double avg = sum / n;
+#pragma omp parallel for
+      for (size_t i = 0; i < n; ++i) {
         (*out)[i] -= avg;
       }
       return 0;
@@ -4284,7 +4290,9 @@ class MetaCovTest : public ModelFitter {
       const int n = x1.size();
       if (n == 0) return 0.0;
 
-      double sum_ij = 0.0;           // sum of genotype[,i]*genotype[,j]
+      double sum_ij = 0.0;  // sum of genotype[,i]*genotype[,j]
+
+#pragma omp parallel for reduction(+ : sum_ij)
       for (int c = 0; c < n; ++c) {  // iterator each people
         // fprintf(using namespace std;err, "weight[%d] = %g\n", (int)c,
         // weight[int(c)]);
@@ -4304,6 +4312,7 @@ class MetaCovTest : public ModelFitter {
 
       for (int c = 0; c < nc; ++c) {
         sum = 0.0;
+#pragma omp parallel for reduction(+ : sum)
         for (int i = 0; i < n; ++i) {
           sum += x[i] * cov[i][c];
         }

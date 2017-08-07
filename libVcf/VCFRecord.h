@@ -24,6 +24,20 @@ class VCFRecord {
    * @return 0: if success
    */
   int parse(std::string* pVcfLine) {
+    attach(pVcfLine);
+
+    // go through VCF sites (first 9 columns)
+    int ret = parseSite();
+    if (ret) {
+      return -1;
+    }
+    ret = parseIndividual();
+    if (ret) {
+      return -1;
+    }
+  }
+
+  void attach(std::string* pVcfLine) {
     std::string& vcfLine = *pVcfLine;
     this->vcfInfo.reset();
     // this->parsed = vcfLine.c_str();
@@ -31,49 +45,52 @@ class VCFRecord {
     // this->self.beg = 0;
     // this->self.end = this->parsed.size();
     this->parsed.attach(&vcfLine[0], (int)vcfLine.size());
+  }
 
-    // go through VCF sites (first 9 columns)
+  int parseSite() {
     int ret;
     if ((ret = this->chrom.parseTill(this->parsed, 0, '\t'))) {
-      fprintf(stderr, "Error when parsing CHROM [ %s ]\n", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing CHROM [ %s ]\n",
+              this->parsed.c_str());
       return -1;
     }
     this->parsed[this->chrom.end] = '\0';
 
     if ((ret =
              (this->pos.parseTill(this->parsed, this->chrom.end + 1, '\t')))) {
-      fprintf(stderr, "Error when parsing POS [ %s ]\n", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing POS [ %s ]\n", this->parsed.c_str());
       return -1;
     }
     this->parsed[this->pos.end] = '\0';
 
     if ((ret = (this->id.parseTill(this->parsed, this->pos.end + 1, '\t')))) {
-      fprintf(stderr, "Error when parsing ID [ %s ]\n", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing ID [ %s ]\n", this->parsed.c_str());
       return -1;
     }
     this->parsed[this->id.end] = '\0';
 
     if ((ret = (this->ref.parseTill(this->parsed, this->id.end + 1, '\t')))) {
-      fprintf(stderr, "Error when parsing REF [ %s ]\n", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing REF [ %s ]\n", this->parsed.c_str());
       return -1;
     }
     this->parsed[this->ref.end] = '\0';
 
     if ((ret = (this->alt.parseTill(this->parsed, this->ref.end + 1, '\t')))) {
-      fprintf(stderr, "Error when parsing ALT [ %s ]\n", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing ALT [ %s ]\n", this->parsed.c_str());
       return -1;
     }
     this->parsed[this->alt.end] = '\0';
 
     if ((ret = (this->qual.parseTill(this->parsed, this->alt.end + 1, '\t')))) {
-      fprintf(stderr, "Error when parsing QUAL [ %s ]\n", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing QUAL [ %s ]\n", this->parsed.c_str());
       return -1;
     }
     this->parsed[this->qual.end] = '\0';
 
     if ((ret =
              (this->filt.parseTill(this->parsed, this->qual.end + 1, '\t')))) {
-      fprintf(stderr, "Error when parsing FILTER [ %s ]\n", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing FILTER [ %s ]\n",
+              this->parsed.c_str());
       return -1;
     }
     this->parsed[this->filt.end] = '\0';
@@ -82,7 +99,8 @@ class VCFRecord {
              (this->info.parseTill(this->parsed, this->filt.end + 1, '\t')))) {
       // either parsing error, or we are dealing with site only VCFs
       if (ret < 0) {  // error happens
-        fprintf(stderr, "Error when parsing INFO [ %s ]\n", vcfLine.c_str());
+        fprintf(stderr, "Error when parsing INFO [ %s ]\n",
+                this->parsed.c_str());
         return -1;
       }
     }
@@ -94,15 +112,21 @@ class VCFRecord {
 
     if ((ret = (this->format.parseTill(this->parsed, this->info.end + 1,
                                        '\t')))) {
-      fprintf(stderr, "Error when parsing FORMAT [ %s ]\n", vcfLine.c_str());
+      fprintf(stderr, "Error when parsing FORMAT [ %s ]\n",
+              this->parsed.c_str());
       return -1;
     }
     this->parsed[this->format.end] = '\0';
 
+    return 0;
+  }
+
+  int parseIndividual() {
+    int ret;
     // now comes each individual genotype
     unsigned int idx = 0;  // peopleIdx
     VCFIndividual* p;
-    VCFValue indv;
+    static VCFValue indv;
     int beg = this->format.end + 1;
     while ((ret = indv.parseTill(this->parsed, beg, '\t')) == 0) {
       if (idx >= this->allIndv.size()) {
@@ -114,11 +138,16 @@ class VCFRecord {
       }
 
       this->parsed[indv.end] = '\0';
-      p = this->allIndv[idx];
-      p->parse(indv);
+      // p = this->allIndv[idx];
+      // p->parse(indv);
 
       beg = indv.end + 1;
       idx++;
+    }
+
+#pragma openmp parallel for
+    for (int i = 0; i < idx; ++i) {
+      this->allIndv[i]->parse(indv);
     }
 
     // if ret == 1 menas reaches end of this->parsed
@@ -147,6 +176,7 @@ class VCFRecord {
 
     return 0;
   }
+
   void createIndividual(const std::string& line) {
     std::vector<std::string> sa;
     stringTokenize(line, '\t', &sa);
@@ -163,6 +193,7 @@ class VCFRecord {
       p->setName(sa[i]);
     }
   }
+
   void deleteIndividual() {
     for (unsigned int i = 0; i < this->allIndv.size(); i++) {
       if (this->allIndv[i]) delete this->allIndv[i];

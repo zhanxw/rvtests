@@ -13,7 +13,7 @@ class FileWriter;
 class VCFIndividual {
  public:
   // FUNC parseFunction[4];
-  VCFIndividual() {
+  VCFIndividual() : fdLen(0) {
     this->include();  // by default, enable everyone
   }
   /**
@@ -35,24 +35,25 @@ class VCFIndividual {
 
     this->parsed.attach(&vcfValue.line[vcfValue.beg],
                         vcfValue.end - vcfValue.beg);
-
-    // need to consider missing field
-    this->fd.resize(0);
-
-    VCFValue v;
-    v.line = this->parsed.getBuffer();
+    size_t idx = 0;
     int beg = 0;
     int ret;
-    while ((ret = v.parseTill(this->parsed, beg, ':')) == 0) {
+    while (true) {
+      if (idx == fdLen) {
+        VCFValue v;
+        fd.push_back(v);
+        ++fdLen;
+      }
+      VCFValue& v = fd[idx++];
+      ret = v.parseTill(this->parsed, beg, ':');
       this->parsed[v.end] = '\0';
       beg = v.end + 1;
-      fd.push_back(v);
+      if (ret == 1) {  // last element
+        break;
+      }
     }
-    if (ret == 1) {
-      this->parsed[v.end] = '\0';
-      fd.push_back(v);
-    }
-    if (fd.size() == 0) {
+    fdLen = idx;
+    if (fdLen == 0) {
       fprintf(stderr, "Empty individual column - very strange!!\n");
       fprintf(stderr, "vcfValue = %s\n", vcfValue.toStr());
     }
@@ -66,13 +67,13 @@ class VCFIndividual {
 
   const VCFValue& operator[](const unsigned int i) const
       __attribute__((deprecated)) {
-    if (i >= fd.size()) {
+    if (i >= fdLen) {
       FATAL("index out of bound!");
     }
     return (this->fd[i]);
   }
   VCFValue& operator[](const unsigned int i) __attribute__((deprecated)) {
-    if (i >= fd.size()) {
+    if (i >= fdLen) {
       FATAL("index out of bound!");
     }
     return (this->fd[i]);
@@ -82,7 +83,7 @@ class VCFIndividual {
    * in ith field is missing
    */
   const VCFValue& get(unsigned int i, bool* isMissing) const {
-    if (i >= fd.size()) {
+    if (i >= fdLen) {
       *isMissing = true;
       return VCFIndividual::defaultVCFValue;
     }
@@ -93,7 +94,7 @@ class VCFIndividual {
    * @return VCFValue without checking missingness
    */
   const VCFValue& justGet(unsigned int i) {
-    if (i >= fd.size()) {
+    if (i >= fdLen) {
       return VCFIndividual::defaultVCFValue;
     }
     return (this->fd[i]);
@@ -102,12 +103,12 @@ class VCFIndividual {
   // VCFValue& getSelf() { return this->self; }
   // const VCFValue& getSelf() const { return this->self; }
 
-  size_t size() const { return this->fd.size(); }
+  size_t size() const { return this->fdLen; }
   /**
    * dump the content of VCFIndividual column
    */
   void output(FILE* fp) const {
-    for (unsigned int i = 0; i < fd.size(); ++i) {
+    for (size_t i = 0; i < fdLen; ++i) {
       if (i) fputc(':', fp);
       this->fd[i].output(fp);
     }
@@ -120,7 +121,10 @@ class VCFIndividual {
   std::string name;  // id name
   // VCFValue self;             // whole field for the individual (unparsed)
   VCFBuffer parsed;          // store parsed string (where \0 added)
-  std::vector<VCFValue> fd;  // each field separated by ':'
+  std::vector<VCFValue> fd;  // each field separated by ':', for optimizaiton,
+                             // do not use clear(), resize()
+
+  size_t fdLen;  // number of elements in fd
   static VCFValue defaultVCFValue;
   static char defaultValue[2];
 };  // end VCFIndividual

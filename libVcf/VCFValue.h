@@ -7,6 +7,7 @@
 #include "VCFConstant.h"
 #include "base/Exception.h"
 #include "base/TypeConversion.h"
+#include "base/Utils.h"
 
 class FileWriter;
 
@@ -264,7 +265,8 @@ class VCFValue {
     this->beg = b;
     this->end = b;
 
-    char* r = strchr(line + beg, c);
+    // char* r = strchr(line + beg, c);
+    const char* r = ssechr(line + beg, c);
     if (r != NULL) {
       end = r - line;
       return 0;

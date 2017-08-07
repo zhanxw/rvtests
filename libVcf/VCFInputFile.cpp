@@ -176,12 +176,20 @@ bool VCFInputFile::readRecord() {
     if (!nRead) return false;
 
     // star parsing
-    bool ret = this->record.parse(&this->line);
+    int ret;
+    this->record.attach(&this->line);
+    ret = this->record.parseSite();
+    if (ret) {
+      reportReadError(this->line);
+    }
+    if (!this->isAllowedSite()) continue;
+
+    ret = this->record.parseIndividual();
     if (ret) {
       reportReadError(this->line);
     }
     if (!this->passFilter()) continue;
-    if (!this->isAllowedSite()) continue;
+
     // break;
     return true;
   }

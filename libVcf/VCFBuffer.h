@@ -77,7 +77,7 @@ class VCFBuffer {
 
  private:
   char* buf;      // pointer to string
-  size_t len;     // len (not including the trailing '\0'
+  size_t len;     // len (not including the trailing '\0')
   size_t bufLen;  // memory capacity
 };
 

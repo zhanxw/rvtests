@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include "base/Utils.h"
+
 // #define IO_DEBUG
 
 typedef enum FileType {

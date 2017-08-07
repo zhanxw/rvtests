@@ -400,4 +400,6 @@ inline bool endsWith(const std::string& s, const std::string& tail) {
   return true;
 }
 
+extern char const* ssechr(char const* s, char ch);
+
 #endif /* _UTILS_H_ */

@@ -1,10 +1,12 @@
 #include "IO.h"
+
 // cannot forward declare an typdef anonymous struct
 // http://stackoverflow.com/questions/804894/forward-declaration-of-a-typedef-in-c
 // so include the header file
 #include "third/samtools/bgzf.h"
 
 #include <algorithm>
+#include "base/Utils.h"
 
 //////////////////////////////////////////////////
 // Plain file reader
@@ -430,7 +432,7 @@ int BufferedReader::search(int left, int right, const char* sep) {
   assert(right <= bufEnd);
   const char* p;
   for (int i = left; i < right; ++i) {
-    p = strchr(sep, buf[i]);
+    p = ssechr(sep, buf[i]);
     if (p != NULL) {
       bufPtr = i + 1;
       return i;
@@ -446,12 +448,12 @@ int BufferedReader::search(int left, int right, const char* sep1,
   assert(right <= bufEnd);
   const char* p;
   for (int i = left; i < right; ++i) {
-    p = strchr(sep1, buf[i]);
+    p = ssechr(sep1, buf[i]);
     if (p != NULL) {
       bufPtr = i + 1;
       return i;
     }
-    p = strchr(sep2, buf[i]);
+    p = ssechr(sep2, buf[i]);
     if (p != NULL) {
       bufPtr = i + 1;
       return i;
@@ -507,7 +509,7 @@ int BufferedReader::readLineBySep(std::vector<std::string>* fields,
         fields->resize(fields->size() - 1);
         return fields->size();
       }
-    } else if (strchr(sep, buf[ptr])) {  // separator
+    } else if (ssechr(sep, buf[ptr])) {  // separator
       fields->resize(fields->size() + 1);
       fields->back().resize(0);
     } else if (buf[ptr] == '\r') {

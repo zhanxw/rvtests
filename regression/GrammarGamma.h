@@ -5,12 +5,18 @@ class EigenMatrix;
 class Matrix;
 
 class GrammarGamma {
+ public:
+  enum AFMethod {
+    AF_KINSHIP = 0,  // calculate BLUE AF adjusted by kinship
+    AF_MEAN          // calculate AF as genotype mean
+  };
+
  public:  // Make this Impl public to make optimization function easy to write
   class Impl;
   Impl* impl;
 
  public:
-  GrammarGamma();
+  GrammarGamma(AFMethod);
   ~GrammarGamma();
 
   // @return 0 when success
@@ -19,6 +25,7 @@ class GrammarGamma {
   int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  double GetAFFromMean();
   double GetPvalue();
   double GetBeta();
   double GetBetaVar();

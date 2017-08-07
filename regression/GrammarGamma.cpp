@@ -1,9 +1,12 @@
 #include "GrammarGamma.h"
-#include "EigenMatrix.h"
-#include "EigenMatrixInterface.h"
-#include "Eigen/Dense"
-#include "GSLMinimizer.h"
-#include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
+
+#include "libsrc/MathMatrix.h"
+#include "third/eigen/Eigen/Dense"
+#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
+
+#include "regression/EigenMatrix.h"
+#include "regression/EigenMatrixInterface.h"
+#include "regression/GSLMinimizer.h"
 
 #if 0
 #include <fstream>
@@ -21,7 +24,7 @@ static double goalFunction(double x, void* param);
 
 class GrammarGamma::Impl {
  public:
-  Impl() {}
+  Impl(AFMethod af) { this->afMethod = af; }
   int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
     // type conversion
@@ -99,10 +102,13 @@ class GrammarGamma::Impl {
     //              = 1 / (\sigma^2_g * h^2 ) * (U * \lambda^{-1} * (uResid))
     // since h^2 = 1 / (1+delta)
     // transformedY = (1 + delta/ (\sigma^2_g ) * (U * \lambda^{-1} * (uResid))
-    Eigen::MatrixXf resid = y -
-                            x *
-                                (x.transpose() * x).eval().ldlt().solve(
-                                    x.transpose() * y);  // this is y_tilda
+    Eigen::MatrixXf resid =
+        y -
+        x *
+            (x.transpose() * x)
+                .eval()
+                .ldlt()
+                .solve(x.transpose() * y);  // this is y_tilda
 
     this->transformedY.noalias() = U.transpose() * resid;
     this->transformedY =
@@ -120,11 +126,16 @@ class GrammarGamma::Impl {
     Eigen::MatrixXf g;
     G_to_Eigen(Xcol, &g);
 
-    // store U'*G for computing AF later.
-    const Eigen::MatrixXf& U = kinshipU.mat;
-    this->ug = U.transpose() * g;
+    if (this->afMethod == AF_KINSHIP) {
+      // store U'*G for computing AF later.
+      const Eigen::MatrixXf& U = kinshipU.mat;
+      this->ug = U.transpose() * g;
+    }
 
     Eigen::RowVectorXf g_mean = g.colwise().mean();
+    if (this->afMethod == AF_MEAN) {
+      this->meanAF = 0.5 * g_mean(0, 0);
+    }
     g = g.rowwise() - g_mean;
 
     double gTg = g.array().square().sum();
@@ -140,7 +151,8 @@ class GrammarGamma::Impl {
   }
   double getSumResidual2(double delta) {
     return ((this->uy.array() - (this->ux * this->beta).array()).square() /
-            (this->lambda.array() + delta)).sum();
+            (this->lambda.array() + delta))
+        .sum();
   }
   void getBetaSigma2(double delta) {
     Eigen::MatrixXf x =
@@ -180,19 +192,27 @@ class GrammarGamma::Impl {
     return ret;
   }
   // NOTE: need to fit null model fit before calling this function
+  // NOTE2: assume kinship matrices are unchanged
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) const {
-    const Eigen::MatrixXf& U = kinshipU.mat;
-    Eigen::MatrixXf u1 = Eigen::MatrixXf::Ones(U.rows(), 1);
-    u1 = U.transpose() * u1;
-    Eigen::MatrixXf x =
-        (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * u1;
-    Eigen::MatrixXf y =
-        (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * this->ug;
-    Eigen::MatrixXf beta = (x.transpose() * x).inverse() * x.transpose() * y;
-    // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
-    // multiply by 0.5 to get AF
-    double af = 0.5 * beta(0, 0);
-    return af;
+    if (this->afMethod == AF_KINSHIP) {
+      const Eigen::MatrixXf& U = kinshipU.mat;
+      Eigen::MatrixXf u1 = Eigen::MatrixXf::Ones(U.rows(), 1);
+      u1 = U.transpose() * u1;
+      Eigen::MatrixXf x =
+          (this->lambda.array() + delta).sqrt().matrix().asDiagonal() * u1;
+      Eigen::MatrixXf y =
+          (this->lambda.array() + delta).sqrt().matrix().asDiagonal() *
+          this->ug;
+      Eigen::MatrixXf beta = (x.transpose() * x).inverse() * x.transpose() * y;
+      // here x is represented as 0, 1, 2, so beta(0, 0) is the mean genotype
+      // multiply by 0.5 to get AF
+      double af = 0.5 * beta(0, 0);
+      return af;
+    } else if (this->afMethod == AF_MEAN) {
+      return this->meanAF;
+    }
+    assert(false);
+    return -1.0;
   }
   double GetPvalue() const { return this->pvalue; }
   double GetBeta() const { return this->betaG; }
@@ -222,12 +242,14 @@ class GrammarGamma::Impl {
   double betaG;
   double betaGVar;
   double sumResidual2;  // sum (  (Uy - Ux *beta)^2/(lambda + delta) )
+  AFMethod afMethod;
+  double meanAF;
 };
 
 //////////////////////////////////////////////////
 // GrammarGamma Interface
 //////////////////////////////////////////////////
-GrammarGamma::GrammarGamma() { this->impl = new Impl(); }
+GrammarGamma::GrammarGamma(AFMethod af) { this->impl = new Impl(af); }
 GrammarGamma::~GrammarGamma() { delete this->impl; }
 
 // @return 0 when success

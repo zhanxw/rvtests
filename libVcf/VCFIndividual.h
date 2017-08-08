@@ -30,19 +30,18 @@ class VCFIndividual {
       return;
     }
 
-    // this->self = vcfValue;
-    // this->parsed = vcfValue.toStr();
-
     this->parsed.attach(&vcfValue.line[vcfValue.beg],
                         vcfValue.end - vcfValue.beg);
+
     size_t idx = 0;
     int beg = 0;
     int ret;
     while (true) {
       if (idx == fdLen) {
-        VCFValue v;
-        fd.push_back(v);
+        // VCFValue v;
+        // fd.push_back(v);
         ++fdLen;
+        fd.resize(fdLen);
       }
       VCFValue& v = fd[idx++];
       ret = v.parseTill(this->parsed, beg, ':');

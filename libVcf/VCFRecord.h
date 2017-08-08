@@ -1,6 +1,8 @@
 #ifndef _VCFRECORD_H_
 #define _VCFRECORD_H_
 
+#include <omp.h>
+
 #include "VCFBuffer.h"
 #include "VCFFunction.h"
 #include "VCFHeader.h"
@@ -124,31 +126,28 @@ class VCFRecord {
   int parseIndividual() {
     int ret;
     // now comes each individual genotype
-    unsigned int idx = 0;  // peopleIdx
+    int idx = 0;  // peopleIdx
     // VCFIndividual* p;
-    const size_t NumAllIndvSize = allIndv.size();
-    std::vector<VCFValue> indv(NumAllIndvSize);
+    const int NumAllIndvSize = allIndv.size();
+    indv.resize(NumAllIndvSize);
     int beg = this->format.end + 1;
     while ((ret = indv[idx].parseTill(this->parsed, beg, '\t')) == 0) {
-      if (idx >= NumAllIndvSize) {
+      if (idx >= (int)NumAllIndvSize) {
         fprintf(stderr,
                 "Expected %d individual but already have %d individual\n",
-                (int)NumAllIndvSize, idx);
+                NumAllIndvSize, idx);
         fprintf(stderr, "VCF header have LESS people than VCF content!\n");
         return -1;
       }
 
       this->parsed[indv[idx].end] = '\0';
+
+      // defer parsing individual fields (e.g. GT,DS) later.
       // p = this->allIndv[idx];
       // p->parse(indv);
 
       beg = indv[idx].end + 1;
       idx++;
-    }
-
-#pragma openmp parallel for
-    for (int i = 0; i < idx; ++i) {
-      this->allIndv[i]->parse(indv[i]);
     }
 
     // if ret == 1 menas reaches end of this->parsed
@@ -157,21 +156,28 @@ class VCFRecord {
       this->parsed.output(stderr);
       fputc('\n', stderr);
       return -1;
-    } else {
+    } else {  // reach the end
       this->parsed[indv[idx].end] = '\0';
       // p = this->allIndv[idx];
       // p->parse(indv);
-      this->allIndv[idx]->parse(indv[idx]);
+      // this->allIndv[idx]->parse();
       idx++;
+    }
+
+    assert(idx == NumAllIndvSize);
+
+#pragma omp parallel for
+    for (int i = 0; i < idx; ++i) {
+      this->allIndv[i]->parse(indv[i]);
     }
 
     if (idx > NumAllIndvSize) {
       fprintf(stderr, "Expected %d individual but already have %d individual\n",
-              (int)NumAllIndvSize, idx);
+              NumAllIndvSize, idx);
       REPORT("VCF header have MORE people than VCF content!");
     } else if (idx < NumAllIndvSize) {
       fprintf(stderr, "Expected %d individual but only have %d individual\n",
-              (int)NumAllIndvSize, idx);
+              NumAllIndvSize, idx);
       REPORT("VCF header have LESS people than VCF content!");
       return -1;
     }
@@ -452,6 +458,8 @@ class VCFRecord {
   VCFValue format;
 
   VCFInfo vcfInfo;
+
+  std::vector<VCFValue> indv;  // store individual fields
 
   // indicates if getPeople() has been called
   bool hasAccess;

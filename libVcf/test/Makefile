@@ -12,7 +12,8 @@ EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange \
 all: $(EXE)
 debug: all
 
-CXX_FLAGS = -O0 -ggdb -I.. -I../.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
+CXX_FLAGS = -O0 -ggdb -fopenmp \
+  -I.. -I../.. -I../../libsrc -I../../base -I../../third/tabix/ -I../../third/pcre/include \
   -I../../third/samtools/bcftools \
   ../../libVcf/lib-dbg-vcf.a \
   ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a \

@@ -45,9 +45,11 @@
 
 # Introduction
 
-Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrelated individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf] format as genotype input file and takes PLINK format phenotype file and covariate file. 
+Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association analysis for sequence datasets. Since its inception, rvtests was developed as a comprehensive tool to support genetic association analysis and meta-analysis. It can analyze both unrelated individual and related (family-based) individuals for both quantitative and binary outcomes. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf] format as genotype input file and takes PLINK format phenotype file and covariate file. 
 
-With new implementation of the BOLT-LMM algorithm, our software package is capable of analyzing datasets of up to 1 million individuals in linear mixed models on a computer workstation, which makes our tool ideally suited for analyzing large biobank scale datasets, such as UK Biobank.  
+With new implementation of the BOLT-LMM/MINQUE algorithm as well as a series of software engineering optimizations, our software package is capable of analyzing datasets of up to 1,000,000 individuals in linear mixed models on a computer workstation, which makes our tool one of the very few options for analyzing large biobank scale datasets, such as UK Biobank. RVTESTS supports both single variant and gene-level tests. It also support highly effcient generation of covariance matrices between score statistics in RAREMETAL format, which can be used to support the next wave of meta-analysis that incorporates large biobank datasets.  
+
+A (much) larger sample size can be handled using linear regression or logistic regression models. 
 
 [vcf]: http://www.1000genomes.com/
 

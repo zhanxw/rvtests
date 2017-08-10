@@ -64,10 +64,12 @@ Bioinformatics 2016 32: 1423-1426. [doi:10.1093/bioinformatics/btw079](http://bi
 # Download
 
 Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests). Under Linux, you may simply use 
-    ```
-    git clone https://github.com/zhanxw/rvtests
-    ``` 
-to retrieve the latest distribution for rvtests. We also provided executable binary files (for Linux 64bit), which can be downloaded from [here](https://github.com/zhanxw/rvtests/releases).
+```
+git clone https://github.com/zhanxw/rvtests
+``` 
+to retrieve the latest distribution for rvtests. To install, go to the rvtests folder and type `make`. 
+
+We also provided executable binary files (for Linux 64bit), which can be downloaded from [here](https://github.com/zhanxw/rvtests/releases).
 
 
 # Quick tutorial

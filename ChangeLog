@@ -1,3 +1,8 @@
+2017-08-18  Xiaowei Zhan  <zhanxw@bunny.swmed.edu>
+
+	* Improve speed of covariance calculations
+	* Clean codes
+
 2017-06-13  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix a bug related Wald test outputs (fix #30)

@@ -1,7 +1,7 @@
 EXE = testLogger testIO testIONet testRangeList testUtils testRegex testSimpleMatrix \
       testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
       testCommonFunction testTypeConversion testSimpleTimer testProfiler testVersionChecker \
-      testSocket testHttp testIndexer testSimpleString \
+      testSocket testHttp testIndexer testSimpleString testRingMemoryPool\
       Argument_Example_1 Argument_Example_2
 all: $(EXE) testArgument
 debug: all
@@ -44,7 +44,8 @@ check: kinship
 	./testTypeConversion > test.TypeConversion.output && diff test.TypeConversion.output test.TypeConversion.correct 
 	./testSimpleTimer 
 	./testIndexer 
-	./testSimpleString 
+	./testSimpleString
+	./testRingMemoryPool
 	echo "All tests passed!"
 
 kinship:

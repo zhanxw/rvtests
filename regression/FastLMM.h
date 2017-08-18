@@ -2,6 +2,7 @@
 #define _FASTLMM_H_
 
 #include <vector>
+#include "regression/MatrixRef.h"
 
 class EigenMatrix;
 class Matrix;
@@ -68,17 +69,27 @@ class FastLMM {
   void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
                 const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
                 double* out);
+  void GetCovXX(FloatMatrixRef& g1, FloatMatrixRef& g2,
+                const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
+                float* out);
   // NOTE: here assume @param g is transformed. e.g. U' * g
   void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
                 const EigenMatrix& kinshipS, std::vector<double>* out);
+  void GetCovXZ(FloatMatrixRef& g, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS, FloatMatrixRef& out);
   // transform genotype (e.g. in MetaCov)
   // x <- U' * ( x - center(x) )
   int TransformCentered(std::vector<double>* x, const EigenMatrix& kinshipU,
+                        const EigenMatrix& kinshipS);
+  int TransformCentered(FloatMatrixRef& x, const EigenMatrix& kinshipU,
                         const EigenMatrix& kinshipS);
   // transform genotype (e.g. in MetaCov)
   // x <- U' * x
   int Transform(std::vector<double>* x, const EigenMatrix& kinshipU,
                 const EigenMatrix& kinshipS);
+  int Transform(FloatMatrixRef& geno, const EigenMatrix& kinshipU,
+                const EigenMatrix& kinshipS);
+
   // @param out = sigma2_g * (lambda + delta) = sigma2_g * lambda + sigma2_e;
   int GetWeight(Vector* out) const;
 

@@ -16,7 +16,7 @@ void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* EigenM);
 void Eigen_to_G(const Eigen::MatrixXd& EigenM, Matrix* GM);
 void Eigen_to_G(const Eigen::VectorXd& EigenV, Vector* GV);
 void G_to_Eigen(Vector& GV,
-                Eigen::VectorXd* EigenV);  // convert to n by 1 matrix
+                Eigen::VectorXd* EigenV);  // convert to n by 1 matrix (double)
 void G_to_Eigen(Matrix& GM, Eigen::MatrixXd* EigenM);
 
 // EigenM = cbind( GM1, GM2 )

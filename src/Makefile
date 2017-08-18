@@ -36,7 +36,7 @@ BASE += SingleDummy
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 
-DEFAULT_CXXFLAGS ?= -std=c++0x -I. $(addprefix -I, $(THIRD_INC)) -DGIT_VERSION="\"$(GIT_VERSION)\"" -fopenmp
+DEFAULT_CXXFLAGS ?= -std=c++0x -I. $(addprefix -I, $(THIRD_INC)) -DGIT_VERSION="\"$(GIT_VERSION)\"" -fopenmp -Wno-error=int-in-bool-context
 # enable read over HTTP and FTP
 DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 

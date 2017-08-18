@@ -12,6 +12,7 @@
 #include "libsrc/Random.h"
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
+#include "regression/MatrixRef.h"
 
 // 0: no debug info
 // 1: some debug info
@@ -763,6 +764,32 @@ class BoltLMM::BoltLMMImpl {
     // scale
     (*out) *= xVx_xx_ratio_;
   }
+  void GetCovXX(const FloatMatrixRef& g1, const FloatMatrixRef& g2,
+                float* out) {
+    assert(g1.nrow_ == g2.nrow_ && g1.ncol_ == g2.ncol_);
+    assert(g1.nrow_ == N_);
+
+    REF_TO_EIGEN(g1, g1E);
+    REF_TO_EIGEN(g2, g2E);
+
+    Eigen::MatrixXf g(N_ + C_, 2);  //
+    // copy in data
+    // for (size_t i = 0; i != N_; ++i) {
+    //   g(i, 0) = g1[i];
+    //   g(i, 1) = g2[i];
+    // }
+    g.col(0).head(N_) = g1E.col(0);
+    g.col(1).head(N_) = g2E.col(0);
+
+    // project
+    pl.projectCovariate(&g);
+
+    // calculate
+    (*out) = projDot(g.col(0), g.col(1))(0);
+
+    // scale
+    (*out) *= xVx_xx_ratio_;
+  }
 
  private:
   int EstimateHeritability() {
@@ -1380,6 +1407,10 @@ double BoltLMM::GetEffect() { return impl_->GetEffect(); }
 double BoltLMM::GetPvalue() { return impl_->GetPvalue(); }
 void BoltLMM::GetCovXX(const std::vector<double>& g1,
                        const std::vector<double>& g2, double* out) {
+  impl_->GetCovXX(g1, g2, out);
+}
+void BoltLMM::GetCovXX(const FloatMatrixRef& g1, const FloatMatrixRef& g2,
+                       float* out) {
   impl_->GetCovXX(g1, g2, out);
 }
 

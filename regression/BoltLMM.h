@@ -5,6 +5,7 @@
 #include <vector>
 
 class Matrix;
+class FloatMatrixRef;
 
 class BoltLMM {
   class BoltLMMImpl;
@@ -33,6 +34,7 @@ class BoltLMM {
   // calculate covariances
   void GetCovXX(const std::vector<double>& g1, const std::vector<double>& g2,
                 double* out);
+  void GetCovXX(const FloatMatrixRef& g1, const FloatMatrixRef& g2, float* out);
 
  private:
   // don't copy

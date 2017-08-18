@@ -296,7 +296,7 @@ class SingleVariantScoreTest : public ModelFitter {
           warnOnce("Single variant score test failed in fitting null model.");
           return -1;
         }
-        calculateConstant(phenotype);
+        // calculateConstant(phenotype);
         needToFitNullModel = false;
       }
       fitOK = logistic.TestCovariate(cov, pheno, genotype);
@@ -347,19 +347,20 @@ class SingleVariantScoreTest : public ModelFitter {
           result.updateValue("DIRECTION",
                              logistic.GetU()[0][0] > 0 ? "+" : "-");
         }
-        if (v > 0 && b > 0) {
-          result.updateValue("EFFECT", u / v / b);
-          result.updateValue("SE", 1.0 / sqrt(v) / b);
+        if (v > 0) {
+          result.updateValue("EFFECT", u / v);
+          result.updateValue("SE", 1.0 / sqrt(v));
         }
         result.updateValue("PVALUE", logistic.GetPvalue());
       }
     }
     result.writeValueLine(fp);
   }
-  void calculateConstant(Matrix& phenotype);
+  // don't need this
+  // void calculateConstant(Matrix& phenotype);
 
  private:
-  double b;  // a constant
+  // double b;  // a constant
   double af;
   int nSample;
   Vector pheno;
@@ -3677,12 +3678,15 @@ class MetaScoreTest : public ModelFitter {
             ++nCtrl;
           }
         }
+        /*
+          no need to adjust for logistic regression
         if (nCtrl > 0) {
           alpha = log(1.0 * nCase / nCtrl);
         } else {
           alpha = 500.;
         }
         calculateB();
+        */
       }
       // fit null model
       bool fitOK = logistic.FitNullModel(cov, pheno, 100);
@@ -3742,8 +3746,8 @@ class MetaScoreTest : public ModelFitter {
     double GetV() { return logistic.GetV()[0][0]; }
     double GetEffect() {
       if (!useMLE) {
-        if (logistic.GetU()[0][0] != 0.0 && this->b != 0.0) {
-          return logistic.GetU()[0][0] / logistic.GetV()[0][0] / b;
+        if (logistic.GetU()[0][0] != 0.0) {
+          return logistic.GetU()[0][0] / logistic.GetV()[0][0];
         }
       } else {
         return logisticAlt.GetCovEst()[1];
@@ -3752,19 +3756,19 @@ class MetaScoreTest : public ModelFitter {
     }
     double GetEffectSE() {
       const double v = GetV();
-      return v != 0.0 ? 1.0 / sqrt(v) / b : 0.0;
+      return v != 0.0 ? 1.0 / sqrt(v) : 0.0;
     }
     double GetPvalue() { return logistic.GetPvalue(); }
 
-   private:
-    void calculateB();
+    // private:
+    //  void calculateB();
 
    private:
     LogisticRegressionScoreTest logistic;
     Vector pheno;
     Matrix X;  // intercept, cov(optional) and genotype
-    double alpha;
-    double b;
+    // double alpha;
+    // double b;
 
     bool useMLE;
     LogisticRegression logisticAlt;

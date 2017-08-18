@@ -3,6 +3,10 @@
 	* Improve speed of covariance calculations
 	* Clean codes
 
+2017-07-13  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix beta estimation in binary score tests for unrelated individuals
+
 2017-06-13  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix a bug related Wald test outputs (fix #30)

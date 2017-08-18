@@ -376,6 +376,7 @@ void makeVariableThreshodlGenotype(
   makeVariableThreshodlGenotype(dc, in, freqIn, out, freqOut, collapseFunc);
 }
 
+#if 0
 void SingleVariantScoreTest::calculateConstant(Matrix& phenotype) {
   int nCase = 0;
   int nCtrl = 0;
@@ -393,14 +394,17 @@ void SingleVariantScoreTest::calculateConstant(Matrix& phenotype) {
     alpha = 500.;
   }
   obtainB(alpha, &this->b);
+  fprintf(stderr, "alpha = %g, b = %g\n", alpha, b);  
 }
+#endif
+
 void MetaScoreTest::MetaFamBinary::calculateB() {
   obtainB(this->alpha, &this->b);
   // fprintf(stderr, "alpha = %g, b = %g\n", alpha, b);
   return;
 }
 
-void MetaScoreTest::MetaUnrelatedBinary::calculateB() {
+void MetaCovTest::MetaCovFamBinary::calculateB() {
   obtainB(this->alpha, &this->b);
   return;
 }

@@ -195,6 +195,14 @@ class VCFRecord {
       return;
     }
     for (unsigned int i = 9; i < sa.size(); i++) {
+      // do not allow empty name
+      if (sa[i].empty()) {
+        fprintf(stderr,
+                "One inddividual (column %d, or extra tab at the line end) has "
+                "an empty column header, please check file format\n",
+                (int)i);
+        exit(1);
+      }
       int idx = i - 9;
       VCFIndividual* p = new VCFIndividual;
       this->allIndv[idx] = p;

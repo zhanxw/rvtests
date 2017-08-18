@@ -1345,6 +1345,20 @@ class BoltLMM::BoltLMMImpl {
       }
       fprintf(stderr, "ratio = %f\n", x_V_inv_x.sum() / x_x.sum());
     }
+    fprintf(stderr, "infStatCalibration_ = %f\n", infStatCalibration_);
+
+    // calculate empirically X'HX / X'X
+    xVx_xx_ratio_ = x_V_inv_x.sum() / x_x.sum();
+    if (!std::isfinite(xVx_xx_ratio_)) {
+      xVx_xx_ratio_ = 1.0;
+    }
+    fprintf(stderr, "\ni\tx_v_inv_x\tx_x\tratio\n");
+    for (int i = 0; i < nSnp; ++i) {
+      fprintf(stderr, "%d\t%f\t%f\t%f\n", i, x_V_inv_x(i), x_x(i),
+              x_x(i) == 0 ? 0.0 : x_V_inv_x(i) / x_x(i));
+    }
+    fprintf(stderr, "ratio = %f\n", x_V_inv_x.sum() / x_x.sum());
+
     return 0;
   }
 

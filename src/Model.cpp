@@ -404,11 +404,6 @@ void MetaScoreTest::MetaFamBinary::calculateB() {
   return;
 }
 
-void MetaCovTest::MetaCovFamBinary::calculateB() {
-  obtainB(this->alpha, &this->b);
-  return;
-}
-
 //////////////////////////////////////////////////
 // MetaCov
 //////////////////////////////////////////////////
@@ -676,7 +671,10 @@ class MetaCovFamBinary : public MetaCovBase {
   }
 
  private:
-  void calculateB();
+  void calculateB() {
+    obtainB(this->alpha, &this->b);
+    return;
+  }
 
  private:
   float alpha;
@@ -1023,11 +1021,6 @@ MetaCovBase* MetaCovTest::createModel(bool familyModel, bool binaryOutcome) {
     ret = new MetaCovUnrelatedBinary;
   }
   return ret;
-}
-
-void MetaCovFamBinary::calculateB() {
-  obtainB(this->alpha, &this->b);
-  return;
 }
 
 #if 0

@@ -15,6 +15,7 @@ EXE = testGSLIntegration \
       testFastMultipleTraitScoreTest \
       testFastMultipleTraitScoreTest.NA \
       testBoltLMM \
+      testGSLMinimizer \
 
 all: $(EXE)
 debug: $(EXE)

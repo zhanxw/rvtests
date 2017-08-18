@@ -2,11 +2,14 @@
 
 #include "GenotypeCounter.h"
 #include "Result.h"
-#include "base/Logger.h"
 
+#include "base/Argument.h"
+#include "base/Logger.h"
 #include "libVcf/VCFUtil.h"
 #include "libsrc/MathMatrix.h"
 #include "libsrc/MathVector.h"
+
+DECLARE_BOOL_PARAMETER(outputID);
 
 extern Logger* logger;
 
@@ -174,6 +177,9 @@ int GenotypeExtractor::extractSingleGenotype(Matrix* g, Result* b) {
 
   buf.updateValue("CHROM", r.getChrom());
   buf.updateValue("POS", r.getPosStr());
+  if (FLAG_outputID) {
+    buf.updateValue("ID", r.getID());
+  }
   buf.updateValue("REF", r.getRef());
   buf.updateValue("ALT", altAllele[altAllele.size() - this->altAlleleToParse]);
 

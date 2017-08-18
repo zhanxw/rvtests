@@ -3,10 +3,10 @@
 
 #include <cassert>
 #include <string>
-#include "Exception.h"
-#include "TypeConversion.h"
 #include "VCFBuffer.h"
 #include "VCFConstant.h"
+#include "base/Exception.h"
+#include "base/TypeConversion.h"
 
 class FileWriter;
 

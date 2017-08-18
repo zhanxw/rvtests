@@ -1,15 +1,18 @@
 #include "ModelManager.h"
 
-#include "Model.h"
-#include "ModelFitter.h"
-#include "ModelParser.h"
-#include "TabixUtil.h"
+#include "src/Model.h"
+#include "src/ModelFitter.h"
+#include "src/ModelParser.h"
+#include "src/TabixUtil.h"
 
-#include "DataConsolidator.h"
-#include "LinearAlgebra.h"
-#include "ModelUtil.h"
-#include "Result.h"
-#include "Summary.h"
+#include "src/DataConsolidator.h"
+#include "src/LinearAlgebra.h"
+#include "src/ModelUtil.h"
+#include "src/Result.h"
+#include "src/Summary.h"
+
+// include the header file for your model
+#include "src/SingleDummy.h"
 
 //////////////////////////////////////////////////
 bool ModelManager::hasFamilyModel() const {
@@ -68,6 +71,10 @@ int ModelManager::create(const std::string& modelType,
       model.push_back(new MultipleTraitScoreTest);
     } else if (modelName == "fastmtscore") {
       model.push_back(new FastMultipleTraitScoreTest);
+    } else if (modelName == "singledummy") {
+      // add a line to create your model
+      // and the model will be deleted automatically after analysis is done
+      model.push_back(new SingleDummy);
     } else {
       logger->error("Unknown model name: %s .", modelName.c_str());
       exit(1);

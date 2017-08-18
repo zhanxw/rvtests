@@ -1,5 +1,5 @@
 #include "PlinkInputFile.h"
-#include "SimpleMatrix.h"
+#include "base/SimpleMatrix.h"
 
 #ifndef UNUSED
 #define UNUSED(x) (void)(x)

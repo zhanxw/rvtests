@@ -2,8 +2,8 @@
 #define _VCFINFO_H_
 
 #include <string>
-#include "OrderedMap.h"
 #include "VCFValue.h"
+#include "base/OrderedMap.h"
 
 class VCFInfo {
  public:

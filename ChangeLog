@@ -1,3 +1,20 @@
+2017-07-13  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix beta estimation in binary score tests for unrelated individuals
+
+2017-06-13  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix a bug related Wald test outputs (fix #30)
+
+2017-06-09  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Add "--outputID" to output VCF ID to association results (fix #14, #24)
+	* Improve error messages when loading decomposed kinship file (fix #29)
+	* Add "RVTESTS successfully exit" to stdout (fix #31)
+	* Add FASTLMM_DEBUG environment variable to ease debugging (refer to #32)
+	* Fix strtol related warning (possibly) (refer to #33)
+	* Clean codes
+
 2017-04-27  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Add boltCov model

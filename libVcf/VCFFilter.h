@@ -1,7 +1,7 @@
 #ifndef _VCFFILTER_H_
 #define _VCFFILTER_H_
 
-#include "Regex.h"
+#include "base/Regex.h"
 
 class ParRegion;
 /**

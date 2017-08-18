@@ -1,6 +1,6 @@
 #include "SiteSet.h"
-#include "IO.h"
-#include "TypeConversion.h"
+#include "base/IO.h"
+#include "base/TypeConversion.h"
 
 /**
  * Load column 1 as chromosome, column 2 as position.

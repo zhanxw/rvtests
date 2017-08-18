@@ -1,3 +1,5 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
+
 #include "FastLMM.h"
 
 #include "libsrc/MathMatrix.h"
@@ -8,19 +10,10 @@
 #include "EigenMatrixInterface.h"
 #include "GSLMinimizer.h"
 
+// set environment variable FASTLMM_DEBUG to enable debug information
 // #define EIGEN_NO_DEBUG
-#undef DEBUG
+// #undef DEBUG
 // #define DEBUG
-
-#ifdef DEBUG
-#include <fstream>
-void dumpToFile(const Eigen::MatrixXf& mat, const char* fn) {
-  std::ofstream out(fn);
-  out << mat.rows() << "\t" << mat.cols() << "\n";
-  out << mat;
-  out.close();
-}
-#endif
 
 #define PI 3.1415926535897
 
@@ -29,9 +22,18 @@ static double goalFunction(double x, void* param);
 class FastLMM::Impl {
  public:
   Impl(FastLMM::Test test, FastLMM::Model model)
-      : test(test), model(model), needToCenterGentype(true) {}
+      : test(test), model(model), needToCenterGentype(true) {
+    FastLMM::Impl::showDebug = false;
+  }
   int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
+    //
+    if (std::getenv("FASTLMM_DEBUG")) {
+      FastLMM::Impl::showDebug = true;
+    } else {
+      FastLMM::Impl::showDebug = false;
+    }
+
     // sanity check
     if (mat_Xnull.rows != mat_y.rows) return -1;
     if (mat_Xnull.rows != kinshipU.mat.rows()) return -1;
@@ -62,10 +64,10 @@ class FastLMM::Impl {
       delta = exp(-10. + i * 0.2);
       getBetaSigma2(delta);
       loglik[i] = getLogLikelihood(delta);
-#ifdef DEBUG
-      fprintf(stderr, "%d\tdelta=%g\tll=%lf\t", i, delta, loglik[i]);
-      fprintf(stderr, "beta(0)=%lf\tsigma2=%lf\n", beta(0), sigma2);
-#endif
+      if (FastLMM::Impl::showDebug) {
+        fprintf(stderr, "%d\tdelta=%g\tll=%lf\t", i, delta, loglik[i]);
+        fprintf(stderr, "beta(0)=%lf\tsigma2=%lf\n", beta(0), sigma2);
+      }
       if (std::isnan(loglik[i])) {
         continue;
       }
@@ -78,10 +80,10 @@ class FastLMM::Impl {
       fprintf(stderr, "Cannot optimize\n");
       return -1;
     }
-#if 0
-    fprintf(stderr, "maxIndex = %d\tll=%lf\t\tbeta(0)=%lf\tsigma2=%lf\n",
-            maxIndex, maxLogLik, beta(0), sigma2);
-#endif
+    if (FastLMM::Impl::showDebug) {
+      fprintf(stderr, "maxIndex = %d\tll=%lf\t\tbeta(0)=%lf\tsigma2=%lf\n",
+              maxIndex, maxLogLik, beta(0), sigma2);
+    }
 
     if (maxIndex == 0 || maxIndex == 100) {
       // on the boundary
@@ -100,21 +102,22 @@ class FastLMM::Impl {
         this->delta = start;
       } else {
         this->delta = minimizer.getX();
-#ifdef DEBUG
-        fprintf(stderr, "minimization succeed when delta = %g, sigma2 = %g\n",
-                this->delta, this->sigma2);
-        dumpToFile(kinshipS.mat, "S.mat");
-        dumpToFile(kinshipU.mat, "U.mat");
-#endif
+        if (FastLMM::Impl::showDebug) {
+          fprintf(stderr, "minimization succeed when delta = %g, sigma2 = %g\n",
+                  this->delta, this->sigma2);
+          dumpToFile(kinshipS.mat, "S.mat");
+          dumpToFile(kinshipU.mat, "U.mat");
+        }
       }
     }
-// store some intermediate results
-#ifdef DEBUG
-    fprintf(stderr, "delta = sigma2_e/sigma2_g, and sigma2 is sigma2_g\n");
-    fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex, delta);
-    fprintf(stderr, "beta[0][0] = %g\t sigma2_g = %g\tsigma2_e = %g\n",
-            beta(0, 0), this->sigma2, delta * sigma2);
-#endif
+    // store some intermediate results
+    if (FastLMM::Impl::showDebug) {
+      fprintf(stderr, "delta = sigma2_e/sigma2_g, and sigma2 is sigma2_g\n");
+      fprintf(stderr, "maxIndex = %d, delta = %g, Try brent\n", maxIndex,
+              delta);
+      fprintf(stderr, "beta[0][0] = %g\t sigma2_g = %g\tsigma2_e = %g\n",
+              beta(0, 0), this->sigma2, delta * sigma2);
+    }
     if (this->test == FastLMM::LRT) {
       this->nullLikelihood = getLogLikelihood(this->delta);
     } else if (this->test == FastLMM::SCORE) {
@@ -218,13 +221,13 @@ class FastLMM::Impl {
       } else {
         u_g_center = (U.transpose() * g).eval().array();
       }
-#ifdef DEBUG
-      dumpToFile(U, "U");
-      dumpToFile(lambda, "lambda");
-      dumpToFile(g, "g");
-      dumpToFile(uResid, "uResid");
-      dumpToFile(u_g_center, "u_g_center");
-#endif
+      if (FastLMM::Impl::showDebug) {
+        dumpToFile(U, "U");
+        dumpToFile(lambda, "lambda");
+        dumpToFile(g, "g");
+        dumpToFile(uResid, "uResid");
+        dumpToFile(u_g_center, "u_g_center");
+      }
 
       this->Ustat =
           (((u_g_center) * (this->uResid).array()) / (lambda.array() + delta))
@@ -292,15 +295,15 @@ class FastLMM::Impl {
         .sum();
   }
   void getBetaSigma2(double delta) {
-// Eigen::MatrixXf x = (this->lambda.array() +
-// delta).sqrt().matrix().asDiagonal() * this->ux;
-// Eigen::MatrixXf y = (this->lambda.array() +
-// delta).sqrt().matrix().asDiagonal() * this->uy;
-// this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
-#ifdef DEBUG
-    dumpToFile(ux, "ux");
-    dumpToFile(uy, "uy");
-#endif
+    // Eigen::MatrixXf x = (this->lambda.array() +
+    // delta).sqrt().matrix().asDiagonal() * this->ux;
+    // Eigen::MatrixXf y = (this->lambda.array() +
+    // delta).sqrt().matrix().asDiagonal() * this->uy;
+    // this->beta = (x.transpose() * x).eval().ldlt().solve(x.transpose() * y);
+    if (FastLMM::Impl::showDebug) {
+      dumpToFile(ux, "ux");
+      dumpToFile(uy, "uy");
+    }
     this->beta =
         (ux.transpose() *
          (this->lambda.array() + delta).abs().inverse().matrix().asDiagonal() *
@@ -621,7 +624,12 @@ class FastLMM::Impl {
   double sigmaK;
   double sigma1;
   bool needToCenterGentype;
+
+ private:
+  static bool showDebug;
 };
+
+bool FastLMM::Impl::showDebug;
 
 //////////////////////////////////////////////////
 // FastLMM Interface

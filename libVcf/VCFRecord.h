@@ -1,17 +1,17 @@
 #ifndef _VCFRECORD_H_
 #define _VCFRECORD_H_
 
-#include "CommonFunction.h"
-#include "Exception.h"
-#include "IO.h"
-#include "IndexMap.h"
-#include "RangeList.h"
-#include "Utils.h"
 #include "VCFBuffer.h"
 #include "VCFFunction.h"
 #include "VCFHeader.h"
 #include "VCFIndividual.h"
 #include "VCFInfo.h"
+#include "base/CommonFunction.h"
+#include "base/Exception.h"
+#include "base/IO.h"
+#include "base/IndexMap.h"
+#include "base/RangeList.h"
+#include "base/Utils.h"
 
 typedef IndexMap<VCFIndividual*> VCFPeople;
 
@@ -100,15 +100,16 @@ class VCFRecord {
     this->parsed[this->format.end] = '\0';
 
     // now comes each individual genotype
-    unsigned int idx = 0;  // peopleIdx
+    size_t idx = 0;  // peopleIdx
+    const size_t numAllIndv = this->allIndv.size();
     VCFIndividual* p;
     VCFValue indv;
     int beg = this->format.end + 1;
     while ((ret = indv.parseTill(this->parsed, beg, '\t')) == 0) {
-      if (idx >= this->allIndv.size()) {
+      if (idx >= numAllIndv) {
         fprintf(stderr,
                 "Expected %d individual but already have %d individual\n",
-                (int)this->allIndv.size(), idx);
+                (int)this->allIndv.size(), (int)idx);
         fprintf(stderr, "VCF header have LESS people than VCF content!\n");
         return -1;
       }
@@ -136,11 +137,11 @@ class VCFRecord {
 
     if (idx > this->allIndv.size()) {
       fprintf(stderr, "Expected %d individual but already have %d individual\n",
-              (int)this->allIndv.size(), idx);
+              (int)this->allIndv.size(), (int)idx);
       REPORT("VCF header have MORE people than VCF content!");
     } else if (idx < this->allIndv.size()) {
       fprintf(stderr, "Expected %d individual but only have %d individual\n",
-              (int)this->allIndv.size(), idx);
+              (int)this->allIndv.size(), (int)idx);
       REPORT("VCF header have LESS people than VCF content!");
       return -1;
     }
@@ -157,6 +158,14 @@ class VCFRecord {
       return;
     }
     for (unsigned int i = 9; i < sa.size(); i++) {
+      // do not allow empty name
+      if (sa[i].empty()) {
+        fprintf(stderr,
+                "One inddividual (column %d, or extra tab at the line end) has "
+                "an empty column header, please check file format\n",
+                (int)i);
+        exit(1);
+      }
       int idx = i - 9;
       VCFIndividual* p = new VCFIndividual;
       this->allIndv[idx] = p;

@@ -81,28 +81,7 @@ std::string toStringWithComma(int in);
 
 // convert std::string to integer
 // @return true if conversion succeed
-inline bool str2int(const char* input, int* output) {
-  char* endptr;
-  long val;
-  errno = 0;
-  val = strtol(input, &endptr, 10);
-
-  if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) ||
-      (errno != 0 && val == 0)) {
-#ifndef NDEBUG
-    perror("strtol");
-#endif
-    return false;
-  }
-
-  if (endptr == input) {
-    // no digits found
-    return false;
-  }
-
-  *output = val;
-  return true;
-}
+bool str2int(const char* input, int* output);
 
 // convert std::string to integer
 // @return true if conversion succeed
@@ -119,12 +98,28 @@ inline bool str2double(const char* input, double* output) {
   errno = 0;
   val = strtod(input, &endptr);
 
-  if ((errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALL)) ||
-      (errno != 0 && val == 0.)) {
+  if (errno == ERANGE) {
+#ifndef NDEBUG
+    fprintf(stderr, "Over/under flow happened: %s\n", input);
     perror("strtod");
+#endif
     return false;
   }
-
+  if (errno == EINVAL) {
+    // Ignore error here to avoid displaying:
+    // "strtod: Invalid argument" (issue #32)
+    // Reason: musl has different implementaiton of strtod,
+    // musl set errno = 22 in strtod("NA")
+    // glibc set errno = 0 in strtod("NA")
+    return false;
+  }
+  if (errno != 0 && val == 0.) {
+#ifndef NDEBUG
+    fprintf(stderr, "Unknown conversion error happened: %s\n", input);
+    perror("strtod");
+#endif
+    return false;
+  }
   if (endptr == input) {
     // no digits found
     return false;

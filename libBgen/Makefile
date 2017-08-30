@@ -35,9 +35,14 @@ $(BZIP2_INC):
 
 SQLITE_INC = ../third/sqlite/include
 SQLITE_LIB = ../third/sqlite/lib/libsqlite3.a
+$(SQLITE_INC) $(SQLITE_LIB):
+	(cd ../third; $(MAKE) sqlite)
 
 ZSTD_INC = ../third/zstd/lib
 ZSTD_LIB = ../third/zstd/lib/libzstd.a
+$(ZSTD_INC) $(ZSTD_LIB):
+	(cd ../third; $(MAKE) zstd)
+
 
 THIRD_INC = $(BCF_INC) $(TABIX_INC) $(PCRE_INC) $(BZIP2_INC) $(ZLIB_INC) $(GSL_INC) $(ZSTD_INC)
 THIRD_INC_FLAGS = $(addprefix -I,$(THIRD_INC))

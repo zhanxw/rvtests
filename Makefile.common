@@ -32,8 +32,14 @@ SAMTOOLS_LIB = $(ROOT)/third/samtools/libbam.a
 RAPIDJSON_INC = $(ROOT)/third/rapidjson/include
 RAPIDJSON_LIB = # We only use its headers
 
-THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC) $(RAPIDJSON_INC)
-THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(ZLIB_LIB) $(BZIP2_LIB) $(NLOPT_LIB)
+SQLITE_INC = $(ROOT)/third/sqlite/include
+SQLITE_LIB = $(ROOT)/third/sqlite/lib/libsqlite3.a
+
+ZSTD_INC = $(ROOT)/third/zstd/lib
+ZSTD_LIB = $(ROOT)/third/zstd/lib/libzstd.a
+
+THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC) $(RAPIDJSON_INC) $(SQLITE_INC) $(ZSTD_INC)
+THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(ZLIB_LIB) $(BZIP2_LIB) $(NLOPT_LIB) $(SQLITE_LIB) $(ZSTD_LIB)
 ##################################################
 ## Our libs.
 BASE_INC = $(ROOT)/base
@@ -43,6 +49,10 @@ BASE_LIB_DBG = $(ROOT)/base/lib-dbg-base.a
 VCF_INC = $(ROOT)/libVcf
 VCF_LIB = $(ROOT)/libVcf/lib-vcf.a
 VCF_LIB_DBG = $(ROOT)/libVcf/lib-dbg-vcf.a
+
+BGEN_INC = $(ROOT)/libBgen
+BGEN_LIB = $(ROOT)/libBgen/lib-bgen.a
+BGEN_LIB_DBG = $(ROOT)/libBgen/lib-dbg-bgen.a
 
 REGRESSION_INC = $(ROOT)/regression
 REGRESSION_LIB = $(ROOT)/regression/lib-regression.a
@@ -57,9 +67,9 @@ GONCALO_LIB_DBG = $(ROOT)/libsrc/lib-dbg-goncalo.a
 CXX ?= g++
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x -Wall -Wno-unused-function $(OPENMP_FLAG) -DGIT_VERSION="\"$(GIT_VERSION)\""
 
-INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
-LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
-LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
+INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BGEN_INC) $(BASE_INC) $(GONCALO_INC)
+LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BGEN_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
+LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BGEN_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I. -I$(ROOT)
 CXX_LIB = $(LIB) -lm -lpthread
 CXX_LIB_DBG = $(LIB_DBG) -lm -lpthread

@@ -51,7 +51,7 @@ rapidjson: rapidjson-1.0.2.tar.gz
 
 sqlite: sqlite-autoconf-3200100.tar.gz
 	tar zvxf $<
-	-(DIR=`pwd`; cd sqlite-autoconf-3200100; ./configure --prefix="$${DIR}"/sqlite; make -j; make install)
+	-(DIR=`pwd`; cd sqlite-autoconf-3200100; ./configure --prefix="$${DIR}"/sqlite --enable-dynamic-extensions=no; make -j; make install)
 
 zstd: zstd-1.3.1.tar.gz
 	tar zvxf $<

@@ -20,6 +20,10 @@ $(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
 	$(MAKE) -C $(ROOT)/third samtools
 $(RAPIDJSON_INC):
 	$(MAKE) -C $(ROOT)/third rapidjson
+$(SQLITE_INC) $(SQLITE_LIB):
+	$(MAKE) -C $(ROOT)/third sqlite
+$(ZSTD_INC) $(ZSTD_LIB):
+	$(MAKE) -C $(ROOT)/third zstd
 
 ## our libs
 $(BASE_LIB):

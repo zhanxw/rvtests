@@ -32,7 +32,10 @@ int BGenIndex::queryRange(const std::string& chrom, int begin, int end) {
 }
 
 int BGenIndex::setRange(const RangeList& r) {
-  sqlite3_finalize(stmt_);
+  if (stmt_) {
+    sqlite3_finalize(stmt_);
+    stmt_ = NULL;
+  }
 
   this->range.setRange(r);
   resetRangeIterator();

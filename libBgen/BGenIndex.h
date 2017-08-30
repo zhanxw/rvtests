@@ -25,8 +25,8 @@ CREATE TABLE Variant (
   ) WITHOUT ROWID;
    */
  public:
-  BGenIndex() {}
-  BGenIndex(const std::string& fn) { init(fn); }
+  BGenIndex() : db_(NULL), stmt_(NULL) {}
+  BGenIndex(const std::string& fn) : db_(NULL), stmt_(NULL) { init(fn); }
   int init(const std::string& fn);
   /**
    * Contruct a SQL based on the specified range chrom:begin-end

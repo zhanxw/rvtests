@@ -21,8 +21,8 @@ jobTest:
     stage: test
     script:
         - make debug
-        - (for i in base libVcf regression; do echo "Task = ${i}"; make -C ${i}/test; done)
-        - (for i in base libVcf regression; do echo "Task = ${i}"; make check -C ${i}/test; done)
+        - (for i in base libVcf regression libBgen; do echo "Task = ${i}"; make -C ${i}/test; done)
+        - (for i in base libVcf regression libBgen; do echo "Task = ${i}"; make check -C ${i}/test; done)
 jobBuildDebug:
     stage: buildExtra
     script:

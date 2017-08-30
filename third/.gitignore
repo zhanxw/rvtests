@@ -7,3 +7,6 @@ gsl*
 samtools*
 nlopt*
 rapidjson*
+sqlite*
+zstd*
+

@@ -49,6 +49,15 @@ rapidjson: rapidjson-1.0.2.tar.gz
 	ln -s -f rapidjson-1.0.2 rapidjson
 	sh -c '# no need to compile, just need its header'
 
+sqlite: sqlite-autoconf-3200100.tar.gz
+	tar zvxf $<
+	-(DIR=`pwd`; cd sqlite-autoconf-3200100; ./configure --prefix="$${DIR}"/sqlite; make -j; make install)
+
+zstd: zstd-1.3.1.tar.gz
+	tar zvxf $<
+	ln -s -f zstd-1.3.1 zstd
+	(cd zstd; make)
+
 ######################################################################
 # download sources
 UNAME_S := $(shell uname -s)
@@ -86,6 +95,14 @@ nlopt-2.4.2.tar.gz:
 rapidjson-1.0.2.tar.gz:
 	echo "obtain rapidjson"
 	$(call DOWNLOAD_RENAME,https://github.com/miloyip/rapidjson/archive/v1.0.2.tar.gz,$@)
+
+sqlite-autoconf-3200100.tar.gz:
+	echo "obtain sqlite"
+	$(call DOWNLOAD,https://sqlite.org/2017/sqlite-autoconf-3200100.tar.gz)
+
+zstd-1.3.1.tar.gz:
+	echo "obtain zstd"
+	$(call DOWNLOAD_RENAME,https://github.com/facebook/zstd/archive/v1.3.1.tar.gz,$@)
 
 clean:
 	-rm -rf $(LIB)

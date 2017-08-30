@@ -82,47 +82,24 @@ class VCFInputFile {
 
   //////////////////////////////////////////////////
   // Sample inclusion/exclusion
-  void includePeople(const char* s) { this->record.includePeople(s); }
-  void includePeople(const std::vector<std::string>& v) {
-    this->record.includePeople(v);
-  }
-  void includePeopleFromFile(const char* fn) {
-    this->record.includePeopleFromFile(fn);
-  }
-  void includeAllPeople() { this->record.includeAllPeople(); }
-  void excludePeople(const char* s) { this->record.excludePeople(s); }
-  void excludePeople(const std::vector<std::string>& v) {
-    this->record.excludePeople(v);
-  }
-  void excludePeopleFromFile(const char* fn) {
-    this->record.excludePeopleFromFile(fn);
-  }
-  void excludeAllPeople() { this->record.excludeAllPeople(); }
+  void includePeople(const char* s);
+  void includePeople(const std::vector<std::string>& v);
+  void includePeopleFromFile(const char* fn);
+  void includeAllPeople();
+  void excludePeople(const char* s);
+  void excludePeople(const std::vector<std::string>& v);
+  void excludePeopleFromFile(const char* fn);
+  void excludeAllPeople();
   //////////////////////////////////////////////////
   // Adjust range collections
-  void enableAutoMerge() { this->autoMergeRange = true; }
-  void disableAutoMerge() { this->autoMergeRange = false; }
+  void enableAutoMerge();
+  void disableAutoMerge();
   // void clearRange();
-  void setRangeFile(const char* fn) {
-    if (!fn || strlen(fn) == 0) return;
-    RangeList r;
-    r.addRangeFile(fn);
-    this->setRange(r);
-  }
+  void setRangeFile(const char* fn);
   // @param l is a string of range(s)
-  void setRange(const char* chrom, int begin, int end) {
-    RangeList r;
-    r.addRange(chrom, begin, end);
-    this->setRange(r);
-  }
-  void setRange(const RangeList& rl) { this->setRangeList(rl); }
-  void setRangeList(const std::string& l) {
-    if (l.empty()) return;
-
-    RangeList r;
-    r.addRangeList(l);
-    this->setRange(r);
-  }
+  void setRange(const char* chrom, int begin, int end);
+  void setRange(const RangeList& rl);
+  void setRangeList(const std::string& l);
   // this function the entry point for all function add/change region list
   void setRangeList(const RangeList& rl);
 

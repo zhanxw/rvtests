@@ -33,7 +33,13 @@ BZIP2_INC = ../third/bzip2
 $(BZIP2_INC):
 	(cd ../third; $(MAKE) bzip2)
 
-THIRD_INC = $(BCF_INC) $(TABIX_INC) $(PCRE_INC) $(BZIP2_INC) $(ZLIB_INC) $(GSL_INC)
+SQLITE_INC = ../third/sqlite/include
+SQLITE_LIB = ../third/sqlite/lib/libsqlite3.a
+
+ZSTD_INC = ../third/zstd/lib
+ZSTD_LIB = ../thid/zstd/lib/libzstd.a
+
+THIRD_INC = $(BCF_INC) $(TABIX_INC) $(PCRE_INC) $(BZIP2_INC) $(ZLIB_INC) $(GSL_INC) $(ZSTD_INC)
 THIRD_INC_FLAGS = $(addprefix -I,$(THIRD_INC))
 
 ### put BCF_INC ahead of TABIX, so correct kseq.h can be included

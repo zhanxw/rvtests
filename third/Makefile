@@ -1,6 +1,6 @@
 # download all third party library and compile them
 
-LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson
+LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson sqlite zstd
 all: $(LIB)
 
 tabix: tabix-0.2.6.tar.bz2

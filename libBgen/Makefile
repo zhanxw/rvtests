@@ -43,7 +43,6 @@ ZSTD_LIB = ../third/zstd/lib/libzstd.a
 $(ZSTD_INC) $(ZSTD_LIB):
 	(cd ../third; $(MAKE) zstd)
 
-
 THIRD_INC = $(BCF_INC) $(TABIX_INC) $(PCRE_INC) $(BZIP2_INC) $(ZLIB_INC) $(GSL_INC) $(ZSTD_INC) $(SQLITE_INC)
 THIRD_INC_FLAGS = $(addprefix -I,$(THIRD_INC))
 

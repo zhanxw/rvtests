@@ -544,7 +544,7 @@ class MetaCovUnrelatedQtl : public MetaCovBase {
 
     REF_TO_EIGEN(x1, x1E);
     REF_TO_EIGEN(x2, x2E);
-    *covXX = x1E.col(0).dot(x2E.col(0));
+    *covXX = x1E.col(0).dot(x2E.col(0)) / this->sigma2;
     return 0;
   }
   int calculateXZ(FloatMatrixRef& x, FloatMatrixRef& covXZ) {
@@ -684,7 +684,7 @@ class MetaCovFamBinary : public MetaCovBase {
   const EigenMatrix* U;
   const EigenMatrix* S;
   FastLMM metaCov;
-};
+};  // end MetaCovFamBinary
 
 class MetaCovUnrelatedBinary : public MetaCovBase {
   int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
@@ -853,7 +853,7 @@ int MetaCovTest::fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
   if (nSample < 0) {  // uninitialized
     // calculate variance of y
     nSample = genotype.rows;
-    nCovariate = dc->getCovariate().cols;
+    nCovariate = dc->getCovariate().cols + 1;  // intercept
     genoPool.setChunkSize(nSample);
     genoCovPool.setChunkSize(nCovariate);
   }
@@ -909,9 +909,9 @@ int MetaCovTest::fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
   if (!useBolt) {
     // model->transformGenotype(&loci.geno, dc);
     // model->calculateXZ(loci.geno, &loci.covXZ);
-    const int numCovariate = dc->getCovariate().cols;
+    // const int numCovariate = dc->getCovariate().cols;
     FloatMatrixRef x(genoPool.chunk(loci.geno), nSample, 1);
-    FloatMatrixRef xz(genoCovPool.chunk(loci.geno), 1, numCovariate);
+    FloatMatrixRef xz(genoCovPool.chunk(loci.geno), 1, nCovariate);
     model->transformGenotype(x, dc);
     if (nCovariate) {
       model->calculateXZ(x, xz);

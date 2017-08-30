@@ -25,6 +25,7 @@ BASE = Main \
       ModelParser \
       Model \
       GenotypeExtractor \
+      VCFGenotypeExtractor \
       DataLoader \
       GenotypeCounter \
 

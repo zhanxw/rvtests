@@ -27,6 +27,8 @@
 #include "src/ModelFitter.h"
 #include "src/ModelManager.h"
 #include "src/Result.h"
+#include "src/VCFGenotypeExtractor.h"
+// #include "src/BGenGenotypeExtractor.h"
 
 Logger* logger = NULL;
 
@@ -491,45 +493,50 @@ int main(int argc, char** argv) {
   time_t startTime = time(0);
   logger->info("Analysis started at: %s", currentTime().c_str());
 
-  GenotypeExtractor ge(FLAG_inVcf);
+  GenotypeExtractor* ge = NULL;
+  if (!FLAG_inVcf.empty()) {
+    ge = new VCFGenotypeExtractor(FLAG_inVcf);
+  } else {
+    assert(false);
+  }
 
   // set range filters here
-  ge.setRangeList(FLAG_rangeList.c_str());
-  ge.setRangeFile(FLAG_rangeFile.c_str());
+  ge->setRangeList(FLAG_rangeList.c_str());
+  ge->setRangeFile(FLAG_rangeFile.c_str());
 
   // set people filters here
   if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
-    ge.excludeAllPeople();
-    ge.includePeople(FLAG_peopleIncludeID.c_str());
-    ge.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+    ge->excludeAllPeople();
+    ge->includePeople(FLAG_peopleIncludeID.c_str());
+    ge->includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
   }
-  ge.excludePeople(FLAG_peopleExcludeID.c_str());
-  ge.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+  ge->excludePeople(FLAG_peopleExcludeID.c_str());
+  ge->excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
 
   if (!FLAG_siteFile.empty()) {
-    ge.setSiteFile(FLAG_siteFile);
+    ge->setSiteFile(FLAG_siteFile);
     logger->info("Restrict analysis based on specified site file [ %s ]",
                  FLAG_siteFile.c_str());
   }
   if (FLAG_siteDepthMin > 0) {
-    ge.setSiteDepthMin(FLAG_siteDepthMin);
+    ge->setSiteDepthMin(FLAG_siteDepthMin);
     logger->info("Set site depth minimum to %d", FLAG_siteDepthMin);
   }
   if (FLAG_siteDepthMax > 0) {
-    ge.setSiteDepthMax(FLAG_siteDepthMax);
+    ge->setSiteDepthMax(FLAG_siteDepthMax);
     logger->info("Set site depth maximum to %d", FLAG_siteDepthMax);
   }
   if (FLAG_siteMACMin > 0) {
-    ge.setSiteMACMin(FLAG_siteMACMin);
+    ge->setSiteMACMin(FLAG_siteMACMin);
     logger->info("Set site minimum MAC to %d", FLAG_siteDepthMin);
   }
   if (FLAG_annoType != "") {
-    ge.setAnnoType(FLAG_annoType.c_str());
+    ge->setAnnoType(FLAG_annoType.c_str());
     logger->info("Set annotype type filter to %s", FLAG_annoType.c_str());
   }
 
   std::vector<std::string> vcfSampleNames;
-  ge.getPeopleName(&vcfSampleNames);
+  ge->getPeopleName(&vcfSampleNames);
   logger->info("Loaded [ %zu ] samples from VCF files", vcfSampleNames.size());
 
   DataLoader dataLoader;
@@ -579,7 +586,7 @@ int main(int argc, char** argv) {
 
     // rearrange phenotypes
     // drop samples from phenotype or vcf
-    matchPhenotypeAndVCF("missing phenotype", &dataLoader, &ge);
+    matchPhenotypeAndVCF("missing phenotype", &dataLoader, ge);
 
     // // phenotype names (vcf sample names) arranged in the same order as in
     // VCF
@@ -591,7 +598,7 @@ int main(int argc, char** argv) {
     //           &phenotypeInOrder, FLAG_imputePheno);
     // if (vcfSampleToDrop.size()) {
     //   // exclude this sample from parsing VCF
-    //   ge.excludePeople(vcfSampleToDrop);
+    //   ge->excludePeople(vcfSampleToDrop);
     //   // output dropped samples
     //   for (size_t i = 0; i < vcfSampleToDrop.size(); ++i) {
     //     if (i == 0)
@@ -625,7 +632,7 @@ int main(int argc, char** argv) {
     //   // phenotypeNameInOrder
     // }
     dataLoader.loadCovariate(FLAG_cov, FLAG_covName);
-    matchCovariateAndVCF("missing covariate", &dataLoader, &ge);
+    matchCovariateAndVCF("missing covariate", &dataLoader, ge);
 
     // // load covariate
     // Matrix covariate;
@@ -676,20 +683,20 @@ int main(int argc, char** argv) {
     //   for (std::set<std::string>::const_iterator iter =
     //            sampleToDropInCovariate.begin();
     //        iter != sampleToDropInCovariate.end(); ++iter) {
-    //     ge.excludePeople(iter->c_str());
+    //     ge->excludePeople(iter->c_str());
     //   }
     // }
   } else {
     dataLoader.loadMultiplePhenotype(FLAG_multiplePheno, FLAG_pheno, FLAG_cov);
 
-    matchPhenotypeAndVCF("missing phenotype", &dataLoader, &ge);
-    matchCovariateAndVCF("missing covariate", &dataLoader, &ge);
+    matchPhenotypeAndVCF("missing phenotype", &dataLoader, ge);
+    matchCovariateAndVCF("missing covariate", &dataLoader, ge);
   }
 
   dataLoader.loadSex();
   if (FLAG_sex) {
     dataLoader.useSexAsCovariate();
-    matchCovariateAndVCF("missing sex", &dataLoader, &ge);
+    matchCovariateAndVCF("missing sex", &dataLoader, ge);
   }
   // // load sex
   // std::vector<int> sex;
@@ -711,7 +718,7 @@ int main(int argc, char** argv) {
 
   if (!FLAG_condition.empty()) {
     dataLoader.loadMarkerAsCovariate(FLAG_inVcf, FLAG_condition);
-    matchCovariateAndVCF("missing in conditioned marker(s)", &dataLoader, &ge);
+    matchCovariateAndVCF("missing in conditioned marker(s)", &dataLoader, ge);
   }
   // // load conditional markers
   // if (!FLAG_condition.empty()) {
@@ -833,7 +840,7 @@ int main(int argc, char** argv) {
   //     logger->info("Now applying inverse normalize transformation.");
   //     inverseNormalizeLikeMerlin(&phenotypeInOrder);
   //     g_SummaryHeader->setInverseNormalize(FLAG_inverseNormal);
-  //     logger->info("DONE: inverse normal transformation finished.");
+  //     logger->info("DONE: inverse normalization transformation finished.");
   //   }
   // }
 
@@ -865,7 +872,7 @@ int main(int argc, char** argv) {
   if (dataLoader.isBinaryPhenotype()) {
     modelManager.setBinaryOutcome();
     matchPhenotypeAndVCF("missing phenotype (not case/control)", &dataLoader,
-                         &ge);
+                         ge);
   } else {
     modelManager.setQuantitativeOutcome();
   }
@@ -943,7 +950,7 @@ int main(int argc, char** argv) {
   DataConsolidator dc;
   dc.setSex(&dataLoader.getSex());
   dc.setFormula(&dataLoader.getFormula());
-  dc.setGenotypeCounter(ge.getGenotypeCounter());
+  dc.setGenotypeCounter(ge->getGenotypeCounter());
 
   // load kinshp if needed by family models
   if (modelManager.hasFamilyModel() ||
@@ -1000,44 +1007,44 @@ int main(int argc, char** argv) {
   // genotype will be extracted and stored
   Matrix& genotype = dc.getOriginalGenotype();
   if (FLAG_freqUpper > 0) {
-    ge.setSiteFreqMax(FLAG_freqUpper);
+    ge->setSiteFreqMax(FLAG_freqUpper);
     logger->info("Set upper minor allele frequency limit to %g",
                  FLAG_freqUpper);
   }
   if (FLAG_freqLower > 0) {
-    ge.setSiteFreqMin(FLAG_freqLower);
+    ge->setSiteFreqMin(FLAG_freqLower);
     logger->info("Set lower minor allele frequency limit to %g",
                  FLAG_freqLower);
   }
 
   // handle sex chromosome
-  ge.setParRegion(&parRegion);
-  ge.setSex(&dataLoader.getSex());
+  ge->setParRegion(&parRegion);
+  ge->setSex(&dataLoader.getSex());
 
   // use dosage instead GT
   if (!FLAG_dosageTag.empty()) {
-    ge.setDosageTag(FLAG_dosageTag);
+    ge->setDosageTag(FLAG_dosageTag);
     logger->info("Use dosage genotype from VCF flag %s.",
                  FLAG_dosageTag.c_str());
   }
   if (FLAG_multiAllele) {
-    ge.enableMultiAllelicMode();
+    ge->enableMultiAllelicMode();
     logger->info("Enable analysis using multiple allelic models");
   }
 
   // genotype QC options
   if (FLAG_indvDepthMin > 0) {
-    ge.setGDmin(FLAG_indvDepthMin);
+    ge->setGDmin(FLAG_indvDepthMin);
     logger->info("Minimum GD set to %d (or marked as missing genotype).",
                  FLAG_indvDepthMin);
   }
   if (FLAG_indvDepthMax > 0) {
-    ge.setGDmax(FLAG_indvDepthMax);
+    ge->setGDmax(FLAG_indvDepthMax);
     logger->info("Maximum GD set to %d (or marked as missing genotype).",
                  FLAG_indvDepthMax);
   }
   if (FLAG_indvQualMin > 0) {
-    ge.setGQmin(FLAG_indvQualMin);
+    ge->setGQmin(FLAG_indvQualMin);
     logger->info("Minimum GQ set to %d (or marked as missing genotype).",
                  FLAG_indvQualMin);
   }
@@ -1083,7 +1090,7 @@ int main(int argc, char** argv) {
     int variantProcessed = 0;
     while (true) {
       buf.clearValue();
-      int ret = ge.extractSingleGenotype(&genotype, &buf);
+      int ret = ge->extractSingleGenotype(&genotype, &buf);
 
       if (ret == GenotypeExtractor::FILE_END) {  // reach file end
         break;
@@ -1137,11 +1144,11 @@ int main(int argc, char** argv) {
     int variantProcessed = 0;
     for (size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
-      ge.setRange(rangeList);
+      ge->setRange(rangeList);
 
       while (true) {
         buf.clearValue();
-        int ret = ge.extractSingleGenotype(&genotype, &buf);
+        int ret = ge->extractSingleGenotype(&genotype, &buf);
         if (ret == GenotypeExtractor::FILE_END) {  // reach end of this region
           break;
         }
@@ -1190,12 +1197,12 @@ int main(int argc, char** argv) {
     std::string geneName;
     RangeList rangeList;
     int variantProcessed = 0;
-    ge.enableAutoMerge();
+    ge->enableAutoMerge();
     for (size_t i = 0; i < geneRange.size(); ++i) {
       geneRange.at(i, &geneName, &rangeList);
-      ge.setRange(rangeList);
+      ge->setRange(rangeList);
       buf.clearValue();
-      int ret = ge.extractMultipleGenotype(&genotype);
+      int ret = ge->extractMultipleGenotype(&genotype);
 
       if (ret != GenotypeExtractor::SUCCEED) {
         logger->error("Extract genotype failed for gene %s!", geneName.c_str());

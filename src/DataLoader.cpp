@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "CommonFunction.h"
-#include "GenotypeExtractor.h"
 #include "Indexer.h"
 #include "ModelUtil.h"  // copy()
+#include "VCFGenotypeExtractor.h"
 
 #include "base/IO.h"
 #include "base/Logger.h"
@@ -313,7 +313,7 @@ int DataLoader::loadMarkerAsCovariate(const std::string& inVcf,
   this->FLAG_condition = marker;
 
   Matrix geno;
-  GenotypeExtractor ge(FLAG_inVcf);
+  VCFGenotypeExtractor ge(FLAG_inVcf);
   ge.excludeAllPeople();
   ge.includePeople(phenotype.getRowName());
   ge.setRangeList(marker);
@@ -616,12 +616,12 @@ int DataLoader::inverseNormalizePhenotype() {
     return 0;
   }
 
-  logger->info("Now applying inverse normalize transformation");
+  logger->info("Now applying inverse normalization transformation");
   std::vector<double> v;
   phenotype.extractCol(0, &v);
   inverseNormalizeLikeMerlin(&v);
   phenotype.setCol(0, v);
-  logger->info("DONE: inverse normal transformation finished");
+  logger->info("DONE: inverse normalization transformation finished");
 
   return 0;
 }

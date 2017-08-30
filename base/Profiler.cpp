@@ -31,6 +31,10 @@ struct FlatMetric {
   double totalElapsed;
 };
 
+bool compareFlatMetric(const FlatMetric& a, const FlatMetric& b) {
+  return a.avgElapsed > b.avgElapsed;
+}
+
 void Profiler::dump() {
   std::vector<FlatMetric> v;
   for (std::unordered_map<std::string, Metric>::iterator it = data.begin();
@@ -38,10 +42,7 @@ void Profiler::dump() {
     v.push_back(
         FlatMetric(it->first, it->second.nHits, it->second.timer.getSeconds()));
   }
-  std::sort(v.begin(), v.end(),
-            [](const FlatMetric& a, const FlatMetric& b) -> bool {
-              return a.avgElapsed > b.avgElapsed;
-            });
+  std::sort(v.begin(), v.end(), compareFlatMetric);
   for (size_t i = 0; i != v.size(); ++i) {
     const FlatMetric& x = v[i];
     fprintf(stderr,

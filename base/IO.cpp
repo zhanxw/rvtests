@@ -856,10 +856,7 @@ FileType AbstractFileReader::checkFileType(const char* fileName) {
  */
 int removeEmptyField(std::vector<std::string>* fields) {
   int s = fields->size();
-  fields->erase(
-      std::remove_if(fields->begin(), fields->end(),
-                     [](const std::string& a) { return a.size() == 0; }),
-      fields->end());
+  fields->erase(std::remove(fields->begin(), fields->end(), ""), fields->end());
   s -= fields->size();
   return s;
 };

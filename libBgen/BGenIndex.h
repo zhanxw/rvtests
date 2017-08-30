@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include <sqlite3.h>
+#include "third/sqlite/include/sqlite3.h"
 
 #include "base/RangeList.h"
 

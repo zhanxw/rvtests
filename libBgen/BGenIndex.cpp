@@ -5,10 +5,6 @@
 #include <string>
 #include <vector>
 
-#include <sqlite3.h>
-
-#include "base/RangeList.h"
-
 int BGenIndex::init(const std::string& fn) {
   // printf("Open sqlite database: %s\n", fn.c_str());
   int rc = sqlite3_open(fn.c_str(), &db_);

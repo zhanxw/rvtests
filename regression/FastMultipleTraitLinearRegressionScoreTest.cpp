@@ -177,8 +177,13 @@ EMat extract(const EMat& in, const std::vector<int>& rowIdx,
   return out;
 }
 
+/**
+ * @param in vector
+ * @param x scalar
+ * @return a vector = (in[0] - x, in[1] - x, ...)
+ */
 template <typename T>
-std::vector<T> minus(const std::vector<T>& in, T x) {
+std::vector<T> vectorMinus(const std::vector<T>& in, T x) {
   std::vector<T> out(in.size());
   for (size_t i = 0; i < in.size(); ++i) {
     out[i] = in[i] - x;
@@ -353,9 +358,9 @@ bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
       // L * L' = A
       ts.L = lltOfA.matrixL();
 
-      ts.zy =
-          extract(zy, minus(testIndex[i].z, uniqT), testIndex[i].y).array() *
-          OBS_MODEL / indZY.array();
+      ts.zy = extract(zy, vectorMinus(testIndex[i].z, uniqT), testIndex[i].y)
+                  .array() *
+              OBS_MODEL / indZY.array();
 
       ts.sigma2 -= (ts.zy.transpose() * ts.zz_inv * ts.zy)(0, 0);
     }

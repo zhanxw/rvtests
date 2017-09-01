@@ -12,8 +12,8 @@
 // class Matrix;
 // class RangeList;
 // class Result;
-// class VCFExtractor;
-// class VCFIndividual;
+class VCFExtractor;
+class VCFIndividual;
 // class GenotypeCounter;
 
 /**
@@ -83,9 +83,6 @@ class VCFGenotypeExtractor : public GenotypeExtractor {
   void getPeopleName(std::vector<std::string>* p);
   void getIncludedPeopleName(std::vector<std::string>* p) const;
 
-  const std::vector<GenotypeCounter>& getGenotypeCounter() const {
-    return this->counter;
-  }
   /**
    * @return weigth, its length equals to # of markers
    */
@@ -95,10 +92,10 @@ class VCFGenotypeExtractor : public GenotypeExtractor {
     this->dosageTag = tag;
   }
   void unsetDosageTag() { this->dosageTag.clear(); }
-  bool isDosage() const { return !this->dosageTag.empty(); }
-  void setParRegion(ParRegion* p) { this->parRegion = p; }
-  //      Sex (1=male; 2=female; other=unknown)
-  void setSex(const std::vector<int>* sex) { this->sex = sex; }
+  // bool isDosage() const { return !this->dosageTag.empty(); }
+  // void setParRegion(ParRegion* p) { this->parRegion = p; }
+  // //      Sex (1=male; 2=female; other=unknown)
+  // void setSex(const std::vector<int>* sex) { this->sex = sex; }
   // coding male chromX as 0/2 instead of 0/1
   // similarly, for dosage, just multiply 2.0 from original dosage
   // void enableClaytonCoding() { this->claytonCoding = true; }
@@ -118,14 +115,9 @@ class VCFGenotypeExtractor : public GenotypeExtractor {
 
   // assign extracted genotype @param from to a @param nrow by @param ncol
   // output matrix @param to
-  void assign(const std::vector<double>& from, int nrow, int ncol, Matrix* to);
-  void enableMultiAllelicMode() { this->multiAllelicMode = true; }
-
- public:
-  const static int SUCCEED = 0;
-  const static int ERROR = -1;
-  const static int FILE_END = -2;
-  const static int FAIL_FILTER = -3;
+  // void assign(const std::vector<double>& from, int nrow, int ncol, Matrix*
+  // to);
+  // void enableMultiAllelicMode() { this->multiAllelicMode = true; }
 
  private:
   VCFExtractor* vin;

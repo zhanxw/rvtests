@@ -21,6 +21,7 @@
 #include "libsrc/MathMatrix.h"
 #include "libsrc/MathVector.h"
 
+#include "src/BGenGenotypeExtractor.h"
 #include "src/DataConsolidator.h"
 #include "src/DataLoader.h"
 #include "src/GenotypeExtractor.h"
@@ -28,7 +29,6 @@
 #include "src/ModelManager.h"
 #include "src/Result.h"
 #include "src/VCFGenotypeExtractor.h"
-// #include "src/BGenGenotypeExtractor.h"
 
 Logger* logger = NULL;
 
@@ -247,6 +247,7 @@ void welcome() {
 BEGIN_PARAMETER_LIST();
 ADD_PARAMETER_GROUP("Basic Input/Output");
 ADD_STRING_PARAMETER(inVcf, "--inVcf", "Input VCF File");
+ADD_STRING_PARAMETER(inBgen, "--inBgen", "Input BGEN File");
 ADD_STRING_PARAMETER(outPrefix, "--out", "Output prefix");
 ADD_BOOL_PARAMETER(outputRaw, "--outputRaw",
                    "Output genotypes, phenotype, covariates(if any); and "
@@ -439,8 +440,15 @@ int main(int argc, char** argv) {
 
   if (!FLAG_outPrefix.size()) FLAG_outPrefix = "rvtest";
 
-  REQUIRE_STRING_PARAMETER(FLAG_inVcf,
-                           "Please provide input file using: --inVcf");
+  if (FLAG_inVcf.empty() && FLAG_inBgen.empty()) {
+    fprintf(stderr, "Please provide one input file using: --inVcf or --inBgen");
+    exit(1);
+  }
+  if (!FLAG_inVcf.empty() && !FLAG_inBgen.empty()) {
+    fprintf(stderr,
+            "Please provide one kind of input file using: --inVcf or --inBgen");
+    exit(1);
+  }
 
   // check new version
   if (!FLAG_noweb) {
@@ -496,6 +504,8 @@ int main(int argc, char** argv) {
   GenotypeExtractor* ge = NULL;
   if (!FLAG_inVcf.empty()) {
     ge = new VCFGenotypeExtractor(FLAG_inVcf);
+  } else if (!FLAG_inBgen.empty()) {
+    ge = new BGenGenotypeExtractor(FLAG_inBgen);
   } else {
     assert(false);
   }

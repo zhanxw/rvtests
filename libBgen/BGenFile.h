@@ -12,6 +12,11 @@
 #include "BGenIndex.h"
 #include "BGenVariant.h"
 
+// copied from libVcf/VCFConstant.h
+#define MISSING_GENOTYPE -9
+#define PLINK_MALE 1
+#define PLINK_FEMALE 2
+
 class RangeList;
 
 class BGenFile {
@@ -63,10 +68,13 @@ class BGenFile {
  public:
   int getNumMarker() const { return M; }
   int getNumSample() const { return N; }
+  int getNumEffectiveSample() const;
   const std::vector<std::string>& getSampleIdentifier() const {
     return sampleIdentifier;
   }
+  void getIncludedSampleName(std::vector<std::string>* p) const;
   const BGenVariant& getVariant() const { return var; }
+  int getEffectiveIndex(int idx) const;
 
  private:
   BGenFile(const BGenFile&);
@@ -89,6 +97,8 @@ class BGenFile {
   void setPeopleMaskFromFile(const char* fn, bool b);
   void setRangeMode();
   // range list related
+  void buildEffectiveIndex();
+
  private:
   std::string bgenFileName;
   FILE* fp;
@@ -119,6 +129,7 @@ class BGenFile {
   bool autoMergeRange;
   Mode mode;                     /// read consecutively or read by index
   std::vector<bool> sampleMask;  // true means exclusion
+  std::vector<int> effectiveIndex;
   // allow chromosomal sites
   std::set<std::string> allowedSite;
 };  // class BGenFile

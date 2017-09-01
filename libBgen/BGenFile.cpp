@@ -310,9 +310,11 @@ bool BGenFile::parseLayout2() {
   const uint8_t isPhased = *(uint8_t*)(buf.data() + 8 + N);
   var.isPhased = isPhased != 0;
   const uint8_t B = *(uint8_t*)(buf.data() + 8 + N + 1);  // bits
+  assert(1 <= B && B <= 32);
+#ifdef DEBUG
   int totalBit = 0;
   int cumBit = 0;
-  assert(1 <= B && B <= 32);
+#endif
 
   var.missing.resize(N);
   var.ploidy.resize(N);
@@ -333,9 +335,9 @@ bool BGenFile::parseLayout2() {
 
     // ploidy = Z, allele = K
     if (var.isPhased) {
-      // total Z * (K- 1) * B bits bits used
-      totalBit = Z * (var.K - 1) * B;
+// total Z * (K- 1) * B bits bits used
 #ifdef DEBUG
+      totalBit = Z * (var.K - 1) * B;
       printf("Total phased bits = %d\n", totalBit);
 #endif
 
@@ -351,8 +353,8 @@ bool BGenFile::parseLayout2() {
     } else {
       // total ( ( (Z+K-1) choose (K-1) ) -1 ) * B bits used
       const int nCombination = choose((Z + var.K - 1), (var.K - 1));
-      totalBit = (nCombination - 1) * B;
 #ifdef DEBUG
+      totalBit = (nCombination - 1) * B;
       printf("Total unphased bits = %d\n", totalBit);
 #endif
       float remainProb = 1.0;
@@ -363,7 +365,9 @@ bool BGenFile::parseLayout2() {
       }
       var.prob.push_back(remainProb);
     }
+#ifdef DEBUG
     cumBit += totalBit;
+#endif
   }
   var.index.push_back(var.prob.size());
 
@@ -394,8 +398,7 @@ void BGenFile::parseString(FILE* fp, int lenByte, std::string* out) {
     int nRead = fread(&siLen, sizeof(siLen), 1, fp);
     assert(nRead == 1);
 
-    (*out).resize(siLen + 1);
-    (*out)[siLen] = '\0';
+    (*out).resize(siLen);
     nRead = fread(&(*out)[0], sizeof((*out)[0]), siLen, fp);
 #ifdef DEBUG
     printf("nRead = %d, read = %s\n", nRead, (*out).c_str());
@@ -449,6 +452,7 @@ void BGenFile::setPeopleMask(const std::string& s, bool b) {
       sampleMask[i] = b;
     }
   }
+  buildEffectiveIndex();
 }
 void BGenFile::includePeople(const std::string& s) { setPeopleMask(s, false); }
 
@@ -468,12 +472,14 @@ void BGenFile::setPeopleMaskFromFile(const char* fn, bool b) {
       setPeopleMask(fd[i].c_str(), b);
     }
   }
+  buildEffectiveIndex();
 }
 void BGenFile::includePeopleFromFile(const char* fn) {
   setPeopleMaskFromFile(fn, false);
 }
 void BGenFile::includeAllPeople() {
   std::fill(sampleMask.begin(), sampleMask.end(), false);
+  buildEffectiveIndex();
 }
 
 void BGenFile::excludePeople(const std::string& s) { setPeopleMask(s, true); }
@@ -487,6 +493,7 @@ void BGenFile::excludePeopleFromFile(const char* fn) {
 }
 void BGenFile::excludeAllPeople() {
   std::fill(sampleMask.begin(), sampleMask.end(), true);
+  buildEffectiveIndex();
 }
 
 //////////////////////////////////////////////////
@@ -566,4 +573,34 @@ int BGenFile::setSiteFile(const std::string& fn) {
     }
   }
   return 0;
+}
+
+int BGenFile::getNumEffectiveSample() const {
+  size_t ret = 0;
+  for (size_t i = 0; i != sampleMask.size(); ++i) {
+    if (sampleMask[i]) continue;
+    ret++;
+  }
+  return ret;
+}
+
+void BGenFile::getIncludedSampleName(std::vector<std::string>* p) const {
+  if (!p) return;
+  p->clear();
+  for (size_t i = 0; i != sampleMask.size(); ++i) {
+    if (sampleMask[i]) continue;
+    p->push_back(sampleIdentifier[i]);
+  }
+}
+
+void BGenFile::buildEffectiveIndex() {
+  effectiveIndex.resize(0);
+  for (size_t i = 0; i != N; ++i) {
+    if (sampleMask[i]) continue;
+    effectiveIndex.push_back(i);
+  }
+}
+
+int BGenFile::getEffectiveIndex(int idx) const {
+  return this->effectiveIndex[idx];
 }

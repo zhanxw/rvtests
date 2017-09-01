@@ -11,8 +11,8 @@
 class Matrix;
 class RangeList;
 class Result;
-class VCFExtractor;
-class VCFIndividual;
+// class VCFExtractor;
+// class VCFIndividual;
 class GenotypeCounter;
 
 class GenotypeExtractor {
@@ -45,8 +45,6 @@ class GenotypeExtractor {
   virtual void setSiteDepthMax(int d) = 0;
   // @return true if GD is valid
   // if GD is missing, we will take GD = 0
-  virtual bool checkGD(VCFIndividual& indv, int gdIdx) = 0;
-  virtual bool checkGQ(VCFIndividual& indv, int gqIdx) = 0;
   virtual void setGDmin(int m) = 0;
   virtual void setGDmax(int m) = 0;
   virtual void setGQmin(int m) = 0;
@@ -109,8 +107,8 @@ class GenotypeExtractor {
   
   // assign extracted genotype @param from to a @param nrow by @param ncol
   // output matrix @param to
-  void assign(const std::vector<double>& from, int nrow, int ncol, Matrix* to);
 #endif
+  void assign(const std::vector<double>& from, int nrow, int ncol, Matrix* to);
   void enableMultiAllelicMode() { this->multiAllelicMode = true; }
 
  public:

@@ -273,6 +273,23 @@ struct BGenVariant {
       fprintf(fp, "%g", prob[i]);
     }
   }
+
+  /// Handle dosage //////////////////////////////////////////////////
+  void printDosage(int i, FILE* fp) const {
+    if (missing[i]) {
+      fputs(".", fp);
+      return;
+    }
+    if (ploidy[i] == 2 && K == 2) {
+      // const float prob0 = prob[index[i]];
+      const float prob1 = prob[index[i] + 1];
+      const float prob2 = prob[index[i] + 2];
+
+      fprintf(fp, "%g", prob1 + 2.0 * prob2);
+    } else {
+      fputs(".", fp);
+    }
+  }
 };
 
 #endif /* _BGENVARIANT_H_ */

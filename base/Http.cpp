@@ -3,7 +3,7 @@
 #include "TypeConversion.h"
 #include "Utils.h"
 
-Http::Http(const std::string& url) {
+Http::Http(const std::string& url, double timeoutSeconds) {
   // url format:
   // scheme://[user:password@]domain:port/path?query_string#fragment_id
   // ref: https://en.wikipedia.org/wiki/Uniform_resource_locator
@@ -50,7 +50,11 @@ Http::Http(const std::string& url) {
       }
       this->proxy = this->proxy.substr(0, sepColon);
     }
-    socket = new Socket(this->proxy, this->proxyPort);
+    if (timeoutSeconds > 0) {
+      socket = new Socket(this->proxy, this->proxyPort, timeoutSeconds);
+    } else {
+      socket = new Socket(this->proxy, this->proxyPort);
+    }
 
     this->request = "GET ";
     this->request += url;
@@ -59,7 +63,11 @@ Http::Http(const std::string& url) {
     this->request += "\r\n\r\n";
   } else {
     // no proxy
-    socket = new Socket(this->domain, port);
+    if (timeoutSeconds > 0) {
+      socket = new Socket(this->domain, port, timeoutSeconds);
+    } else {
+      socket = new Socket(this->domain, port);
+    }
 
     this->request = "GET ";
     this->request += path;

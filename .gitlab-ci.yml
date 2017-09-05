@@ -12,26 +12,26 @@ stages:
     - test
     - buildExtra
 jobBuildRelease:
-    image: zhanxw/rvtests.build:latest
+    image: zhanxw/rvtests-docker:latest
     stage: build
     script:
         - make
         - FN=/dist/rvtests-`date +"%Y%m%d"`-`git rev-parse HEAD|cut -c 1-6`-linux64-static.tar.gz; cd .. && tar zvcf ${FN} rvtests/executable/rvtest rvtests/executable/vcf2kinship rvtests/example rvtests/README.md && echo "Output file name is ${FN}"
 jobTest:
-    image: zhanxw/rvtests.build:latest
+    image: zhanxw/rvtests-docker:latest
     stage: test
     script:
         - make debug
         - (for i in base libVcf regression libBgen; do echo "Task = ${i}"; make -C ${i}/test; done)
         - (for i in base libVcf regression libBgen; do echo "Task = ${i}"; make check -C ${i}/test; done)
 jobBuildDebug:
-    image: zhanxw/rvtests.build:dev
+    image: zhanxw/rvtests-docker:dev
     stage: buildExtra
     script:
         - make debug
         - FN=/dist/rvtests-debug-`date +"%Y%m%d"`-`git rev-parse HEAD|cut -c 1-6`-linux64-static.tar.gz; cd .. && tar zvcf ${FN} rvtests/executable/dbg/rvtest rvtests/executable/dbg/vcf2kinship rvtests/example rvtests/README.md && echo "Output file name is ${FN}"
 jobBuildProfile:
-    image: zhanxw/rvtests.build:dev
+    image: zhanxw/rvtests-docker:dev
     stage: buildExtra
     script:
         - make profile

@@ -4,7 +4,7 @@
 #include "TypeConversion.h"
 
 int VersionChecker::retrieveRemoteVersion(const std::string& urlToVersion) {
-  Http http(urlToVersion, 1.0);
+  Http http(urlToVersion, 0.5);
   http.enableQuiet();
 
   if (http.read(&this->remoteInformation) < 0) {

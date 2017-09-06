@@ -27,6 +27,7 @@ BASE = Main \
       GenotypeExtractor \
       VCFGenotypeExtractor \
       BGenGenotypeExtractor \
+      KGGGenotypeExtractor \
       DataLoader \
       GenotypeCounter \
 

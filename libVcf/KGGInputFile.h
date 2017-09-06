@@ -2,6 +2,7 @@
 #define _KGGINPUTFILE_H_
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,20 @@ class KGGInputFile {
 
   // @return false if reached end
   bool readRecord();
+
+  //////////////////////////////////////////////////
+  // Sample inclusion/exclusion
+  void includePeople(const std::string& s);
+  void includePeople(const std::vector<std::string>& v);
+  void includePeopleFromFile(const char* fn);
+  void includeAllPeople();
+  void excludePeople(const std::string& s);
+  void excludePeople(const std::vector<std::string>& v);
+  void excludePeopleFromFile(const char* fn);
+  void excludeAllPeople();
+
+  // No range related function
+  int setSiteFile(const std::string& fn);
 
   int getGenotype(int indvIdx);
   void getAllele(int indvIdx, int* a1, int* a2);
@@ -40,9 +55,13 @@ class KGGInputFile {
   }
   int getNumIndv() const { return this->indv.size(); }
   int getNumSample() const { return this->indv.size(); }
+  int getNumEffectiveSample() const;
   int getNumMarker() const { return this->snp2Idx.size(); }
   const std::vector<std::string>& getIndv() const { return this->indv; }
   const std::vector<std::string>& getSampleName() const { return this->indv; }
+  void getIncludedSampleName(std::vector<std::string>* p) const;
+  int getEffectiveIndex(int idx) const;
+
   const std::vector<std::string>& getIID() const { return this->indv; }
   const std::vector<std::string>& getChrom() const { return this->chrom; }
   const std::vector<std::string>& getMarkerName() const { return this->snp; }
@@ -71,6 +90,14 @@ class KGGInputFile {
   void buildUnphasedTable(int numAllele);
   void buildPhasedTable(int numAllele);
 
+  // sample inclusion/exclusion related
+  void setPeopleMask(const std::string& s, bool b);
+  void setPeopleMaskFromFile(const char* fn, bool b);
+  void setRangeMode();
+  // range list related
+  void buildEffectiveIndex();
+  void warnUnsupported(const char* tag);
+
  private:
   typedef struct TwoChar { unsigned char x[2]; } TwoChar;
   std::map<std::string, int> snp2Idx;
@@ -89,6 +116,11 @@ class KGGInputFile {
   bool phased;
   std::map<int, std::map<char, TwoChar> > unphasedTable;
   std::map<int, std::map<char, TwoChar> > phasedTable;
+
+  std::vector<bool> sampleMask;  // true means exclusion
+  std::vector<int> effectiveIndex;
+  // allow chromosomal sites
+  std::set<std::string> allowedSite;
 };
 
 #endif /* _KGGINPUTFILE_H_ */

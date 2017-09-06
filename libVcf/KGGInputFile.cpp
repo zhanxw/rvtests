@@ -2,6 +2,7 @@
 
 #include "base/Exception.h"
 #include "base/IO.h"
+#include "base/TypeConversion.h"
 
 #ifndef UNUSED
 #define UNUSED(x) (void)(x)
@@ -209,6 +210,143 @@ bool KGGInputFile::readRecord() {
   return true;
 }
 
+//////////////////////////////////////////////////
+// Sample inclusion/exclusion
+void KGGInputFile::setPeopleMask(const std::string& s, bool b) {
+  for (size_t i = 0; i != indv.size(); ++i) {
+    if (indv[i] == s) {
+      sampleMask[i] = b;
+    }
+  }
+  buildEffectiveIndex();
+}
+void KGGInputFile::includePeople(const std::string& s) {
+  setPeopleMask(s, false);
+}
+
+void KGGInputFile::includePeople(const std::vector<std::string>& v) {
+  for (size_t i = 0; i != v.size(); ++i) {
+    includePeople(v[i].c_str());
+  }
+}
+void KGGInputFile::setPeopleMaskFromFile(const char* fn, bool b) {
+  if (!fn || strlen(fn) == 0) {
+    return;
+  }
+  LineReader lr(fn);
+  std::vector<std::string> fd;
+  while (lr.readLineBySep(&fd, "\t ")) {
+    for (unsigned int i = 0; i < fd.size(); i++) {
+      setPeopleMask(fd[i].c_str(), b);
+    }
+  }
+  buildEffectiveIndex();
+}
+void KGGInputFile::includePeopleFromFile(const char* fn) {
+  setPeopleMaskFromFile(fn, false);
+}
+void KGGInputFile::includeAllPeople() {
+  std::fill(sampleMask.begin(), sampleMask.end(), false);
+  buildEffectiveIndex();
+}
+
+void KGGInputFile::excludePeople(const std::string& s) {
+  setPeopleMask(s, true);
+}
+void KGGInputFile::excludePeople(const std::vector<std::string>& v) {
+  for (size_t i = 0; i != v.size(); ++i) {
+    excludePeople(v[i]);
+  }
+}
+void KGGInputFile::excludePeopleFromFile(const char* fn) {
+  setPeopleMaskFromFile(fn, true);
+}
+void KGGInputFile::excludeAllPeople() {
+  std::fill(sampleMask.begin(), sampleMask.end(), true);
+  buildEffectiveIndex();
+}
+
+//////////////////////////////////////////////////
+// Adjust range collections
+#if 0
+void KGGInputFile::enableAutoMerge() { warnUnsupported("enableAutoMerge"); }
+void KGGInputFile::disableAutoMerge() { warnUnsupported("disableAutoMerge"); }
+// void clearRange();
+void KGGInputFile::setRangeFile(const char* fn) {
+  warnUnsupported("setRangeFile");
+}
+// @param l is a string of range(s)
+void KGGInputFile::setRange(const char* chrom, int begin, int end) {
+  warnUnsupported("setRange");
+}
+void KGGInputFile::setRange(const RangeList& rl) {
+  warnUnsupported("setRange");
+}
+void KGGInputFile::setRangeList(const std::string& l) {
+  warnUnsupported("setRangeList");
+}
+// this function the entry point for all function add/change region list
+void KGGInputFile::setRangeList(const RangeList& rl) {
+  warnUnsupported("setRangeList");
+}
+
+void KGGInputFile::setRangeMode() { warnUnsupported("setRangeMode"); }
+#endif
+int KGGInputFile::setSiteFile(const std::string& fn) {
+  if (fn.empty()) return 0;
+
+  std::vector<std::string> fd;
+  LineReader lr(fn);
+  int pos;
+  std::string chromPos;
+  while (lr.readLineBySep(&fd, "\t ")) {
+    if (fd.empty()) continue;
+    if (fd[0].find(':') != std::string::npos) {
+      this->allowedSite.insert(fd[0]);
+      continue;
+    }
+    if (fd.size() >= 2 && str2int(fd[1], &pos) && pos > 0) {
+      chromPos = fd[0];
+      chromPos += ':';
+      chromPos += fd[1];
+      this->allowedSite.insert(chromPos);
+      continue;
+    }
+  }
+  return 0;
+}
+
+int KGGInputFile::getNumEffectiveSample() const {
+  size_t ret = 0;
+  for (size_t i = 0; i != sampleMask.size(); ++i) {
+    if (sampleMask[i]) continue;
+    ret++;
+  }
+  return ret;
+}
+
+void KGGInputFile::getIncludedSampleName(std::vector<std::string>* p) const {
+  if (!p) return;
+  p->clear();
+  for (size_t i = 0; i != sampleMask.size(); ++i) {
+    if (sampleMask[i]) continue;
+    p->push_back(getSampleName()[i]);
+  }
+}
+
+void KGGInputFile::buildEffectiveIndex() {
+  effectiveIndex.resize(0);
+  const size_t N = getNumSample();
+  for (size_t i = 0; i != N; ++i) {
+    if (sampleMask[i]) continue;
+    effectiveIndex.push_back(i);
+  }
+}
+
+int KGGInputFile::getEffectiveIndex(int idx) const {
+  return this->effectiveIndex[idx];
+}
+
 int KGGInputFile::getGenotype(int indvIdx) {
   const int nAllele = alt[variantIdx].size() + 1;
 
@@ -265,4 +403,8 @@ void KGGInputFile::buildPhasedTable(int allele) {
   }
   m[val].x[0] = -9;
   m[val].x[1] = -9;
+}
+
+void KGGInputFile::warnUnsupported(const char* tag) {
+  fprintf(stderr, "Please remove unsupported features related to %s", tag);
 }

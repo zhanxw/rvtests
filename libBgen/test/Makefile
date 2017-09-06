@@ -14,6 +14,7 @@ CXX_FLAGS = -O0 -ggdb -fopenmp \
   ../../third/zstd/lib/libzstd.a ../../third/sqlite/lib/libsqlite3.a \
   ../../third/samtools/libbam.a \
   ../../third/zlib/libz.a \
+  ../../third/bzip2/libbz2.a \
   -lpthread -ldl
 
 LIBS=../lib-dbg-bgen.a

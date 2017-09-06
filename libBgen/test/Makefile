@@ -13,8 +13,8 @@ CXX_FLAGS = -O0 -ggdb -fopenmp \
   ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
   ../../third/zstd/lib/libzstd.a ../../third/sqlite/lib/libsqlite3.a \
   ../../third/samtools/libbam.a \
-  -L ../../third/zlib \
-  -lz -lbz2 -lpthread -ldl
+  ../../third/zlib/libz.a \
+  -lpthread -ldl
 
 LIBS=../lib-dbg-bgen.a
 lib: $(LIBS)

@@ -546,6 +546,13 @@ To generate empirical kinship (`--inVcf`) on both autosomal region and X chromos
 
 NOTE: you need to provide a pedigree file (PED) in the above case, as `vcf2kinship` needs the sex information of samples to construct kinship for sex chromosome.
 
+For modern genetic datasets, genotype data is often stored by chromosomes, with each chromosome stored in a separate VCF file. In this case, kinship matrix can be first calcualted separately for each chromosome, and then combined using the python script [combineKinship.py](https://github.com/zhanxw/rvtests/tree/master/misc). Specifically, if you generated two kinship matrices for chr1 chr2 (chr1.kinship, and chr2.kinship), you can run the python script to combine them, i.e. 
+```
+python combineKinship.py -o prefix chr1.kinship chr2.kinship
+```
+
+The resulting kinship matrix is equivalent to the kinship matrix calculated using the merged vcf files.  
+
 # Resources
 
 ## UCSC RefFlat Genes

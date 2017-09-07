@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 import sys, os, re
-try:
-    from XiaoweiLib import myopen
-except:
-    sys.path = [re.sub(r'^/home/zhanxw/', '/net/fantasia/home/zhanxw/', x) for x in sys.path]
-    sys.path.append('/net/nfsb/fantasia/home/zhanxw/mylib/Python/')
-    from XiaoweiLib import myopen
+
+# convenient functions
+def myopen(fn):
+    import gzip
+    f = gzip.open(fn)
+    try:
+        f.read(2)
+        f.close()
+        return gzip.open(fn)
+    except:
+        f.close()
+        return open(fn)
 
 def usage():
     print("%s -o prefix in1.kinship in2.kinship ..." % sys.argv[0] )

@@ -17,7 +17,7 @@ RingMemoryPool::RingMemoryPool(int numElementsInChunk, int numChunk) {
   init(numElementsInChunk, numChunk);
 }
 void RingMemoryPool::init(int numElementsInChunk, int numChunk) {
-  assert(numElementsInChunk > 0);
+  assert(numElementsInChunk >= 0);
   assert(numChunk > 0);
   numElementsInChunk_ = numElementsInChunk;
   memory_.resize((size_t)numElementsInChunk * numChunk);

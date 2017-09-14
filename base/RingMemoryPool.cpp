@@ -1,6 +1,7 @@
 #include "RingMemoryPool.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>  // memcpy
 #include <cassert>
 

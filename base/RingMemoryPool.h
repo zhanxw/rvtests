@@ -1,6 +1,7 @@
 #ifndef _RINGMEMORYPOOL_H_
 #define _RINGMEMORYPOOL_H_
 
+#include <cstddef>  // size_t definnition
 #include <vector>
 
 /**

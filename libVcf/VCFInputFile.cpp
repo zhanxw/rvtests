@@ -40,7 +40,7 @@ void VCFInputFile::setRangeMode() {
       fprintf(stderr,
               "[ERROR] Cannot read BCF by range, please verify you have the "
               "index file "
-              "(or create one use bcftools).\nQuitting...");
+              "(or create one using bcftools).\nQuitting...");
       abort();
     }
     // Auto-merge should be handled by VCFInputFile, not in bcfReader

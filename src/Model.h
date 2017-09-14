@@ -3943,6 +3943,8 @@ class MetaCovTest : public ModelFitter {
     this->fout = fp;
     while (queue.size() && getWindowSize(queue, loci) > windowSize) {
       printCovariance(fout, queue, isBinaryOutcome());
+      genoPool.deallocate(queue.front().geno);
+      genoCovPool.deallocate(queue.front().covXZ);
       queue.pop_front();
     }
     if (fitOK) {

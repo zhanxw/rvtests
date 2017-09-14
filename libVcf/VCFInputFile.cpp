@@ -25,7 +25,7 @@ void VCFInputFile::setRangeMode() {
       fprintf(stderr,
               "[ERROR] Cannot read VCF by range, please verify you have the "
               "index file"
-              "(or create one use tabix).\nQuitting...");
+              "(or create one using tabix).\nQuitting...");
       abort();
     } else {
       this->mode = VCFInputFile::VCF_RANGE_MODE;

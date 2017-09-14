@@ -1,7 +1,9 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "base/RingMemoryPool.h"
+
 int main() {
   float* p;
 

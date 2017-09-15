@@ -3,7 +3,8 @@
 
 #include <errno.h>
 #include <limits.h>
-#include <math.h>  // for HUGE_VALH, HUGE_VALL
+#include <math.h>    // for HUGE_VALH, HUGE_VALL
+#include <stdint.h>  // definition for uint8_t
 #include <stdio.h>
 #include <stdlib.h>
 #include <set>

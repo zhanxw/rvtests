@@ -71,7 +71,7 @@ template <>
 inline std::string toString(const std::set<uint8_t>& in,
                             const std::string& sep) {
   std::stringstream ss;
-  typename std::set<uint8_t>::const_iterator iter = in.begin();
+  std::set<uint8_t>::const_iterator iter = in.begin();
   for (; iter != in.end(); ++iter) {
     ss << (int)*iter;
     ss << sep;

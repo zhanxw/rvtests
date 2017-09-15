@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include "base/RangeList.h"
+#include "base/TypeConversion.h"
 #include "libBgen/BitReader.h"
 
 BGenFile::BGenFile(const std::string& fn) : var(this->N) {
@@ -603,4 +604,81 @@ void BGenFile::buildEffectiveIndex() {
 
 int BGenFile::getEffectiveIndex(int idx) const {
   return this->effectiveIndex[idx];
+}
+
+void BGenFile::printInfo() {
+  printf("--First 4 bytes--\n");
+  printf("\toffset = %d\n", (int)offset);
+
+  // header block
+  printf("--Header block--\n");
+  printf("\tLH = %d\n", (int)LH);
+  printf("\tM = %d\n", (int)M);
+  printf("\tN = %d\n", (int)N);
+
+  if (freeData.empty()) {
+    printf("\tfreeData = []\n");
+  } else {
+    printf("\tfreeData = [");
+    for (size_t i = 0; i < freeData.size(); ++i) {
+      printf("%c", freeData[i]);
+    }
+    printf("]\n");
+  }
+  printf("\tflag = %x\n", flag);
+  printf("\tsnpCompression = %d ", (int)snpCompression);
+  switch (snpCompression) {
+    case NO_COMPRESSION:
+      printf("(No compression)\n");
+      break;
+    case GZIP:
+      printf("(GZIP)\n");
+      break;
+    case ZSTD:
+      printf("(ZSTD)\n");
+      break;
+    default:
+      printf("Wrong value!\n");
+  }
+
+  printf("\tlayout= %d\n", (int)layout);
+  printf("\tflagSampleIdentifier = %d %s\n", (int)flagSampleIdentifier,
+         (int)flagSampleIdentifier == 1 ? "(Have sample id)"
+                                        : "(Do not have sample id)");
+
+  // sample identifier block
+  if (flagSampleIdentifier == HAS_SAMPLE_IDENTIFIER) {
+    printf("--Sample identifier block--\n");
+    // printf("LSI = %d\n", (int)LSI);
+    // printf("N2 = %d\n", (int)N2);
+    // assert(N2 == N);
+    for (uint32_t i = 0; i < N; ++i) {
+      printf("\tsi[%d] = %s\n", i, sampleIdentifier[i].c_str());
+    }
+  }
+
+  // variant data blocks
+  printf("--Variant data block--\n");
+  if (layout == LAYOUT1) {
+    printf("\tPolidy = 2\n");
+    printf("\tUnphased\n");
+    printf("\tAlleles = 2\n");
+  } else if (layout == LAYOUT2) {
+    if (readRecord()) {
+      int nMissing = 0;
+      for (size_t i = 0; i < var.missing.size(); ++i) {
+        if (var.missing[i]) ++nMissing;
+      }
+      std::set<uint8_t> s = makeSet(var.ploidy);
+      std::string ss = toString(s, ",");
+      printf("\tPolidy = %s\n", ss.c_str());
+      printf("\t%s\n", var.isPhased ? "Phased" : "Unphased");
+      printf("\tAlleles = %d\n", var.K);
+      printf("\tMissing = %d\n", nMissing);
+    } else {
+      printf("\tNo variants presented\n");
+    }
+  } else {
+    assert(false);
+  }
 }

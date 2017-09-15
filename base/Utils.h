@@ -11,7 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "base/CommonFunction.h"  // makeset
 #include "base/SimpleString.h"
+#include "base/TypeConversion.h"  // toString
 
 /**
  * String related utility functions

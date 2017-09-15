@@ -75,6 +75,7 @@ class BGenFile {
   void getIncludedSampleName(std::vector<std::string>* p) const;
   const BGenVariant& getVariant() const { return var; }
   int getEffectiveIndex(int idx) const;
+  void printInfo();
 
  private:
   BGenFile(const BGenFile&);

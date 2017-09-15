@@ -6,6 +6,7 @@
 #include <math.h>  // for HUGE_VALH, HUGE_VALL
 #include <stdio.h>
 #include <stdlib.h>
+#include <set>
 #include <sstream>
 #include <vector>
 
@@ -42,10 +43,53 @@
 #endif
 
 // convert double/int/byte to string type
+// note: uint8_t by default is treated as char
 template <class T>
 inline std::string toString(T i) {
   std::stringstream ss;
   ss << i;
+  return ss.str();
+}
+
+template <class T>
+inline std::string toString(const std::set<T>& in, const std::string& sep) {
+  if (in.empty()) {
+    return "";
+  }
+  std::stringstream ss;
+  typename std::set<T>::const_iterator iter = in.begin();
+  for (; iter != in.end(); ++iter) {
+    ss << *iter;
+    ss << sep;
+  }
+  std::string ret = ss.str();
+  ret.resize(ret.size() - sep.size());
+  return ret;
+}
+
+template <>
+inline std::string toString(const std::set<uint8_t>& in,
+                            const std::string& sep) {
+  std::stringstream ss;
+  typename std::set<uint8_t>::const_iterator iter = in.begin();
+  for (; iter != in.end(); ++iter) {
+    ss << (int)*iter;
+    ss << sep;
+  }
+  std::string ret = ss.str();
+  ret.resize(ret.size() - sep.size());
+  return ret;
+}
+
+template <class T>
+inline std::string toString(const std::vector<T>& in, const std::string& sep) {
+  std::stringstream ss;
+  for (size_t i = 0; i != in.size(); ++i) {
+    if (i) {
+      ss << sep;
+    }
+    ss << in;
+  }
   return ss.str();
 }
 

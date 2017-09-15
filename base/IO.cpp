@@ -505,8 +505,10 @@ int BufferedReader::readLineBySep(std::vector<std::string>* fields,
     field.append(buf + oldPtr, ptr - oldPtr);
     if (ptr == bufEnd) {  // not found
       refill();
-      if (bufEnd == 0) {  // reach file end
-        fields->resize(fields->size() - 1);
+      if (bufEnd == 0) {               // reach file end
+        if (fields->back().empty()) {  // just appended an empty element
+          fields->resize(fields->size() - 1);
+        }
         return fields->size();
       }
     } else if (ssechr(sep, buf[ptr])) {  // separator

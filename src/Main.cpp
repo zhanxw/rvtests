@@ -447,7 +447,7 @@ int main(int argc, char** argv) {
       1) {
     fprintf(stderr,
             "Please provide one type of input file using: --inVcf, --inBgen or "
-            "--inKgg");
+            "--inKgg\n");
     exit(1);
   }
 

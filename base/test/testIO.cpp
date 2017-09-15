@@ -93,5 +93,52 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  {
+    char a[] =
+        "r1c1 r1c2\n"
+        "r2c1\tr2c2\n"
+        "r3c1  r3c2\n"
+        "r4c1\t\tr4c2\n"
+        "r5c1 \t  r5c2 \n"
+        "r6c1 r6c2";
+    char fn[] = "abc.txt";
+    FileWriter fw(fn);
+    fw.write(a);
+    fw.close();
+
+    LineReader lr(fn);
+    std::vector<std::string> fd;
+    assert(lr.readLineBySep(&fd, " \t"));
+    assert(fd.size() == 2);
+    assert(fd[0] == "r1c1");
+    assert(fd[1] == "r1c2");
+
+    assert(lr.readLineBySep(&fd, " \t"));
+    assert(fd.size() == 2);
+    assert(fd[0] == "r2c1");
+    assert(fd[1] == "r2c2");
+
+    assert(lr.readLineBySep(&fd, " \t"));
+    assert(fd.size() == 3);
+    assert(fd[0] == "r3c1");
+    assert(fd[2] == "r3c2");
+
+    assert(lr.readLineBySep(&fd, " \t"));
+    assert(fd.size() == 3);
+    assert(fd[0] == "r4c1");
+    assert(fd[2] == "r4c2");
+
+    assert(lr.readLineBySep(&fd, " \t"));
+    assert(fd.size() == 6);
+    assert(fd[0] == "r5c1");
+    assert(fd[4] == "r5c2");
+
+    assert(lr.readLineBySep(&fd, " \t"));
+    assert(fd.size() == 2);
+    assert(fd[0] == "r6c1");
+    assert(fd[1] == "r6c2");
+
+    assert(!lr.readLineBySep(&fd, " \t"));
+  }
   return 0;
 }

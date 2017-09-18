@@ -524,9 +524,9 @@ int BufferedReader::readLineBySep(std::vector<std::string>* fields,
 //////////////////////////////////////////////////
 class TextFileWriter : public AbstractFileWriter {
  public:
-  TextFileWriter(const char* fn, bool append = false) {
-    if (this->open(fn, append)) {
-      fprintf(stderr, "Cannot create text file %s\n", fn);
+  TextFileWriter(const std::string& fn, bool append = false) {
+    if (this->open(fn.c_str(), append)) {
+      fprintf(stderr, "Cannot create text file %s\n", fn.c_str());
     }
   }
   virtual ~TextFileWriter() {
@@ -572,9 +572,9 @@ class TextFileWriter : public AbstractFileWriter {
 
 class GzipFileWriter : public AbstractFileWriter {
  public:
-  GzipFileWriter(const char* fn, bool append = false) {
-    if (this->open(fn, append)) {
-      fprintf(stderr, "Cannot create gzip file %s\n", fn);
+  GzipFileWriter(const std::string& fn, bool append = false) {
+    if (this->open(fn.c_str(), append)) {
+      fprintf(stderr, "Cannot create gzip file %s\n", fn.c_str());
     }
   }
   virtual ~GzipFileWriter() {
@@ -611,9 +611,9 @@ class GzipFileWriter : public AbstractFileWriter {
 
 class Bzip2FileWriter : public AbstractFileWriter {
  public:
-  Bzip2FileWriter(const char* fn, bool append = false) : bzp(NULL) {
-    if (this->open(fn, append)) {
-      fprintf(stderr, "Cannot create bzip2 file %s\n", fn);
+  Bzip2FileWriter(const std::string& fn, bool append = false) : bzp(NULL) {
+    if (this->open(fn.c_str(), append)) {
+      fprintf(stderr, "Cannot create bzip2 file %s\n", fn.c_str());
     }
   }
   virtual ~Bzip2FileWriter() {
@@ -682,9 +682,9 @@ class Bzip2FileWriter : public AbstractFileWriter {
 
 class BGZipFileWriter : public AbstractFileWriter {
  public:
-  BGZipFileWriter(const char* fn, bool append = false) {
-    if (this->open(fn)) {
-      fprintf(stderr, "Cannot create BGzip file %s\n", fn);
+  BGZipFileWriter(const std::string& fn, bool append = false) {
+    if (this->open(fn.c_str())) {
+      fprintf(stderr, "Cannot create BGzip file %s\n", fn.c_str());
     }
   }
   virtual ~BGZipFileWriter() {
@@ -920,7 +920,7 @@ FileWriter::FileWriter(const std::string& fileName, bool append) {
   this->createBuffer();
 }
 
-FileWriter::FileWriter(const char* fileName, FileType t) {
+FileWriter::FileWriter(const std::string& fileName, FileType t) {
   bool append = false;
   if (PLAIN == t) {
     this->fpRaw = new TextFileWriter(fileName, append);

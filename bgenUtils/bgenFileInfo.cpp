@@ -8,70 +8,70 @@
 #undef DEBUG
 
 void printVariant(const BGenVariant& var, bool hideVarId, bool hideGT,
-                  bool showDosage, FILE* fout) {
-  fputs(var.chrom.c_str(), fout);
-  fputs("\t", fout);
-  fprintf(fout, "%d", var.pos);
-  fputs("\t", fout);
-  fputs(var.rsid.c_str(), fout);
+                  bool showDosage, FileWriter* fout) {
+  fout->write(var.chrom.c_str());
+  fout->write("\t");
+  fout->printf("%d", var.pos);
+  fout->write("\t");
+  fout->write(var.rsid.c_str());
   if (!hideVarId && !var.varid.empty()) {
-    fprintf(fout, ",%s", var.varid.c_str());
+    fout->printf(",%s", var.varid.c_str());
   }
-  fputs("\t", fout);
-  fputs(var.alleles[0].c_str(), fout);
-  fputs("\t", fout);
+  fout->write("\t");
+  fout->write(var.alleles[0].c_str());
+  fout->write("\t");
   for (size_t i = 1; i != var.alleles.size(); ++i) {
     if (i != 1) {
-      fputs(",", fout);
+      fout->write(",");
     }
-    fputs(var.alleles[i].c_str(), fout);
+    fout->write(var.alleles[i].c_str());
   }
-  fputs("\t.\t.\t.", fout);
+  fout->write("\t.\t.\t.");
 
   if (var.isPhased) {  // phased info
     if (hideGT) {
-      fputs("\tHP", fout);
+      fout->write("\tHP");
     } else {
-      fputs("\tGT:HP", fout);
+      fout->write("\tGT:HP");
     }
     if (showDosage) {
-      fputs(":DS", fout);
+      fout->write(":DS");
     }
     for (size_t j = 0; j < var.N; ++j) {
-      fputs("\t", fout);
+      fout->write("\t");
       if (!hideGT) {
         var.printGT(j, fout);
-        fputs(":", fout);
+        fout->write(":");
       }
       var.printHP(j, fout);
       if (showDosage) {
-        fputs(":", fout);
+        fout->write(":");
         var.printDosage(j, fout);
       }
     }
   } else {  // genotypes
     if (hideGT) {
-      fputs("\tGP", fout);
+      fout->write("\tGP");
     } else {
-      fputs("\tGT:GP", fout);
+      fout->write("\tGT:GP");
     }
     if (showDosage) {
-      fputs(":DS", fout);
+      fout->write(":DS");
     }
     for (size_t j = 0; j < var.N; ++j) {
-      fputs("\t", fout);
+      fout->write("\t");
       if (!hideGT) {
         var.printGT(j, fout);
-        fputs(":", fout);
+        fout->write(":");
       }
       var.printGP(j, fout);
       if (showDosage) {
-        fputs(":", fout);
+        fout->write(":");
         var.printDosage(j, fout);
       }
     }
   }
-  fputs("\n", fout);
+  fout->write("\n");
 }
 
 //////////////////////////////////////////////////
@@ -80,6 +80,7 @@ void printVariant(const BGenVariant& var, bool hideVarId, bool hideGT,
 BEGIN_PARAMETER_LIST();
 ADD_PARAMETER_GROUP("Basic Input/Output");
 ADD_STRING_PARAMETER(inBgen, "--inBgen", "Input BGEN File");
+ADD_STRING_PARAMETER(inSample, "--inSample", "Input Sample File");
 ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message");
 END_PARAMETER_LIST();
 
@@ -104,6 +105,13 @@ int main(int argc, char* argv[]) {
                            "Please provide input file using: --inBgen");
 
   BGenFile read(FLAG_inBgen);
+  if (!FLAG_inSample.empty()) {
+    if (read.loadSampleFile(FLAG_inSample)) {
+      fprintf(stderr, "ERROR: failed to sample file [ %s ]!\n",
+              FLAG_inSample.c_str());
+      exit(1);
+    }
+  }
   read.printInfo();
   return 0;
 }

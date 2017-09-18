@@ -2,111 +2,103 @@
 #include <stdlib.h>
 
 #include "base/Argument.h"
+#include "base/IO.h"
 #include "libBgen/BGenFile.h"
-
-// #include <stdint.h>  // uint32_t
-// #include <cassert>
-// #include <string>
-// #include <vector>
-
-// #include <sqlite3.h>
-// #include <zlib.h>
-// #include "zstd/lib/zstd.h"
 
 #define DEBUG
 #undef DEBUG
 
-void printVCFMeta(FILE* fout) {
+void printVCFMeta(FileWriter* fout) {
   // GP is between 0 and 1 in VCF v4.3, but phred-scaled value in VCF v4.2
-  fprintf(fout, "##fileformat=VCFv4.3\n");
+  fout->write("##fileformat=VCFv4.3\n");
   if (false) {
     // it is not straightforward to know which tag to output without examining
     // all variant blocks
-    fprintf(fout,
-            "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype "
-            "calls\">\n");
-    fprintf(fout,
-            "##FORMAT=<ID=GP,Number=3,Type=Float,Description=\"Genotype call "
-            "probabilities\">\n");
-    fprintf(fout,
-            "##FORMAT=<ID=HP,Number=.,Type=Float,Description=\"Haplotype "
-            "probabilities\">\n");
+    fout->write(
+        "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype "
+        "calls\">\n");
+    fout->write(
+        "##FORMAT=<ID=GP,Number=3,Type=Float,Description=\"Genotype call "
+        "probabilities\">\n");
+    fout->write(
+        "##FORMAT=<ID=HP,Number=.,Type=Float,Description=\"Haplotype "
+        "probabilities\">\n");
   }
 }
 
-void printVCFHeader(const std::vector<std::string>& sm, FILE* fout) {
-  fprintf(fout, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+void printVCFHeader(const std::vector<std::string>& sm, FileWriter* fout) {
+  fout->write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
   for (size_t i = 0; i != sm.size(); ++i) {
-    fprintf(fout, "\t%s", sm[i].c_str());
+    fout->printf("\t%s", sm[i].c_str());
   }
-  fprintf(fout, "\n");
+  fout->write("\n");
 }
 
 void printVariant(const BGenVariant& var, bool hideVarId, bool hideGT,
-                  bool showDosage, FILE* fout) {
-  fputs(var.chrom.c_str(), fout);
-  fputs("\t", fout);
-  fprintf(fout, "%d", var.pos);
-  fputs("\t", fout);
-  fputs(var.rsid.c_str(), fout);
+                  bool showDosage, FileWriter* fout) {
+  fout->write(var.chrom.c_str());
+  fout->write("\t");
+  fout->printf("%d", var.pos);
+  fout->write("\t");
+  fout->write(var.rsid.c_str());
   if (!hideVarId && !var.varid.empty()) {
-    fprintf(fout, ",%s", var.varid.c_str());
+    fout->printf(",%s", var.varid.c_str());
   }
-  fputs("\t", fout);
-  fputs(var.alleles[0].c_str(), fout);
-  fputs("\t", fout);
+  fout->write("\t");
+  fout->write(var.alleles[0].c_str());
+  fout->write("\t");
   for (size_t i = 1; i != var.alleles.size(); ++i) {
     if (i != 1) {
-      fputs(",", fout);
+      fout->write(",");
     }
-    fputs(var.alleles[i].c_str(), fout);
+    fout->write(var.alleles[i].c_str());
   }
-  fputs("\t.\t.\t.", fout);
+  fout->write("\t.\t.\t.");
 
   if (var.isPhased) {  // phased info
     if (hideGT) {
-      fputs("\tHP", fout);
+      fout->write("\tHP");
     } else {
-      fputs("\tGT:HP", fout);
+      fout->write("\tGT:HP");
     }
     if (showDosage) {
-      fputs(":DS", fout);
+      fout->write(":DS");
     }
     for (size_t j = 0; j < var.N; ++j) {
-      fputs("\t", fout);
+      fout->write("\t");
       if (!hideGT) {
         var.printGT(j, fout);
-        fputs(":", fout);
+        fout->write(":");
       }
       var.printHP(j, fout);
       if (showDosage) {
-        fputs(":", fout);
+        fout->write(":");
         var.printDosage(j, fout);
       }
     }
   } else {  // genotypes
     if (hideGT) {
-      fputs("\tGP", fout);
+      fout->write("\tGP");
     } else {
-      fputs("\tGT:GP", fout);
+      fout->write("\tGT:GP");
     }
     if (showDosage) {
-      fputs(":DS", fout);
+      fout->write(":DS");
     }
     for (size_t j = 0; j < var.N; ++j) {
-      fputs("\t", fout);
+      fout->write("\t");
       if (!hideGT) {
         var.printGT(j, fout);
-        fputs(":", fout);
+        fout->write(":");
       }
       var.printGP(j, fout);
       if (showDosage) {
-        fputs(":", fout);
+        fout->write(":");
         var.printDosage(j, fout);
       }
     }
   }
-  fputs("\n", fout);
+  fout->write("\n");
 }
 
 //////////////////////////////////////////////////
@@ -146,23 +138,32 @@ int main(int argc, char* argv[]) {
   REQUIRE_STRING_PARAMETER(FLAG_inBgen,
                            "Please provide input file using: --inBgen");
 
-  FILE* fout = fopen((FLAG_outPrefix + ".vcf").c_str(), "wt");
+  std::string outFileName = FLAG_outPrefix + ".vcf.gz";
+  FileWriter fout(outFileName, BGZIP);
   BGenFile read(FLAG_inBgen);
   const int N = read.getNumSample();
   const int M = read.getNumMarker();
-  const std::vector<std::string> sm = read.getSampleIdentifier();
-  printVCFMeta(fout);
-  printVCFHeader(sm, fout);
+  std::vector<std::string> sm = read.getSampleIdentifier();
+  if (sm.empty()) {
+    fprintf(stderr,
+            "Cannot find sample names from BGEN input file. Sample names wth "
+            "be set at sample_0, sample_1, ...\n");
+    char buf[1024];
+    for (int i = 0; i < N; ++i) {
+      sprintf(buf, "sample_%d", i);
+      sm.push_back(buf);
+    }
+  }
+  printVCFMeta(&fout);
+  printVCFHeader(sm, &fout);
 
   const BGenVariant& var = read.getVariant();
 
   while (read.readRecord()) {
-    printVariant(var, FLAG_hideVarId, FLAG_hideGT, FLAG_showDS, fout);
+    printVariant(var, FLAG_hideVarId, FLAG_hideGT, FLAG_showDS, &fout);
   }  // loop marker
 
-  fclose(fout);
-  printf("Sample = %d, #SampleIdentifier = %d, marker = %d\n", N,
-         (int)sm.size(), M);
-  printf("Conversion succeed!\n");
+  fprintf(stderr, "Total %d sample and %d variatns processed\n", N, M);
+  fprintf(stderr, "Conversion succeed!\n");
   return 0;
 }

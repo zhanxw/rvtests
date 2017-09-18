@@ -192,7 +192,7 @@ class AbstractFileWriter {
 class FileWriter {
  public:
   FileWriter(const std::string& fileName, bool append = false);
-  FileWriter(const char* fileName, FileType t);
+  FileWriter(const std::string& fileName, FileType t);
   void createBuffer() {
     // create buffer for formatted string
     this->bufLen = 1024;

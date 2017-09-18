@@ -65,6 +65,8 @@ class BGenFile {
   int setSiteFile(const std::string& fn);
   // void setRangeMode();
 
+  int loadSampleFile(const std::string& fn);
+
  public:
   int getNumMarker() const { return M; }
   int getNumSample() const { return N; }
@@ -128,9 +130,9 @@ class BGenFile {
   BGenIndex index;
 
   bool autoMergeRange;
-  Mode mode;                     /// read consecutively or read by index
-  std::vector<bool> sampleMask;  // true means exclusion
-  std::vector<int> effectiveIndex;
+  Mode mode;                        /// read consecutively or read by index
+  std::vector<bool> sampleMask;     // true means exclusion
+  std::vector<int> effectiveIndex;  // index of unmasked samples
   // allow chromosomal sites
   std::set<std::string> allowedSite;
 };  // class BGenFile

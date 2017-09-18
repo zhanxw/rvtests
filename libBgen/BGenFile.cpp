@@ -310,8 +310,8 @@ bool BGenFile::parseLayout2() {
   const uint8_t* ploidityAndMissing = (uint8_t*)(buf.data() + 8);
   const uint8_t isPhased = *(uint8_t*)(buf.data() + 8 + N);
   var.isPhased = isPhased != 0;
-  const uint8_t B = *(uint8_t*)(buf.data() + 8 + N + 1);  // bits
-  assert(1 <= B && B <= 32);
+  var.B = *(uint8_t*)(buf.data() + 8 + N + 1);  // bits
+  assert(1 <= var.B && var.B <= 32);
 #ifdef DEBUG
   int totalBit = 0;
   int cumBit = 0;
@@ -322,7 +322,7 @@ bool BGenFile::parseLayout2() {
   var.index.reserve(N + 1);
   var.index.resize(0);
   var.prob.resize(0);
-  BitReader br(buf.data() + 8 + N + 2, (D - 8 - N - 2), B);
+  BitReader br(buf.data() + 8 + N + 2, (D - 8 - N - 2), var.B);
   for (uint32_t i = 0; i < nIndv; ++i) {
     var.index.push_back(var.prob.size());
     const uint8_t ploidy = ploidityAndMissing[i] & 0x3f;
@@ -576,6 +576,58 @@ int BGenFile::setSiteFile(const std::string& fn) {
   return 0;
 }
 
+int BGenFile::loadSampleFile(const std::string& fn) {
+  LineReader lr(fn);
+  std::vector<std::string> fd;
+  std::vector<std::string> sn;
+  int lineNo = 0;
+  while (lr.readLineBySep(&fd, " \t")) {
+    ++lineNo;
+    if (fd.size() < 3) {
+      fprintf(stderr,
+              "Error: Line [ %d ] of the input file [ %s ] has less than 3 "
+              "columns!\n",
+              lineNo, fn.c_str());
+      return -1;
+    }
+    if (lineNo == 1) {
+      if (fd[0] != "ID_1" || fd[1] != "ID_2" || fd[2] != "missing") {
+        fprintf(stderr,
+                "ERROR: The header line does not start with ID_1, ID_2 and "
+                "missing!\n");
+        return -1;
+      }
+    } else if (lineNo == 2) {
+      if (fd[0] != "0" || fd[1] != "0" || fd[2] != "0") {
+        fprintf(stderr,
+                "ERROR: The second line (variable type line) does not start "
+                "with 0, 0 and 0!\n");
+        return -1;
+      }
+    } else {
+      if (fd[0] != fd[1]) {
+        fprintf(stderr,
+                "WARN: Line [ %d ], ID_1 [ %s ] is different than ID_2 [ %s ], "
+                "by default ID_2 column is used.\n",
+                lineNo, fd[0].c_str(), fd[1].c_str());
+      }
+      sn.push_back(fd[1]);
+    }
+  }
+  fprintf(stderr, "INFO: Loaded [ %d ] samples from .sample file [ %s ]\n",
+          (int)sn.size(), fn.c_str());
+  if (sn.size() != N) {
+    fprintf(stderr,
+            "ERROR: Sample file has [ %d ] samples, but BGEN file have [ %d ] "
+            "samples, skipped loading this sample file\n",
+            (int)sn.size(), N);
+    return -1;
+  } else {
+    this->sampleIdentifier = sn;
+    return 0;
+  }
+}
+
 int BGenFile::getNumEffectiveSample() const {
   size_t ret = 0;
   for (size_t i = 0; i != sampleMask.size(); ++i) {
@@ -659,12 +711,37 @@ void BGenFile::printInfo() {
 
   // variant data blocks
   printf("--Variant data block--\n");
-  if (layout == LAYOUT1) {
-    printf("\tPolidy = 2\n");
-    printf("\tUnphased\n");
-    printf("\tAlleles = 2\n");
-  } else if (layout == LAYOUT2) {
-    if (readRecord()) {
+  for (size_t i = 0; i < M; ++i) {
+    if (!readRecord()) {
+      printf("\tNo variants presented, file truncated?\n");
+      break;
+    }
+
+    printf("\t[Variant %d]\n", (int)i);
+
+    printf("\tChromosomal position: %s:%d\n", var.chrom.c_str(), var.pos);
+    printf("\tRSID = %s\n", var.rsid.c_str());
+    printf("\tVarID = %s\n", var.varid.c_str());
+    printf("\tAlleles = %s ", var.alleles[0].c_str());
+    for (size_t j = 1; j != var.alleles.size(); ++j) {
+      printf("/ %s ", var.alleles[j].c_str());
+    }
+    printf("\n");
+
+    if (layout == LAYOUT1) {
+      printf("\tPolidy = 2\n");
+      printf("\tUnphased\n");
+      printf("\tAlleles = 2\n");
+      printf("\tBitsPerGenotypeProbability = 16\n");  // 2 bytes per genotype
+                                                      // probability
+      int nMissing = 0;
+      for (size_t j = 0; j != N; ++j) {
+        if (var.prob[j * 3] == 0.0 && var.prob[j * 3 + 1] == 0.0 &&
+            var.prob[j * 3 + 2] == 0.0)
+          ++nMissing;
+      }
+      printf("Missing = %d\t", nMissing);
+    } else if (layout == LAYOUT2) {
       int nMissing = 0;
       for (size_t i = 0; i < var.missing.size(); ++i) {
         if (var.missing[i]) ++nMissing;
@@ -674,11 +751,10 @@ void BGenFile::printInfo() {
       printf("\tPolidy = %s\n", ss.c_str());
       printf("\t%s\n", var.isPhased ? "Phased" : "Unphased");
       printf("\tAlleles = %d\n", var.K);
+      printf("\ttBitsPerGenotypeProbability = %d\n", (int)var.B);
       printf("\tMissing = %d\n", nMissing);
     } else {
-      printf("\tNo variants presented\n");
+      assert(false);
     }
-  } else {
-    assert(false);
   }
 }

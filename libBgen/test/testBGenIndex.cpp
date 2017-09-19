@@ -69,21 +69,22 @@ void printVariant(const BGenVariant& var) {
   }
   fputs("\t.\t.\t.", stdout);
   return;
+  FileWriter fout("stdout");
   if (var.isPhased) {  // phased info
     fputs("\tGT:HP", stdout);
     for (int j = 0; j < var.N; ++j) {
       fputs("\t", stdout);
-      var.printGT(j, stdout);
+      var.printGT(j, &fout);
       fputs(":", stdout);
-      var.printHP(j, stdout);
+      var.printHP(j, &fout);
     }
-  } else {  // genotypes
+  } else {  // genotypzes
     fputs("\tGT:GP", stdout);
     for (int j = 0; j < var.N; ++j) {
       fputs("\t", stdout);
-      var.printGT(j, stdout);
+      var.printGT(j, &fout);
       fputs(":", stdout);
-      var.printGP(j, stdout);
+      var.printGP(j, &fout);
     }
   }
   fputs("\n", stdout);

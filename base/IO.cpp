@@ -705,6 +705,18 @@ class BGZipFileWriter : public AbstractFileWriter {
   BGZF* fp;
 };  // end BGZipFileWriter
 
+class StdoutWriter : public AbstractFileWriter {
+ public:
+  int open(const char* fn, bool append = false) { return 0; }
+  void close() {}
+  int write(const char* s) { return fputs(s, stdout); }
+  int writeLine(const char* s) {
+    int ret = fputs(s, stdout);
+    putchar('\n');
+    return (ret + 1);
+  }
+};
+
 #define DEFAULT_WRITER_BUFFER 4096
 class BufferedFileWriter : public AbstractFileWriter {
  public:
@@ -904,6 +916,13 @@ bool fileExists(std::string fn) {
 }
 
 FileWriter::FileWriter(const std::string& fileName, bool append) {
+  if (fileName == "stdout") {
+    this->fp = new StdoutWriter();
+    this->fpRaw = NULL;
+    this->createBuffer();
+    return;
+  }
+
   if (this->checkSuffix(fileName.c_str(), ".gz")) {
     this->fpRaw = new GzipFileWriter(fileName.c_str(), append);
   } else if (this->checkSuffix(fileName.c_str(), ".bz2")) {
@@ -921,6 +940,13 @@ FileWriter::FileWriter(const std::string& fileName, bool append) {
 }
 
 FileWriter::FileWriter(const std::string& fileName, FileType t) {
+  if (fileName == "stdout") {
+    this->fp = new StdoutWriter();
+    this->fpRaw = NULL;
+    this->createBuffer();
+    return;
+  }
+
   bool append = false;
   if (PLAIN == t) {
     this->fpRaw = new TextFileWriter(fileName, append);

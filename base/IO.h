@@ -283,11 +283,11 @@ class FileWriter {
     }
     this->bufLen = newBufLen;
   }
-  AbstractFileWriter* fp;
-  AbstractFileWriter* fpRaw;
-  char* buf;
-  int bufLen;
-};  // end class FileWriter
+  AbstractFileWriter* fp;     // usually the buffered writer
+  AbstractFileWriter* fpRaw;  // the class actually do the work
+  char* buf;                  // buf only for printf()
+  int bufLen;                 // buf length
+};                            // end class FileWriter
 
 bool fileExists(std::string fn);
 

@@ -110,9 +110,12 @@ ADD_STRING_PARAMETER(inBgen, "--inBgen", "Input BGEN File");
 ADD_STRING_PARAMETER(outPrefix, "--out", "Output prefix");
 
 ADD_PARAMETER_GROUP("Specify Options");
-ADD_BOOL_PARAMETER(hideVarId, "--hideVarId", "Do not output Variant ID");
-ADD_BOOL_PARAMETER(hideGT, "--hideGT", "Do not call genotypes");
-ADD_BOOL_PARAMETER(showDS, "--showDS", "Print bi-allelic dosage");
+ADD_BOOL_PARAMETER(hideVarId, "--hideVarId",
+                   "Do not output Variant ID (only output rsid)");
+ADD_BOOL_PARAMETER(hideGT, "--hideGT",
+                   "Do not call genotypes by skipping the GT tag");
+ADD_BOOL_PARAMETER(showDS, "--showDS",
+                   "Calculate bi-allelic dosage using the DS tag");
 ADD_BOOL_PARAMETER(help, "--help", "Print detailed help message");
 END_PARAMETER_LIST();
 

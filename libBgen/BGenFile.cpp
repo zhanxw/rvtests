@@ -11,7 +11,10 @@ BGenFile::BGenFile(const std::string& fn) : var(this->N) {
 
   int nRead;
   fp = fopen(fn.c_str(), "rb");
-
+  if (fp == NULL) {
+    fprintf(stderr, "Cannot open file [ %s ]\n", fn.c_str());
+    exit(1);
+  }
   // first 4 bytes
   parseUint32(fp, &offset);
 #ifdef DEBUG
@@ -116,9 +119,14 @@ BGenFile::BGenFile(const std::string& fn) : var(this->N) {
 #endif
     }
   }
-  // variant data blocks
-  long variantOffset = ftell(fp);
-  assert(variantOffset == (long)offset + 4);
+  // advance fp to variant data blocks
+  // NOTE: the assertion below may not work
+  // sometimes, unspecified bytes may exists between header block and variant
+  // data blocks.
+  // long variantOffset = ftell(fp);
+  // if (variantOffset != (long)offset + 4) {
+  // }
+  fseek(fp, offset + 4, SEEK_SET);
 
   fileSize = getFileSize(fn);
 }
@@ -751,7 +759,7 @@ void BGenFile::printInfo() {
       printf("\tPolidy = %s\n", ss.c_str());
       printf("\t%s\n", var.isPhased ? "Phased" : "Unphased");
       printf("\tAlleles = %d\n", var.K);
-      printf("\ttBitsPerGenotypeProbability = %d\n", (int)var.B);
+      printf("\tBitsPerGenotypeProbability = %d\n", (int)var.B);
       printf("\tMissing = %d\n", nMissing);
     } else {
       assert(false);

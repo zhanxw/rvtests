@@ -37,6 +37,7 @@ class VCFRecord {
     if (ret) {
       return -1;
     }
+    return 0;
   }
 
   void attach(std::string* pVcfLine) {

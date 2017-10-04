@@ -16,6 +16,23 @@ extern Logger* logger;
 BGenGenotypeExtractor::BGenGenotypeExtractor(const std::string& fn)
     : GenotypeExtractor(fn), bgenIn(NULL), altAlleleToParse(-1) {
   this->bgenIn = new BGenFile(fn.c_str());
+  if (this->bgenIn->getSampleIdentifier().empty()) {
+    fprintf(stderr,
+            "BGEN file does not include sample names, please specify sample "
+            "file\n");
+    exit(1);
+  }
+}
+
+BGenGenotypeExtractor::BGenGenotypeExtractor(const std::string& fn,
+                                             const std::string& sampleFile)
+    : GenotypeExtractor(fn), bgenIn(NULL), altAlleleToParse(-1) {
+  this->bgenIn = new BGenFile(fn.c_str());
+
+  if (this->bgenIn->loadSampleFile(sampleFile)) {
+    fprintf(stderr, "Cannot load sample file [ %s ]!\n", sampleFile.c_str());
+    exit(1);
+  }
 }
 
 BGenGenotypeExtractor::~BGenGenotypeExtractor() {

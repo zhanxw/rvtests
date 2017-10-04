@@ -249,6 +249,8 @@ BEGIN_PARAMETER_LIST();
 ADD_PARAMETER_GROUP("Basic Input/Output");
 ADD_STRING_PARAMETER(inVcf, "--inVcf", "Input VCF File");
 ADD_STRING_PARAMETER(inBgen, "--inBgen", "Input BGEN File");
+ADD_STRING_PARAMETER(inBgenSample, "--inBgenSample",
+                     "Input Sample IDs for the BGEN File");
 ADD_STRING_PARAMETER(inKgg, "--inKgg", "Input KGG File");
 ADD_STRING_PARAMETER(outPrefix, "--out", "Output prefix");
 ADD_BOOL_PARAMETER(outputRaw, "--outputRaw",
@@ -506,7 +508,7 @@ int main(int argc, char** argv) {
   if (!FLAG_inVcf.empty()) {
     ge = new VCFGenotypeExtractor(FLAG_inVcf);
   } else if (!FLAG_inBgen.empty()) {
-    ge = new BGenGenotypeExtractor(FLAG_inBgen);
+    ge = new BGenGenotypeExtractor(FLAG_inBgen, FLAG_inBgenSample);
   } else if (!FLAG_inKgg.empty()) {
     ge = new KGGGenotypeExtractor(FLAG_inKgg);
   } else {

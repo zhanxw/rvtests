@@ -65,6 +65,11 @@ class BGenFile {
   int setSiteFile(const std::string& fn);
   // void setRangeMode();
 
+  /**
+   * Load sample file that accompanies bgen file
+   * @param fn input sample file name.
+   * Do nothing when @param fn is empty
+   */
   int loadSampleFile(const std::string& fn);
 
  public:

@@ -586,7 +586,7 @@ int BGenFile::setSiteFile(const std::string& fn) {
 
 int BGenFile::loadSampleFile(const std::string& fn) {
   if (fn.empty()) return 0;
-  
+
   LineReader lr(fn);
   std::vector<std::string> fd;
   std::vector<std::string> sn;

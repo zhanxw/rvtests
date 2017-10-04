@@ -26,16 +26,22 @@ void printVCFMeta(FileWriter* fout) {
   }
 }
 
-void printVCFHeader(const std::vector<std::string>& sm, FileWriter* fout) {
+void printVCFHeader(const BGenFile& read, const std::vector<std::string>& sm,
+                    FileWriter* fout) {
+  const size_t sampleSize = read.getNumEffectiveSample();
   fout->write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
-  for (size_t i = 0; i != sm.size(); ++i) {
-    fout->printf("\t%s", sm[i].c_str());
+
+  for (size_t i = 0; i != sampleSize; ++i) {
+    fout->printf("\t%s", sm[read.getEffectiveIndex(i)].c_str());
   }
   fout->write("\n");
 }
 
-void printVariant(const BGenVariant& var, bool hideVarId, bool hideGT,
+void printVariant(const BGenFile& read, bool hideVarId, bool hideGT,
                   bool showDosage, FileWriter* fout) {
+  const size_t sampleSize = read.getNumEffectiveSample();
+  const BGenVariant& var = read.getVariant();
+
   fout->write(var.chrom.c_str());
   fout->write("\t");
   fout->printf("%d", var.pos);
@@ -64,7 +70,8 @@ void printVariant(const BGenVariant& var, bool hideVarId, bool hideGT,
     if (showDosage) {
       fout->write(":DS");
     }
-    for (size_t j = 0; j < var.N; ++j) {
+    for (size_t jIdx = 0; jIdx < sampleSize; ++jIdx) {
+      const int j = read.getEffectiveIndex(jIdx);
       fout->write("\t");
       if (!hideGT) {
         var.printGT(j, fout);
@@ -85,7 +92,8 @@ void printVariant(const BGenVariant& var, bool hideVarId, bool hideGT,
     if (showDosage) {
       fout->write(":DS");
     }
-    for (size_t j = 0; j < var.N; ++j) {
+    for (size_t jIdx = 0; jIdx < sampleSize; ++jIdx) {
+      const int j = read.getEffectiveIndex(jIdx);
       fout->write("\t");
       if (!hideGT) {
         var.printGT(j, fout);
@@ -107,7 +115,31 @@ void printVariant(const BGenVariant& var, bool hideVarId, bool hideGT,
 BEGIN_PARAMETER_LIST();
 ADD_PARAMETER_GROUP("Basic Input/Output");
 ADD_STRING_PARAMETER(inBgen, "--inBgen", "Input BGEN File");
+ADD_STRING_PARAMETER(inBgenSample, "--inBgenSample",
+                     "Input SAMPLE file for the BGEN File");
 ADD_STRING_PARAMETER(outPrefix, "--out", "Output prefix");
+
+ADD_PARAMETER_GROUP("People Filter")
+ADD_STRING_PARAMETER(peopleIncludeID, "--peopleIncludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleIncludeFile, "--peopleIncludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_STRING_PARAMETER(peopleExcludeID, "--peopleExcludeID",
+                     "give IDs of people that will be included in study")
+ADD_STRING_PARAMETER(
+    peopleExcludeFile, "--peopleExcludeFile",
+    "from given file, set IDs of people that will be included in study")
+ADD_PARAMETER_GROUP("Site Filter")
+ADD_STRING_PARAMETER(
+    rangeList, "--rangeList",
+    "Specify some ranges to use, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    rangeFile, "--rangeFile",
+    "Specify the file containing ranges, please use chr:begin-end format.")
+ADD_STRING_PARAMETER(
+    siteFile, "--siteFile",
+    "Specify the file containing site to extract, please use chr:pos format.")
 
 ADD_PARAMETER_GROUP("Specify Options");
 ADD_BOOL_PARAMETER(hideVarId, "--hideVarId",
@@ -144,6 +176,10 @@ int main(int argc, char* argv[]) {
   std::string outFileName = FLAG_outPrefix + ".vcf.gz";
   FileWriter fout(outFileName, BGZIP);
   BGenFile read(FLAG_inBgen);
+  if (!FLAG_inBgenSample.empty()) {
+    read.loadSampleFile(FLAG_inBgenSample);
+  }
+
   const int N = read.getNumSample();
   const int M = read.getNumMarker();
   std::vector<std::string> sm = read.getSampleIdentifier();
@@ -157,13 +193,27 @@ int main(int argc, char* argv[]) {
       sm.push_back(buf);
     }
   }
+
+  read.setRangeList(FLAG_rangeList.c_str());
+  read.setRangeFile(FLAG_rangeFile.c_str());
+  read.setSiteFile(FLAG_siteFile.c_str());
+  // set people filters here
+  if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
+    read.excludeAllPeople();
+    read.includePeople(FLAG_peopleIncludeID.c_str());
+    read.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+  }
+  read.excludePeople(FLAG_peopleExcludeID.c_str());
+  read.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+
   printVCFMeta(&fout);
-  printVCFHeader(sm, &fout);
+  printVCFHeader(read, sm, &fout);
 
-  const BGenVariant& var = read.getVariant();
-
+  fprintf(stderr, "BGEN File has [ %d ] samples, [ %d ] markers\n", N, M);
+  fprintf(stderr, "Effective sample size is [ %d ]\n",
+          read.getNumEffectiveSample());
   while (read.readRecord()) {
-    printVariant(var, FLAG_hideVarId, FLAG_hideGT, FLAG_showDS, &fout);
+    printVariant(read, FLAG_hideVarId, FLAG_hideGT, FLAG_showDS, &fout);
   }  // loop marker
 
   fprintf(stderr, "Total %d sample and %d variatns processed\n", N, M);

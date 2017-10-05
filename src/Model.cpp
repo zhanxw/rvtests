@@ -964,6 +964,7 @@ int MetaCovTest::printCovariance(FileWriter* fp,
       // &this->covXX[idx]);
       FloatMatrixRef iterGeno(genoPool.chunk(iter->geno), nSample, 1);
       model->calculateXX(frontGeno, iterGeno, &covX1X2);
+      this->covXX[idx] = covX1X2;
     }
   }
 

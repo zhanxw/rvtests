@@ -361,9 +361,8 @@ int DataConsolidator::prepareBoltModel(
     std::set<int> badSampleIdx;
     for (int i = 0; i != N; ++i) {
       if (imiss[i] > 0.05) {
-        logger->warn(
-            "Sample [ %s ] has high rate of missing genotype [ %g ]!\n",
-            pin.getIID()[i].c_str(), lmiss[i]);
+        logger->warn("Sample [ %s ] has high rate of missing genotype [ %g ]!",
+                     pin.getIID()[i].c_str(), lmiss[i]);
         badSampleIdx.insert(i);
         needNewPlink = true;
       }

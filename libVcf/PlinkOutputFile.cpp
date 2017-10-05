@@ -318,7 +318,7 @@ int PlinkOutputFile::extractFAM(PlinkInputFile& pin,
 int PlinkOutputFile::extractFAMWithPhenotype(PlinkInputFile& pin,
                                              const std::vector<int>& sampleIdx,
                                              const SimpleMatrix& pheno) {
-  assert((int)sampleIdx.size() == pheno.nrow());
+  // assert((int)sampleIdx.size() == pheno.nrow());
   for (size_t i = 0; i != sampleIdx.size(); ++i) {
     /// TODO: should also output family id
     fprintf(this->fpFam, "%s\t%s\t0\t0\t%d\t%g\n",

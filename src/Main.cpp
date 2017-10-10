@@ -33,7 +33,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20170914";
+const char* VERSION = "20171009";
 
 void banner(FILE* fp) {
   const char* string =
@@ -44,7 +44,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      September 2017                    | \n"
+      "|      October 2017                      | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -552,7 +552,8 @@ int main(int argc, char** argv) {
 
   std::vector<std::string> vcfSampleNames;
   ge->getPeopleName(&vcfSampleNames);
-  logger->info("Loaded [ %zu ] samples from VCF files", vcfSampleNames.size());
+  logger->info("Loaded [ %zu ] samples from genotype files",
+               vcfSampleNames.size());
 
   DataLoader dataLoader;
   dataLoader.setPhenotypeImputation(FLAG_imputePheno);

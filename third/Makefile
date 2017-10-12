@@ -61,7 +61,7 @@ zstd: zstd-1.3.1.tar.gz
 cnpy: cnpy.zip
 	unzip $<
 	ln -s -f cnpy-master cnpy
-	(cd cnpy; $(CXX) -c cnpy.cpp; $(AR) rcs libcnpy.a cnpy.o)
+	(cd cnpy; $(CXX) -std=c++11 -c cnpy.cpp; $(AR) rcs libcnpy.a cnpy.o)
 
 ######################################################################
 # download sources

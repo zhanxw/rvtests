@@ -727,7 +727,7 @@ void BGenFile::printInfo() {
       break;
     }
 
-    printf("\t[Variant %d]\n", (int)i);
+    printf("\n\t[Variant %d]\n", (int)i);
 
     printf("\tChromosomal position: %s:%d\n", var.chrom.c_str(), var.pos);
     printf("\tRSID = %s\n", var.rsid.c_str());

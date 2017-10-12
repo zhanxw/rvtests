@@ -24,6 +24,8 @@ $(SQLITE_INC) $(SQLITE_LIB):
 	$(MAKE) -C $(ROOT)/third sqlite
 $(ZSTD_INC) $(ZSTD_LIB):
 	$(MAKE) -C $(ROOT)/third zstd
+$(CNPY_INC) $(CNPY_LIB):
+	$(MAKE) -C $(ROOT)/third cnpy
 
 ## our libs
 $(BASE_LIB):

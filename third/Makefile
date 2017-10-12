@@ -58,6 +58,11 @@ zstd: zstd-1.3.1.tar.gz
 	ln -s -f zstd-1.3.1 zstd
 	(cd zstd; make)
 
+cnpy: cnpy.zip
+	unzip $<
+	ln -s -f cnpy-master cnpy
+	(cd cnpy; $(CXX) -c cnpy.cpp; $(AR) rcs libcnpy.a cnpy.o)
+
 ######################################################################
 # download sources
 UNAME_S := $(shell uname -s)
@@ -104,6 +109,10 @@ zstd-1.3.1.tar.gz:
 	echo "obtain zstd"
 	$(call DOWNLOAD_RENAME,https://github.com/facebook/zstd/archive/v1.3.1.tar.gz,$@)
 
+cnpy.zip:
+	echo "obtain cnpy"
+	$(call DOWNLOAD_RENAME,https://github.com/rogersce/cnpy/archive/master.zip,$@)
+
 clean:
 	-rm -rf $(LIB)
 deepclean:
@@ -117,3 +126,6 @@ deepclean:
 	-rm -rf rapidjson-1.0.2
 	-rm -rf nlopt-2.4.2
 	-rm -rf zlib-1.2.8
+	-rm -rf sqlite-autoconf-3200100
+	-rm -rf zstd-1.3.1
+	-rm -rf cnpy

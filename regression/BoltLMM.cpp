@@ -1,6 +1,7 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "regression/BoltLMM.h"
 
+#include "third/cnpy/cnpy.h"
 #include "third/eigen/Eigen/Dense"
 #include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
@@ -679,16 +680,51 @@ class BoltLMM::BoltLMMImpl {
     // get constants
     stage_ = pl.getStage();
 
-    // calculate heritability
-    EstimateHeritability();
+    // load null model if necessary
+    null_model_file_name_ = std::getenv("BOLTLMM_LOAD_NULL_MODEL")
+                                ? std::getenv("BOLTLMM_LOAD_NULL_MODEL")
+                                : "";
+    if (null_model_file_name_.empty()) {
+      fprintf(stderr, "Run BOLT Null Model\n");
 
-    // calibrate a scaling factor
-    EstimateInfStatCalibration(pl);
+      // calculate heritability
+      EstimateHeritability();
 
+      // calibrate a scaling factor
+      EstimateInfStatCalibration(pl);
+    } else {
+      fprintf(stderr, "Load BOLT Null Model: %s\n",
+              null_model_file_name_.c_str());
+      cnpy::npz_t my_npz = cnpy::npz_load(null_model_file_name_);
+      cnpy::NpyArray tmp = my_npz["H_inv_y"];
+      Eigen::Map<Eigen::MatrixXf> tmp2(tmp.data<float>(), tmp.shape[0],
+                                       tmp.shape[1]);
+      H_inv_y_ = tmp2;
+      H_inv_y_norm2_ = *my_npz["H_inv_y_norm2"].data<double>();
+      infStatCalibration_ = *my_npz["infStatCalibration"].data<double>();
+      xVx_xx_ratio_ = *my_npz["xVx_xx_ratio"].data<double>();
+    }
     // // calcualte alpha to speed up AF calculation in the future
     // Given (1) empirical kinship is not invertible; (2) N is large,
     // we just report the averaged allele frequencies.
     // CalculateAlpha();
+
+    // save null model
+    null_model_file_name_ = std::getenv("BOLTLMM_SAVE_NULL_MODEL")
+                                ? std::getenv("BOLTLMM_SAVE_NULL_MODEL")
+                                : "";
+    if (!null_model_file_name_.empty()) {
+      fprintf(stderr, "Save BOLT Null Model: %s\n",
+              null_model_file_name_.c_str());
+      cnpy::npz_save(null_model_file_name_, "H_inv_y", H_inv_y_.data(),
+                     {H_inv_y_.rows(), H_inv_y_.cols()}, "w");
+      cnpy::npz_save(null_model_file_name_, "H_inv_y_norm2", &H_inv_y_norm2_,
+                     {1}, "a");
+      cnpy::npz_save(null_model_file_name_, "infStatCalibration",
+                     &infStatCalibration_, {1}, "a");
+      cnpy::npz_save(null_model_file_name_, "xVx_xx_ratio", &xVx_xx_ratio_, {1},
+                     "a");
+    }
 
     return 0;
   }
@@ -1396,6 +1432,7 @@ class BoltLMM::BoltLMMImpl {
   double xVx_xx_ratio_;
   Eigen::MatrixXf g_test_;
   Eigen::MatrixXf alpha_;
+  std::string null_model_file_name_;
 
  private:
   static int showDebug;

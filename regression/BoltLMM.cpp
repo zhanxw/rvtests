@@ -236,11 +236,12 @@ class PlinkLoader {
         switch (g) {
           case PlinkInputFile::HET:
             alleleCount[i]++;
-            alleleCount2[i]++;
+            // alleleCount2[i]++;
             break;
           case PlinkInputFile::HOM_ALT:
             alleleCount[i] += 2;
-            alleleCount2[i] += 4;
+            // alleleCount2[i] += 4;
+            alleleCount2[i]++;
             break;
           case PlinkInputFile::MISSING:
             missingCount[i]++;
@@ -263,10 +264,18 @@ class PlinkLoader {
         numMissing += missingCount[(*p)];
         ++p;
       }
+      int numHomAlt = numAllele2;
+      int numHet = numAllele - numAllele2 * 2;
+      int numHomRef = N_ - numMissing - numHet - numHomAlt;
+
       double mean = 1.0 * numAllele / (N_ - numMissing);
-      double var = 1.0 *
-                   (numAllele2 * (N_ - numMissing) - numAllele * numAllele) /
-                   (N_ - numMissing) / (N_ - numMissing - 1);
+      // double var = 1.0 *
+      //              (numAllele2 * (N_ - numMissing) - numAllele * numAllele) /
+      //              (N_ - numMissing) / (N_ - numMissing - 1);
+      double var =
+          (numHomRef * mean * mean + numHet * (1.0 - mean) * (1.0 - mean) +
+           numHomAlt * (2.0 - mean) * (2.0 - mean)) /
+          (N_ - 1);
       double sd = sqrt(var);
       if (sd > 0) {
         snpLookupTable_[m][PlinkInputFile::HOM_REF] = (0.0 - mean) / sd;
@@ -634,7 +643,7 @@ class WorkingData {
 
   Eigen::MatrixXf beta_hat;  // [M2 x (MCtrial+1)]
   Eigen::MatrixXf e_hat;     //  [(N+C) x (MCtrial+1)]
-};
+};                           // class WorkingData
 
 class BoltLMM::BoltLMMImpl {
  public:
@@ -837,9 +846,79 @@ class BoltLMM::BoltLMMImpl {
     WorkingData w(cv);
     w.init(pl);
 
-    double h2[7] = {0.};  // 7 is the limit of iterations used by BoltLMM
-    double logDelta[7] = {0.};
-    double f[7] = {0.};
+    if (std::getenv("BOLTLMM_MINQUE")) {
+      return EstimateHeritabilityMinque(&w);
+    } else {
+      return EstimateHeritabilityBolt(&w);
+    }
+  }
+  int EstimateHeritabilityMinque(WorkingData* wd) {
+    WorkingData& w = *wd;
+    // w.x_beta_rand (N_+C_, MCtrial_);
+    fprintf(stderr, "M_ = %d, N_ = %d, BS = %d\n", M_, N_, BatchSize_);
+    float* stage_ = pl.getStage();
+    float trace = 0;
+    trace = w.x_beta_rand.squaredNorm();
+    fprintf(stderr, "trace() = %g, %g\n", trace, trace / MCtrial_);
+    float traceK = trace / MCtrial_;
+
+    // float trueTrace = 0;
+    float trace2 = 0;
+    float gy = 0;
+    for (size_t b = 0; b != NumBatch_; ++b) {
+      pl.loadSNPWithCovBatch(b, stage_);
+      Eigen::Map<Eigen::MatrixXf> g(stage_, N_ + C_, BatchSize_);
+      // trueTrace += g.topRows(N_).squaredNorm();
+      trace2 += (g.topRows(N_).transpose() *  // N_ x BatchSize_
+                 w.x_beta_rand.topRows(N_))
+                    .squaredNorm();
+      gy += ((w.y.col(0).head(N_).transpose() * g.topRows(N_))
+                 .colwise()
+                 .squaredNorm() -
+             (w.y.col(0).tail(C_).transpose() * g.bottomRows(C_))
+                 .colwise()
+                 .squaredNorm())
+                .sum();
+    }
+    // fprintf(stderr, "true trace() = %g\n", trueTrace / M_);
+    fprintf(stderr, "trace2() = %g, %g\n", trace2 / M_, trace2 / MCtrial_ / M_);
+    fprintf(stderr, "gy = %g, %g \n", gy, gy / M_);
+
+    float traceK2 = trace2 / MCtrial_ / M_;
+    float S = traceK2 / (N_ - 1) / (N_ - 1) - 1.0 / (N_ - 1);
+    float yNorm2 =
+        w.y.col(0).head(N_).squaredNorm() - w.y.col(0).tail(C_).squaredNorm();
+    fprintf(stderr, "yNorm2 = %g\n", yNorm2);
+    float q = (gy / M_ - yNorm2) / (N_ - 1) / (N_ - 1);
+
+    double sigma2_g_est = q / S;
+    double sigma2_e_g_est = (w.y.col(0).head(N_).squaredNorm() -
+                             w.y.col(0).tail(C_).squaredNorm()) /
+                            (N_ - 1);
+    double minqueH2 = sigma2_g_est / sigma2_e_g_est;
+
+    fprintf(stderr, "minque S = %g\n", S);
+    fprintf(stderr, "minque q = %g\n", q);
+    fprintf(stderr, "minque sigma2_g_est = %g\n", sigma2_g_est);
+    fprintf(stderr, "minque sigma2_e_est = %g\n",
+            sigma2_e_g_est - sigma2_g_est);
+    fprintf(stderr, "minque h2 = %g\n", sigma2_g_est / sigma2_e_g_est);
+    //     fprintf(stderr, "minque end - %s\n", currentTime().c_str());
+
+    sigma2_g_est_ = sigma2_g_est;
+    sigma2_e_est_ = sigma2_e_g_est - sigma2_g_est;
+    h2_ = sigma2_g_est / sigma2_e_g_est;
+
+    // compute Y_rand (Y_data is the first column)
+    double delta = sigma2_e_est_ / sigma2_g_est_;
+    computeY(w.x_beta_rand, w.e_rand, delta, &w.y);
+    // solve H_inv_y, and beta
+    solve(w.y, delta, &w.H_inv_y);
+
+    H_inv_y_ = w.H_inv_y.col(0) / sigma2_g_est_;
+    H_inv_y_norm2_ = projNorm2(H_inv_y_)(0);
+
+    return 0;
 
 #if 0
     // use MINQUE to get initial guess on h2
@@ -872,6 +951,13 @@ class BoltLMM::BoltLMMImpl {
     fprintf(stderr, "minque end - %s\n", currentTime().c_str());
 #endif
 #endif
+  }
+
+  int EstimateHeritabilityBolt(WorkingData* wd) {
+    WorkingData& w = *wd;
+    double h2[7] = {0.};  // 7 is the limit of iterations used by BoltLMM
+    double logDelta[7] = {0.};
+    double f[7] = {0.};
 
     if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
       fprintf(stderr, "bolt 1a) start - %s\n", currentTime().c_str());
@@ -1431,7 +1517,7 @@ class BoltLMM::BoltLMMImpl {
   double infStatCalibration_;
   double xVx_xx_ratio_;
   Eigen::MatrixXf g_test_;
-  Eigen::MatrixXf alpha_;
+  // Eigen::MatrixXf alpha_;
   std::string null_model_file_name_;
 
  private:

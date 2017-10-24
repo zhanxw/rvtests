@@ -34,6 +34,7 @@ CXX_FLAGS = -fopenmp -O0 -ggdb -I../.. -I.. \
             ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
             ../../third/gsl/lib/libgsl.a \
             ../../third/nlopt/lib/libnlopt.a \
+            ../../third/cnpy/libcnpy.a \
             -L../../third/zlib \
             -L../../third/bzip2 \
             -lz -lbz2 -lrt

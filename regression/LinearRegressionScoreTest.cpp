@@ -350,7 +350,7 @@ void LinearRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull,
   }
 }
 
-const double LinearRegressionScoreTest::GetSEBeta(int idx) const {
+double LinearRegressionScoreTest::GetSEBeta(int idx) const {
   // U = X'Y
   // V = X'X * sigma2
   // beta = X'Y / X'X

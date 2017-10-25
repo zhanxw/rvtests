@@ -3,6 +3,8 @@
 
 #include <stdio.h>  // printf
 
+#include "third/eigen/Eigen/Core"
+
 void LogisticRegressionPermutationTest::splitMatrix(Matrix& x, int col,
                                                     Matrix& xnull,
                                                     Vector& xcol) {

@@ -3,7 +3,7 @@
 
 #include <gsl/gsl_cdf.h>
 #include <math.h>
-
+#include <cassert>
 #include "MathMatrix.h"
 
 //////////////////////////////////////////////////

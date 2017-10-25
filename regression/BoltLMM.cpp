@@ -725,8 +725,10 @@ class BoltLMM::BoltLMMImpl {
     if (!null_model_file_name_.empty()) {
       fprintf(stderr, "Save BOLT Null Model: %s\n",
               null_model_file_name_.c_str());
-      cnpy::npz_save(null_model_file_name_, "H_inv_y", H_inv_y_.data(),
-                     {H_inv_y_.rows(), H_inv_y_.cols()}, "w");
+      cnpy::npz_save(
+          null_model_file_name_, "H_inv_y", H_inv_y_.data(),
+          {(unsigned long)H_inv_y_.rows(), (unsigned long)H_inv_y_.cols()},
+          "w");
       cnpy::npz_save(null_model_file_name_, "H_inv_y_norm2", &H_inv_y_norm2_,
                      {1}, "a");
       cnpy::npz_save(null_model_file_name_, "infStatCalibration",

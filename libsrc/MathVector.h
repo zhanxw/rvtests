@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <numeric>  // accumulate
 #include <vector>
-#include "third/eigen/Eigen/Core"
+// #include "third/eigen/Eigen/Core"
 
 #define DECLARE_EIGEN_VECTOR(matRef, varName)               \
   Eigen::Map<Eigen::MatrixXd> varName((matRef).data.data(), \
@@ -51,7 +51,7 @@ class Vector {
   }
   double Min() const { return *std::min_element(data.begin(), data.end()); }
   double Max() const { return *std::max_element(data.begin(), data.end()); }
-#if 1
+#if 0
   operator Eigen::Map<Eigen::MatrixXd>() {
     Eigen::Map<Eigen::MatrixXd> ret(data.data(), data.size(), 1);
     return ret;

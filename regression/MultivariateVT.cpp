@@ -1,5 +1,6 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "MultivariateVT.h"
+
 #include "libMvtnorm/mvtnorm.h"
 
 #include <cfloat>
@@ -7,6 +8,8 @@
 #include <limits>
 #include <set>
 #include <vector>
+
+#include "third/eigen/Eigen/Core"
 
 // #define DEBUG
 #undef DEBUG

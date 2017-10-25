@@ -17,6 +17,48 @@
 
 #include "MathMatrix.h"
 
+#include <cassert>
+#include "third/eigen/Eigen/Core"
+
+void Matrix::Product(const Matrix& in1, const Matrix& in2) {
+  DECLARE_EIGEN_CONST_MATRIX(in1, in1_e);
+  DECLARE_EIGEN_CONST_MATRIX(in2, in2_e);
+  DimensionQuick(in1_e.rows(), in2_e.cols());
+  Eigen::Map<Eigen::MatrixXd> ret(data.data(), rows, cols);
+  ret = in1_e * in2_e;
+}
+void Matrix::Transpose(const Matrix& old) {
+  data.resize(old.data.size());
+  rows = old.cols;
+  cols = old.rows;
+  DECLARE_EIGEN_CONST_MATRIX(old, old_e);
+  DECLARE_EIGEN_MATRIX((*this), new_e);
+  new_e = old_e.transpose();
+}
+
+/**
+ * @param rowIndexToRemove each index should be in [0, ... , rows-1]
+ * @return number of row deleted
+ */
+int Matrix::RemoveByRowIndex(const std::vector<int>& rowIndexToRemove) {
+  int idx = 0;
+  assert(*std::min_element(rowIndexToRemove.begin(), rowIndexToRemove.end()) >=
+         0);
+  assert(*std::max_element(rowIndexToRemove.begin(), rowIndexToRemove.end()) <
+         rows);
+  std::set<int> idxSet(rowIndexToRemove.begin(), rowIndexToRemove.end());
+  for (int j = 0; j < cols; ++j) {
+    for (int i = 0; i < rows; ++i) {
+      if (idxSet.count(i)) {
+        continue;
+      }
+      data[idx++] = (*this)(i, j);
+    }
+  }
+  rows -= idxSet.size();
+  data.resize(rows * cols);
+  return idxSet.size();
+}
 #if 0
 #include "Error.h"
 #include "MathConstant.h"

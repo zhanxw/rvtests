@@ -1,13 +1,16 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LinearRegressionVT.h"
-#include "MatrixOperation.h"
+
 #include "LinearRegression.h"
+#include "MatrixOperation.h"
 #include "MultivariateNormalDistribution.h"
-#include <Eigen/Dense>  // eigen definiation and LDLT
+
+#include "third/eigen/Eigen/Dense"  // eigen definiation and LDLT
 
 #undef DEBUG
 #ifdef DEBUG
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 void dump(const Eigen::MatrixXf& m, const char* fn) {
   std::ofstream out(fn);
@@ -35,7 +38,7 @@ class LinearRegressionVT::LinearVTImpl {
     o.resize(m.rows, m.cols);
     for (int i = 0; i < m.rows; ++i) {
       for (int j = 0; j < m.cols; ++j) {
-        o(i, j) = m[i][j];
+        o(i, j) = m(i, j);
       }
     }
   }
@@ -44,7 +47,7 @@ class LinearRegressionVT::LinearVTImpl {
     o.Dimension(m.rows(), m.cols());
     for (int i = 0; i < m.rows(); ++i) {
       for (int j = 0; j < m.cols(); ++j) {
-        o[i][j] = m(i, j);
+        o(i, j) = m(i, j);
       }
     }
   }

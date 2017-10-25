@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "BGenGenotypeExtractor.h"
 
 #include "GenotypeCounter.h"
@@ -281,7 +282,7 @@ int loadMarkerFromBGEN(const std::string& fileName, const std::string& marker,
       if (GTidx >= 0) {
         // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
         // field of each individual
-        m[i][col] = indv->justGet(GTidx).getGenotype();
+        m(i,col) = indv->justGet(GTidx).getGenotype();
       } else {
         logger->error("Cannot find GT field!");
         return -1;

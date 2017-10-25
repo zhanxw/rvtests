@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "SingleDummy.h"
 
 #include "src/DataConsolidator.h"

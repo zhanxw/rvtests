@@ -153,11 +153,11 @@ class SingleVariantWaldTest : public ModelFitter {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
           beta = linear.GetCovEst()[i];
-          se = sqrt(linear.GetCovB()[i][i]);
+          se = sqrt(linear.GetCovB()(i, i));
           pval = linear.GetAsyPvalue()[i];
         } else {
           beta = logistic.GetCovEst()[i];
-          se = sqrt(logistic.GetCovB()[i][i]);
+          se = sqrt(logistic.GetCovB()(i, i));
           pval = logistic.GetAsyPvalue()[i];
         }
 
@@ -237,7 +237,7 @@ class SingleVariantFirthTest : public ModelFitter {
       result.updateValue("Test", this->X.GetColumnLabel(i));
       if (fitOK) {
         result.updateValue("Beta", firth.GetCovEst()[i]);
-        result.updateValue("SE", sqrt(firth.GetCovB()[i][i]));
+        result.updateValue("SE", sqrt(firth.GetCovB()(i, i)));
         result.updateValue("Pvalue", firth.GetAsyPvalue()[i]);
       }
       result.writeValueLine(fp);
@@ -324,28 +324,28 @@ class SingleVariantScoreTest : public ModelFitter {
     result.updateValue("AF", af);
     if (fitOK) {
       if (!isBinaryOutcome()) {
-        const double u = linear.GetU()[0][0];
-        const double v = linear.GetV()[0][0];
+        const double u = linear.GetU()(0, 0);
+        const double v = linear.GetV()(0, 0);
         result.updateValue("U", u);
         result.updateValue("V", v);
         result.updateValue("STAT", linear.GetStat());
         if (u != 0) {
-          result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" : "-");
+          result.updateValue("DIRECTION", linear.GetU()(0, 0) > 0 ? "+" : "-");
         }
         if (v > 0) {
-          result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+          result.updateValue("EFFECT", linear.GetBeta()(0, 0));
           result.updateValue("SE", linear.GetSEBeta(0));
         }
         result.updateValue("PVALUE", linear.GetPvalue());
       } else {
-        const double u = logistic.GetU()[0][0];
-        const double v = logistic.GetV()[0][0];
+        const double u = logistic.GetU()(0, 0);
+        const double v = logistic.GetV()(0, 0);
         result.updateValue("U", u);
         result.updateValue("V", v);
         result.updateValue("STAT", logistic.GetStat());
         if (u != 0) {
           result.updateValue("DIRECTION",
-                             logistic.GetU()[0][0] > 0 ? "+" : "-");
+                             logistic.GetU()(0, 0) > 0 ? "+" : "-");
         }
         if (v > 0) {
           result.updateValue("EFFECT", u / v);
@@ -437,8 +437,8 @@ class SingleVariantFisherExactTest : public ModelFitter {
     // step 1, fit two by two table
     int numPeople = genotype.rows;
     for (int i = 0; i < numPeople; i++) {
-      int geno = genotype[i][0];
-      int pheno = phenotype[i][0];
+      int geno = genotype(i, 0);
+      int pheno = phenotype(i, 0);
       if (!(0 <= geno && geno <= 2)) continue;
       if (!(0 <= pheno && pheno <= 1)) continue;
       if (pheno == 1) {
@@ -828,7 +828,7 @@ class CMCTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     cmcCollapse(dc, genotype, &collapsedGenotype);
@@ -889,7 +889,7 @@ class CMCTest : public ModelFitter {
   int totalNonRefSite() {
     int s = 0;
     for (int i = 0; i < collapsedGenotype.rows; ++i) {
-      s += collapsedGenotype[i][0] == 0.0 ? 0 : 1;
+      s += collapsedGenotype(i, 0) == 0.0 ? 0 : 1;
     }
     return (s);
   }
@@ -925,7 +925,7 @@ class CMCWaldTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     cmcCollapse(dc, genotype, &collapsedGenotype);
@@ -958,11 +958,11 @@ class CMCWaldTest : public ModelFitter {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
           beta = linear.GetCovEst()[i];
-          se = sqrt(linear.GetCovB()[i][i]);
+          se = sqrt(linear.GetCovB()(i, i));
           pval = linear.GetAsyPvalue()[i];
         } else {
           beta = logistic.GetCovEst()[i];
-          se = sqrt(logistic.GetCovB()[i][i]);
+          se = sqrt(logistic.GetCovB()(i, i));
           pval = logistic.GetAsyPvalue()[i];
         }
         result.updateValue("Beta", beta);
@@ -980,7 +980,7 @@ class CMCWaldTest : public ModelFitter {
   int totalNonRefSite() {
     int s = 0;
     for (int i = 0; i < collapsedGenotype.rows; ++i) {
-      s += collapsedGenotype[i][0] == 0.0 ? 0 : 1;
+      s += collapsedGenotype(i, 0) == 0.0 ? 0 : 1;
     }
     return (s);
   }
@@ -1016,7 +1016,7 @@ class ZegginiWaldTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     zegginiCollapse(dc, genotype, &collapsedGenotype);
@@ -1049,11 +1049,11 @@ class ZegginiWaldTest : public ModelFitter {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
           beta = linear.GetCovEst()[i];
-          se = sqrt(linear.GetCovB()[i][i]);
+          se = sqrt(linear.GetCovB()(i, i));
           pval = linear.GetAsyPvalue()[i];
         } else {
           beta = logistic.GetCovEst()[i];
-          se = sqrt(logistic.GetCovB()[i][i]);
+          se = sqrt(logistic.GetCovB()(i, i));
           pval = logistic.GetAsyPvalue()[i];
         }
         result.updateValue("Beta", beta);
@@ -1117,8 +1117,8 @@ class CMCFisherExactTest : public ModelFitter {
     // step 1, fit two by two table
     int numPeople = collapsedGenotype.rows;
     for (int i = 0; i < numPeople; i++) {
-      int geno = collapsedGenotype[i][0];
-      int pheno = phenotype[i][0];
+      int geno = collapsedGenotype(i, 0);
+      int pheno = phenotype(i, 0);
       if (!(0 <= geno && geno <= 1)) continue;
       if (!(0 <= pheno && pheno <= 1)) continue;
       model.Increment(geno, pheno);
@@ -1185,7 +1185,7 @@ class ZegginiTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     zegginiCollapse(dc, genotype, &collapsedGenotype);
@@ -1361,7 +1361,7 @@ class FpTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     fpCollapse(dc, genotype, &collapsedGenotype);
@@ -1449,7 +1449,7 @@ class RareCoverTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     // find highest correlation coef.
@@ -1511,7 +1511,7 @@ class RareCoverTest : public ModelFitter {
       double corr;
       for (int i = 0; i < genotype.rows; ++i) {
         if (selected.count(i)) continue;
-        corr = calculateCorrelation(genotype[i], c, phenotype);
+        corr = calculateCorrelation(genotype, i, c, phenotype);
         if (corr > maxCorr) {
           maxCorr = corr;
           maxIdx = i;
@@ -1524,7 +1524,7 @@ class RareCoverTest : public ModelFitter {
           // update selection
           stat = maxCorr;
           selected.insert(maxIdx);
-          combine(&c, genotype[maxIdx]);
+          combine(&c, genotype, maxIdx);
         } else {  // no select any new marker
           break;
         }
@@ -1534,8 +1534,10 @@ class RareCoverTest : public ModelFitter {
   }
   /**
    * Calculate correlatio of (g + collapsed, pheno)
+   * In the above: g = m[rowsIdx,]
    */
-  double calculateCorrelation(Vector& g, Vector& collapsed, Vector& pheno) {
+  double calculateCorrelation(Matrix& m, int rowIdx, Vector& collapsed,
+                              Vector& pheno) {
     double sum_g = 0.0;
     double sum_g2 = 0.0;
     double sum_p = 0.0;
@@ -1543,7 +1545,7 @@ class RareCoverTest : public ModelFitter {
     double sum_gp = 0.0;
     int n = pheno.Length();
     for (int i = 0; i < n; ++i) {
-      double geno = (g[i] + collapsed[i] > 0) ? 1.0 : 0.0;
+      double geno = (m(rowIdx, i) + collapsed[i] > 0) ? 1.0 : 0.0;
       if (geno > 0.0) {
         sum_g += geno;
         sum_g2 += geno * geno;
@@ -1564,10 +1566,10 @@ class RareCoverTest : public ModelFitter {
     double corr = cov_gp / sqrt(v);
     return corr;
   }
-  void combine(Vector* c, Vector& v) {
-    int n = v.Length();
+  void combine(Vector* c, Matrix& m, int mRowIdx) {
+    int n = m.cols;
     for (int i = 0; i < n; ++i) {
-      if ((*c)[i] + v[i] > 0) {
+      if ((*c)[i] + m(mRowIdx, i) > 0) {
         (*c)[i] = 1.0;
       }
     }
@@ -1664,7 +1666,7 @@ class CMATTest : public ModelFitter {
     M_U = 0;
 
     for (int i = 0; i < pheno.Length(); ++i) {
-      if (phenotype[i] == 1) {
+      if (phenotype(i, 0) == 1) {
         ++N_A;
       } else {
         ++N_U;
@@ -1678,21 +1680,21 @@ class CMATTest : public ModelFitter {
         flip = true;
       }
       for (int j = 0; j < genotype.rows; ++j) {
-        if (phenotype[j] == 1) {
+        if (phenotype(j, 0) == 1) {
           if (!flip) {
-            m_A += genotype[j][i];
-            M_A += (2.0 - genotype[j][i]);
+            m_A += genotype(j, i);
+            M_A += (2.0 - genotype(j, i));
           } else {
-            m_A += (2.0 - genotype[j][i]);
-            M_A += genotype[j][i];
+            m_A += (2.0 - genotype(j, i));
+            M_A += genotype(j, i);
           }
         } else {
           if (!flip) {
-            m_U += genotype[j][i];
-            M_U += (2.0 - genotype[j][i]);
+            m_U += genotype(j, i);
+            M_U += (2.0 - genotype(j, i));
           } else {
-            m_U += (2.0 - genotype[j][i]);
-            M_U += genotype[j][i];
+            m_U += (2.0 - genotype(j, i));
+            M_U += genotype(j, i);
           }
         }
       }
@@ -1833,7 +1835,7 @@ class VariableThresholdPrice : public ModelFitter {
 
     for (int i = 0; i < sortedBurden.rows; ++i) {
       const double z =
-          calculateZthreshold(pheno, this->sortedBurden[i], weight);
+          calculateZthreshold(pheno, this->sortedBurden, i, weight);
       if (fabs(z) > *zmax || i == 0) {
         *zmax = fabs(z);
         *optimFreq = this->freq[i];
@@ -1842,19 +1844,20 @@ class VariableThresholdPrice : public ModelFitter {
     return 0;
   }
 
-  double calculateZthreshold(Vector& y, Vector& x, Vector& weight) {
+  double calculateZthreshold(Vector& y, Matrix& x, int xRowIdx,
+                             Vector& weight) {
     double ret = 0;
     int n = y.Length();
     if (weight.Length() == 0) {
       for (int i = 0; i < n; ++i) {
-        ret += x[i] * y[i];
+        ret += x(xRowIdx, i) * y[i];
       }
     } else {
       for (int i = 0; i < n; ++i) {
-        ret += x[i] * y[i] * weight[i];
+        ret += x(xRowIdx, i) * y[i] * weight[i];
       }
     }
-    double sd = sqrt(getVariance(x));
+    double sd = sqrt(getRowVariance(x, xRowIdx));
     if (sd != 0) {
       ret /= sd;
     }
@@ -2075,7 +2078,7 @@ class VTCMC : public ModelFitter {
     int n = m.cols;
     out->resize(n);
     for (int i = 0; i < n; ++i) {
-      (*out)[i] = m[0][i];
+      (*out)[i] = m(0, i);
     }
   }
   Matrix geno;
@@ -2945,9 +2948,9 @@ class KBACTest : public ModelFitter {
         // we essentially store xmat in a array where the order is
         // people1 marker1, people1 marker2, people1 marker3.... then
         // people2 marker1, people2 marker2, people2 marker3....
-        xdatIn[i * genotype.cols + j] = genotype[i][j];
-        /* if (genotype[i][j] != 0.0) { */
-        /*   fprintf(stderr, "i=%d, j=%d, genotype=%g\n", i,j,genotype[i][j]);
+        xdatIn[i * genotype.cols + j] = genotype(i, j);
+        /* if (genotype(i,j) != 0.0) { */
+        /*   fprintf(stderr, "i=%d, j=%d, genotype=%g\n", i,j,genotype(i,j));
          */
         /*   fprintf(stderr, "j*genotype.rows +i = %d, xdatIn[..] = %g\n", j *
          * genotype.rows + i, xdatIn[j * genotype.rows + i]); */
@@ -2955,7 +2958,7 @@ class KBACTest : public ModelFitter {
       }
     }
     for (int i = 0; i < genotype.rows; ++i) {
-      ydatIn[i] = phenotype[i][0];
+      ydatIn[i] = phenotype(i, 0);
     }
     for (int j = 0; j < genotype.cols; ++j) {
       mafIn[j] = getMarkerFrequency(dc, j);
@@ -3443,12 +3446,12 @@ class MetaScoreTest : public ModelFitter {
 
       fp->write("##NullModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd(0, 0));
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
         if (i + 1 >= beta.Length()) break;
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
-                   betaSd[i + 1][i + 1]);
+                   betaSd(i + 1, i + 1));
       }
       // sigma
       fp->printf("## - SigmaG2\t%g\tNA\n", sigmaG2);
@@ -3472,7 +3475,7 @@ class MetaScoreTest : public ModelFitter {
       for (int i = 0; i < m.rows; ++i) {
         for (int j = 0; j < m.cols; ++j) {
           if (j) fw.write("\t");
-          fw.printf("%g", m[i][j]);
+          fw.printf("%g", m(i, j));
         }
         fw.write("\n");
       }
@@ -3521,20 +3524,20 @@ class MetaScoreTest : public ModelFitter {
 
       fp->write("##NullModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd(0, 0));
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
         if (i + 1 >= beta.Length()) break;
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
-                   betaSd[i + 1][i + 1]);
+                   betaSd(i + 1, i + 1));
       }
       // sigma
       fp->printf("## - Sigma2\t%g\tNA\n", sigma2);
     }
-    double GetU() { return linear.GetU()[0][0] / sigma2; }
-    double GetV() { return linear.GetV()[0][0] / sigma2 / sigma2; }
+    double GetU() { return linear.GetU()(0, 0) / sigma2; }
+    double GetV() { return linear.GetV()(0, 0) / sigma2 / sigma2; }
     double GetEffect() {
-      return linear.GetV()[0][0] != 0.0 ? linear.GetBeta()[0][0] : 0.0;
+      return linear.GetV()(0, 0) != 0.0 ? linear.GetBeta()(0, 0) : 0.0;
     }
     double GetEffectSE() { return linear.GetSEBeta(0); }
     double GetPvalue() { return linear.GetPvalue(); }
@@ -3558,9 +3561,9 @@ class MetaScoreTest : public ModelFitter {
       int nCase = 0;
       int nCtrl = 0;
       for (int i = 0; i < phenotype.rows; ++i) {
-        if (phenotype[i][0] == 1) {
+        if (phenotype(i, 0) == 1) {
           ++nCase;
-        } else if (phenotype[i][0] == 0) {
+        } else if (phenotype(i, 0) == 0) {
           ++nCtrl;
         }
       }
@@ -3624,12 +3627,12 @@ class MetaScoreTest : public ModelFitter {
 
       fp->write("##NullModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd(0, 0));
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
         if (i + 1 >= beta.Length()) break;
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
-                   betaSd[i + 1][i + 1]);
+                   betaSd(i + 1, i + 1));
       }
       // sigma
       fp->printf("## - SigmaG2\t%g\tNA\n", sigmaG2);
@@ -3672,9 +3675,9 @@ class MetaScoreTest : public ModelFitter {
         int nCase = 0;
         int nCtrl = 0;
         for (int i = 0; i < phenotype.rows; ++i) {
-          if (phenotype[i][0] == 1) {
+          if (phenotype(i, 0) == 1) {
             ++nCase;
-          } else if (phenotype[i][0] == 0) {
+          } else if (phenotype(i, 0) == 0) {
             ++nCtrl;
           }
         }
@@ -3732,22 +3735,22 @@ class MetaScoreTest : public ModelFitter {
 
       fp->write("##NullModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd(0, 0));
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
         if (i + 1 >= beta.Length()) break;
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
-                   betaSd[i + 1][i + 1]);
+                   betaSd(i + 1, i + 1));
       }
       // sigma
       fp->printf("## - Sigma2\tNA\tNA\n");
     }
-    double GetU() { return logistic.GetU()[0][0]; }
-    double GetV() { return logistic.GetV()[0][0]; }
+    double GetU() { return logistic.GetU()(0, 0); }
+    double GetV() { return logistic.GetV()(0, 0); }
     double GetEffect() {
       if (!useMLE) {
-        if (logistic.GetU()[0][0] != 0.0) {
-          return logistic.GetU()[0][0] / logistic.GetV()[0][0];
+        if (logistic.GetU()(0, 0) != 0.0) {
+          return logistic.GetU()(0, 0) / logistic.GetV()(0, 0);
         }
       } else {
         return logisticAlt.GetCovEst()[1];
@@ -3982,9 +3985,9 @@ class MetaCovTest : public ModelFitter {
     // const int n = X.rows;
     // float s = 0.;
     // for (int i = 0; i < n; ++i) {
-    //   s += a[i] * X[i][i] * b[i];
+    //   s += a[i] * X(i,i) * b[i];
     //   for (int j = 0; j < i; ++j) {
-    //     s += (a[i] * b[j] + a[j] * b[i]) * X[i][j];
+    //     s += (a[i] * b[j] + a[j] * b[i]) * X(i,j);
     //   }
     // }
     // return s;
@@ -4043,7 +4046,7 @@ class MetaCovTest : public ModelFitter {
     for (int i = 0; i < mat.rows; ++i) {
       for (int j = 0; j <= i; ++j) {
         if (i || j) s += ',';
-        s += floatToString(mat[i][j] * scale);
+        s += floatToString(mat(i, j) * scale);
       }
     }
   }
@@ -4228,7 +4231,7 @@ class MetaSkewTest: public ModelFitter{
     }
     loci.geno.resize(nSample);
     for (int i = 0; i < nSample; ++i) {
-      loci.geno[i] = genotype[i][0];
+      loci.geno[i] = genotype(i,0);
     }
     fitOK = true;
     return (fitOK ? 0 : -1);
@@ -4546,7 +4549,7 @@ class MetaKurtTest: public ModelFitter{
     }
     loci.geno.resize(nSample);
     for (int i = 0; i < nSample; ++i) {
-      loci.geno[i] = genotype[i][0];
+      loci.geno[i] = genotype(i,0);
     }
     fitOK = true;
     return (fitOK ? 0 : -1);
@@ -4835,29 +4838,29 @@ class MultipleTraitScoreTest : public ModelFitter {
         if (numResult == blockSize) {
           flushOutput();
         }
-        // const double u = linear.GetU()[0][0];
-        // const double v = linear.GetV()[0][0];
+        // const double u = linear.GetU()(0,0);
+        // const double v = linear.GetV()(0,0);
         // result.updateValue("U", u);
         // result.updateValue("V", v);
         // result.updateValue("STAT", linear.GetStat());
         // if (u != 0) {
-        //   result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" :
+        //   result.updateValue("DIRECTION", linear.GetU()(0,0) > 0 ? "+" :
         //   "-");
         // }
         // if (v > 0) {
-        //   result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+        //   result.updateValue("EFFECT", linear.GetBeta()(0,0));
         //   result.updateValue("SE", 1.0 / sqrt(v));
         // }
         // result.updateValue("PVALUE", linear.GetPvalue());
       } else {
-        // const double u = logistic.GetU()[0][0];
-        // const double v = logistic.GetV()[0][0];
+        // const double u = logistic.GetU()(0,0);
+        // const double v = logistic.GetV()(0,0);
         // result.updateValue("U", u);
         // result.updateValue("V", v);
         // result.updateValue("STAT", logistic.GetStat());
         // if (u != 0) {
         //   result.updateValue("DIRECTION",
-        //                      logistic.GetU()[0][0] > 0 ? "+" : "-");
+        //                      logistic.GetU()(0,0) > 0 ? "+" : "-");
         // }
         // if (v > 0 && b > 0) {
         //   result.updateValue("EFFECT", u / v / b);
@@ -4875,9 +4878,9 @@ class MultipleTraitScoreTest : public ModelFitter {
         for (int i = 0; i < numResult; ++i) {
           fp->write(sites[i]);
 
-          formatValue(linear.GetU(i), &ustat);
-          formatValue(linear.GetV(i), &vstat);
-          formatValue(linear.GetPvalue(i), &pvalue);
+          formatValue(linear.GetU(), i, &ustat);
+          formatValue(linear.GetV(), i, &vstat);
+          formatValue(linear.GetPvalue(), i, &pvalue);
 
           result.updateValue("U_STAT", ustat);
           result.updateValue("V_STAT", vstat);
@@ -4890,14 +4893,14 @@ class MultipleTraitScoreTest : public ModelFitter {
     linear.flush();
     numResult = 0;
   }
-  void formatValue(const Vector& v, std::string* out) {
-    const int n = v.Length();
+  void formatValue(const Matrix& m, int rowIdx, std::string* out) {
+    const int n = m.cols;
     (*out).clear();
     for (int i = 0; i < n; ++i) {
       if (i) {
         (*out) += ",";
       }
-      (*out) += toString(v[i]);
+      (*out) += toString(m(rowIdx, i));
     }
   }
 
@@ -5020,29 +5023,29 @@ class FastMultipleTraitScoreTest : public ModelFitter {
         if (numResult == blockSize) {
           flushOutput();
         }
-        // const double u = linear.GetU()[0][0];
-        // const double v = linear.GetV()[0][0];
+        // const double u = linear.GetU()(0,0);
+        // const double v = linear.GetV()(0,0);
         // result.updateValue("U", u);
         // result.updateValue("V", v);
         // result.updateValue("STAT", linear.GetStat());
         // if (u != 0) {
-        //   result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" :
+        //   result.updateValue("DIRECTION", linear.GetU()(0,0) > 0 ? "+" :
         //   "-");
         // }
         // if (v > 0) {
-        //   result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+        //   result.updateValue("EFFECT", linear.GetBeta()(0,0));
         //   result.updateValue("SE", 1.0 / sqrt(v));
         // }
         // result.updateValue("PVALUE", linear.GetPvalue());
       } else {
-        // const double u = logistic.GetU()[0][0];
-        // const double v = logistic.GetV()[0][0];
+        // const double u = logistic.GetU()(0,0);
+        // const double v = logistic.GetV()(0,0);
         // result.updateValue("U", u);
         // result.updateValue("V", v);
         // result.updateValue("STAT", logistic.GetStat());
         // if (u != 0) {
         //   result.updateValue("DIRECTION",
-        //                      logistic.GetU()[0][0] > 0 ? "+" : "-");
+        //                      logistic.GetU()(0,0) > 0 ? "+" : "-");
         // }
         // if (v > 0 && b > 0) {
         //   result.updateValue("EFFECT", u / v / b);
@@ -5060,9 +5063,9 @@ class FastMultipleTraitScoreTest : public ModelFitter {
         for (int i = 0; i < numResult; ++i) {
           fp->write(sites[i]);
 
-          formatValue(linear.GetU(i), &ustat);
-          formatValue(linear.GetV(i), &vstat);
-          formatValue(linear.GetPvalue(i), &pvalue);
+          formatValue(linear.GetU(), i, &ustat);
+          formatValue(linear.GetV(), i, &vstat);
+          formatValue(linear.GetPvalue(), i, &pvalue);
 
           result.updateValue("U_STAT", ustat);
           result.updateValue("V_STAT", vstat);
@@ -5075,14 +5078,14 @@ class FastMultipleTraitScoreTest : public ModelFitter {
     linear.flush();
     numResult = 0;
   }
-  void formatValue(const Vector& v, std::string* out) {
-    const int n = v.Length();
+  void formatValue(const Matrix& m, int rowIdx, std::string* out) {
+    const int n = m.cols;
     (*out).clear();
     for (int i = 0; i < n; ++i) {
       if (i) {
         (*out) += ",";
       }
-      (*out) += toString(v[i]);
+      (*out) += toString(m(rowIdx, i));
     }
   }
 
@@ -5164,17 +5167,17 @@ class DumpModel : public ModelFitter {
       }
     }
     for (int i = 0; i < genotype.cols; i++) {
-      if (strlen(genotype.GetColumnLabel(i)) == 0) {
+      if ((genotype.GetColumnLabel(i)).empty()) {
         fprintf(fDump, "\tX%d", i);
       } else {
-        fprintf(fDump, "\t%s", genotype.GetColumnLabel(i));
+        fprintf(fDump, "\t%s", genotype.GetColumnLabel(i).c_str());
       }
     }
     for (int i = 0; i < covariate.cols; i++) {
-      if (strlen(covariate.GetColumnLabel(i)) == 0) {
+      if (covariate.GetColumnLabel(i).empty()) {
         fprintf(fDump, "\tC%d", i);
       } else {
-        fprintf(fDump, "\t%s", covariate.GetColumnLabel(i));
+        fprintf(fDump, "\t%s", covariate.GetColumnLabel(i).c_str());
       }
     }
     fprintf(fDump, "\n");
@@ -5185,13 +5188,13 @@ class DumpModel : public ModelFitter {
       // fputs(prependString, fDump);
       siteInfo.writeValue(fDump);
       for (int j = 0; j < phenotype.cols; ++j) {
-        fprintf(fDump, "\t%f", phenotype[i][j]);
+        fprintf(fDump, "\t%f", phenotype(i, j));
       }
       for (int j = 0; j < genotype.cols; ++j) {
-        fprintf(fDump, "\t%f", genotype[i][j]);
+        fprintf(fDump, "\t%f", genotype(i, j));
       }
       for (int j = 0; j < covariate.cols; ++j) {
-        fprintf(fDump, "\t%f", covariate[i][j]);
+        fprintf(fDump, "\t%f", covariate(i, j));
       }
       fprintf(fDump, "\n");
     }

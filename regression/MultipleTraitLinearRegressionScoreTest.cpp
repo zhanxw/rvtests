@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "MultipleTraitLinearRegressionScoreTest.h"
 
 #include <map>
@@ -60,7 +61,7 @@ void makeMatrix(Matrix& m, const std::vector<int>& index, EMat* out) {
   for (int i = 0; i < m.rows; ++i) {
     for (size_t j = 0; j < index.size(); ++j) {
       const int idx = index[j];
-      (*out)(i, j) = m[i][idx];
+      (*out)(i, j) = m(i, idx);
     }
   }
 }
@@ -316,7 +317,7 @@ bool MultipleTraitLinearRegressionScoreTest::AddGenotype(const Matrix& g) {
     int idx = 0;
     for (int j = 0; j < n; ++j) {
       if (!missingIndex[j]) {
-        G(idx, resultLength) = g[j][0];
+        G(idx, resultLength) = g(j, 0);
         ++idx;
       }
     }
@@ -373,14 +374,14 @@ bool MultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
         const int idx = group[i][k];
         const double u = w.ustat[i](j, k);
         const double v = w.vstat[i](j, 0) * w.sigma2[idx];
-        this->ustat[j][idx] = u;
-        this->vstat[j][idx] = v;
+        this->ustat(j, idx) = u;
+        this->vstat(j, idx) = v;
 
         if (v == 0.) {
-          this->pvalue[j][idx] = NAN;
+          this->pvalue(j, idx) = NAN;
         } else {
           double stat = u * u / v;
-          this->pvalue[j][idx] = gsl_cdf_chisq_Q(stat, 1.0);
+          this->pvalue(j, idx) = gsl_cdf_chisq_Q(stat, 1.0);
         }
       }
     }

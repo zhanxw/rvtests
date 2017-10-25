@@ -3,13 +3,13 @@
 // Copyright 2011 Gao Wang
 #ifndef _KBAC_H
 #define _KBAC_H
-#include <iostream>
-#include <list>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <algorithm>
-#include <vector>
 #include <iomanip>
+#include <iostream>
+#include <list>
+#include <vector>
 
 class KbacTest {
  public:

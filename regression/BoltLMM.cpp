@@ -199,7 +199,7 @@ class PlinkLoader {
     y_ = Eigen::MatrixXf::Zero(N_ + C_, 1);
     if (phenotype) {
       for (int i = 0; i < (int)N_; ++i) {
-        y_(i, 0) = (*phenotype)[i][0];
+        y_(i, 0) = (*phenotype)(i, 0);
       }
     } else {
       const std::vector<double>& pheno = pin_->getPheno();

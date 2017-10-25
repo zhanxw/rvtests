@@ -47,13 +47,13 @@ class FirthRegression {
   FirthRegression& operator=(const FirthRegression& l);
 
  private:
-  Vector B;        // coefficient vector
-  Matrix covB;     // coefficient covariance matrix
-  Vector pValue;   // pvalues
-  Vector p;        // p: estimted prob;
-  Vector V;        // V: p(1-p) ;
+  Vector B;       // coefficient vector
+  Matrix covB;    // coefficient covariance matrix
+  Vector pValue;  // pvalues
+  Vector p;       // p: estimted prob;
+  Vector V;       // V: p(1-p) ;
  private:
   class WorkingData;  // store temporary data structure
-  WorkingData* w;  // holding temporary caluclation results
+  WorkingData* w;     // holding temporary caluclation results
 };
 #endif

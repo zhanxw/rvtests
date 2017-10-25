@@ -2,12 +2,12 @@
 #define _LOGISTICREGRESSIONSCORETEST_H_
 
 #include "MathMatrix.h"
-#include "MathCholesky.h"
-#include "StringHash.h"
-#include "StringArray.h"
+// #include "MathCholesky.h"
+// #include "StringHash.h"
+// #include "StringArray.h"
 #include <cmath>
-#include "MathStats.h"
-#include "MathSVD.h"
+// #include "MathStats.h"
+// #include "MathSVD.h"
 
 #include "LogisticRegression.h"
 

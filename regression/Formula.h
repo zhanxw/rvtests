@@ -22,17 +22,17 @@ class FormulaVector {
  public:
   typedef enum { KEEP_INTERCEPT, NO_INTERCEPT } OptionIntercept;
 
-int add(const std::string& response,
-                       const std::string& predictor);
+  int add(const std::string& response, const std::string& predictor);
   int add(const FormulaTerm& response, const FormulaTerm& predictor);
   std::vector<std::string> extractResponse() const;
   std::vector<std::string> extractPredictor(const OptionIntercept& opt) const;
   size_t size() const;
   const Formula& operator[](int i) const;
   const FormulaTerm& getResponse(int i) const;
-  const FormulaTerm& getPhenotype(int i) const;  
+  const FormulaTerm& getPhenotype(int i) const;
   const FormulaTerm& getPredictor(int i) const;
-  const FormulaTerm& getCovariate(int i) const;    
+  const FormulaTerm& getCovariate(int i) const;
+
  private:
   bool skipIntercept;  // when covaraite has 1
   std::vector<Formula> d;

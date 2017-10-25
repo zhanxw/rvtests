@@ -17,6 +17,7 @@
 
 #include "MathMatrix.h"
 
+#if 0
 #include "Error.h"
 #include "MathConstant.h"
 #include "MathVector.h"
@@ -449,7 +450,7 @@ void Matrix::Swap(Matrix &m) {
   Vector **tmpData = data;
   data = m.data;
   m.data = tmpData;
-}
+A}
 
 double Matrix::Min() const {
   if (rows == 0 || cols == 0) return 0.0;
@@ -633,3 +634,4 @@ void Matrix::SetupPrint(FILE *f, int r, int c, int &column_zero, int *precision,
     fprintf(f, "%*s ", width[j], (const char *)extras[j].label);
   }
 }
+#endif

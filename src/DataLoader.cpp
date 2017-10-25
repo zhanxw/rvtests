@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "DataLoader.h"
 
 #include <string>
@@ -327,7 +328,7 @@ int DataLoader::loadMarkerAsCovariate(const std::string& inVcf,
   std::vector<double> d(geno.rows);
   for (int i = 0; i < geno.cols; ++i) {
     for (int j = 0; j < geno.rows; ++j) {
-      d[j] = geno[j][i];
+      d[j] = geno(j, i);
     }
     covariate.appendCol(d, geno.GetColumnLabel(i));
   }
@@ -556,7 +557,7 @@ int DataLoader::useResidualAsPhenotype() {
     Matrix& betaSd = lr.GetCovB();
     const int n = beta.Length();
     for (int i = 0; i < n; ++i) {
-      addFittedParameter(covAndInt.GetColumnLabel(i), beta[i], betaSd[i][i]);
+      addFittedParameter(covAndInt.GetColumnLabel(i), beta[i], betaSd(i, i));
     }
     addFittedParameter("Sigma2", lr.GetSigma2(), NAN);
   }
@@ -1324,7 +1325,7 @@ int findMissingSex(const std::vector<int>& sex, std::vector<int>* index) {
  */
 int removeByRowIndex(const std::vector<int>& index, Matrix* val) {
   if (index.empty()) return 0;
-
+#if 0
   Matrix& m = *val;
   std::vector<int> idx = index;
   std::sort(idx.begin(), idx.end());
@@ -1334,6 +1335,9 @@ int removeByRowIndex(const std::vector<int>& index, Matrix* val) {
     m.DeleteRow(idx[i]);
   }
   return (nr - m.rows);
+#endif
+
+  return val->RemoveByRowIndex(index);
 }  // removeByRowIndex
 
 /**
@@ -1351,7 +1355,7 @@ int appendToMatrix(const std::string& label, const std::vector<int> val,
   int nc = m.cols;
   m.Dimension(m.rows, m.cols + 1);
   for (int i = 0; i < nr; ++i) {
-    m[i][nc] = val[i];
+    m(i, nc) = val[i];
   }
   m.SetColumnLabel(nc, label.c_str());
   return 0;
@@ -1383,7 +1387,7 @@ int appendGenotype(Matrix* covariate,
       if (index < 0) {  // did not find a person
         return -1;
       }
-      m[i][baseCols + j] = geno[index][j];
+      m(i, baseCols + j) = geno(index, j);
 
       if (i == 0) {
         m.SetColumnLabel(baseCols + j, geno.GetColumnLabel(j));

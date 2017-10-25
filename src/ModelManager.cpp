@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "ModelManager.h"
 
 #include "src/Model.h"

@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "ModelFitter.h"
 
 #include "Model.h"
@@ -49,8 +50,8 @@ double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col) {
   int an = 0;
   for (int p = 0; p < numPeople; p++) {
     if (pheno[p] == 1) continue;
-    if (in[p][col] >= 0) {
-      ac += in[p][col];
+    if (in(p, col) >= 0) {
+      ac += in(p, col);
       an += 2;
     }
   }
@@ -77,9 +78,9 @@ void cmcCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
   out->Zero();
   for (int p = 0; p < numPeople; p++) {
     for (int m = 0; m < numMarker; m++) {
-      int g = (int)(in[p][m]);
+      int g = (int)(in(p, m));
       if (g > 0) {
-        (*out)[p][0] = 1.0;
+        (*out)(p, 0) = 1.0;
         break;
       }
     }
@@ -94,11 +95,11 @@ void cmcCollapse(DataConsolidator* dc, Matrix& in,
   assert(out->cols > outIndex);
 
   for (int p = 0; p < numPeople; p++) {
-    (*out)[p][outIndex] = 0.0;
+    (*out)(p, outIndex) = 0.0;
     for (size_t m = 0; m < index.size(); m++) {
-      int g = (int)(in[p][index[m]]);
+      int g = (int)(in(p, index[m]));
       if (g > 0) {
-        (*out)[p][outIndex] = 1.0;
+        (*out)(p, outIndex) = 1.0;
         break;
       }
     };
@@ -119,9 +120,9 @@ void zegginiCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
   out->Zero();
   for (int p = 0; p < numPeople; p++) {
     for (int m = 0; m < numMarker; m++) {
-      int g = (int)(in[p][m]);
+      int g = (int)(in(p, m));
       if (g > 0) {  // genotype is non-reference
-        (*out)[p][0] += 1.0;
+        (*out)(p, 0) += 1.0;
       }
     }
   }
@@ -135,11 +136,11 @@ void zegginiCollapse(DataConsolidator* dc, Matrix& in,
   assert(out->cols > outIndex);
 
   for (int p = 0; p < numPeople; p++) {
-    (*out)[p][outIndex] = 0.0;
+    (*out)(p, outIndex) = 0.0;
     for (size_t m = 0; m < index.size(); m++) {
-      int g = (int)(in[p][index[m]]);
+      int g = (int)(in(p, index[m]));
       if (g > 0) {
-        (*out)[p][outIndex] += 1.0;
+        (*out)(p, outIndex) += 1.0;
       }
     };
   };
@@ -167,7 +168,7 @@ void madsonBrowningCollapse(DataConsolidator* dc, Matrix& genotype,
     // fprintf(stderr, "freq = %f\n", freq);
 
     for (int p = 0; p < numPeople; p++) {
-      (*out)[p][0] += genotype[p][m] * weight;
+      (*out)(p, 0) += genotype(p, m) * weight;
     }
   }
 };
@@ -189,7 +190,7 @@ void fpCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
     // fprintf(stderr, "freq = %f\n", freq);
 
     for (int p = 0; p < numPeople; p++) {
-      (*out)[p][0] += in[p][m] * weight;
+      (*out)(p, 0) += in(p, m) * weight;
     }
   }
 }
@@ -212,7 +213,7 @@ void madsonBrowningCollapse(DataConsolidator* dc, Matrix* d, Matrix* out) {
     // fprintf(stderr, "freq = %f\n", freq);
 
     for (int p = 0; p < numPeople; p++) {
-      (*out)[p][0] += in[p][m] * weight;
+      (*out)(p, 0) += in(p, m) * weight;
     }
   };
 }
@@ -229,7 +230,7 @@ void convertToReferenceAlleleCount(Matrix* g) {
   Matrix& m = *g;
   for (int i = 0; i < m.rows; ++i) {
     for (int j = 0; j < m.cols; ++j) {
-      m[i][j] = 2 - m[i][j];
+      m(i, j) = 2 - m(i, j);
     }
   }
 }
@@ -287,7 +288,7 @@ void rearrangeGenotypeByFrequency(Matrix& in, const std::vector<double>& freqIn,
     const std::vector<int>& cols = freqGroupIter->second;
     for (size_t j = 0; j != cols.size(); ++j) {
       for (int i = 0; i < in.rows; ++i) {
-        sortedGenotype[i][cols[j]] += in[i][cols[j]];
+        sortedGenotype(i,cols[j)] += in(i,cols[j)];
       }
     }
     ++idx;
@@ -381,9 +382,9 @@ void SingleVariantScoreTest::calculateConstant(Matrix& phenotype) {
   int nCase = 0;
   int nCtrl = 0;
   for (int i = 0; i < phenotype.rows; ++i) {
-    if (phenotype[i][0] == 1) {
+    if (phenotype(i,0) == 1) {
       ++nCase;
-    } else if (phenotype[i][0] == 0) {
+    } else if (phenotype(i,0) == 0) {
       ++nCtrl;
     }
   }
@@ -559,7 +560,7 @@ class MetaCovUnrelatedQtl : public MetaCovBase {
     //       sum = 0.0;
     // #pragma omp parallel for reduction(+ : sum)
     //       for (int i = 0; i < n; ++i) {
-    //         sum += x[i] * cov[i][c];
+    //         sum += x[i] * cov(i,c);
     //       }
     //       (*covXZ)[c] = sum / this->sigma2;
     //     }
@@ -601,9 +602,9 @@ class MetaCovFamBinary : public MetaCovBase {
     int nCase = 0;
     int nCtrl = 0;
     for (int i = 0; i < phenotype.rows; ++i) {
-      if (phenotype[i][0] == 1) {
+      if (phenotype(i, 0) == 1) {
         ++nCase;
-      } else if (phenotype[i][0] == 0) {
+      } else if (phenotype(i, 0) == 0) {
         ++nCtrl;
       }
     }
@@ -735,7 +736,7 @@ class MetaCovUnrelatedBinary : public MetaCovBase {
     // for (int c = 0; c < nCov; ++c) {
     //   float s = 0.;
     //   for (int i = 0; i < nSample; ++i) {
-    //     s += x[i] * weight[i] * cov[i][c];
+    //     s += x[i] * weight[i] * cov(i,c);
     //   }
     //   (*covXZ)[c] = s;
     // }
@@ -752,12 +753,12 @@ class MetaCovUnrelatedBinary : public MetaCovBase {
     covZZ.Dimension(nCov, nCov);
     for (int i = 0; i < nCov; ++i) {
       for (int j = 0; j <= i; ++j) {
-        covZZ[i][j] = 0.0;
+        covZZ(i, j) = 0.0;
         for (int k = 0; k < nSample; ++k) {
-          covZZ[i][j] += cov[k][i] * weight(k) * cov[k][j];
+          covZZ(i, j) += cov(k, i) * weight(k) * cov(k, j);
         }
         if (j != i) {
-          covZZ[j][i] = covZZ[i][j];
+          covZZ(j, i) = covZZ(i, j);
         }
       }
     }
@@ -902,7 +903,7 @@ int MetaCovTest::fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
   // assign genotype to loci.geno
   // loci.geno.resize(nSample);
   // for (int i = 0; i < nSample; ++i) {
-  //   loci.geno[i] = genotype[i][0];
+  //   loci.geno[i] = genotype(i,0);
   // }
   assignGenotype(genotype, loci.geno);
   loci.covXZ = genoCovPool.allocate();
@@ -930,7 +931,7 @@ void MetaCovTest::assignGenotype(Matrix& genotype, Genotype& genoIdx) {
   genoIdx = genoPool.allocate();
   float* p = genoPool.chunk(genoIdx);
   for (int i = 0; i < nSample; ++i) {
-    p[i] = genotype[i][0];
+    p[i] = genotype(i, 0);
   }
 }
 

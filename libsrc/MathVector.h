@@ -17,7 +17,54 @@
 
 #ifndef __MATHVECTOR_H__
 #define __MATHVECTOR_H__
+#include <algorithm>
+#include <numeric>  // accumulate
+#include <vector>
+#include "third/eigen/Eigen/Core"
 
+#define DECLARE_EIGEN_VECTOR(matRef, varName)               \
+  Eigen::Map<Eigen::MatrixXd> varName((matRef).data.data(), \
+                                      (matRef).data.size(), 1);
+
+#define DECLARE_EIGEN_CONST_VECTOR(matRef, varName)               \
+  Eigen::Map<const Eigen::MatrixXd> varName((matRef).data.data(), \
+                                            (matRef).data.size(), 1);
+
+class Vector {
+ public:
+  Vector() {}
+  Vector(int n) { data.resize(n); }
+  double operator[](int idx) const { return data[idx]; }
+  double& operator[](int idx) { return data[idx]; }
+  int Length() const { return data.size(); }
+  void Dimension(int n) { data.resize(n); }
+  void Dimension(int n, double val) {
+    data.resize(n);
+    Zero();
+  }
+  void Fill(double val) { std::fill(data.begin(), data.end(), val); }
+  void Zero() { Fill(0); }
+  double Sum() const { return std::accumulate(data.begin(), data.end(), 0.0); }
+  double Average() const {
+    if (data.empty()) return 0.0;
+    return Sum() / data.size();
+  }
+  double Min() const { return *std::min_element(data.begin(), data.end()); }
+  double Max() const { return *std::max_element(data.begin(), data.end()); }
+#if 1
+  operator Eigen::Map<Eigen::MatrixXd>() {
+    Eigen::Map<Eigen::MatrixXd> ret(data.data(), data.size(), 1);
+    return ret;
+  }
+  operator Eigen::Map<const Eigen::MatrixXd>() const {
+    Eigen::Map<const Eigen::MatrixXd> ret(data.data(), data.size(), 1);
+    return ret;
+  }
+#endif
+ public:
+  std::vector<double> data;
+};
+#if 0
 #include "StringBasics.h"
 
 #include <assert.h>
@@ -234,5 +281,5 @@ class VectorFunc
   double dfmin;
   Vector dpmin;
 };
-
+#endif
 #endif

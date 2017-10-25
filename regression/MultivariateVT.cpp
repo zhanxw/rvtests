@@ -1,11 +1,12 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "MultivariateVT.h"
 #include "libMvtnorm/mvtnorm.h"
 
 #include <cfloat>
-#include <limits>
 #include <cmath>
-#include <vector>
+#include <limits>
 #include <set>
+#include <vector>
 
 // #define DEBUG
 #undef DEBUG
@@ -33,7 +34,7 @@ int MultivariateVT::compute(Vector& freq, Matrix& U, Matrix& V) {
       skip.insert(i);
       continue;
     }
-    if (V[i][i] < 1e-10) {
+    if (V(i, i) < 1e-10) {
       skip.insert(i);
       continue;
     }
@@ -55,7 +56,7 @@ int MultivariateVT::compute(Vector& freq, Matrix& U, Matrix& V) {
   }
 
   cutoff.Dimension(numKeep);
-  // phi[i][j] = 1 means at maf[i] < cutoff[j]
+  // phi(i,j) = 1 means at maf[i] < cutoff[j]
   phi.Dimension(numFreq, numKeep);
 
   int j = 0;
@@ -67,32 +68,41 @@ int MultivariateVT::compute(Vector& freq, Matrix& U, Matrix& V) {
   for (int i = 0; i < numFreq; ++i) {
     for (int j = 0; j < numKeep; ++j) {
       if (skip.count(i) > 0) {
-        phi[i][j] = 0.;
+        phi(i, j) = 0.;
         continue;
       }
       if (maf[i] <= cutoff[j]) {
-        phi[i][j] = 1.;
+        phi(i, j) = 1.;
       } else {
-        phi[i][j] = 0.;
+        phi(i, j) = 0.;
       }
     }
   }
 
-  // u_phi = t(U) * phi
-  Matrix tmp;
-  tmp.Transpose(U);
-  this->u_phi.Product(tmp, phi);
+  // // u_phi = t(U) * phi
+  // Matrix tmp;
+  // tmp.Transpose(U);
+  // this->u_phi.Product(tmp, phi);
+  DECLARE_EIGEN_MATRIX(U, U_e);
+  DECLARE_EIGEN_MATRIX(phi, phi_e);
+  this->u_phi.Dimension(U_e.cols(), phi_e.cols());
+  DECLARE_EIGEN_MATRIX(u_phi, u_phi_e);
+  u_phi_e = U_e.transpose() * phi_e;
 
-  // v_phi = t(phi) * v * phi
-  Matrix phiT;
-  phiT.Transpose(phi);
-  tmp.Product(phiT, V);
-  this->v_phi.Product(tmp, phi);
+  // // v_phi = t(phi) * v * phi
+  // Matrix phiT;
+  // phiT.Transpose(phi);
+  // tmp.Product(phiT, V);
+  // this->v_phi.Product(tmp, phi);
+  DECLARE_EIGEN_MATRIX(V, V_e);
+  this->v_phi.Dimension(phi_e.cols(), phi_e.cols());
+  DECLARE_EIGEN_MATRIX(v_phi, v_phi_e);
+  v_phi_e = phi_e.transpose() * V_e * phi_e;
 
   int maxIdx = -1;
   double maxVal = -DBL_MAX;
   for (int i = 0; i < numKeep; ++i) {
-    double t = fabs(u_phi[0][i] / sqrt(v_phi[i][i]));
+    double t = fabs(u_phi(0, i) / sqrt(v_phi(i, i)));
     if (t > maxVal) {
       maxIdx = i;
       maxVal = t;
@@ -112,13 +122,13 @@ int MultivariateVT::compute(Vector& freq, Matrix& U, Matrix& V) {
   this->minMAF = maf.Min();
   this->maxMAF = maf.Max();
   this->optimalMAF = cutoff[maxIdx];
-  this->optimalU = u_phi[0][maxIdx];
-  this->optimalV = v_phi[maxIdx][maxIdx];
+  this->optimalU = u_phi(0, maxIdx);
+  this->optimalV = v_phi(maxIdx, maxIdx);
   this->stat = maxVal;
 
   this->optimalNumVar = 0;
   for (int i = 0; i < numFreq; ++i) {
-    if (phi[i][maxIdx] > 0) ++this->optimalNumVar;
+    if (phi(i, maxIdx) > 0) ++this->optimalNumVar;
   }
 
   if (this->mvn.getBandProbFromCov(-maxVal, maxVal, this->v_phi,

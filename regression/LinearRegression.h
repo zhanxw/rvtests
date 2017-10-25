@@ -2,10 +2,10 @@
 #define _LINEARREGRESSION_H_
 
 #include "MathMatrix.h"
-#include "MathCholesky.h"
+// #include "MathCholesky.h"
 #include <cmath>
-#include "MathStats.h"
-#include "MathSVD.h"
+// #include "MathStats.h"
+// #include "MathSVD.h"
 
 // use Wald statistics
 class LinearRegression {
@@ -45,7 +45,7 @@ class LinearRegression {
   Vector predict;    // Y - X'
                      // \hat(beta)rvtest.1110.tgzrvtest.1110.tgzrvtest.1110.tgz
   Matrix XtXinv;     // (X'X)^ {-1}
-  Cholesky chol;
+  // Cholesky chol;
   double sigma2;  // \hat{\sigma^2} MLE
 };
 

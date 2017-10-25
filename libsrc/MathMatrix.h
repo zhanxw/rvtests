@@ -1,25 +1,156 @@
-////////////////////////////////////////////////////////////////////// 
-// libsrc/MathMatrix.h 
+//////////////////////////////////////////////////////////////////////
+// libsrc/MathMatrix.h
 // (c) 2000-2010 Goncalo Abecasis
-// 
-// This file is distributed as part of the Goncalo source code package   
-// and may not be redistributed in any form, without prior written    
-// permission from the author. Permission is granted for you to       
-// modify this file for your own personal use, but modified versions  
-// must retain this copyright notice and must not be distributed.     
-// 
-// Permission is granted for you to use this file to compile Goncalo.    
-// 
-// All computer programs have bugs. Use this file at your own risk.   
-// 
+//
+// This file is distributed as part of the Goncalo source code package
+// and may not be redistributed in any form, without prior written
+// permission from the author. Permission is granted for you to
+// modify this file for your own personal use, but modified versions
+// must retain this copyright notice and must not be distributed.
+//
+// Permission is granted for you to use this file to compile Goncalo.
+//
+// All computer programs have bugs. Use this file at your own risk.
+//
 // Sunday May 02, 2010
-// 
- 
+//
+
 #ifndef __MATHMATRIX_H__
 #define __MATHMATRIX_H__
 
+#include <set>
+
 #include "MathVector.h"
+#include "third/eigen/Eigen/Core"
+
+#define DECLARE_EIGEN_MATRIX(matRef, varName)                              \
+  Eigen::Map<Eigen::MatrixXd> varName((matRef).data.data(), (matRef).rows, \
+                                      (matRef).cols);
+#define DECLARE_EIGEN_CONST_MATRIX(matRef, varName)               \
+  Eigen::Map<const Eigen::MatrixXd> varName((matRef).data.data(), \
+                                            (matRef).rows, (matRef).cols);
+
+// column-major
+class Matrix {
+ public:
+  Matrix() {
+    rows = 0;
+    cols = 0;
+  }
+  Matrix(int nr, int nc) {
+    rows = nr;
+    cols = nc;
+    data.resize(nr * nc);
+  }
+  double& operator()(int i, int j) { return data[i + j * rows]; }
+  const double operator()(int i, int j) const { return data[i + j * rows]; }
+  /**
+   * Resize matrix to @param nr by @param nc
+   * Existing contents is preserved
+   */
+  void Dimension(int nr, int nc) {
+    if (nr == rows && nc == cols) {
+      return;
+    }
+
+    // todo: make this run faster
+    std::vector<double> newData(nr * nc);
+    for (int i = 0; i < nr && i < rows; ++i) {
+      for (int j = 0; j < nc && j < cols; ++j) {
+        newData[j * nc + i] = data[j * cols + i];
+      }
+    }
+
+    rows = nr;
+    cols = nc;
+    std::swap(data, newData);
+    colLabel.resize(nc);
+  }
+  /**
+   * Set all matrix elements to @param val
+   */
+  void Dimension(int nr, int nc, double val) {
+    DimensionQuick(nr, nc);
+    Fill(val);
+    colLabel.resize(nc);
+  }
+  void DimensionQuick(int nr, int nc) {
+    rows = nr;
+    cols = nc;
+    data.resize(nr * nc);
+  }
+  void Fill(double val) { std::fill(data.begin(), data.end(), val); }
+  void Zero() { Fill(0.); }
+  const std::string& GetColumnLabel(int idx) const { return colLabel[idx]; }
+  void SetColumnLabel(int idx, const std::string& label) {
+    colLabel[idx] = label;
+  }
+  double Min() const { return *std::min_element(data.begin(), data.end()); }
+  double Max() const { return *std::max_element(data.begin(), data.end()); }
+  void Product(const Matrix& in1, const Matrix& in2) {
+    DECLARE_EIGEN_CONST_MATRIX(in1, in1_e);
+    DECLARE_EIGEN_CONST_MATRIX(in2, in2_e);
+    DimensionQuick(in1_e.rows(), in2_e.cols());
+    Eigen::Map<Eigen::MatrixXd> ret(data.data(), rows, cols);
+    ret = in1_e * in2_e;
+  }
+  void Transpose(const Matrix& old) {
+    data.resize(old.data.size());
+    rows = old.cols;
+    cols = old.rows;
+    DECLARE_EIGEN_CONST_MATRIX(old, old_e);
+    DECLARE_EIGEN_MATRIX((*this), new_e);
+    new_e = old_e.transpose();
+  }
+  void Multiply(double s) {
+    for (std::vector<double>::iterator iter = data.begin(); iter != data.end();
+         ++iter) {
+      *iter *= s;
+    }
+  }
+  /**
+   * @param rowIndexToRemove each index should be in [0, ... , rows-1]
+   * @return number of row deleted
+   */
+  int RemoveByRowIndex(const std::vector<int>& rowIndexToRemove) {
+    int idx = 0;
+    assert(*std::min_element(rowIndexToRemove.begin(),
+                             rowIndexToRemove.end()) >= 0);
+    assert(*std::max_element(rowIndexToRemove.begin(), rowIndexToRemove.end()) <
+           rows);
+    std::set<int> idxSet(rowIndexToRemove.begin(), rowIndexToRemove.end());
+    for (int j = 0; j < cols; ++j) {
+      for (int i = 0; i < rows; ++i) {
+        if (idxSet.count(i)) {
+          continue;
+        }
+        data[idx++] = (*this)(i, j);
+      }
+    }
+    rows -= idxSet.size();
+    data.resize(rows * cols);
+    return idxSet.size();
+  }
+#if 1
+  operator Eigen::Map<Eigen::MatrixXd>() {
+    Eigen::Map<Eigen::MatrixXd> ret(data.data(), rows, cols);
+    return ret;
+  }
+  operator Eigen::Map<const Eigen::MatrixXd>() const {
+    Eigen::Map<const Eigen::MatrixXd> ret(data.data(), rows, cols);
+    return ret;
+  }
+#endif
+ public:
+  int rows;
+  int cols;
+  std::vector<double> data;
+  std::vector<std::string> colLabel;
+};
+
+#if 0
 #include "Error.h"
+#include "MathVector.h"
 
 #include <stdio.h>
 
@@ -192,9 +323,5 @@ class Matrix
 
    void Init();
    };
-
 #endif
-
-
-
- 
+#endif

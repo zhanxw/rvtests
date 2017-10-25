@@ -7,7 +7,7 @@
 //
 // March 15, 2008
 //
-
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LogisticRegression.h"
 
 #include <cmath>  // std::isfinite
@@ -38,7 +38,7 @@ void printToFile(Matrix& m, String fn, int index) {
   FILE* fp = fopen(n.c_str(), "wt");
   for (int i = 0; i < m.rows; i++) {
     for (int j = 0; j < m.cols; j++) {
-      fprintf(fp, "%lf\t", m[i][j]);
+      fprintf(fp, "%lf\t", m(i, j));
     }
     fprintf(fp, "\n");
   }
@@ -74,7 +74,7 @@ LogisticRegression::~LogisticRegression() {
 
 double LogisticRegression::GetDeviance() {
   // int i1x, i1y, i2x, i2y;
-  // fprintf(stderr, "min[%d][%d] = %g, max[%d][%d] = %g\n",
+  // fprintf(stderr, "min(%d,%d) = %g, max(%d,%d) = %g\n",
   //         i1x, i1y, w->p.minCoeff(&i1x, &i1y),
   //         i2x, i2y, w->p.maxCoeff(&i2x, &i2y));
 
@@ -98,7 +98,7 @@ double LogisticRegression::GetDeviance(Matrix& X, Vector& y) {
 
   for (int i = 0; i < X.rows; i++) {
     double t = 0.0;
-    for (int j = 0; j < X.cols; j++) t += B[j] * X[i][j];
+    for (int j = 0; j < X.cols; j++) t += B[j] * X(i, j);
     double yhat = 1 / (1 + exp(-t));
     if (y[i] == 1.) {
       if (yhat > 0.) {
@@ -119,7 +119,7 @@ double LogisticRegression::GetDeviance(Matrix& X, Vector& succ, Vector& total) {
   double ll = 0.0;
   for (int i = 0; i < X.rows; i++) {
     double t = 0.0;
-    for (int j = 0; j < X.cols; j++) t += B[j] * X[i][j];
+    for (int j = 0; j < X.cols; j++) t += B[j] * X(i, j);
     double yhat = 1 / (1 + exp(-t));
 
     if (yhat > 0.) {
@@ -138,7 +138,7 @@ Vector& LogisticRegression::GetAsyPvalue() {
   int numCov = B.Length();
   pValue.Dimension(B.Length());
   for (int i = 0; i < numCov; i++) {
-    double Zstat = B[i] * B[i] / (covB[i][i]);
+    double Zstat = B[i] * B[i] / (covB(i, i));
     // pValue[i] = ndist(Zstat);
     // if (pValue[i] >= 0.5){
     // 	pValue[i] = 2*(1-pValue[i]);
@@ -200,7 +200,7 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Matrix& y, int rnrounds) {
   }
   Vector v(X.rows);
   for (int i = 0; i < X.rows; ++i) {
-    v[i] = y[i][0];
+    v[i] = y(i, 0);
   }
   return this->FitLogisticModel(X, v, rnrounds);
 };

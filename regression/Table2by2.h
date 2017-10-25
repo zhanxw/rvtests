@@ -9,7 +9,9 @@
 #ifndef __TABLE2by2_h__
 #define __TABLE2by2_h__
 
-#include "MathStats.h"
+// #include "MathStats.h"
+#include "libsrc/MathMatrix.h"
+#include "libsrc/MathVector.h"
 
 class Table2by2 {
  public:
@@ -50,8 +52,8 @@ class Table2by2 {
   double GetstatChisq();
   double GetpGeneral();
   double GetpFasterFisherExact(
-      const char *
-          testIndicator);  // testIndicator ("TwoSided","Less","Greater")
+      const char
+          *testIndicator);  // testIndicator ("TwoSided","Less","Greater")
 
   // other tools
   void Print();

@@ -1,7 +1,9 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LogisticRegressionScoreTest.h"
 #include "MatrixOperation.h"
 
 #include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
+#include "third/eigen/Eigen/Cholesky"
 
 LogisticRegressionScoreTest::LogisticRegressionScoreTest()
     : stat(0.0), pvalue(0.0){};
@@ -34,8 +36,8 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   this->Umatrix.Dimension(1, 1);
   this->Vmatrix.Dimension(1, 1);
 
-  double& U = Umatrix[0][0];
-  double& I = Vmatrix[0][0];
+  double& U = Umatrix(0, 0);
+  double& I = Vmatrix(0, 0);
   U = 0.0;
   I = 0.0;
 
@@ -72,9 +74,13 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   // int nParamRemain = X.cols - 1;
   int nParamRemain = Xnull.cols;
   Vector vec_corr;
-  vec_corr.Dimension(nParamRemain, 0.0);
+  // vec_corr.Dimension(nParamRemain, 0.0);
+  vec_corr.Dimension(nParamRemain);
+  vec_corr.Zero();
   Matrix mat_corr;
-  mat_corr.Dimension(nParamRemain, nParamRemain, 0.0);
+  // mat_corr.Dimension(nParamRemain, nParamRemain, 0.0);
+  mat_corr.Dimension(nParamRemain, nParamRemain);
+  mat_corr.Zero();
 
   // Vector v;
   // v.Dimension(X.rows, 0.0);
@@ -84,7 +90,7 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
     // for (int j = 0; j < X.cols; j++){
     //     if (j == colToTest) continue; // this corresponds to testing the
     //     coeff to be 0
-    //     bnull += X[i][j] * betaHat[j];
+    //     bnull += X(i,j) * betaHat[j];
     // }
 
     // bnull = exp(bnull);
@@ -97,23 +103,23 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
     // bnull =  bnull/ (1 + tmpBull) ;  // So bull =
     // exp(XbetaNull)/(1+exp(XbetaNull))^2
 
-    // double tmp = xcol[i]/( 1.0 + lr.V[i] ); // xcol[i] = x[i][colToTest];
+    // double tmp = xcol[i]/( 1.0 + lr.V[i] ); // xcol[i] = x(i,colToTest);
 
     // calcualte vec_corr
     for (int j = 0; j < Xnull.cols; j++) {
-      vec_corr[j] += lr.GetVariance()[i] * Xcol[i] * Xnull[i][j];
+      vec_corr[j] += lr.GetVariance()[i] * Xcol[i] * Xnull(i, j);
       // printf("j = %d, xcol = %d, Xnull = %d\n",j,bnull, xcol[j],
-      // Xnull[i][j]);
+      // Xnull(i,j));
     }
 
     // calcualte mat_corr
     for (int j = 0; j < nParamRemain; j++) {
       for (int k = 0; k < j; k++) {
-        double t = lr.GetVariance()[i] * Xnull[i][j] * Xnull[i][k];
-        mat_corr[j][k] += t;
-        mat_corr[k][j] += t;
+        double t = lr.GetVariance()[i] * Xnull(i, j) * Xnull(i, k);
+        mat_corr(j, k) += t;
+        mat_corr(k, j) += t;
       }
-      mat_corr[j][j] += lr.GetVariance()[i] * Xnull[i][j] * Xnull[i][j];
+      mat_corr(j, j) += lr.GetVariance()[i] * Xnull(i, j) * Xnull(i, j);
     }
 
     // I += bnull * tmp * tmp;
@@ -126,22 +132,26 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   // for (int i = 0; i < Xnull.cols; i ++) {
   //     printf("vec_corr[%d] = %.5f\n",i, vec_corr[i]);
   //     for (int j = 0; j < Xnull.cols; j ++) {
-  //         printf("mat_corrr[%d]%d] = %.5f\n",i, j, mat_corr[i][j]);
+  //         printf("mat_corrr[%d]%d] = %.5f\n",i, j, mat_corr(i,j));
   //     }
   // }
 
   // inverse the mat_corr
-  SVD svd;
-  svd.InvertInPlace(mat_corr);
+  // SVD svd;
+  // svd.InvertInPlace(mat_corr);
+  DECLARE_EIGEN_MATRIX(mat_corr, mat_corr_e);
+  mat_corr_e = mat_corr_e.llt().solve(
+      Eigen::MatrixXd::Identity(mat_corr_e.rows(), mat_corr_e.rows()));
 
   Vector leftMult_corr;
-  leftMult_corr.Dimension(nParamRemain, 0.0);
+  leftMult_corr.Dimension(nParamRemain);
+  leftMult_corr.Zero();
 
   // updates I by substracting the terms led by correlations
   // multiplying vec_corr with mat_corr
   for (int i = 0; i < nParamRemain; i++) {
     for (int j = 0; j < nParamRemain; j++) {
-      leftMult_corr[i] += vec_corr[j] * mat_corr[i][j];
+      leftMult_corr[i] += vec_corr[j] * mat_corr(i, j);
     }
   }
 
@@ -167,8 +177,8 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y) {
   this->Umatrix.Dimension(1, 1);
   this->Vmatrix.Dimension(1, 1);
 
-  double& U = Umatrix[0][0];
-  double& V = Vmatrix[0][0];
+  double& U = Umatrix(0, 0);
+  double& V = Vmatrix(0, 0);
   U = 0.0;
   V = 0.0;
 
@@ -213,52 +223,76 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
     return false;
   }
   if (Xcol.cols == 0) return false;
-  int n = Xcol.rows;
+  // int n = Xcol.rows;
   int m = Xcol.cols;
   int d = Xnull.cols;
 
-  Vector U(m);
-  Matrix SS(m, m);
-  Matrix SZ(m, d);
-  Matrix ZZ(d, d);
-  U.Zero();
-  SS.Zero();
-  SZ.Zero();
-  ZZ.Zero();
+  // Vector U(m);
+  // Matrix SS(m, m);
+  // Matrix SZ(m, d);
+  // Matrix ZZ(d, d);
+  // U.Zero();
+  // SS.Zero();
+  // SZ.Zero();
+  // ZZ.Zero();
+  Eigen::VectorXd U = Eigen::VectorXd::Zero(m);
+  Eigen::MatrixXd SS = Eigen::MatrixXd::Zero(m, m);
+  Eigen::MatrixXd SZ = Eigen::MatrixXd::Zero(m, d);
+  Eigen::MatrixXd ZZ = Eigen::MatrixXd::Zero(d, d);
 
-  Vector& v = this->lr.GetVariance();
-  for (int i = 0; i < n; i++) {
-    U.AddMultiple(y[i] - this->lr.GetPredicted()[i], Xcol[i]);
-    MatrixPlusEqualV1andV2TWithWeight(SS, Xcol[i], Xcol[i], v[i]);
-    MatrixPlusEqualV1andV2TWithWeight(SZ, Xcol[i], Xnull[i], v[i]);
-    MatrixPlusEqualV1andV2TWithWeight(ZZ, Xnull[i], Xnull[i], v[i]);
-  }
+  // Vector& v = this->lr.GetVariance();
+  // for (int i = 0; i < n; i++) {
+  //   U.AddMultiple(y[i] - this->lr.GetPredicted()[i], Xcol[i]);
+  //   MatrixPlusEqualV1andV2TWithWeight(SS, Xcol[i], Xcol[i], v[i]);
+  //   MatrixPlusEqualV1andV2TWithWeight(SZ, Xcol[i], Xnull[i], v[i]);
+  //   MatrixPlusEqualV1andV2TWithWeight(ZZ, Xnull[i], Xnull[i], v[i]);
+  // }
+  DECLARE_EIGEN_CONST_VECTOR(this->lr.GetVariance(), v_e);
+  DECLARE_EIGEN_CONST_VECTOR(this->lr.GetPredicted(), pred_e);
+  DECLARE_EIGEN_CONST_VECTOR(y, y_e);
+  DECLARE_EIGEN_MATRIX(Xcol, Xcol_e);
+  DECLARE_EIGEN_MATRIX(Xnull, Xnull_e);
+
+  U = (y_e - pred_e).transpose() * Xcol_e;  // U [1 x m]
+  SS = Xcol_e.transpose() * v_e.asDiagonal() * Xcol_e;
+  SZ = Xcol_e.transpose() * v_e.asDiagonal() * Xnull_e;
+  ZZ = Xnull_e.transpose() * v_e.asDiagonal() * Xnull_e;
+
   // inverse in place ZZ
-  SVD svd;
-  svd.InvertInPlace(ZZ);
+  // SVD svd;
+  // svd.InvertInPlace(ZZ);
+  ZZ = ZZ.llt().solve(Eigen::MatrixXd::Identity(d, d));
 
-  // Z = - SZ * (ZZ^-1) * ZS
-  Matrix ZS;
-  ZS.Transpose(SZ);
-  Matrix tmp;
-  tmp.Product(SZ, ZZ);
-  SZ.Product(tmp, ZS);
-  SZ.Negate();
-  SS.Add(SZ);
+  // // Z = - SZ * (ZZ^-1) * ZS
+  // Matrix ZS;
+  // ZS.Transpose(SZ);
+  // Matrix tmp;
+  // tmp.Product(SZ, ZZ);
+  // SZ.Product(tmp, ZS);
+  // SZ.Negate();
+  // SS.Add(SZ);
+  SS -= SZ * ZZ * SZ.transpose();
 
-  copy(U, &this->Umatrix);
-  this->Vmatrix = SS;
+  // copy(U, &this->Umatrix);
+  DECLARE_EIGEN_VECTOR(this->Umatrix, U_e);
+  U_e = U;
+  // this->Vmatrix = SS;
+  DECLARE_EIGEN_MATRIX(this->Vmatrix, V_e);
+  V_e = SS;
 
   // S = U^T inv(I) U : quadratic form
-  svd.InvertInPlace(SS);
-  double S = 0.0;
-  for (int i = 0; i < m; i++) {
-    S += U[i] * SS[i][i] * U[i];
-    for (int j = i + 1; j < m; j++) {
-      S += 2.0 * U[i] * SS[i][j] * U[j];
-    }
-  }
-  this->stat = S;
+  // svd.InvertInPlace(SS);
+  // double S = 0.0;
+  // for (int i = 0; i < m; i++) {
+  //   S += U[i] * SS(i,i) * U[i];
+  //   for (int j = i + 1; j < m; j++) {
+  //     S += 2.0 * U[i] * SS(i,j) * U[j];
+  //   }
+  // }
+
+  this->stat =
+      (U.transpose() * SS.llt().solve(Eigen::MatrixXd::Identity(d, d)) *
+       U).sum();
   if (this->stat < 0) return false;
   this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
@@ -278,43 +312,55 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y) {
   int m = X.cols;  // also: df
   int n = X.rows;
 
-  Vector U(m);
-  Matrix SS(m, m);  // \sum S_i S_i^T
-  Vector SumS(m);   // \sum S_i
-  U.Zero();
-  SS.Zero();
-  SumS.Zero();
+  // Vector U(m);
+  // Matrix SS(m, m);  // \sum S_i S_i^T
+  // Vector SumS(m);   // \sum S_i
+  // U.Zero();
+  // SS.Zero();
+  // SumS.Zero();
 
-  double yMean = y.Average();
+  // double yMean = y.Average();
+  // double yVar = yMean * (1.0 - yMean);
+  // for (int i = 0; i < X.rows; i++) {
+  //   U.AddMultiple(y[i] - yMean, X[i]);
+  //   MatrixPlusEqualV1andV2T(SS, X[i], X[i]);
+  //   SumS.Add(X[i]);
+  // }
+  DECLARE_EIGEN_MATRIX(this->Umatrix, U);
+  DECLARE_EIGEN_MATRIX(this->Vmatrix, SS);
+  DECLARE_EIGEN_VECTOR(y, y_e);
+  DECLARE_EIGEN_VECTOR(X, X_e);
+  double yMean = y_e.sum() / y_e.size();
   double yVar = yMean * (1.0 - yMean);
-  for (int i = 0; i < X.rows; i++) {
-    U.AddMultiple(y[i] - yMean, X[i]);
-    MatrixPlusEqualV1andV2T(SS, X[i], X[i]);
-    SumS.Add(X[i]);
-  }
+  U = X_e.transpose() * (y_e.array() - yMean).matrix();    // U [m x 1]
+  SS = X_e.transpose() * X_e;                              // SS [ m x m]
+  Eigen::MatrixXd SumS = X_e.colwise().sum().transpose();  // SumS [m x 1]
 
-  Matrix temp(SS.rows, SS.cols);
-  temp.Zero();
-  MatrixPlusEqualV1andV2T(temp, SumS, SumS);
-  temp.Multiply(1.0 / n);
-  temp.Negate();
-  SS.Add(temp);
-  SS.Multiply(yVar);
+  // Matrix temp(SS.rows, SS.cols);
+  // temp.Zero();
+  // MatrixPlusEqualV1andV2T(temp, SumS, SumS);
+  // temp.Multiply(1.0 / n);
+  // temp.Negate();
+  // SS.Add(temp);
+  // SS.Multiply(yVar);
+  SS = (SS - SumS * SumS.transpose() / n) * yVar;
 
-  copy(U, &this->Umatrix);
-  this->Vmatrix = SS;
+  // copy(U, &this->Umatrix);
+  // this->Vmatrix = SS;
 
-  SVD svd;
-  svd.InvertInPlace(SS);
-  double S = 0.0;
-  for (int i = 0; i < m; i++) {
-    S += U[i] * SS[i][i] * U[i];
-    for (int j = i + 1; j < m; j++) {
-      S += 2.0 * U[i] * SS[i][j] * U[j];
-    }
-  }
-  // fprintf(stderr, "m=%d\t S=%.3f\t U[0]=%.3f SS[0][0]=%.3f\n", m, S, U[0],
-  // SS[0][0]);
+  // SVD svd;
+  // svd.InvertInPlace(SS);
+  // double S = 0.0;
+  // for (int i = 0; i < m; i++) {
+  //   S += U[i] * SS(i,i) * U[i];
+  //   for (int j = i + 1; j < m; j++) {
+  //     S += 2.0 * U[i] * SS(i,j) * U[j];
+  //   }
+  // }
+  double S = (U.transpose() * SS.llt().solve(Eigen::MatrixXd::Identity(m, m)) *
+              U).sum();
+  // fprintf(stderr, "m=%d\t S=%.3f\t U[0]=%.3f SS(0,0)=%.3f\n", m, S, U[0],
+  // SS(0,0));
   this->stat = S;
   if (this->stat < 0) return false;
   this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
@@ -331,11 +377,11 @@ void LogisticRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull,
   for (int i = 0; i < x.rows; i++) {
     for (int j = 0; j < x.cols; j++) {
       if (j < col) {
-        xnull[i][j] = x[i][j];
+        xnull(i, j) = x(i, j);
       } else if (j == col) {
-        xcol[i] = x[i][j];
+        xcol[i] = x(i, j);
       } else {
-        xnull[i][j - 1] = x[i][j];
+        xnull(i, j - 1) = x(i, j);
       }
     }
   }

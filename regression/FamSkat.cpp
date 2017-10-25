@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "FamSkat.h"
 
 #include <Eigen/Core>

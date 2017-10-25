@@ -1,7 +1,9 @@
-#ifndef _MATRIXOPERATION_H_
+#ifndef _MATRIXOPERATxoION_H_
 #define _MATRIXOPERATION_H_
 
+#include <stdio.h>
 #include "MathMatrix.h"
+#include "third/eigen/Eigen/Core"
 
 /**
  * this procedure is essentially:
@@ -13,12 +15,17 @@ inline void MatrixPlusEqualV1andV1T(Matrix& m, const Vector& v1) {
     fprintf(stderr, "Dimension does not match!");
   }
 #endif
-  for (int i = 0; i < m.rows; i++) {
-    Vector& v = m[i];
-    for (int j = 0; j < m.cols; j++) {
-      v[j] += v1[i] * v1[j];
-    }
-  }
+  // for (int i = 0; i < m.rows; i++) {
+  //   //Vector& v = m[i];
+  //   for (int j = 0; j < m.cols; j++) {
+  //     //v[j] += v1[i] * v1[j];
+  //     m(i,j) += v1[i] * v1[j];
+  //   }
+  // }
+  // TODO: speed up other parts using Eigen
+  DECLARE_EIGEN_MATRIX(m, m_e);
+  DECLARE_EIGEN_CONST_VECTOR(v1, v_e);
+  m_e += v_e * v_e.transpose();
 };
 
 /**
@@ -33,9 +40,10 @@ inline void MatrixPlusEqualV1andV2T(Matrix& m, const Vector& v1,
   }
 #endif
   for (int i = 0; i < m.rows; i++) {
-    Vector& v = m[i];
+    // Vector& v = m[i];
     for (int j = 0; j < m.cols; j++) {
-      v[j] += v1[i] * v2[j];
+      // v[j] += v1[i] * v2[j];
+      m(i, j) += v1[i] * v2[j];
     }
   }
 };
@@ -52,9 +60,10 @@ inline void MatrixPlusEqualV1andV2TWithWeight(Matrix& m, Vector& v1, Vector& v2,
   }
 #endif
   for (int i = 0; i < m.rows; i++) {
-    Vector& v = m[i];
+    // Vector& v = m[i];
     for (int j = 0; j < m.cols; j++) {
-      v[j] += v1[i] * v2[j] * w;
+      // v[j] += v1[i] * v2[j] * w;
+      m(i, j) += v1[i] * v2[j] * w;
     }
   }
 };
@@ -68,7 +77,7 @@ inline void copy(Vector& v, Matrix* mat) {
   int n = v.Length();
   m.Dimension(n, 1);
   for (int i = 0; i < n; ++i) {
-    m[i][0] = v[i];
+    m(i, 0) = v[i];
   }
 };
 
@@ -81,7 +90,7 @@ inline void copy(Matrix& mat, Vector* v) {
   int n = mat.rows;
   v->Dimension(n);
   for (int i = 0; i < n; ++i) {
-    (*v)[i] = mat[i][0];
+    (*v)[i] = mat(i, 0);
   }
 };
 
@@ -100,7 +109,7 @@ inline void print2(Matrix& mat) {
   fprintf(stderr, "dim = %d x %d\n", m, n);
   for (int i = 0; i < m; ++i) {
     for (int j = 0; j < n; ++j) {
-      fprintf(stderr, "[ %d, %d ] = %g\t", i, j, mat[i][j]);
+      fprintf(stderr, "[ %d, %d ] = %g\t", i, j, mat(i, j));
     }
     fprintf(stderr, "\n");
   }
@@ -109,7 +118,7 @@ inline void print2(Matrix& mat) {
 inline void print(Matrix& m) {
   for (int i = 0; i < m.rows; ++i) {
     for (int j = 0; j < m.cols; ++j) {
-      printf("%g\t", m[i][j]);
+      printf("%g\t", m(i, j));
     }
     printf("\n");
   }
@@ -122,7 +131,7 @@ inline void dumpToFile(Matrix& mat, FILE* fp) {
   for (int i = 0; i < m; ++i) {
     for (int j = 0; j < n; ++j) {
       if (j) fprintf(fp, "\t");
-      fprintf(fp, "%g", mat[i][j]);
+      fprintf(fp, "%g", mat(i, j));
     }
     fprintf(fp, "\n");
   }

@@ -1,7 +1,8 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "MultivariateNormalDistribution.h"
 
-#include <math.h>
 #include <gsl/gsl_cdf.h>
+#include <math.h>
 
 #include "MathMatrix.h"
 
@@ -38,9 +39,9 @@ int MultivariateNormalDistribution::getBandProbFromCov(int n, double* lower,
   // FIX here and other place, divide diag(v)
   for (int i = 0; i < n; ++i) {
     (lower)[i] -= mean[i];
-    (lower)[i] /= sqrt(cov[i][i]);
+    (lower)[i] /= sqrt(cov(i, i));
     (upper)[i] -= mean[i];
-    (upper)[i] /= sqrt(cov[i][i]);
+    (upper)[i] /= sqrt(cov(i, i));
   }
 
   toCor(cov, &corVec);
@@ -72,12 +73,12 @@ int MultivariateNormalDistribution::getUpperFromCov(int n, double* lower,
                                                     Matrix& cov,
                                                     double* result) {
   if (n == 1) {
-    *result = (gsl_cdf_gaussian_Q(*lower, sqrt(cov[0][0])));
+    *result = (gsl_cdf_gaussian_Q(*lower, sqrt(cov(0, 0))));
     return 0;
   }
 
   for (int i = 0; i < n; ++i) {
-    lower[i] /= sqrt(cov[i][i]);
+    lower[i] /= sqrt(cov(i, i));
   }
   toCor(cov, &corVec);
 
@@ -113,12 +114,12 @@ int MultivariateNormalDistribution::getLowerFromCov(int n, double* upper,
                                                     Matrix& cov,
                                                     double* result) {
   if (n == 1) {
-    *result = (gsl_cdf_gaussian_P(*upper, sqrt(cov[0][0])));
+    *result = (gsl_cdf_gaussian_P(*upper, sqrt(cov(0, 0))));
     return 0;
   }
 
   for (int i = 0; i < n; ++i) {
-    upper[i] /= sqrt(cov[i][i]);
+    upper[i] /= sqrt(cov(i, i));
   }
   std::vector<double> cor;
   toCor(cov, &cor);
@@ -161,7 +162,7 @@ void MultivariateNormalDistribution::toCor(Matrix& m,
 
   std::vector<double> v(n, 0.);
   for (int i = 0; i < n; ++i) {
-    v[i] = sqrt((m)[i][i]);
+    v[i] = sqrt((m)(i, i));
   }
 
   std::vector<double>& cor = (*out);
@@ -169,8 +170,8 @@ void MultivariateNormalDistribution::toCor(Matrix& m,
   int k = 0;
   for (int i = 1; i < n; ++i) {
     for (int j = 0; j < i; ++j) {
-      cor[k++] = (m)[i][j] / v[i] / v[j];
-      // fprintf(stderr, "%g\n", (m)[i][j] / v[i] / v[j]);
+      cor[k++] = (m)(i, j) / v[i] / v[j];
+      // fprintf(stderr, "%g\n", (m)(i,j) / v[i] / v[j]);
     }
   }
   assert(k == (n * (n - 1) / 2));

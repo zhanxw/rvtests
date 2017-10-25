@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include <algorithm>
 #include <cassert>
 #include <map>
@@ -66,7 +67,7 @@ void citation(FILE* fp) {
 void toMatrix(const std::vector<double>& v, Matrix* m) {
   m->Dimension(v.size(), 1);
   for (size_t i = 0; i < v.size(); i++) {
-    (*m)[i][0] = v[i];
+    (*m)(i, 0) = v[i];
   }
 }
 
@@ -78,7 +79,7 @@ void toMatrix(const SimpleMatrix& from, Matrix* to) {
   // copy value
   for (int i = 0; i < nr; ++i) {
     for (int j = 0; j < nc; ++j) {
-      (*to)[i][j] = from[i][j];
+      (*to)(i, j) = from[i][j];
     }
   }
   // copy col labels
@@ -763,7 +764,7 @@ int main(int argc, char** argv) {
   //   std::set<double> s;
   //   s.clear();
   //   for (int j = 0; j < covariate.rows; ++j) {
-  //     s.insert(covariate[j][i]);
+  //     s.insert(covariate(j,i));
   //   }
   //   if (s.size() == 1) {
   //     logger->error(

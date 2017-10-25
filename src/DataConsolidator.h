@@ -43,7 +43,7 @@ inline bool hasMissingMarker(Matrix& genotype, int col) {
   }
 
   for (int r = 0; r < genotype.rows; ++r) {
-    if (genotype[r][col] < 0) return true;
+    if (genotype(r, col) < 0) return true;
   }
   return false;
 };
@@ -206,7 +206,7 @@ class DataConsolidator {
     const int nc = a.cols;
     for (int i = 0; i < nr; ++i) {
       for (int j = 0; j < nc; ++j) {
-        if (finite(a[i][j]) && finite(b[i][j]) && a[i][j] != b[i][j])
+        if (finite(a(i, j)) && finite(b(i, j)) && a(i, j) != b(i, j))
           return false;
       }
     }
@@ -218,7 +218,7 @@ class DataConsolidator {
   bool isNoMissingGenotypeInRow(Matrix& g, int r) {
     const int n = g.cols;
     for (int i = 0; i < n; ++i) {
-      if (g[r][i] < 0) return false;
+      if (g(r, i) < 0) return false;
     }
     return true;
   }
@@ -232,7 +232,7 @@ class DataConsolidator {
     }
     const int n = m.cols;
     for (int i = 0; i < n; ++i) {
-      m[destRow][i] = src[srcRow][i];
+      m(destRow, i) = src(srcRow, i);
     }
   }
   void copyColName(Matrix& src, Matrix* dest) {
@@ -282,11 +282,11 @@ class DataConsolidator {
       }
       // + 1: PLINK use 1 and 2 as ctrl and case, but
       // internally, we use 0 and 1.
-      if (phenotype > 0 && (int)(this->phenotype[i][0] + 1) != phenotype) {
+      if (phenotype > 0 && (int)(this->phenotype(i, 0) + 1) != phenotype) {
         continue;
       }
 
-      const double& g = originalGenotype[i][columnIndex];
+      const double& g = originalGenotype(i, columnIndex);
       counter->add(g);
     }
 
@@ -367,14 +367,14 @@ class DataConsolidator {
     int numGeno = 0;
     if (this->strategy == IMPUTE_MEAN || this->strategy == IMPUTE_HWE) {
       for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype[i][0] < 0) continue;
+        if (this->originalGenotype(i, 0) < 0) continue;
 
-        if (this->originalGenotype[i][0] > 0.5) {
-          (*geno)[i][0] = 1.0;
+        if (this->originalGenotype(i, 0) > 0.5) {
+          (*geno)(i, 0) = 1.0;
           s += 1.;
           numGeno++;
         } else {
-          (*geno)[i][0] = 0.0;
+          (*geno)(i, 0) = 0.0;
           numGeno++;
         }
       }
@@ -383,14 +383,14 @@ class DataConsolidator {
         avg = s / numGeno;
       }
       for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype[i][0] < 0) (*geno)[i][0] = avg;
+        if (this->originalGenotype(i, 0) < 0) (*geno)(i, 0) = avg;
       }
     } else if (this->strategy == DROP) {
       for (int i = 0; i < m; ++i) {
-        if (this->genotype[i][0] > 0.5) {
-          (*geno)[0][i] = 1.;
+        if (this->genotype(i, 0) > 0.5) {
+          (*geno)(0, i) = 1.;
         } else {
-          (*geno)[0][i] = 0.;
+          (*geno)(0, i) = 0.;
         }
       }
     }
@@ -406,14 +406,14 @@ class DataConsolidator {
     int numGeno = 0;
     if (this->strategy == IMPUTE_MEAN || this->strategy == IMPUTE_HWE) {
       for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype[i][0] < 0) continue;
+        if (this->originalGenotype(i, 0) < 0) continue;
 
-        if (this->originalGenotype[i][0] > 1.5) {
-          (*geno)[i][0] = 1.0;
+        if (this->originalGenotype(i, 0) > 1.5) {
+          (*geno)(i, 0) = 1.0;
           s += 1.;
           numGeno++;
         } else {
-          (*geno)[i][0] = 0.0;
+          (*geno)(i, 0) = 0.0;
           numGeno++;
         }
       }
@@ -422,14 +422,14 @@ class DataConsolidator {
         avg = s / numGeno;
       }
       for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype[i][0] < 0) (*geno)[i][0] = avg;
+        if (this->originalGenotype(i, 0) < 0) (*geno)(i, 0) = avg;
       }
     } else if (this->strategy == DROP) {
       for (int i = 0; i < m; ++i) {
-        if (this->genotype[i][0] > 1.5) {
-          (*geno)[0][i] = 1.;
+        if (this->genotype(i, 0) > 1.5) {
+          (*geno)(0, i) = 1.;
         } else {
-          (*geno)[0][i] = 0.;
+          (*geno)(0, i) = 0.;
         }
       }
     }

@@ -40,7 +40,7 @@ class MetaCov {
                 double* out);
 
   // @parm out = G' \Sigma^{-1} Z, @param is a row vector
-  // NOTE: here assume @param g is transformed. e.g. U' * g  
+  // NOTE: here assume @param g is transformed. e.g. U' * g
   void GetCovXZ(const std::vector<double>& g, const EigenMatrix& kinshipU,
                 const EigenMatrix& kinshipS, std::vector<double>* out);
 

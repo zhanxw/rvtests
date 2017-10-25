@@ -1,4 +1,7 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LogisticRegressionPermutationTest.h"
+
+#include <stdio.h>  // printf
 
 void LogisticRegressionPermutationTest::splitMatrix(Matrix& x, int col,
                                                     Matrix& xnull,
@@ -11,11 +14,11 @@ void LogisticRegressionPermutationTest::splitMatrix(Matrix& x, int col,
   for (int i = 0; i < x.rows; i++) {
     for (int j = 0; j < x.cols; j++) {
       if (j < col) {
-        xnull[i][j] = x[i][j];
+        xnull(i, j) = x(i, j);
       } else if (j == col) {
-        xcol[i] = x[i][j];
+        xcol[i] = x(i, j);
       } else {
-        xnull[i][j - 1] = x[i][j];
+        xnull(i, j - 1) = x(i, j);
       }
     }
   }

@@ -1,8 +1,10 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LinearRegressionScoreTest.h"
 #include "MatrixOperation.h"
-#include "libsrc/MathCholesky.h"
-#include "libsrc/MathSVD.h"
-#include "libsrc/MathStats.h"
+#include "third/eigen/Eigen/Cholesky"
+// #include "libsrc/MathCholesky.h"
+// #include "libsrc/MathSVD.h"
+// #include "libsrc/MathStats.h"
 
 #include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
@@ -37,8 +39,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   this->Vmatrix.Dimension(1, 1);
   this->betaMatrix.Dimension(1, 1);
 
-  double& U = Umatrix[0][0];
-  double& I = Vmatrix[0][0];
+  double& U = Umatrix(0, 0);
+  double& I = Vmatrix(0, 0);
 
   U = 0.0;
   I = 0.0;
@@ -57,23 +59,26 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
     U += Xcol[i] * (y[i] - lr.GetPredicted()[i]);
     // calcualte vec_corr
     for (int j = 0; j < Xnull.cols; j++) {
-      vec_corr[j] += Xcol[i] * Xnull[i][j];
+      vec_corr[j] += Xcol[i] * Xnull(i, j);
       // printf("j = %d, xcol = %d, Xnull = %d\n",j,bnull, xcol[j],
-      // Xnull[i][j]);
+      // Xnull(i,j));
     }
 
     // calcualte mat_corr
     for (int j = 0; j < nParamRemain; j++) {
       for (int k = 0; k < nParamRemain; k++) {
-        mat_corr[j][k] += Xnull[i][j] * Xnull[i][k];
+        mat_corr(j, k) += Xnull(i, j) * Xnull(i, k);
       }
     }
     I += Xcol[i] * Xcol[i];
   }
 
   // inverse the mat_corr
-  SVD svd;
-  svd.InvertInPlace(mat_corr);
+  // SVD svd;
+  // svd.InvertInPlace(mat_corr);
+  DECLARE_EIGEN_MATRIX(mat_corr, mat_corr_e);
+  mat_corr_e = mat_corr_e.llt().solve(
+      Eigen::MatrixXd::Identity(mat_corr_e.rows(), mat_corr_e.cols()));
 
   Vector leftMult_corr;
   leftMult_corr.Dimension(nParamRemain, 0.0);
@@ -82,7 +87,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   // multiplying vec_corr with mat_corr
   for (int i = 0; i < nParamRemain; i++) {
     for (int j = 0; j < nParamRemain; j++) {
-      leftMult_corr[i] += vec_corr[j] * mat_corr[i][j];
+      leftMult_corr[i] += vec_corr[j] * mat_corr(i, j);
     }
   }
 
@@ -91,7 +96,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
     I -= leftMult_corr[i] * vec_corr[i];
   }
 
-  this->betaMatrix[0][0] = U / I;
+  this->betaMatrix(0, 0) = U / I;
   I *= this->lr.GetSigma2();
 
   // printf("In the end, I = %.5f\n",I);
@@ -112,8 +117,8 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y) {
   this->Vmatrix.Dimension(1, 1);
   this->betaMatrix.Dimension(1, 1);
 
-  double& U = Umatrix[0][0];
-  double& V = Vmatrix[0][0];
+  double& U = Umatrix(0, 0);
+  double& V = Vmatrix(0, 0);
   U = 0.0;
   V = 0.0;
 
@@ -136,7 +141,7 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y) {
   }
 
   V = (sumSi2 - sumSi / n * sumSi);
-  this->betaMatrix[0][0] = U / V;
+  this->betaMatrix(0, 0) = U / V;
   V *= sigma2;
 
   if (V < 1e-6) {
@@ -164,59 +169,81 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
     return false;
   }
   if (Xcol.cols == 0) return false;
-  int n = Xcol.rows;
+  // int n = Xcol.rows;
   int m = Xcol.cols;
   int d = Xnull.cols;
 
-  Vector U(m);
-  Matrix SS(m, m);
-  Matrix SZ(m, d);
-  Matrix ZZ(d, d);
-  U.Zero();
-  SS.Zero();
-  SZ.Zero();
-  ZZ.Zero();
+  // Vector U(m);
+  // Matrix SS(m, m);
+  // Matrix SZ(m, d);
+  // Matrix ZZ(d, d);
+  // U.Zero();
+  // SS.Zero();
+  // SZ.Zero();
+  // ZZ.Zero();
 
-  for (int i = 0; i < n; i++) {
-    U.AddMultiple(this->lr.GetResiduals()[i], Xcol[i]);
+  // for (int i = 0; i < n; i++) {
+  //   U.AddMultiple(this->lr.GetResiduals()[i], Xcol[i]);
 
-    MatrixPlusEqualV1andV1T(SS, Xcol[i]);
-    MatrixPlusEqualV1andV2T(SZ, Xcol[i], Xnull[i]);
-    MatrixPlusEqualV1andV1T(ZZ, Xnull[i]);
-  }
-  // inverse in place ZZ
-  SVD svd;
-  svd.InvertInPlace(ZZ);
+  //   MatrixPlusEqualV1andV1T(SS, Xcol[i]);
+  //   MatrixPlusEqualV1andV2T(SZ, Xcol[i], Xnull[i]);
+  //   MatrixPlusEqualV1andV1T(ZZ, Xnull[i]);
+  // }
+  this->Umatrix.Dimension(m, 1);
+  DECLARE_EIGEN_MATRIX(this->Umatrix, U);
+  DECLARE_EIGEN_MATRIX(Xcol, Xcol_e);
+  DECLARE_EIGEN_MATRIX(Xnull, Xnull_e);
+  DECLARE_EIGEN_VECTOR(this->lr.GetResiduals(), resid_e);
+  Eigen::MatrixXd SS(m, m);
+  Eigen::MatrixXd SZ(m, d);
+  Eigen::MatrixXd ZZ(d, d);
+  U = Xcol_e.transpose() * resid_e;    // U [m x 1]
+  SS = Xcol_e.transpose() * Xcol_e;    // SS [m x m]
+  SZ = Xcol_e.transpose() * Xnull_e;   // SZ [m x d]
+  ZZ = Xnull_e.transpose() * Xnull_e;  // ZZ [d x d]
 
-  // Z = - SZ * (ZZ^-1) * ZS
-  Matrix ZS;
-  ZS.Transpose(SZ);
-  Matrix tmp;
-  tmp.Product(SZ, ZZ);
-  SZ.Product(tmp, ZS);
-  SZ.Negate();
-  SS.Add(SZ);
+  // // inverse in place ZZ
+  // SVD svd;
+  // svd.InvertInPlace(ZZ);
 
-  copy(U, &this->Umatrix);
+  // // Z = - SZ * (ZZ^-1) * ZS
+  // Matrix ZS;
+  // ZS.Transpose(SZ);
+  // Matrix tmp;
+  // tmp.Product(SZ, ZZ);
+  // SZ.Product(tmp, ZS);
+  // SZ.Negate();
+  // SS.Add(SZ);
 
-  //
-  this->Vmatrix = SS;
-  this->Vmatrix *= lr.GetSigma2();
+  SS -= SZ * ZZ.llt().solve(Eigen::MatrixXd::Identity(d, d)) * SZ.transpose();
+  // copy(U, &this->Umatrix);
 
-  svd.InvertInPlace(SS);
-  Matrix Umat;
-  copy(U, &Umat);
-  this->betaMatrix.Product(SS, Umat);
+  // this->Vmatrix = SS;
+  // this->Vmatrix *= lr.GetSigma2();
+  this->Vmatrix.Dimension(m, m);
+  DECLARE_EIGEN_MATRIX(this->Vmatrix, V_e);
+  V_e = SS * lr.GetSigma2();
+
+  // svd.InvertInPlace(SS);
+  // Matrix Umat;
+  // copy(U, &Umat);
+  // this->betaMatrix.Product(SS, Umat);
+  // SS /= lr.GetSigma2();
+  this->betaMatrix.Dimension(m, 1);
+  DECLARE_EIGEN_MATRIX(this->betaMatrix, beta_e);
+  SS = SS.llt().solve(Eigen::MatrixXd(m, m));
+  beta_e = SS * U;
   SS /= lr.GetSigma2();
 
-  // S = U^T inv(I) U : quadratic form
-  double S = 0.0;
-  for (int i = 0; i < m; i++) {
-    S += U[i] * SS[i][i] * U[i];
-    for (int j = i + 1; j < m; j++) {
-      S += 2.0 * U[i] * SS[i][j] * U[j];
-    }
-  }
+  // // S = U^T inv(I) U : quadratic form
+  // double S = 0.0;
+  // for (int i = 0; i < m; i++) {
+  //   S += U[i] * SS(i,i) * U[i];
+  //   for (int j = i + 1; j < m; j++) {
+  //     S += 2.0 * U[i] * SS(i,j) * U[j];
+  //   }
+  // }
+  double S = (U.transpose() * SS * U).sum();
 
   this->stat = S;
   if (this->stat < 0) return false;
@@ -241,55 +268,63 @@ bool LinearRegressionScoreTest::TestCovariate(const Matrix& X,
   int m = X.cols;  // also: df
   int n = X.rows;
 
-  Vector U(m);
-  Matrix SS(m, m);
-  Vector SumS(m);
-  U.Zero();
-  SS.Zero();
-  SumS.Zero();
+  // Vector U(m);
+  // Matrix SS(m, m);
+  // Vector SumS(m);
+  // U.Zero();
+  // SS.Zero();
+  // SumS.Zero();
+  DECLARE_EIGEN_VECTOR(this->Umatrix, U);
+  Eigen::MatrixXd SS(m, m);
+  Eigen::VectorXd SumS(m);
 
-  double yMean = y.Average();
-  for (int i = 0; i < X.rows; i++) {
-    U.AddMultiple(y[i] - yMean, X[i]);
-    MatrixPlusEqualV1andV2T(SS, X[i], X[i]);
-    SumS.Add(X[i]);
-  }
+  // double yMean = y.Average();
+  // for (int i = 0; i < X.rows; i++) {
+  //   U.AddMultiple(y[i] - yMean, X[i]);
+  //   MatrixPlusEqualV1andV2T(SS, X[i], X[i]);
+  //   SumS.Add(X[i]);
+  // }
+  DECLARE_EIGEN_CONST_MATRIX(X, X_e);
+  DECLARE_EIGEN_CONST_VECTOR(y, y_e);
+  double yMean = y_e.sum() / y_e.size();
+  U = X_e.transpose() * (y_e.array() - yMean).matrix();
+  SS = X_e.transpose() * X_e;
+  SumS = X_e.colwise().sum();  // SumS [1 x m]
 
-  Matrix temp(SS.rows, SS.cols);
-  temp.Zero();
-  MatrixPlusEqualV1andV2T(temp, SumS, SumS);
-  temp.Multiply(1.0 / n);
-  temp.Negate();
-  SS.Add(temp);
+  // Matrix temp(SS.rows, SS.cols);
+  // temp.Zero();
+  // MatrixPlusEqualV1andV2T(temp, SumS, SumS);
+  // temp.Multiply(1.0 / n);
+  // temp.Negate();
+  // SS.Add(temp);
+  SS -= SumS.transpose() * SumS / n;
 
-  copy(U, &this->Umatrix);
+  // copy(U, &this->Umatrix);
 
-  // SS *= this->lr.GetSigma2();
   // this->Vmatrix = SS;
-
+  // this->Vmatrix *= lr.GetSigma2();
   // SVD svd;
   // svd.InvertInPlace(SS);
+  // Matrix Umat;
+  // copy(U, &Umat);
+  // this->betaMatrix.Product(SS, Umat);
+  // SS /= lr.GetSigma2();
+  DECLARE_EIGEN_MATRIX(this->Vmatrix, V_e);
+  DECLARE_EIGEN_MATRIX(this->betaMatrix, beta_e);
+  V_e *= lr.GetSigma2();
+  Eigen::MatrixXd SSinv = SS.llt().solve(Eigen::MatrixXd(m, m));
+  beta_e = SSinv * U;
 
-  //
-  this->Vmatrix = SS;
-  this->Vmatrix *= lr.GetSigma2();
-  SVD svd;
-  svd.InvertInPlace(SS);
-  Matrix Umat;
-  copy(U, &Umat);
-  this->betaMatrix.Product(SS, Umat);
-  SS /= lr.GetSigma2();
-  //
+  // double S = 0.0;
+  // for (int i = 0; i < m; i++) {
+  //   S += U[i] * SS(i,i) * U[i];
+  //   for (int j = i + 1; j < m; j++) {
+  //     S += 2.0 * U[i] * SS(i,j) * U[j];
+  //   }
+  // }
 
-  double S = 0.0;
-  for (int i = 0; i < m; i++) {
-    S += U[i] * SS[i][i] * U[i];
-    for (int j = i + 1; j < m; j++) {
-      S += 2.0 * U[i] * SS[i][j] * U[j];
-    }
-  }
-
-  this->stat = S;
+  // this->stat = S;
+  this->stat = (U.transpose() * SSinv * U).sum();
   if (this->stat < 0) return false;
   this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;
@@ -305,11 +340,11 @@ void LinearRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull,
   for (int i = 0; i < x.rows; i++) {
     for (int j = 0; j < x.cols; j++) {
       if (j < col) {
-        xnull[i][j] = x[i][j];
+        xnull(i, j) = x(i, j);
       } else if (j == col) {
-        xcol[i] = x[i][j];
+        xcol[i] = x(i, j);
       } else {
-        xnull[i][j - 1] = x[i][j];
+        xnull(i, j - 1) = x(i, j);
       }
     }
   }
@@ -321,7 +356,7 @@ const double LinearRegressionScoreTest::GetSEBeta(int idx) const {
   // beta = X'Y / X'X
   // Var(beta) = Var(U) / (X'X)^2 = V / (V / sigma2)^2 = sigma2^2 / V
   // SE(beta) = sigma2 / sqrt(V)
-  const double v = this->Vmatrix[idx][idx];
+  const double v = this->Vmatrix(idx, idx);
   if (v == 0.0) {
     return 0.0;
   }

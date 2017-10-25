@@ -1,8 +1,8 @@
 #ifndef _MULTIVARIATEVT_H_
 #define _MULTIVARIATEVT_H_
 
-#include "MathVector.h"
 #include "MathMatrix.h"
+#include "MathVector.h"
 
 #include "MultivariateNormalDistribution.h"
 

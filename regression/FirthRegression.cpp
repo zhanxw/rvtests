@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "FirthRegression.h"
 
 #include <Eigen/Cholesky>
@@ -9,6 +10,8 @@
 #ifndef NDEBUG
 #include <fstream>
 #include <iostream>
+
+#if 0
 // for debug usage
 void printToFile(Vector& v, String fn, int index) {
   String n;
@@ -24,7 +27,7 @@ void printToFile(Matrix& m, String fn, int index) {
   FILE* fp = fopen(n.c_str(), "wt");
   for (int i = 0; i < m.rows; i++) {
     for (int j = 0; j < m.cols; j++) {
-      fprintf(fp, "%lf\t", m[i][j]);
+      fprintf(fp, "%lf\t", m(i, j));
     }
     fprintf(fp, "\n");
   }
@@ -44,6 +47,7 @@ void printToFile(Eigen::VectorXf& v, const char* fn, const char* label) {
   ofs << v << "\n";
   ofs.close();
 }
+#endif
 #endif
 
 class FirthRegression::WorkingData {
@@ -77,7 +81,7 @@ Vector& FirthRegression::GetAsyPvalue() {
   int numCov = B.Length();
   pValue.Dimension(B.Length());
   for (int i = 0; i < numCov; i++) {
-    double Zstat = B[i] * B[i] / (covB[i][i]);
+    double Zstat = B[i] * B[i] / (covB(i, i));
     // pValue[i] = ndist(Zstat);
     // if (pValue[i] >= 0.5){
     //   pValue[i] = 2*(1-pValue[i]);
@@ -127,7 +131,7 @@ bool FirthRegression::FitFirthModel(Matrix& X, Matrix& y, int rnrounds) {
   }
   Vector v(X.rows);
   for (int i = 0; i < X.rows; ++i) {
-    v[i] = y[i][0];
+    v[i] = y(i, 0);
   }
   return this->FitFirthModel(X, v, rnrounds);
 };

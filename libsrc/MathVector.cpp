@@ -16,7 +16,7 @@
 //
 
 #include "MathVector.h"
-
+#if 0
 #include "Error.h"
 #include "MathConstant.h"
 #include "MathMatrix.h"
@@ -549,3 +549,4 @@ double Vector::Var(double returnIfNull) {
 
   return Var();
 }
+#endif

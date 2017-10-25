@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "regression/ConjugateGradientSolver.h"
 
 #include "third/eigen/Eigen/Eigen"

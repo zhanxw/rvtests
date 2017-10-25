@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "DataConsolidator.h"
 
 #include <string>
@@ -21,19 +22,19 @@ void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
   for (int j = 0; j < m.cols; ++j) {
     s = 0;
     for (int i = 0; i < m.rows; ++i) {
-      s += in[i][j];
+      s += in(i, j);
     }
     // maf = s / m.rows / 2
     // if maf > 0.5, s > m.row
     // otherwise, s <= m.row
     if (s <= m.rows) {
       for (int i = 0; i < m.rows; ++i) {
-        m[i][j] = in[i][j];
+        m(i, j) = in(i, j);
       }
     } else {
       // flip to minor
       for (int i = 0; i < m.rows; ++i) {
-        m[i][j] = 2 - in[i][j];
+        m(i, j) = 2 - in(i, j);
       }
     }
   }
@@ -55,7 +56,7 @@ void removeMissingMarker(Matrix* genotype) {
     }
 
     for (int r = 0; r < g.rows; ++r) {
-      g[r][missingCol] = g[r][col];
+      g(r, missingCol) = g(r, col);
     }
     missingCol++;
   }
@@ -71,16 +72,16 @@ bool isMonomorphicMarker(Matrix& genotype, int col) {
   // find first non-missing genotype
   int nonMissingRow = genotype.rows;
   for (int i = 0; i < genotype.rows; ++i) {
-    if (genotype[i][col] >= 0) {
+    if (genotype(i, col) >= 0) {
       nonMissingRow = i;
       break;
     }
   }
 
   for (int r = nonMissingRow + 1; r < genotype.rows; ++r) {
-    if (genotype[r][col] < 0)  // missing
+    if (genotype(r, col) < 0)  // missing
       continue;
-    if (genotype[r][col] != genotype[nonMissingRow][col]) return false;
+    if (genotype(r, col) != genotype(nonMissingRow, col)) return false;
   }
   return true;
 }
@@ -104,7 +105,7 @@ void removeMonomorphicMarker(Matrix* genotype) {
 
     // move g[, col] to g[, monoCol]
     for (int r = 0; r < g.rows; ++r) {
-      g[r][monoCol] = g[r][col];
+      g(r, monoCol) = g(r, col);
     }
     monoCol++;
   }
@@ -135,8 +136,8 @@ void DataConsolidator::imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] >= 0) {
-        ac += m[j][i];
+      if (m(j, i) >= 0) {
+        ac += m(j, i);
         an += 2;
       }
     }
@@ -144,14 +145,14 @@ void DataConsolidator::imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
     double pRef = p * p;
     double pHet = pRef + 2.0 * p * (1.0 - p);
     for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] < 0) {
+      if (m(j, i) < 0) {
         double v = r->Next();
         if (v < pRef) {
-          m[j][i] = 0;
+          m(j, i) = 0;
         } else if (v < pHet) {
-          m[j][i] = 1;
+          m(j, i) = 1;
         } else {
-          m[j][i] = 2;
+          m(j, i) = 2;
         }
       }
     }
@@ -171,8 +172,8 @@ void DataConsolidator::imputeGenotypeToMean(Matrix* genotype) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] >= 0) {
-        ac += m[j][i];
+      if (m(j, i) >= 0) {
+        ac += m(j, i);
         an += 2;
       }
     }
@@ -184,8 +185,8 @@ void DataConsolidator::imputeGenotypeToMean(Matrix* genotype) {
     }
     double g = 2.0 * p;
     for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] < 0) {
-        m[j][i] = g;
+      if (m(j, i) < 0) {
+        m(j, i) = g;
       }
     }
     // fprintf(stderr, "impute to mean = %g, ac = %d, an = %d\n", g, ac, an);
@@ -231,14 +232,14 @@ int DataConsolidator::checkPredictor(Matrix& pheno, Matrix& cov) {
       logger->warn(
           "Failed to calculate correlation between covariate [ %s ] and "
           "phenotype",
-          cov.GetColumnLabel(i));
+          cov.GetColumnLabel(i).c_str());
       return -1;
     }
     if (fabs(r) > 0.999) {
       logger->warn(
           "Covariate [ %s ] has strong correlation [ r^2 = %g ] with the "
           "response!",
-          cov.GetColumnLabel(i), r * r);
+          cov.GetColumnLabel(i).c_str(), r * r);
       return -1;
     }
   }
@@ -437,13 +438,13 @@ int DataConsolidator::prepareBoltModel(
     FILE* fpCov = fopen((covarFn).c_str(), "wt");
     fprintf(fpCov, "FID\tIID");
     for (int j = 0; j < covariate.cols; ++j) {
-      fprintf(fpCov, "\t%s", (char*)covariate.GetColumnLabel(j));
+      fprintf(fpCov, "\t%s", covariate.GetColumnLabel(j).c_str());
     }
     fprintf(fpCov, "\n");
     for (int i = 0; i < covariate.rows; ++i) {
       fprintf(fpCov, "%s\t%s", sampleName[i].c_str(), sampleName[i].c_str());
       for (int j = 0; j < covariate.cols; ++j) {
-        fprintf(fpCov, "\t%g", covariate[i][j]);
+        fprintf(fpCov, "\t%g", covariate(i, j));
       }
       fputs("\n", fpCov);
     }

@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "GenotypeExtractor.h"
 
 #include "GenotypeCounter.h"
@@ -241,7 +242,7 @@ void GenotypeExtractor::assign(const std::vector<double>& from, int nrow,
   assert((int)from.size() == nrow * ncol);
   for (int i = 0; i < nrow; ++i) {
     for (int j = 0; j < ncol; ++j) {
-      out[i][j] = from[nrow * j + i];
+      out(i, j) = from[nrow * j + i];
     }
   }
 }

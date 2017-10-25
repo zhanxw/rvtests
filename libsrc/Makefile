@@ -1,20 +1,24 @@
 .PHONY: release debug
 all: release
 
+ROOT?=..
+include $(ROOT)/Makefile.common
+include $(ROOT)/Makefile.lib
+
 BASE = $(wildcard *.cpp)
 OBJ = $(BASE:%.cpp=%.o)
 OBJ_DBG = $(BASE:%.cpp=%_dbg.o)
 
-release: CXX_FLAGS = -O2 -DNDEBUG -I..
+release: CXX_FLAGS = -O2 -DNDEBUG -I$(ROOT)
 release: lib-goncalo.a
 lib-goncalo.a: $(OBJ)
 	-[ -f $@ ] && rm -f $@ || echo -n
 	$(AR) -cqs lib-goncalo.a $^
-%.o : %.cpp
+%.o : %.cpp $(EIGEN_INC)
 	$(CXX) $(CXX_FLAGS) -c $< -o $@
 
 debug: lib-dbg-goncalo.a
-debug: CXX_FLAGS = -g -O0 -I..
+debug: CXX_FLAGS = -g -O0 -I$(ROOT)
 lib-dbg-goncalo.a: $(OBJ_DBG)
 	-[ -f $@ ] && rm -f $@ || echo -n
 	$(AR) -cqs lib-dbg-goncalo.a $^

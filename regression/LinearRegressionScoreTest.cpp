@@ -72,9 +72,9 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   //   }
   //   I += Xcol[i] * Xcol[i];
   // }
-  DECLARE_EIGEN_MATRIX(Xnull, Xnull_e);
-  DECLARE_EIGEN_VECTOR(Xcol, Xcol_e);
-  DECLARE_EIGEN_VECTOR(y, y_e);
+  DECLARE_EIGEN_CONST_MATRIX(Xnull, Xnull_e);
+  DECLARE_EIGEN_CONST_VECTOR(Xcol, Xcol_e);
+  DECLARE_EIGEN_CONST_VECTOR(y, y_e);
   DECLARE_EIGEN_CONST_VECTOR(lr.GetPredicted(), pred_e);
   DECLARE_EIGEN_MATRIX(Umatrix, U_e);
   DECLARE_EIGEN_MATRIX(Vmatrix, V_e);
@@ -104,7 +104,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   // }
   Eigen::MatrixXd XZ = Xcol_e.transpose() * Xnull_e;
   V_e = Xcol_e.transpose() * Xcol_e -
-        XZ * (Xcol_e.transpose() * Xcol_e).llt().solve(XZ.transpose());
+        XZ * (Xnull_e.transpose() * Xnull_e).llt().solve(XZ.transpose());
 
   this->betaMatrix(0, 0) = U / I;
   I *= this->lr.GetSigma2();
@@ -284,6 +284,7 @@ bool LinearRegressionScoreTest::TestCovariate(const Matrix& X,
   // U.Zero();
   // SS.Zero();
   // SumS.Zero();
+  this->Umatrix.Dimension(m, 1);
   DECLARE_EIGEN_VECTOR(this->Umatrix, U);
   Eigen::MatrixXd SS(m, m);
   Eigen::VectorXd SumS(m);
@@ -319,9 +320,11 @@ bool LinearRegressionScoreTest::TestCovariate(const Matrix& X,
   // copy(U, &Umat);
   // this->betaMatrix.Product(SS, Umat);
   // SS /= lr.GetSigma2();
+  this->Vmatrix.Dimension(m, m);
+  this->betaMatrix.Dimension(m, 1);
   DECLARE_EIGEN_MATRIX(this->Vmatrix, V_e);
   DECLARE_EIGEN_MATRIX(this->betaMatrix, beta_e);
-  V_e *= lr.GetSigma2();
+  V_e = SS * lr.GetSigma2();
   Eigen::MatrixXd SSinv = SS.llt().solve(Eigen::MatrixXd::Identity(m, m));
   beta_e = SSinv * U;
 
@@ -334,7 +337,7 @@ bool LinearRegressionScoreTest::TestCovariate(const Matrix& X,
   // }
 
   // this->stat = S;
-  this->stat = (U.transpose() * SSinv * U).sum();
+  this->stat = (U.transpose() * SSinv * U).sum() / lr.GetSigma2();
   if (this->stat < 0) return false;
   this->pvalue = gsl_cdf_chisq_Q(this->stat, 1.0);
   return true;

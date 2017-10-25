@@ -27,7 +27,7 @@ bool LinearRegression::FitLinearModel(Matrix& X, Vector& y) {
   // chol.Invert();
   // this->XtXinv = chol.inv;
   XtXinv.Dimension(X.cols, X.cols);
-  DECLARE_EIGEN_MATRIX(X, X_e);
+  DECLARE_EIGEN_CONST_MATRIX(X, X_e);
   DECLARE_EIGEN_MATRIX(XtXinv, XtXinv_e);
   XtXinv_e = (X_e.transpose() * X_e)
                  .llt()
@@ -38,7 +38,7 @@ bool LinearRegression::FitLinearModel(Matrix& X, Vector& y) {
   // this->B.Product(this->XtXinv, tmp);  // beta = (XtX)^{-1} Xt Y
   B.Dimension(X.cols, 1);
   DECLARE_EIGEN_VECTOR(B, B_e);
-  DECLARE_EIGEN_VECTOR(y, y_e);
+  DECLARE_EIGEN_CONST_VECTOR(y, y_e);
   B_e = XtXinv_e * X_e.transpose() * y_e;
 
   // this->predict.Product(X, this->B);
@@ -106,7 +106,7 @@ bool LinearRegression::calculateHatMatrix(Matrix& X, Matrix* out) {
   // chol.Decompose(XtX);
   // chol.Invert();
   // this->XtXinv = chol.inv;
-  DECLARE_EIGEN_MATRIX(X, X_e);
+  DECLARE_EIGEN_CONST_MATRIX(X, X_e);
   this->XtXinv.Dimension(X.cols, X.cols);
   DECLARE_EIGEN_MATRIX(this->XtXinv, XtXinv_e);
   XtXinv_e = (X_e.transpose() * X_e)

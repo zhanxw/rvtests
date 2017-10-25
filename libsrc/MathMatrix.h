@@ -58,7 +58,7 @@ class Matrix {
     std::vector<double> newData(nr * nc);
     for (int i = 0; i < nr && i < rows; ++i) {
       for (int j = 0; j < nc && j < cols; ++j) {
-        newData[j * nc + i] = data[j * cols + i];
+        newData[i + j * nr] = data[i + j * rows];
       }
     }
 
@@ -67,6 +67,7 @@ class Matrix {
     std::swap(data, newData);
     colLabel.resize(nc);
   }
+
   /**
    * Set all matrix elements to @param val
    */
@@ -101,6 +102,11 @@ class Matrix {
    * @return number of row deleted
    */
   int RemoveByRowIndex(const std::vector<int>& rowIndexToRemove);
+
+  /**
+   * Stack @param m to the right
+   */
+  Matrix& StackRight(const Matrix& m);
 #if 0
   operator Eigen::Map<Eigen::MatrixXd>() {
     Eigen::Map<Eigen::MatrixXd> ret(data.data(), rows, cols);

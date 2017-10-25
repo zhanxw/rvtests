@@ -235,7 +235,9 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   // SS.Zero();
   // SZ.Zero();
   // ZZ.Zero();
-  Eigen::VectorXd U = Eigen::VectorXd::Zero(m);
+  // Eigen::VectorXd U = Eigen::VectorXd::Zero(m);
+  this->Umatrix.Dimension(m, 1);
+  DECLARE_EIGEN_MATRIX(this->Umatrix, U);
   Eigen::MatrixXd SS = Eigen::MatrixXd::Zero(m, m);
   Eigen::MatrixXd SZ = Eigen::MatrixXd::Zero(m, d);
   Eigen::MatrixXd ZZ = Eigen::MatrixXd::Zero(d, d);
@@ -274,9 +276,8 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   SS -= SZ * ZZ * SZ.transpose();
 
   // copy(U, &this->Umatrix);
-  DECLARE_EIGEN_VECTOR(this->Umatrix, U_e);
-  U_e = U;
   // this->Vmatrix = SS;
+  this->Vmatrix.Dimension(m, m);
   DECLARE_EIGEN_MATRIX(this->Vmatrix, V_e);
   V_e = SS;
 
@@ -326,10 +327,12 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y) {
   //   MatrixPlusEqualV1andV2T(SS, X[i], X[i]);
   //   SumS.Add(X[i]);
   // }
+  this->Umatrix.Dimension(m, 1);
+  this->Vmatrix.Dimension(m, m);
   DECLARE_EIGEN_MATRIX(this->Umatrix, U);
   DECLARE_EIGEN_MATRIX(this->Vmatrix, SS);
-  DECLARE_EIGEN_VECTOR(y, y_e);
-  DECLARE_EIGEN_VECTOR(X, X_e);
+  DECLARE_EIGEN_CONST_VECTOR(y, y_e);
+  DECLARE_EIGEN_CONST_MATRIX(X, X_e);
   double yMean = y_e.sum() / y_e.size();
   double yVar = yMean * (1.0 - yMean);
   U = X_e.transpose() * (y_e.array() - yMean).matrix();    // U [m x 1]

@@ -1,12 +1,11 @@
 #include "IO.h"
 
+#include "LinearRegressionScoreTest.h"
 #include "MathMatrix.h"
 #include "MathVector.h"
-#include "LinearRegressionScoreTest.h"
 #include "MatrixIO.h"
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   Vector Y;
   Matrix X;
 
@@ -20,13 +19,13 @@ int main(int argc, char *argv[])
     y = Y;
 
     LinearRegressionScoreTest lrst;
-    if ( lrst.FitLinearModel(x, y, 1) == false) {
+    if (lrst.FitLinearModel(x, y, 1) == false) {
       fprintf(stderr, "Fitting failed!\n");
       return -1;
     }
 
     fprintf(stdout, "score_p\t");
-    double score_p =lrst.GetPvalue();
+    double score_p = lrst.GetPvalue();
     Print(score_p);
     fputc('\n', stdout);
   }
@@ -38,7 +37,7 @@ int main(int argc, char *argv[])
     extractColumn(X, 1, &x);
     Vector y;
     y = Y;
-    
+
     LinearRegressionScoreTest lrst;
     bool ret = lrst.FitNullModel(intercept, y);
     assert(ret);
@@ -46,7 +45,7 @@ int main(int argc, char *argv[])
     assert(ret);
 
     fprintf(stdout, "score_p\t");
-    double score_p =lrst.GetPvalue();
+    double score_p = lrst.GetPvalue();
     Print(score_p);
     fputc('\n', stdout);
   }
@@ -58,7 +57,7 @@ int main(int argc, char *argv[])
     extractColumn(X, 1, &x);
     Vector y;
     y = Y;
-    
+
     LinearRegressionScoreTest lrst;
     bool ret = lrst.FitNullModel(intercept, y);
     assert(ret);
@@ -66,7 +65,7 @@ int main(int argc, char *argv[])
     assert(ret);
 
     fprintf(stdout, "score_p\t");
-    double score_p =lrst.GetPvalue();
+    double score_p = lrst.GetPvalue();
     Print(score_p);
     fputc('\n', stdout);
   }
@@ -76,13 +75,13 @@ int main(int argc, char *argv[])
     extractColumn(X, 1, &x);
     Vector y;
     y = Y;
-    
+
     LinearRegressionScoreTest lrst;
     bool ret = lrst.TestCovariate(x, y);
     assert(ret);
 
     fprintf(stdout, "score_p\t");
-    double score_p =lrst.GetPvalue();
+    double score_p = lrst.GetPvalue();
     Print(score_p);
     fputc('\n', stdout);
   }
@@ -92,16 +91,15 @@ int main(int argc, char *argv[])
     extractColumn(X, 1, &x);
     Vector y;
     y = Y;
-    
+
     LinearRegressionScoreTest lrst;
     bool ret = lrst.TestCovariate(x, y);
     assert(ret);
 
     fprintf(stdout, "score_p\t");
-    double score_p =lrst.GetPvalue();
+    double score_p = lrst.GetPvalue();
     Print(score_p);
     fputc('\n', stdout);
   }
   return 0;
 };
-

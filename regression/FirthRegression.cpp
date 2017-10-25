@@ -1,11 +1,10 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "FirthRegression.h"
 
-#include <Eigen/Cholesky>
-#include "Eigen/Core"
 #include "EigenMatrixInterface.h"
 
-#include "gsl/gsl_cdf.h"
+#include "third/eigen/Eigen/Cholesky"
+#include "third/gsl/include/gsl/gsl_cdf.h"
 
 #ifndef NDEBUG
 #include <fstream>

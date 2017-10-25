@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include "MixtureChiSquare.h"
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   {
     MixtureChiSquare mcs;
     mcs.addLambda(1.0);

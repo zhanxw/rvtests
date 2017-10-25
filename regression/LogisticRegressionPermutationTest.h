@@ -100,6 +100,7 @@ class LogisticRegressionPermutationTest {
     Vector beta_null = lr.GetCovEst();
 
     Vector prob_null;
+    prob_null.Dimension(X.rows);
     // prob_null.Product(cov, beta_null);
     // for (int i = 0; i < prob_null.Length(); i++) {
     //   prob_null[i] = 1.0 / (1.0 + exp(-prob_null[i]));

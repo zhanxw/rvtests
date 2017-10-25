@@ -31,9 +31,9 @@ void LoadMatrix(const char* fn, Matrix& m) {
       // m[lineNo - 1][j] = atof(s[j].c_str());
       double d;
       if (str2double(s[j], &d)) {
-        m[lineNo - 1][j] = d;
+        m(lineNo - 1, j) = d;
       } else {
-        m[lineNo - 1][j] = NAN;
+        m(lineNo - 1, j) = NAN;
       }
     }
   }
@@ -54,9 +54,18 @@ void Print(const Matrix& m) {
       if (j) {
         fprintf(stdout, "\t");
       }
-      fprintf(stdout, "%.3f", m[i][j]);
+      fprintf(stdout, "%.3f", m(i, j));
     }
     fprintf(stdout, "\n");
+  }
+}
+
+void PrintRow(const Matrix& m, int idx) {
+  for (int j = 0; j < m.cols; j++) {
+    if (j) {
+      fprintf(stdout, "\t");
+    }
+    fprintf(stdout, "%.3f", m(idx, j));
   }
 }
 
@@ -65,14 +74,14 @@ void Print(double& d) { fprintf(stdout, "%.3f", d); }
 void extractColumn(Matrix& x, int col, Vector* v) {
   (*v).Dimension(x.rows);
   for (int i = 0; i < x.rows; ++i) {
-    (*v)[i] = x[i][col];
+    (*v)[i] = x(i, col);
   }
 }
 
 void extractColumn(Matrix& x, int col, Matrix* m) {
   (*m).Dimension(x.rows, 1);
   for (int i = 0; i < x.rows; ++i) {
-    (*m)[i][0] = x[i][col];
+    (*m)(i, 0) = x(i, col);
   }
 }
 

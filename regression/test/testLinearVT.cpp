@@ -3,20 +3,19 @@
 
 #include "IO.h"
 
+#include "LinearRegressionVT.h"
 #include "MathMatrix.h"
 #include "MathVector.h"
-#include "LinearRegressionVT.h"
 #include "MatrixIO.h"
 #include "MatrixOperation.h"
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   Vector Y;
   Matrix X;
   Matrix Cov;
   LoadVector("input.linear.mvt.y", Y);
   LoadMatrix("input.linear.mvt.x", X);
-  LoadMatrix("input.linear.mvt.cov", Cov);  
+  LoadMatrix("input.linear.mvt.cov", Cov);
 
   {
     Matrix x;
@@ -25,11 +24,11 @@ int main(int argc, char *argv[])
     y = Y;
 
     LinearRegressionVT linear;
-    if (!linear.FitNullModel(Cov, Y)){
+    if (!linear.FitNullModel(Cov, Y)) {
       fprintf(stderr, "Fitting failed! - step 1!\n");
       return -1;
     }
-    if (!linear.TestCovariate(Cov, Y, X)){
+    if (!linear.TestCovariate(Cov, Y, X)) {
       fprintf(stderr, "Fitting failed - step 2!\n");
       return -1;
     }
@@ -42,4 +41,3 @@ int main(int argc, char *argv[])
   }
   return 0;
 };
-

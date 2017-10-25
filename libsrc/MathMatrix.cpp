@@ -59,6 +59,15 @@ int Matrix::RemoveByRowIndex(const std::vector<int>& rowIndexToRemove) {
   data.resize(rows * cols);
   return idxSet.size();
 }
+
+Matrix& Matrix::StackRight(const Matrix& m) {
+  assert(rows = m.rows);
+  data.insert(data.end(), m.data.begin(), m.data.end());
+  cols += m.cols;
+  colLabel.insert(colLabel.end(), m.colLabel.begin(), m.colLabel.end());
+  return *this;
+}
+
 #if 0
 #include "Error.h"
 #include "MathConstant.h"

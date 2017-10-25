@@ -49,52 +49,62 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
 
   // define a vector and a matrix for I_r = V_rr - corr*(mat_corr)^{-1}*corr
   // int nParamRemain = X.cols - 1;
-  int nParamRemain = Xnull.cols;
-  Vector vec_corr;
-  vec_corr.Dimension(nParamRemain, 0.0);
-  Matrix mat_corr;
-  mat_corr.Dimension(nParamRemain, nParamRemain, 0.0);
+  // int nParamRemain = Xnull.cols;
+  // Vector vec_corr;
+  // vec_corr.Dimension(nParamRemain, 0.0);
+  // Matrix mat_corr;
+  // mat_corr.Dimension(nParamRemain, nParamRemain, 0.0);
 
-  for (int i = 0; i < Xnull.rows; i++) {
-    U += Xcol[i] * (y[i] - lr.GetPredicted()[i]);
-    // calcualte vec_corr
-    for (int j = 0; j < Xnull.cols; j++) {
-      vec_corr[j] += Xcol[i] * Xnull(i, j);
-      // printf("j = %d, xcol = %d, Xnull = %d\n",j,bnull, xcol[j],
-      // Xnull(i,j));
-    }
+  // for (int i = 0; i < Xnull.rows; i++) {
+  //   U += Xcol[i] * (y[i] - lr.GetPredicted()[i]);
+  //   // calcualte vec_corr
+  //   for (int j = 0; j < Xnull.cols; j++) {
+  //     vec_corr[j] += Xcol[i] * Xnull(i, j);
+  //     // printf("j = %d, xcol = %d, Xnull = %d\n",j,bnull, xcol[j],
+  //     // Xnull(i,j));
+  //   }
 
-    // calcualte mat_corr
-    for (int j = 0; j < nParamRemain; j++) {
-      for (int k = 0; k < nParamRemain; k++) {
-        mat_corr(j, k) += Xnull(i, j) * Xnull(i, k);
-      }
-    }
-    I += Xcol[i] * Xcol[i];
-  }
+  //   // calcualte mat_corr
+  //   for (int j = 0; j < nParamRemain; j++) {
+  //     for (int k = 0; k < nParamRemain; k++) {
+  //       mat_corr(j, k) += Xnull(i, j) * Xnull(i, k);
+  //     }
+  //   }
+  //   I += Xcol[i] * Xcol[i];
+  // }
+  DECLARE_EIGEN_MATRIX(Xnull, Xnull_e);
+  DECLARE_EIGEN_VECTOR(Xcol, Xcol_e);
+  DECLARE_EIGEN_VECTOR(y, y_e);
+  DECLARE_EIGEN_CONST_VECTOR(lr.GetPredicted(), pred_e);
+  DECLARE_EIGEN_MATRIX(Umatrix, U_e);
+  DECLARE_EIGEN_MATRIX(Vmatrix, V_e);
+  U_e = Xcol_e.transpose() * (y_e - pred_e);
 
-  // inverse the mat_corr
-  // SVD svd;
-  // svd.InvertInPlace(mat_corr);
-  DECLARE_EIGEN_MATRIX(mat_corr, mat_corr_e);
-  mat_corr_e = mat_corr_e.llt().solve(
-      Eigen::MatrixXd::Identity(mat_corr_e.rows(), mat_corr_e.cols()));
+  // // inverse the mat_corr
+  // // SVD svd;
+  // // svd.InvertInPlace(mat_corr);
+  // DECLARE_EIGEN_MATRIX(mat_corr, mat_corr_e);
+  // mat_corr_e = mat_corr_e.llt().solve(
+  //     Eigen::MatrixXd::Identity(mat_corr_e.rows(), mat_corr_e.cols()));
 
-  Vector leftMult_corr;
-  leftMult_corr.Dimension(nParamRemain, 0.0);
+  // Vector leftMult_corr;
+  // leftMult_corr.Dimension(nParamRemain, 0.0);
 
-  // updates I by substracting the terms led by correlations
-  // multiplying vec_corr with mat_corr
-  for (int i = 0; i < nParamRemain; i++) {
-    for (int j = 0; j < nParamRemain; j++) {
-      leftMult_corr[i] += vec_corr[j] * mat_corr(i, j);
-    }
-  }
+  // // updates I by substracting the terms led by correlations
+  // // multiplying vec_corr with mat_corr
+  // for (int i = 0; i < nParamRemain; i++) {
+  //   for (int j = 0; j < nParamRemain; j++) {
+  //     leftMult_corr[i] += vec_corr[j] * mat_corr(i, j);
+  //   }
+  // }
 
-  // multiplying mat_corr with vec_corr
-  for (int i = 0; i < nParamRemain; i++) {
-    I -= leftMult_corr[i] * vec_corr[i];
-  }
+  // // multiplying mat_corr with vec_corr
+  // for (int i = 0; i < nParamRemain; i++) {
+  //   I -= leftMult_corr[i] * vec_corr[i];
+  // }
+  Eigen::MatrixXd XZ = Xcol_e.transpose() * Xnull_e;
+  V_e = Xcol_e.transpose() * Xcol_e -
+        XZ * (Xcol_e.transpose() * Xcol_e).llt().solve(XZ.transpose());
 
   this->betaMatrix(0, 0) = U / I;
   I *= this->lr.GetSigma2();

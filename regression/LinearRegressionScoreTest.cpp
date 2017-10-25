@@ -231,7 +231,7 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   // SS /= lr.GetSigma2();
   this->betaMatrix.Dimension(m, 1);
   DECLARE_EIGEN_MATRIX(this->betaMatrix, beta_e);
-  SS = SS.llt().solve(Eigen::MatrixXd(m, m));
+  SS = SS.llt().solve(Eigen::MatrixXd::Identity(m, m));
   beta_e = SS * U;
   SS /= lr.GetSigma2();
 
@@ -312,7 +312,7 @@ bool LinearRegressionScoreTest::TestCovariate(const Matrix& X,
   DECLARE_EIGEN_MATRIX(this->Vmatrix, V_e);
   DECLARE_EIGEN_MATRIX(this->betaMatrix, beta_e);
   V_e *= lr.GetSigma2();
-  Eigen::MatrixXd SSinv = SS.llt().solve(Eigen::MatrixXd(m, m));
+  Eigen::MatrixXd SSinv = SS.llt().solve(Eigen::MatrixXd::Identity(m, m));
   beta_e = SSinv * U;
 
   // double S = 0.0;

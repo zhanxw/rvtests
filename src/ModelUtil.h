@@ -2,9 +2,9 @@
 #define _MODELUTIL_H_
 
 #include <vector>
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 #include "base/SimpleMatrix.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
 
 inline void copy(const std::vector<double>& in, Vector* o) {
   Vector& out = *o;

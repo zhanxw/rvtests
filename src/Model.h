@@ -6,7 +6,7 @@
 
 #include <deque>
 
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 
 #include "base/Argument.h"
 #include "base/ParRegion.h"

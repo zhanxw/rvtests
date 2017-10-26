@@ -1,12 +1,11 @@
 #ifndef _DATACONSOLIDATOR_H_
 #define _DATACONSOLIDATOR_H_
 
-#include "base/Logger.h"
-#include "base/ParRegion.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/Random.h"
-
 #include "base/KinshipHolder.h"
+#include "base/Logger.h"
+#include "base/MathMatrix.h"
+#include "base/ParRegion.h"
+#include "libsrc/Random.h"
 #include "regression/Formula.h"
 #include "src/GenotypeCounter.h"
 #include "src/Result.h"
@@ -15,38 +14,13 @@ class SimpleMatrix;
 
 extern Logger* logger;
 
-class WarningOnce {
- public:
-  WarningOnce(const std::string& msg) : warningGiven(false), msg(msg){};
-  void warningIf(bool cond) {
-    if (cond && !warningGiven) {
-      warningGiven = true;
-      fprintf(stderr, "%s", msg.c_str());
-    }
-  }
-
- private:
-  bool warningGiven;
-  std::string msg;
-};
-
 class EigenMatrix;
 
 /**
  * @return true if any of the markers (@param col) of @param genotype (people by
  * marker) is missing
  */
-inline bool hasMissingMarker(Matrix& genotype, int col) {
-  if (col >= genotype.cols || col < 0) {
-    logger->error("Invalid check of missing marker.");
-    return false;
-  }
-
-  for (int r = 0; r < genotype.rows; ++r) {
-    if (genotype(r, col) < 0) return true;
-  }
-  return false;
-};
+inline bool hasMissingMarker(Matrix& genotype, int col);
 
 /**
  * Remove columns of markers in @param genotype (people by marker) where there
@@ -116,104 +90,11 @@ class DataConsolidator {
    * function;
    * we assume @param geno is always changed
    */
-  void consolidate(Matrix& pheno, Matrix& cov, Matrix& geno) {
-    if (&geno != &this->originalGenotype) {
-      this->originalGenotype = geno;
-      copyColName(geno, &this->originalGenotype);
-      // fprintf(stderr, "== Copy occured\n");
-    }
-    // todo: need to avoid copying genotyeps
-    this->genotype = geno;
-    copyColName(geno, &this->genotype);
-
-    if (isPhenotypeUpdated()) {
-      copyColName(pheno, &this->phenotype);
-    }
-    if (isCovariateUpdated()) {
-      copyColName(cov, &this->covariate);
-    }
-
-    // impute missing genotypes
-    if (this->strategy == IMPUTE_MEAN) {
-      // impute missing genotypes
-      imputeGenotypeToMean(&this->genotype);
-
-      // handle phenotype
-      if (isPhenotypeUpdated()) {
-        this->phenotypeUpdated = !isEqual(this->phenotype, pheno);
-        // todo: check if this phenotype is copied more than once
-        this->phenotype = pheno;
-      } else {
-        // no need to update phenotype
-      }
-
-      // handle covariate
-      if (isCovariateUpdated()) {
-        this->covariateUpdated = !isEqual(this->covariate, cov);
-        // todo: check if this phenotype is copied more than once
-        this->covariate = cov;
-      } else {
-        // no need to update covariate
-      }
-    } else if (this->strategy == IMPUTE_HWE) {
-      // impute missing genotypes
-      imputeGenotypeByFrequency(&genotype, &this->random);
-      // handle phenotype
-      if (isPhenotypeUpdated()) {
-        this->phenotypeUpdated = !isEqual(this->phenotype, pheno);
-        this->phenotype = pheno;
-      } else {
-        // no need to update phenotype
-      }
-
-      // handle covariate
-      if (isCovariateUpdated()) {
-        this->covariateUpdated = !isEqual(this->covariate, cov);
-        this->covariate = cov;
-      } else {
-        // no need to update covariate
-      }
-    } else if (this->strategy == DROP) {
-      // (TODO) should also consider how kinship matrix changes.
-
-      // we process genotype matrix (people by marker)
-      // if for the same people, any marker is empty, we will remove this people
-      int idxToCopy = 0;
-      for (int i = 0; i < (genotype).rows; ++i) {
-        if (isNoMissingGenotypeInRow(genotype, i)) {
-          copyRow(genotype, i, &genotype, idxToCopy);
-          copyRow(cov, i, &covariate, idxToCopy);
-          copyRow(pheno, i, &phenotype, idxToCopy);
-          rowLabel[idxToCopy] = originalRowLabel[i];
-          idxToCopy++;
-        }
-      }
-      genotype.Dimension(idxToCopy, genotype.cols);
-      covariate.Dimension(idxToCopy, cov.cols);
-      phenotype.Dimension(idxToCopy, pheno.cols);
-      this->phenotypeUpdated = true;
-      this->covariateUpdated = true;
-    } else {
-      logger->error(
-          "Uninitialized consolidation methods to handle missing data!");
-    }
-  }  // end consolidate
-     /**
+  void consolidate(Matrix& pheno, Matrix& cov, Matrix& geno);
+  /**
       * Compare @param a and @param b by comparing their common finite elements.
       */
-  bool isEqual(Matrix& a, Matrix& b) {
-    if (a.rows != b.rows) return false;
-    if (a.cols != b.cols) return false;
-    const int nr = a.rows;
-    const int nc = a.cols;
-    for (int i = 0; i < nr; ++i) {
-      for (int j = 0; j < nc; ++j) {
-        if (finite(a(i, j)) && finite(b(i, j)) && a(i, j) != b(i, j))
-          return false;
-      }
-    }
-    return true;
-  }
+  bool isEqual(Matrix& a, Matrix& b);
   /**
    * @param g , row @param r: all elements are non-missing
    */
@@ -224,19 +105,14 @@ class DataConsolidator {
     }
     return true;
   }
-  void copyRow(Matrix& src, const int srcRow, Matrix* dest, const int destRow) {
-    Matrix& m = *dest;
-    if (m.cols < src.cols) {
-      m.Dimension(m.rows, src.cols);
-    }
-    if (m.rows <= destRow) {
-      m.Dimension(destRow + 1, m.cols);
-    }
-    const int n = m.cols;
-    for (int i = 0; i < n; ++i) {
-      m(destRow, i) = src(srcRow, i);
-    }
-  }
+  /**
+   * Copy the row @param srcRow in matrix @param src to @param dst at row
+   * @destRow
+   * NOTE: @param dest rows and columns may be changed depends on the dimension
+   * of @param src and @param srcRow
+   */
+  void copyRow(Matrix& src, const int srcRow, Matrix* dest, const int destRow);
+
   void copyColName(Matrix& src, Matrix* dest) {
     dest->Dimension(dest->rows, src.cols);
     for (int i = 0; i < src.cols; ++i) {
@@ -270,30 +146,7 @@ class DataConsolidator {
    */
   int countRawGenotype(int columnIndex, const PLINK_SEX sex,
                        const PLINK_PHENOTYPE phenotype,
-                       GenotypeCounter* counter) const {
-    if (columnIndex < 0 || columnIndex >= originalGenotype.cols) {
-      return -1;
-    }
-    if (sex > 0 && sex != MALE && sex != FEMALE) return -2;
-    if (sex > 0 && (int)this->sex->size() != originalGenotype.rows) return -3;
-    if (phenotype > 0 && phenotype != CTRL && phenotype != CASE) return -2;
-
-    for (int i = 0; i < originalGenotype.rows; ++i) {
-      if (sex > 0 && (*this->sex)[i] != sex) {
-        continue;
-      }
-      // + 1: PLINK use 1 and 2 as ctrl and case, but
-      // internally, we use 0 and 1.
-      if (phenotype > 0 && (int)(this->phenotype(i, 0) + 1) != phenotype) {
-        continue;
-      }
-
-      const double& g = originalGenotype(i, columnIndex);
-      counter->add(g);
-    }
-
-    return 0;  // success
-  }
+                       GenotypeCounter* counter) const;
 
   int countRawGenotypeFromCase(int columnIndex,
                                GenotypeCounter* counter) const {
@@ -353,89 +206,12 @@ class DataConsolidator {
     int pos = atoi(chromPos.substr(posColon + 1));
     return this->parRegion->isHemiRegion(chrom, pos);
   }
-
-  void codeGenotypeForDominantModel(Matrix* geno) {
-    int n = genotype.cols;
-    static WarningOnce warning("Encoding only use the first variant!\n");
-    warning.warningIf(n != 1);
-
-    int m = genotype.rows;
-    if (n != 1) {
-      fprintf(stderr, "n = %d, m = %d \n", n, m);
-    }
-
-    geno->Dimension(m, 1);
-    double s = 0;  // sum of genotypes
-    int numGeno = 0;
-    if (this->strategy == IMPUTE_MEAN || this->strategy == IMPUTE_HWE) {
-      for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype(i, 0) < 0) continue;
-
-        if (this->originalGenotype(i, 0) > 0.5) {
-          (*geno)(i, 0) = 1.0;
-          s += 1.;
-          numGeno++;
-        } else {
-          (*geno)(i, 0) = 0.0;
-          numGeno++;
-        }
-      }
-      double avg = 0.0;
-      if (numGeno > 0) {
-        avg = s / numGeno;
-      }
-      for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype(i, 0) < 0) (*geno)(i, 0) = avg;
-      }
-    } else if (this->strategy == DROP) {
-      for (int i = 0; i < m; ++i) {
-        if (this->genotype(i, 0) > 0.5) {
-          (*geno)(0, i) = 1.;
-        } else {
-          (*geno)(0, i) = 0.;
-        }
-      }
-    }
-  }
-  void codeGenotypeForRecessiveModel(Matrix* geno) {
-    int n = genotype.cols;
-    static WarningOnce warning("Encoding only use the first variant!\n");
-    warning.warningIf(n != 1);
-
-    int m = genotype.rows;
-    geno->Dimension(m, 1);
-    double s = 0;  // sum of genotypes
-    int numGeno = 0;
-    if (this->strategy == IMPUTE_MEAN || this->strategy == IMPUTE_HWE) {
-      for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype(i, 0) < 0) continue;
-
-        if (this->originalGenotype(i, 0) > 1.5) {
-          (*geno)(i, 0) = 1.0;
-          s += 1.;
-          numGeno++;
-        } else {
-          (*geno)(i, 0) = 0.0;
-          numGeno++;
-        }
-      }
-      double avg = 0.0;
-      if (numGeno > 0) {
-        avg = s / numGeno;
-      }
-      for (int i = 0; i < m; ++i) {
-        if (this->originalGenotype(i, 0) < 0) (*geno)(i, 0) = avg;
-      }
-    } else if (this->strategy == DROP) {
-      for (int i = 0; i < m; ++i) {
-        if (this->genotype(i, 0) > 1.5) {
-          (*geno)(0, i) = 1.;
-        } else {
-          (*geno)(0, i) = 0.;
-        }
-      }
-    }
-  }
+  /**
+   * Recode this->orginalGenotype to @parma geno, using pre-specified imputation
+   * strategy
+   */
+  void codeGenotypeForDominantModel(Matrix* geno);
+  void codeGenotypeForRecessiveModel(Matrix* geno);
 
  public:
   // codes to check before regression

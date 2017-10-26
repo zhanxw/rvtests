@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 #include "base/SimpleMatrix.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
 #include "regression/Formula.h"
 
 class DataLoader {

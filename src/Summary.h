@@ -5,8 +5,8 @@
 #include <vector>
 #include "base/CommonFunction.h"  // calculateMean, calculateSampleSD
 #include "base/IO.h"
+#include "base/MathVector.h"
 #include "base/SimpleMatrix.h"
-#include "libsrc/MathVector.h"
 
 inline void assign(const std::vector<double>& in, Vector* out) {
   if (!out) return;

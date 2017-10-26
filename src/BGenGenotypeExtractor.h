@@ -6,8 +6,8 @@
 
 #include "src/GenotypeExtractor.h"
 // #include "base/ParRegion.h"
-// #include "libsrc/MathMatrix.h"
-// #include "libsrc/MathVector.h"
+// #include "base/MathMatrix.h"
+// #include "base/MathVector.h"
 
 // class Matrix;
 // class RangeList;

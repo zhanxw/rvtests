@@ -1,8 +1,8 @@
 #include "base/IO.h"
 
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 #include "libVcf/PlinkOutputFile.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
 #include "regression/BoltLMM.h"
 #include "regression/test/MatrixIO.h"
 

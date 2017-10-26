@@ -6,9 +6,9 @@
 
 #include "base/Argument.h"
 #include "base/Logger.h"
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 #include "libVcf/VCFUtil.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
 
 DECLARE_BOOL_PARAMETER(outputID);
 

@@ -1,6 +1,6 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 //////////////////////////////////////////////////////////////////////
-// libsrc/MathMatrix.cpp
+// base/MathMatrix.cpp
 // (c) 2000-2010 Goncalo Abecasis
 //
 // This file is distributed as part of the Goncalo source code package

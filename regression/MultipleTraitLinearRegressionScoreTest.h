@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "MathMatrix.h"
+#include "base/MathMatrix.h"
 
 class MultipleTraitLinearRegressionScoreTestInternal;
 class FormulaVector;

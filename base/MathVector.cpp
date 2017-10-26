@@ -16,6 +16,33 @@
 //
 
 #include "MathVector.h"
+
+#include <algorithm>  // fill
+#include <numeric>    // accumulate
+
+#include "third/eigen/Eigen/Core"
+
+void Vector::Dimension(int n) { data.resize(n); }
+void Vector::Dimension(int n, double val) {
+  data.resize(n);
+  Fill(val);
+}
+
+void Vector::Fill(double val) { std::fill(data.begin(), data.end(), val); }
+double Vector::Sum() const {
+  return std::accumulate(data.begin(), data.end(), 0.0);
+}
+double Vector::Average() const {
+  if (data.empty()) return 0.0;
+  return Sum() / data.size();
+}
+double Vector::Min() const {
+  return *std::min_element(data.begin(), data.end());
+}
+double Vector::Max() const {
+  return *std::max_element(data.begin(), data.end());
+}
+
 #if 0
 #include "Error.h"
 #include "MathConstant.h"

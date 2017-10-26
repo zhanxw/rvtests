@@ -2,7 +2,7 @@
 #define _LINEARREGRESSIONSCORETEST_H_
 
 #include <cmath>
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 #include "regression/LinearRegression.h"
 
 class LinearRegressionScoreTest {

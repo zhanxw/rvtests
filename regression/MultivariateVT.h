@@ -1,10 +1,10 @@
 #ifndef _MULTIVARIATEVT_H_
 #define _MULTIVARIATEVT_H_
 
-#include "MathMatrix.h"
-#include "MathVector.h"
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 
-#include "MultivariateNormalDistribution.h"
+#include "regression/MultivariateNormalDistribution.h"
 
 // Implement Liu's meta-analysis method
 class MultivariateVT {

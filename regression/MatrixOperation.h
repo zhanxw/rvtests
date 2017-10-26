@@ -2,7 +2,7 @@
 #define _MATRIXOPERATION_H_
 
 #include <stdio.h>
-#include "MathMatrix.h"
+#include "base/MathMatrix.h"
 #include "third/eigen/Eigen/Core"
 
 /**

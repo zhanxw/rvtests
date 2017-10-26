@@ -1,18 +1,18 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "SkatO.h"
 
-#include <Eigen/Cholesky>
-#include <Eigen/Core>
-#include <Eigen/Eigenvalues>
 #include <vector>
 
-#include "gsl/gsl_cdf.h"      // use gsl_cdf_chisq_Q
-#include "gsl/gsl_randist.h"  // gsl_ran_chisq_pdf
+#include "base/MathMatrix.h"
+#include "regression/EigenMatrixInterface.h"
+#include "regression/GSLIntegration.h"
+#include "regression/MixtureChiSquare.h"
 
-#include "EigenMatrixInterface.h"
-#include "GSLIntegration.h"
-#include "MathMatrix.h"
-#include "MixtureChiSquare.h"
+#include "third/eigen/Eigen/Cholesky"
+#include "third/eigen/Eigen/Core"
+#include "third/eigen/Eigen/Eigenvalues"
+#include "third/gsl/include/gsl/gsl_cdf.h"      // use gsl_cdf_chisq_Q
+#include "third/gsl/include/gsl/gsl_randist.h"  // gsl_ran_chisq_pdf
 
 // #define DEBUG
 #undef DEBUG

@@ -10,8 +10,8 @@
 #define __TABLE2by2_h__
 
 // #include "MathStats.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 
 class Table2by2 {
  public:

@@ -233,19 +233,19 @@ int main(int argc, char** argv) {
     for (int i = 0; i < num; ++i) {
       for (int j = 0; j < i; ++j) {  // only use half of the matrix
         if (g[i] < 0 || g[j] < 0 || g[i] > 2 || g[j] > 2) {
-          p9[i][j]++;
+          p9(i, j)++;
           continue;
         } else {
           diff = (int)abs(g[i] - g[j]);
           switch (diff) {
             case 0:
-              p2[i][j]++;
+              p2(i, j)++;
               break;
             case 1:
-              p1[i][j]++;
+              p1(i, j)++;
               break;
             case 2:
-              p0[i][j]++;
+              p0(i, j)++;
               break;
             default:
               fprintf(stderr, "Something wrong!\n");
@@ -270,7 +270,7 @@ int main(int argc, char** argv) {
   for (int i = 0; i < num; ++i) {
     for (int j = 0; j < i; ++j) {  // only use half of the matrix
       fprintf(fp, "%s\t%s\t%g\t%g\t%g\t%g\n", name[i].c_str(), name[j].c_str(),
-              p0[i][j], p1[i][j], p2[i][j], p9[i][j]);
+              p0(i, j), p1(i, j), p2(i, j), p9(i, j));
     }
   }
   fclose(fp);

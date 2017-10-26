@@ -1,7 +1,7 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "GrammarGamma.h"
 
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 #include "third/eigen/Eigen/Dense"
 #include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 

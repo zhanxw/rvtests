@@ -4,7 +4,7 @@
 #include <gsl/gsl_cdf.h>
 #include <math.h>
 #include <cassert>
-#include "MathMatrix.h"
+#include "base/MathMatrix.h"
 
 //////////////////////////////////////////////////
 // Get band probability

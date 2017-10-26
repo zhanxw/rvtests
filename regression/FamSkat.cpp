@@ -1,17 +1,16 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "FamSkat.h"
 
-#include <Eigen/Core>
-#include <Eigen/Eigenvalues>
-#include "EigenMatrix.h"
-#include "EigenMatrixInterface.h"
-#include "MathMatrix.h"
-//#include <Eigen/Dense>
-#include "FastLMM.h"
-#include "MixtureChiSquare.h"
+#include "base/MathMatrix.h"
+#include "regression/EigenMatrix.h"
+#include "regression/EigenMatrixInterface.h"
+#include "regression/FastLMM.h"
+#include "regression/MixtureChiSquare.h"
 
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_rng.h>
+#include "third/eigen/Eigen/Core"
+#include "third/eigen/Eigen/Eigenvalues"
+#include "third/gsl/include/gsl/gsl_randist.h"
+#include "third/gsl/include/gsl/gsl_rng.h"
 
 #undef DEBUG
 // #define DEBUG

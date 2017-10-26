@@ -1,11 +1,12 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "Skat.h"
 
-#include <Eigen/Core>
-#include <Eigen/Eigenvalues>
-#include "EigenMatrixInterface.h"
-#include "MathMatrix.h"
-#include "MixtureChiSquare.h"
+#include "base/MathMatrix.h"
+#include "regression/EigenMatrixInterface.h"
+#include "regression/MixtureChiSquare.h"
+
+#include "third/eigen/Eigen/Core"
+#include "third/eigen/Eigen/Eigenvalues"
 
 // #define DEBUG
 #undef DEBUG

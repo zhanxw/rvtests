@@ -17,10 +17,7 @@
 
 #ifndef __MATHVECTOR_H__
 #define __MATHVECTOR_H__
-#include <algorithm>
-#include <numeric>  // accumulate
 #include <vector>
-// #include "third/eigen/Eigen/Core"
 
 #define DECLARE_EIGEN_VECTOR(matRef, varName)               \
   Eigen::Map<Eigen::MatrixXd> varName((matRef).data.data(), \
@@ -37,20 +34,14 @@ class Vector {
   double operator[](int idx) const { return data[idx]; }
   double& operator[](int idx) { return data[idx]; }
   int Length() const { return data.size(); }
-  void Dimension(int n) { data.resize(n); }
-  void Dimension(int n, double val) {
-    data.resize(n);
-    Zero();
-  }
-  void Fill(double val) { std::fill(data.begin(), data.end(), val); }
+  void Dimension(int n);
+  void Dimension(int n, double val);
+  void Fill(double val);
   void Zero() { Fill(0); }
-  double Sum() const { return std::accumulate(data.begin(), data.end(), 0.0); }
-  double Average() const {
-    if (data.empty()) return 0.0;
-    return Sum() / data.size();
-  }
-  double Min() const { return *std::min_element(data.begin(), data.end()); }
-  double Max() const { return *std::max_element(data.begin(), data.end()); }
+  double Sum() const;
+  double Average() const;
+  double Min() const;
+  double Max() const;
 #if 0
   operator Eigen::Map<Eigen::MatrixXd>() {
     Eigen::Map<Eigen::MatrixXd> ret(data.data(), data.size(), 1);
@@ -64,6 +55,7 @@ class Vector {
  public:
   std::vector<double> data;
 };
+
 #if 0
 #include "StringBasics.h"
 

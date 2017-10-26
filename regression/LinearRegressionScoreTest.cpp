@@ -2,9 +2,9 @@
 #include "LinearRegressionScoreTest.h"
 #include "MatrixOperation.h"
 #include "third/eigen/Eigen/Cholesky"
-// #include "libsrc/MathCholesky.h"
-// #include "libsrc/MathSVD.h"
-// #include "libsrc/MathStats.h"
+// #include "base/MathCholesky.h"
+// #include "base/MathSVD.h"
+// #include "base/MathStats.h"
 
 #include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 

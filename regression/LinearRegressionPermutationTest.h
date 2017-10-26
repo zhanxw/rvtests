@@ -3,13 +3,13 @@
 
 #include <cmath>
 // #include "MathCholesky.h"
-#include "MathMatrix.h"
+#include "base/MathMatrix.h"
 // #include "MathSVD.h"
 // #include "MathStats.h"
 // #include "StringArray.h"
 // #include "StringHash.h"
 
-#include "LinearRegression.h"
+#include "regression/LinearRegression.h"
 #include "third/eigen/Eigen/Cholesky"
 
 class LinearRegressionPermutationTest {

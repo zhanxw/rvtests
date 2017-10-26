@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 //////////////////////////////////////////////////////////////////////
 // libsrc/MathMatrix.cpp
 // (c) 2000-2010 Goncalo Abecasis
@@ -17,8 +18,83 @@
 
 #include "MathMatrix.h"
 
+#include <algorithm>  // fill
 #include <cassert>
+#include <numeric>  // accumulate
+
 #include "third/eigen/Eigen/Core"
+
+Matrix::Matrix() {
+  rows = 0;
+  cols = 0;
+}
+Matrix::Matrix(int nr, int nc) {
+  rows = nr;
+  cols = nc;
+  data.resize(nr * nc);
+}
+Matrix::Matrix(const Matrix& m) {
+  rows = m.rows;
+  cols = m.cols;
+  data = m.data;
+  colLabel = m.colLabel;
+
+  static int i = 0;
+  ++i;
+  printf("Matrix() called %d times\n", i);
+}
+Matrix& Matrix::operator=(const Matrix& m) {
+  rows = m.rows;
+  cols = m.cols;
+  data = m.data;
+  colLabel = m.colLabel;
+
+  static int i = 0;
+  ++i;
+  printf("Matrix operator= called %d times\n", i);
+  return *this;
+}
+
+void Matrix::Dimension(int nr, int nc) {
+  if (nr == rows && nc == cols) {
+    return;
+  }
+
+  // todo: make this run faster
+  std::vector<double> newData(nr * nc);
+  for (int i = 0; i < nr && i < rows; ++i) {
+    for (int j = 0; j < nc && j < cols; ++j) {
+      newData[i + j * nr] = data[i + j * rows];
+    }
+  }
+
+  rows = nr;
+  cols = nc;
+  std::swap(data, newData);
+  colLabel.resize(nc);
+}
+
+/**
+ * Set all matrix elements to @param val
+ */
+void Matrix::Dimension(int nr, int nc, double val) {
+  DimensionQuick(nr, nc);
+  Fill(val);
+  colLabel.resize(nc);
+}
+void Matrix::DimensionQuick(int nr, int nc) {
+  rows = nr;
+  cols = nc;
+  data.resize(nr * nc);
+}
+
+double Matrix::Min() const {
+  return *std::min_element(data.begin(), data.end());
+}
+
+double Matrix::Max() const {
+  return *std::max_element(data.begin(), data.end());
+}
 
 void Matrix::Product(const Matrix& in1, const Matrix& in2) {
   DECLARE_EIGEN_CONST_MATRIX(in1, in1_e);
@@ -27,6 +103,7 @@ void Matrix::Product(const Matrix& in1, const Matrix& in2) {
   Eigen::Map<Eigen::MatrixXd> ret(data.data(), rows, cols);
   ret = in1_e * in2_e;
 }
+
 void Matrix::Transpose(const Matrix& old) {
   data.resize(old.data.size());
   rows = old.cols;
@@ -34,6 +111,14 @@ void Matrix::Transpose(const Matrix& old) {
   DECLARE_EIGEN_CONST_MATRIX(old, old_e);
   DECLARE_EIGEN_MATRIX((*this), new_e);
   new_e = old_e.transpose();
+}
+
+Matrix& Matrix::Multiply(double s) {
+  for (std::vector<double>::iterator iter = data.begin(); iter != data.end();
+       ++iter) {
+    *iter *= s;
+  }
+  return *this;
 }
 
 /**

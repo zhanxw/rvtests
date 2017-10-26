@@ -22,7 +22,6 @@
 #include <string>
 
 #include "MathVector.h"
-// #include "third/eigen/Eigen/Core"
 
 #define DECLARE_EIGEN_MATRIX(matRef, varName)                              \
   Eigen::Map<Eigen::MatrixXd> varName((matRef).data.data(), (matRef).rows, \
@@ -34,69 +33,37 @@
 // column-major
 class Matrix {
  public:
-  Matrix() {
-    rows = 0;
-    cols = 0;
-  }
-  Matrix(int nr, int nc) {
-    rows = nr;
-    cols = nc;
-    data.resize(nr * nc);
-  }
+  Matrix();
+  Matrix(int nr, int nc);
+  Matrix(const Matrix& m);
+  Matrix& operator=(const Matrix& m);
   double& operator()(int i, int j) { return data[i + j * rows]; }
   double operator()(int i, int j) const { return data[i + j * rows]; }
   /**
    * Resize matrix to @param nr by @param nc
    * Existing contents is preserved
    */
-  void Dimension(int nr, int nc) {
-    if (nr == rows && nc == cols) {
-      return;
-    }
-
-    // todo: make this run faster
-    std::vector<double> newData(nr * nc);
-    for (int i = 0; i < nr && i < rows; ++i) {
-      for (int j = 0; j < nc && j < cols; ++j) {
-        newData[i + j * nr] = data[i + j * rows];
-      }
-    }
-
-    rows = nr;
-    cols = nc;
-    std::swap(data, newData);
-    colLabel.resize(nc);
-  }
+  void Dimension(int nr, int nc);
 
   /**
    * Set all matrix elements to @param val
    */
-  void Dimension(int nr, int nc, double val) {
-    DimensionQuick(nr, nc);
-    Fill(val);
-    colLabel.resize(nc);
-  }
-  void DimensionQuick(int nr, int nc) {
-    rows = nr;
-    cols = nc;
-    data.resize(nr * nc);
-  }
+  void Dimension(int nr, int nc, double val);
+  void DimensionQuick(int nr, int nc);
   void Fill(double val) { std::fill(data.begin(), data.end(), val); }
   void Zero() { Fill(0.); }
   const std::string& GetColumnLabel(int idx) const { return colLabel[idx]; }
   void SetColumnLabel(int idx, const std::string& label) {
     colLabel[idx] = label;
   }
-  double Min() const { return *std::min_element(data.begin(), data.end()); }
-  double Max() const { return *std::max_element(data.begin(), data.end()); }
+  double Min() const;
+  double Max() const;
   void Product(const Matrix& in1, const Matrix& in2);
   void Transpose(const Matrix& old);
-  void Multiply(double s) {
-    for (std::vector<double>::iterator iter = data.begin(); iter != data.end();
-         ++iter) {
-      *iter *= s;
-    }
-  }
+  /**
+   * Each element is multiplied by @param s
+   */
+  Matrix& Multiply(double s);
   /**
    * @param rowIndexToRemove each index should be in [0, ... , rows-1]
    * @return number of row deleted
@@ -107,6 +74,7 @@ class Matrix {
    * Stack @param m to the right
    */
   Matrix& StackRight(const Matrix& m);
+
 #if 0
   operator Eigen::Map<Eigen::MatrixXd>() {
     Eigen::Map<Eigen::MatrixXd> ret(data.data(), rows, cols);

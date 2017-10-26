@@ -1,7 +1,7 @@
 #ifndef FASTMULTIPLETRAITSCORETEST_H
 #define FASTMULTIPLETRAITSCORETEST_H
 
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 
 class FastMultipleTraitLinearRegressionScoreTestInternal;
 class FormulaVector;

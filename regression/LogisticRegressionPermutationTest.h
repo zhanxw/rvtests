@@ -1,7 +1,6 @@
 #ifndef _LOGISTICREGRESSIONPERMUTATIONTEST_H_
 #define _LOGISTICREGRESSIONPERMUTATIONTEST_H_
 
-#include "MathMatrix.h"
 // #include "MathCholesky.h"
 // #include "StringHash.h"
 // #include "StringArray.h"
@@ -9,8 +8,9 @@
 // #include "MathStats.h"
 // #include "MathSVD.h"
 
-#include "LogisticRegression.h"
-#include "Random.h"
+#include "base/MathMatrix.h"
+#include "libsrc/Random.h"
+#include "regression/LogisticRegression.h"
 
 #include "third/eigen/Eigen/Core"
 

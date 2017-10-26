@@ -122,7 +122,7 @@ class DataConsolidator {
       copyColName(geno, &this->originalGenotype);
       // fprintf(stderr, "== Copy occured\n");
     }
-
+    // todo: need to avoid copying genotyeps
     this->genotype = geno;
     copyColName(geno, &this->genotype);
 
@@ -141,6 +141,7 @@ class DataConsolidator {
       // handle phenotype
       if (isPhenotypeUpdated()) {
         this->phenotypeUpdated = !isEqual(this->phenotype, pheno);
+        // todo: check if this phenotype is copied more than once
         this->phenotype = pheno;
       } else {
         // no need to update phenotype
@@ -149,6 +150,7 @@ class DataConsolidator {
       // handle covariate
       if (isCovariateUpdated()) {
         this->covariateUpdated = !isEqual(this->covariate, cov);
+        // todo: check if this phenotype is copied more than once
         this->covariate = cov;
       } else {
         // no need to update covariate

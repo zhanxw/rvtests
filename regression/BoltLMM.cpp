@@ -6,10 +6,10 @@
 #include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
 #include "base/IO.h"
+#include "base/MathMatrix.h"
 #include "base/TypeConversion.h"
 #include "base/Utils.h"
 #include "libVcf/PlinkInputFile.h"
-#include "libsrc/MathMatrix.h"
 #include "libsrc/Random.h"
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"

@@ -1,11 +1,11 @@
 #ifndef _LINEARREGRESSION_H_
 #define _LINEARREGRESSION_H_
 
-#include "MathMatrix.h"
 // #include "MathCholesky.h"
 #include <cmath>
 // #include "MathStats.h"
 // #include "MathSVD.h"
+#include "base/MathMatrix.h"
 
 // use Wald statistics
 class LinearRegression {

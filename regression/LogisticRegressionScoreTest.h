@@ -1,7 +1,6 @@
 #ifndef _LOGISTICREGRESSIONSCORETEST_H_
 #define _LOGISTICREGRESSIONSCORETEST_H_
 
-#include "MathMatrix.h"
 // #include "MathCholesky.h"
 // #include "StringHash.h"
 // #include "StringArray.h"
@@ -9,7 +8,8 @@
 // #include "MathStats.h"
 // #include "MathSVD.h"
 
-#include "LogisticRegression.h"
+#include "base/MathMatrix.h"
+#include "regression/LogisticRegression.h"
 
 class LogisticRegressionScoreTest {
  public:

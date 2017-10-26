@@ -11,7 +11,7 @@
 #ifndef __LOGISTIC_REGRESSION_H__
 #define __LOGISTIC_REGRESSION_H__
 
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 /* #if 1 */
 /* #include "MathCholesky.h" */
 /* #endif */

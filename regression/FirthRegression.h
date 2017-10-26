@@ -1,7 +1,8 @@
 #ifndef __FIRTH_REGRESSION_H__
 #define __FIRTH_REGRESSION_H__
 
-#include "MathMatrix.h"
+#include "base/MathMatrix.h"
+
 // use Wald statistics
 class FirthRegression {
  public:

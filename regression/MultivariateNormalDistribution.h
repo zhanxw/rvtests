@@ -2,7 +2,7 @@
 #define _MULTIVARIATENORMALDISTRIBUTION_H_
 
 #include <vector>
-#include "MathMatrix.h"
+#include "base/MathMatrix.h"
 #include "libMvtnorm/mvtnorm.h"
 
 //////////////////////////////////////////////////

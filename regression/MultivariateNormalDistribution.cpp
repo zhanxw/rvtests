@@ -1,9 +1,11 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "MultivariateNormalDistribution.h"
 
-#include <gsl/gsl_cdf.h>
 #include <math.h>
 #include <cassert>
+
+#include "third/gsl/include/gsl/gsl_cdf.h"
+
 #include "base/MathMatrix.h"
 
 //////////////////////////////////////////////////

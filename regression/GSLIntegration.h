@@ -1,7 +1,7 @@
 #ifndef GSLINTEGRATION_H
 #define GSLINTEGRATION_H
 
-#include <gsl/gsl_integration.h>
+#include "third/gsl/include/gsl/gsl_integration.h"
 
 class Integration {
  public:

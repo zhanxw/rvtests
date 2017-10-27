@@ -1,7 +1,7 @@
 #ifndef _GSLMINIMIZER_H_
 #define _GSLMINIMIZER_H_
 
-#include <gsl/gsl_min.h>
+#include "third/gsl/include/gsl/gsl_min.h"
 
 class Minimizer {
  public:

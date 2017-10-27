@@ -1,9 +1,10 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LogisticRegressionScoreTest.h"
-#include "MatrixOperation.h"
 
-#include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 #include "third/eigen/Eigen/Cholesky"
+#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
+
+#include "regression/MatrixOperation.h"
 
 LogisticRegressionScoreTest::LogisticRegressionScoreTest()
     : stat(0.0), pvalue(0.0){};

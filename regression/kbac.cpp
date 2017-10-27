@@ -3,11 +3,10 @@
 // Copyright 2011 Gao Wang
 // Modified 2014 Xiaowei Zhan
 #include "kbac.h"
-//#include <stdio.h>
-#include "gsl/gsl_cdf.h"
-#include "gsl/gsl_randist.h"
-#include "gsl/gsl_rng.h"
-#include "gsl/gsl_sf_gamma.h"
+#include "third/gsl/include/gsl/gsl_cdf.h"
+#include "third/gsl/include/gsl/gsl_randist.h"
+#include "third/gsl/include/gsl/gsl_rng.h"
+#include "third/gsl/include/gsl/gsl_sf_gamma.h"
 
 namespace {
 const double AFFECTED = 1.0, UNAFFECTED = 0.0, HOMO_ALLELE = 2.0,

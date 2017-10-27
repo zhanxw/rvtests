@@ -1,7 +1,8 @@
 #include "GSLIntegration.h"
 
-#include <gsl/gsl_errno.h>
 #include <stdio.h>
+
+#include "third/gsl/include/gsl/gsl_errno.h"
 
 Integration::Integration()
     : epsabs(0.),

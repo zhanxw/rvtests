@@ -90,7 +90,8 @@ void removeMissingMarker(Matrix* genotype) {
   g.Dimension(g.rows, missingCol);
 }
 
-bool isMonomorphicMarker(Matrix& genotype, int col) {
+bool isMonomorphicMarker(const Matrix& genotype, int col) {
+  // todo: may optimized for column-based storage
   if (col >= genotype.cols || col < 0) {
     logger->error("Invalid check of monomorhpic marker.");
     return false;

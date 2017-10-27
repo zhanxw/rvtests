@@ -216,8 +216,9 @@ bool LogisticRegressionScoreTest::TestCovariate(Vector& x, Vector& y) {
  * Z_i^T) (\sum v_i Z_i S_i^T)
  * U^T*inv(V)*U is the score test statistic
  */
-bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
-                                                Matrix& Xcol) {
+bool LogisticRegressionScoreTest::TestCovariate(const Matrix& Xnull,
+                                                const Vector& y,
+                                                const Matrix& Xcol) {
   if (Xnull.rows != y.Length() || y.Length() != Xcol.rows) {
     fprintf(stderr, "Incompatible dimension.\n");
     return false;
@@ -252,8 +253,8 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   DECLARE_EIGEN_CONST_VECTOR(this->lr.GetVariance(), v_e);
   DECLARE_EIGEN_CONST_VECTOR(this->lr.GetPredicted(), pred_e);
   DECLARE_EIGEN_CONST_VECTOR(y, y_e);
-  DECLARE_EIGEN_MATRIX(Xcol, Xcol_e);
-  DECLARE_EIGEN_MATRIX(Xnull, Xnull_e);
+  DECLARE_EIGEN_CONST_MATRIX(Xcol, Xcol_e);
+  DECLARE_EIGEN_CONST_MATRIX(Xnull, Xnull_e);
 
   U = (y_e - pred_e).transpose() * Xcol_e;  // U [1 x m]
   SS = Xcol_e.transpose() * v_e.asDiagonal() * Xcol_e;
@@ -370,8 +371,8 @@ bool LogisticRegressionScoreTest::TestCovariate(Matrix& X, Vector& y) {
   return true;
 };
 
-void LogisticRegressionScoreTest::splitMatrix(Matrix& x, int col, Matrix& xnull,
-                                              Vector& xcol) {
+void LogisticRegressionScoreTest::splitMatrix(const Matrix& x, int col,
+                                              Matrix& xnull, Vector& xcol) {
   if (x.cols < 2) {
     printf("input matrix has too few cols!\n");
   }

@@ -10,7 +10,8 @@ class FastMultipleTraitLinearRegressionScoreTest {
  public:
   FastMultipleTraitLinearRegressionScoreTest(int blockSize);
   virtual ~FastMultipleTraitLinearRegressionScoreTest();
-  bool FitNullModel(Matrix& cov, Matrix& y, const FormulaVector& tests);
+  bool FitNullModel(const Matrix& cov, const Matrix& y,
+                    const FormulaVector& tests);
   bool AddGenotype(const Matrix& g);
   bool TestCovariateBlock();
   const Matrix& GetPvalue() const { return this->pvalue; };

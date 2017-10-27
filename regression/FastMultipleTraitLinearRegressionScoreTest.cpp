@@ -5,10 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
-
-#include "Eigen/Cholesky"  // ldlt
-#include "Eigen/Dense"
+#include "third/eigen/Eigen/Cholesky"  // ldlt
+#include "third/eigen/Eigen/Dense"
+#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
 #include "base/Utils.h"  // tolower
 #include "regression/Formula.h"
@@ -54,7 +53,7 @@ class FastMultipleTraitLinearRegressionScoreTestInternal {
 };
 
 /// Column names of @param m are stored in @param dict
-void addColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
+void addColNameToDict(const Matrix& m, std::map<std::string, int>* dict) {
   std::map<std::string, int>& d = *dict;
   for (int i = 0; i < m.cols; ++i) {
     const int n = d.size();
@@ -232,7 +231,7 @@ FastMultipleTraitLinearRegressionScoreTest::
 }
 
 bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
-    Matrix& cov, Matrix& pheno, const FormulaVector& tests) {
+    const Matrix& cov, const Matrix& pheno, const FormulaVector& tests) {
   FastMultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
   // set some values
   const int N = pheno.rows;

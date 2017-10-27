@@ -80,12 +80,14 @@ void Matrix::Dimension(int nr, int nc) {
 void Matrix::Dimension(int nr, int nc, double val) {
   DimensionQuick(nr, nc);
   Fill(val);
-  colLabel.resize(nc);
 }
+
 void Matrix::DimensionQuick(int nr, int nc) {
+  assert(nr >= 0 && nc >= 0);
   rows = nr;
   cols = nc;
   data.resize(nr * nc);
+  colLabel.resize(nc);
 }
 
 double Matrix::Min() const {

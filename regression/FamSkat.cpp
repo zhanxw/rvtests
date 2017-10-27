@@ -31,8 +31,8 @@ class FamSkat::FamSkatImpl {
         nCovariate(-1),
         pValue(-1),
         Q(-1) {}
-  int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
-                   const EigenMatrix& kinshipS) {
+  int FitNullModel(const Matrix& Xnull, const Matrix& y,
+                   const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
     int ret = this->lmm.FitNullModel(Xnull, y, kinshipU, kinshipS);
     if (ret) {  // fitting failed
       return ret;
@@ -62,8 +62,9 @@ class FamSkat::FamSkatImpl {
 
     return 0;
   }
-  int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol, Vector& weight,
-                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
+  int TestCovariate(const Matrix& Xnull, const Matrix& y, const Matrix& Xcol,
+                    const Vector& weight, const EigenMatrix& kinshipU,
+                    const EigenMatrix& kinshipS) {
     this->nPeople = Xnull.rows;
     this->nMarker = Xcol.cols;
     this->nCovariate = Xnull.cols;
@@ -126,7 +127,7 @@ class FamSkat::FamSkatImpl {
 
  private:
   void setupWeight(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
-                   Matrix& geno) {
+                   const Matrix& geno) {
     const int p = geno.cols;
     this->weight.resize(p);
     for (int i = 0; i < p; ++i) {
@@ -173,12 +174,14 @@ class FamSkat::FamSkatImpl {
 // FamSkat class
 FamSkat::FamSkat() { this->skatImpl = new FamSkatImpl; }
 FamSkat::~FamSkat() { delete this->skatImpl; }
-int FamSkat::FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
+int FamSkat::FitNullModel(const Matrix& Xnull, const Matrix& y,
+                          const EigenMatrix& kinshipU,
                           const EigenMatrix& kinshipS) {
   return this->skatImpl->FitNullModel(Xnull, y, kinshipU, kinshipS);
 }
-int FamSkat::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
-                           Vector& weight, const EigenMatrix& kinshipU,
+int FamSkat::TestCovariate(const Matrix& Xnull, const Matrix& y,
+                           const Matrix& Xcol, const Vector& weight,
+                           const EigenMatrix& kinshipU,
                            const EigenMatrix& kinshipS) {
   return this->skatImpl->TestCovariate(Xnull, y, Xcol, weight, kinshipU,
                                        kinshipS);

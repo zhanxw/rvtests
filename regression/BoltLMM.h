@@ -20,9 +20,9 @@ class BoltLMM {
    * @param pheno    provide phenotypes; NULL => read phentoypes from PLINK file
    * covaraites and covariate file usually does not have intercept
    */
-  int FitNullModel(const std::string& prefix, Matrix* pheno);
+  int FitNullModel(const std::string& prefix, const Matrix* pheno);
   // test @param Xcol, a column matrix
-  int TestCovariate(Matrix& Xcol);
+  int TestCovariate(const Matrix& Xcol);
 
   // get results
   double GetAF();

@@ -26,11 +26,12 @@ void MatrixSqrt(Eigen::MatrixXf& in, Eigen::MatrixXf* out);
 class Skat::SkatImpl {
  public:
   void Reset() { this->pValue = -999.0; };
-  int Fit(Vector& res_G,  // residual under NULL -- may change when permuting
-          Vector& v_G,    // variance under NULL -- may change when permuting
-          Matrix& X_G,    // covariance
-          Matrix& G_G,    // genotype
-          Vector& w_G)    // weight
+  int Fit(
+      const Vector& res_G,  // residual under NULL -- may change when permuting
+      const Vector& v_G,    // variance under NULL -- may change when permuting
+      const Matrix& X_G,    // covariance
+      const Matrix& G_G,    // genotype
+      const Vector& w_G)    // weight
   {
     this->nPeople = X_G.rows;
     this->nMarker = G_G.cols;
@@ -138,11 +139,11 @@ Skat::~Skat() { delete this->skatImpl; }
 void Skat::Reset() { this->skatImpl->Reset(); }
 
 int Skat::Fit(
-    Vector& res_G,  // residual under NULL -- may change when permuting
-    Vector& v_G,    // variance under NULL -- may change when permuting
-    Matrix& X_G,    // covariance
-    Matrix& G_G,    // genotype
-    Vector& w_G)    // weight
+    const Vector& res_G,  // residual under NULL -- may change when permuting
+    const Vector& v_G,    // variance under NULL -- may change when permuting
+    const Matrix& X_G,    // covariance
+    const Matrix& G_G,    // genotype
+    const Vector& w_G)    // weight
 {
   return this->skatImpl->Fit(res_G, v_G, X_G, G_G, w_G);
 };

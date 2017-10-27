@@ -14,7 +14,7 @@
  * NOTE: Madson-Browning definition of alleleFrequency is different
  *       double freq = 1.0 * (ac + 1) / (an + 1);
  */
-double getMarkerFrequency(Matrix& in, int col) {
+double getMarkerFrequency(const Matrix& in, int col) {
   int& numPeople = in.rows;
   double ac = 0;  // NOTE: here genotype may be imputed, thus not integer
   int an = 0;
@@ -29,7 +29,7 @@ double getMarkerFrequency(Matrix& in, int col) {
   return freq;
 }
 
-void getMarkerFrequency(Matrix& in, std::vector<double>* freq) {
+void getMarkerFrequency(const Matrix& in, std::vector<double>* freq) {
   freq->resize(in.cols);
   for (int i = 0; i < in.cols; ++i) {
     (*freq)[i] = getMarkerFrequency(in, i);
@@ -44,8 +44,9 @@ void getMarkerFrequency(DataConsolidator* dc, std::vector<double>* freq) {
   return dc->getMarkerFrequency(freq);
 }
 
-double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col) {
-  int& numPeople = in.rows;
+double getMarkerFrequencyFromControl(const Matrix& in, const Vector& pheno,
+                                     int col) {
+  const int numPeople = in.rows;
   double ac = 0;  // NOTE: here genotype may be imputed, thus not integer
   int an = 0;
   for (int p = 0; p < numPeople; p++) {
@@ -69,7 +70,7 @@ double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col) {
  * @param in : sample by marker matrix
  * @param out: sample by 1 matrix
  */
-void cmcCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
+void cmcCollapse(DataConsolidator* dc, const Matrix& in, Matrix* out) {
   assert(out);
   int numPeople = in.rows;
   int numMarker = in.cols;
@@ -87,7 +88,7 @@ void cmcCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
   }
 }
 
-void cmcCollapse(DataConsolidator* dc, Matrix& in,
+void cmcCollapse(DataConsolidator* dc, const Matrix& in,
                  const std::vector<int>& index, Matrix* out, int outIndex) {
   assert(out);
   int numPeople = in.rows;
@@ -111,7 +112,7 @@ void cmcCollapse(DataConsolidator* dc, Matrix& in,
  * @param in : sample by marker matrix
  * @param out: sample by 1 matrix
  */
-void zegginiCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
+void zegginiCollapse(DataConsolidator* dc, const Matrix& in, Matrix* out) {
   assert(out);
   int numPeople = in.rows;
   int numMarker = in.cols;
@@ -128,7 +129,7 @@ void zegginiCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
   }
 }
 
-void zegginiCollapse(DataConsolidator* dc, Matrix& in,
+void zegginiCollapse(DataConsolidator* dc, const Matrix& in,
                      const std::vector<int>& index, Matrix* out, int outIndex) {
   assert(out);
   int numPeople = in.rows;
@@ -151,10 +152,10 @@ void zegginiCollapse(DataConsolidator* dc, Matrix& in,
  * @param phenotype: binary trait (0 or 1)
  * @param out: collapsed genotype
  */
-void madsonBrowningCollapse(DataConsolidator* dc, Matrix& genotype,
+void madsonBrowningCollapse(DataConsolidator* dc, const Matrix& genotype,
                             Vector& phenotype, Matrix* out) {
   assert(out);
-  int& numPeople = genotype.rows;
+  const int numPeople = genotype.rows;
   int numMarker = genotype.cols;
 
   out->Dimension(numPeople, 1);
@@ -173,9 +174,9 @@ void madsonBrowningCollapse(DataConsolidator* dc, Matrix& genotype,
   }
 };
 
-void fpCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
+void fpCollapse(DataConsolidator* dc, const Matrix& in, Matrix* out) {
   assert(out);
-  int& numPeople = in.rows;
+  const int numPeople = in.rows;
   int numMarker = in.cols;
 
   out->Dimension(numPeople, 1);
@@ -195,10 +196,11 @@ void fpCollapse(DataConsolidator* dc, Matrix& in, Matrix* out) {
   }
 }
 
-void madsonBrowningCollapse(DataConsolidator* dc, Matrix* d, Matrix* out) {
+void madsonBrowningCollapse(DataConsolidator* dc, const Matrix* d,
+                            Matrix* out) {
   assert(out);
-  Matrix& in = (*d);
-  int& numPeople = in.rows;
+  const Matrix& in = (*d);
+  const int numPeople = in.rows;
   int numMarker = in.cols;
 
   out->Dimension(numPeople, 1);
@@ -235,7 +237,7 @@ void convertToReferenceAlleleCount(Matrix* g) {
   }
 }
 
-void convertToReferenceAlleleCount(Matrix& in, Matrix* g) {
+void convertToReferenceAlleleCount(const Matrix& in, Matrix* g) {
   Matrix& m = *g;
   m = in;
   convertToReferenceAlleleCount(&m);
@@ -266,7 +268,7 @@ void groupFrequency(const std::vector<double>& freq,
  * or according to @param freqIn to rearrange columns of @param in.
  * Reordered frequency are stored in @param freqOut, in ascending order
  */
-void rearrangeGenotypeByFrequency(Matrix& in, const std::vector<double>& freqIn,
+void rearrangeGenotypeByFrequency(const Matrix& in, const std::vector<double>& freqIn,
                                   Matrix* out, std::vector<double>* freqOut) {
   std::map<double, std::vector<int> > freqGroup;
   std::map<double, std::vector<int> >::const_iterator freqGroupIter;
@@ -297,10 +299,10 @@ void rearrangeGenotypeByFrequency(Matrix& in, const std::vector<double>& freqIn,
 #endif
 
 void makeVariableThreshodlGenotype(
-    DataConsolidator* dc, Matrix& in, const std::vector<double>& freqIn,
+    DataConsolidator* dc, const Matrix& in, const std::vector<double>& freqIn,
     Matrix* out, std::vector<double>* freqOut,
-    void (*collapseFunc)(DataConsolidator*, Matrix&, const std::vector<int>&,
-                         Matrix*, int)) {
+    void (*collapseFunc)(DataConsolidator*, const Matrix&,
+                         const std::vector<int>&, Matrix*, int)) {
   assert((int)freqIn.size() == in.cols);
   assert(freqIn.size());
   assert(out);
@@ -366,10 +368,12 @@ int obtainB(float alpha, float* out) {
   return 0;
 }
 
-void makeVariableThreshodlGenotype(
-    DataConsolidator* dc, Matrix& in, Matrix* out, std::vector<double>* freqOut,
-    void (*collapseFunc)(DataConsolidator*, Matrix&, const std::vector<int>&,
-                         Matrix*, int)) {
+void makeVariableThreshodlGenotype(DataConsolidator* dc, const Matrix& in,
+                                   Matrix* out, std::vector<double>* freqOut,
+                                   void (*collapseFunc)(DataConsolidator*,
+                                                        const Matrix&,
+                                                        const std::vector<int>&,
+                                                        Matrix*, int)) {
   std::vector<double> freqIn;
   // getMarkerFrequency(in, &freqIn);
   dc->getMarkerFrequency(&freqIn);
@@ -412,7 +416,7 @@ class MetaCovBase {
  public:
   MetaCovBase() : needToFitNullModel(true) {}
   virtual ~MetaCovBase() {}
-  virtual int FitNullModel(Matrix& genotype, DataConsolidator* dc) = 0;
+  virtual int FitNullModel(const Matrix& genotype, DataConsolidator* dc) = 0;
   // virtual int transformGenotype(Genotype* out, DataConsolidator* dc) = 0;
   // virtual int calculateXX(const Genotype& x1, const Genotype& x2,
   //                         float* covXX) = 0;
@@ -433,9 +437,9 @@ class MetaCovBase {
 class MetaCovFamQtl : public MetaCovBase {
  public:
   MetaCovFamQtl() : metaCov(FastLMM::SCORE, FastLMM::MLE) {}
-  int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& covariate = dc->getCovariate();
+  int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& covariate = dc->getCovariate();
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     bool fitOK;
@@ -494,9 +498,9 @@ class MetaCovFamQtl : public MetaCovBase {
 };  // class MetaCovFamQtl
 
 class MetaCovUnrelatedQtl : public MetaCovBase {
-  int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& covariate = dc->getCovariate();
+  int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& covariate = dc->getCovariate();
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     bool fitOK = linear.FitLinearModel(cov, phenotype);
@@ -575,6 +579,7 @@ class MetaCovUnrelatedQtl : public MetaCovBase {
     return 0;
   }
   int calculateZZ(Matrix* covZZ) {
+    // todo: make this faster
     Matrix c;
     c = cov;
     centerMatrix(&c);
@@ -593,9 +598,9 @@ class MetaCovUnrelatedQtl : public MetaCovBase {
 class MetaCovFamBinary : public MetaCovBase {
  public:
   MetaCovFamBinary() : metaCov(FastLMM::SCORE, FastLMM::MLE) {}
-  int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& covariate = dc->getCovariate();
+  int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& covariate = dc->getCovariate();
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     // calculate alpha, b
@@ -688,9 +693,9 @@ class MetaCovFamBinary : public MetaCovBase {
 };  // end MetaCovFamBinary
 
 class MetaCovUnrelatedBinary : public MetaCovBase {
-  int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& covariate = dc->getCovariate();
+  int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& covariate = dc->getCovariate();
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     bool fitOK;
@@ -775,7 +780,7 @@ class MetaCovUnrelatedBinary : public MetaCovBase {
 class MetaCovFamQtlBolt : public MetaCovBase {
  public:
   MetaCovFamQtlBolt() { fprintf(stderr, "MetaCovFamQtlBolt model started\n"); }
-  int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+  int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
     const std::string& fn = dc->getBoltGenotypeFilePrefix();
 
     // fit null model
@@ -836,7 +841,8 @@ MetaCovTest::~MetaCovTest() {
     modelX = NULL;
   }
 }
-int MetaCovTest::fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
+int MetaCovTest::fitWithGivenGenotype(const Matrix& genotype,
+                                      DataConsolidator* dc) {
   // Matrix& phenotype = dc->getPhenotype();
   // Matrix& covariate = dc->getCovariate();
   Result& siteInfo = dc->getResult();
@@ -927,7 +933,7 @@ int MetaCovTest::fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
   return 0;
 }  // fitWithGivenGenotype
 
-void MetaCovTest::assignGenotype(Matrix& genotype, Genotype& genoIdx) {
+void MetaCovTest::assignGenotype(const Matrix& genotype, Genotype& genoIdx) {
   genoIdx = genoPool.allocate();
   float* p = genoPool.chunk(genoIdx);
   for (int i = 0; i < nSample; ++i) {

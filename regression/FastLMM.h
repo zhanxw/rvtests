@@ -22,14 +22,14 @@ class FastLMM {
   ~FastLMM();
 
   // @return 0 when success
-  int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
-                   const EigenMatrix& kinshipS);
+  int FitNullModel(const Matrix& Xnull, const Matrix& y,
+                   const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   // test @param Xcol
-  int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
+  int TestCovariate(const Matrix& Xnull, const Matrix& y, const Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   // U = (X_centered)' * Inverse(Sigma) * Y_res
   // V = (X_centered)' * Inverse(Sigma_ X|Y) * X_centered
-  int CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
+  int CalculateUandV(const Matrix& Xnull, const Matrix& Y, const Matrix& Xcol,
                      const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
                      Matrix* uMat, Matrix* vMat);
 
@@ -37,12 +37,12 @@ class FastLMM {
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   // NOTE: need to fit null model fit before calling this function
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
-               Matrix& Xcol);
+               const Matrix& Xcol);
   // NOTE: need to fit null model fit before calling this function
   double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
-                   Matrix& Xcol);
+                   const Matrix& Xcol);
   double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
-                   Matrix& Xcol, int col);
+                   const Matrix& Xcol, int col);
   double GetPvalue();
   // for LRT Test
   double GetNullLogLikelihood() const;

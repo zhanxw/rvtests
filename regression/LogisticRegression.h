@@ -29,13 +29,16 @@ class LogisticRegression {
 
   // main function
   // @return true if success; false if not converging
-  bool FitLogisticModel(Matrix& X, Matrix& y, int rnrounds);
-  bool FitLogisticModel(Matrix& X, Vector& y, int rnrounds);
-  bool FitLogisticModel(Matrix& X, Vector& succ, Vector& total, int nrrounds);
+  bool FitLogisticModel(const Matrix& X, const Matrix& y, int rnrounds);
+  bool FitLogisticModel(const Matrix& X, const Vector& y, int rnrounds);
+  bool FitLogisticModel(const Matrix& X, const Vector& succ,
+                        const Vector& total, int nrrounds);
 
   // alias simplified functions
   bool Fit(Matrix& X, Matrix& y) { return this->FitLogisticModel(X, y, 100); }
-  bool Fit(Matrix& X, Vector& y) { return this->FitLogisticModel(X, y, 100); }
+  bool Fit(const Matrix& X, const Vector& y) {
+    return this->FitLogisticModel(X, y, 100);
+  }
   bool Fit(Matrix& X, Vector& succ, Vector& total) {
     return this->FitLogisticModel(X, succ, total, 100);
   }
@@ -57,7 +60,7 @@ class LogisticRegression {
     this->B = initB;
   };  // set initial value of B, that may speed estimation up if this initial
       // value is close to estimated results.
-  void Reset(Matrix& X);  // get everything cleared
+  void Reset(const Matrix& X);  // get everything cleared
 
   // result = W - (W Z)*(Z' W Z)^(-1) * (Z' W)
   int CalculateScaledWeight(Vector& w, Matrix& cov, Matrix* result);

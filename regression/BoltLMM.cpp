@@ -656,7 +656,7 @@ class BoltLMM::BoltLMMImpl {
         MCtrial_(cv.MCtrial_),
         BatchSize_(cv.BatchSize_),
         NumBatch_(cv.NumBatch_) {}
-  int FitNullModel(const std::string& prefix, Matrix* phenotype) {
+  int FitNullModel(const std::string& prefix, const Matrix* phenotype) {
     const char* boltLMMDebugEnv = std::getenv("BOLTLMM_DEBUG");
     if (boltLMMDebugEnv) {
       BoltLMM::BoltLMMImpl::showDebug = atoi(boltLMMDebugEnv);
@@ -741,7 +741,7 @@ class BoltLMM::BoltLMMImpl {
   }
 
   // test @param Xcol
-  int TestCovariate(Matrix& Xcol) {
+  int TestCovariate(const Matrix& Xcol) {
     static Eigen::MatrixXf gg;
     G_to_Eigen(Xcol, &gg);
     if ((size_t)g_test_.rows() != N_ + C_) {
@@ -1534,10 +1534,12 @@ int BoltLMM::BoltLMMImpl::showDebug = 0;
 BoltLMM::BoltLMM() { impl_ = new BoltLMMImpl; }
 BoltLMM::~BoltLMM() { delete impl_; }
 
-int BoltLMM::FitNullModel(const std::string& prefix, Matrix* phenotype) {
+int BoltLMM::FitNullModel(const std::string& prefix, const Matrix* phenotype) {
   return impl_->FitNullModel(prefix, phenotype);
 }
-int BoltLMM::TestCovariate(Matrix& Xcol) { return impl_->TestCovariate(Xcol); }
+int BoltLMM::TestCovariate(const Matrix& Xcol) {
+  return impl_->TestCovariate(Xcol);
+}
 
 double BoltLMM::GetAF() { return impl_->GetAF(); }
 double BoltLMM::GetU() { return impl_->GetU(); }

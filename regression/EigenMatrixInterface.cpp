@@ -7,17 +7,28 @@
 #include "third/eigen/Eigen/Cholesky"
 #include "third/eigen/Eigen/LU"
 
-void G_to_Eigen(Matrix& GM, Eigen::MatrixXf* _EigenM) {
-  Eigen::MatrixXf& EigenM = *_EigenM;
-  EigenM.resize(GM.rows, GM.cols);
-  for (int i = 0; i < GM.rows; i++)
-    for (int j = 0; j < GM.cols; j++) EigenM(i, j) = GM(i, j);
+void G_to_Eigen(const Matrix& GM, Eigen::MatrixXf* _EigenM) {
+  // Eigen::MatrixXf& EigenM = *_EigenM;
+  // EigenM.resize(GM.rows, GM.cols);
+  // for (int i = 0; i < GM.rows; i++)
+  //   for (int j = 0; j < GM.cols; j++) EigenM(i, j) = GM(i, j);
+  DECLARE_EIGEN_CONST_MATRIX(GM, tmp);
+  (*_EigenM).resize(GM.rows, GM.cols);
+  (*_EigenM) = tmp.cast<float>();
 }
 
-void G_to_Eigen(Vector& GV, Eigen::VectorXf* _EigenV) {
-  Eigen::VectorXf& EigenV = *_EigenV;
-  EigenV.resize(GV.Length());
-  for (int i = 0; i < GV.Length(); i++) EigenV(i) = GV[i];
+void G_to_Eigen(const Vector& GV, Eigen::VectorXf* _EigenV) {
+  // Eigen::VectorXf& EigenV = *_EigenV;
+  // EigenV.resize(GV.Length());
+  // for (int i = 0; i < GV.Length(); i++) EigenV(i) = GV[i];
+  DECLARE_EIGEN_CONST_VECTOR(GV, tmp);
+  (*_EigenV).resize(GV.Length());
+  (*_EigenV) = tmp.cast<float>();
+}
+void G_to_Eigen(const Vector& GV, Eigen::MatrixXf* _EigenM) {
+  DECLARE_EIGEN_CONST_VECTOR(GV, tmp);
+  (*_EigenM).resize(GV.Length(), 1);
+  (*_EigenM).col(0) = tmp.cast<float>();
 }
 
 void Eigen_to_G(const Eigen::MatrixXf& EigenM, Matrix* _GM) {
@@ -57,16 +68,29 @@ void cbind_G_to_Eigen(Matrix& GM1, Matrix& GM2, Eigen::MatrixXf* EigenM) {
 }
 
 //////////////////////////////////////////////////
-void G_to_Eigen(Matrix& GM, Eigen::MatrixXd* _EigenM) {
-  Eigen::MatrixXd& EigenM = *_EigenM;
-  EigenM.resize(GM.rows, GM.cols);
-  for (int i = 0; i < GM.rows; i++)
-    for (int j = 0; j < GM.cols; j++) EigenM(i, j) = GM(i, j);
+// Eigen double
+//////////////////////////////////////////////////
+void G_to_Eigen(const Matrix& GM, Eigen::MatrixXd* _EigenM) {
+  // Eigen::MatrixXd& EigenM = *_EigenM;
+  // EigenM.resize(GM.rows, GM.cols);
+  // for (int i = 0; i < GM.rows; i++)
+  //   for (int j = 0; j < GM.cols; j++) EigenM(i, j) = GM(i, j);
+  DECLARE_EIGEN_CONST_MATRIX(GM, tmp);
+  *_EigenM = tmp;
 }
-void G_to_Eigen(Vector& GV, Eigen::VectorXd* _EigenV) {
-  Eigen::VectorXd& EigenV = *_EigenV;
-  EigenV.resize(GV.Length());
-  for (int i = 0; i < GV.Length(); i++) EigenV(i) = GV[i];
+
+void G_to_Eigen(const Vector& GV, Eigen::MatrixXd* EigenM) {
+  (*EigenM).resize(GV.Length(), 1);
+  DECLARE_EIGEN_CONST_VECTOR(GV, tmp);
+  (*EigenM).col(0) = tmp;
+}
+
+void G_to_Eigen(const Vector& GV, Eigen::VectorXd* _EigenV) {
+  // Eigen::VectorXd& EigenV = *_EigenV;
+  // EigenV.resize(GV.Length());
+  // for (int i = 0; i < GV.Length(); i++) EigenV(i) = GV[i];
+  DECLARE_EIGEN_CONST_VECTOR(GV, tmp);
+  (*_EigenV) = tmp;
 }
 
 void Eigen_to_G(const Eigen::MatrixXd& EigenM, Matrix* _GM) {
@@ -98,14 +122,17 @@ void cbind_G_to_Eigen(Matrix& GM1, Matrix& GM2, Eigen::MatrixXd* EigenM) {
   }
 }
 
-void CholeskyInverseMatrix(Matrix& in, Matrix* out) {
+void CholeskyInverseMatrix(const Matrix& in, Matrix* out) {
   if (in.rows != in.cols) return;
 
   const int n = in.rows;
-  Eigen::MatrixXf x, res;
-  G_to_Eigen(in, &x);
-  res = x.ldlt().solve(Eigen::MatrixXf::Identity(n, n));
-  Eigen_to_G(res, out);
+  // Eigen::MatrixXf x, res;
+  // G_to_Eigen(in, &x);
+  DECLARE_EIGEN_CONST_MATRIX(in, x);
+  out->DimensionQuick(n, n);
+  DECLARE_EIGEN_MATRIX(*out, res);
+  res = x.ldlt().solve(Eigen::MatrixXd::Identity(n, n));
+  // Eigen_to_G(res, out);
 }
 
 double safeSum(const Eigen::MatrixXd& m) {
@@ -122,10 +149,11 @@ double safeSum(const Eigen::MatrixXd& m) {
   return s;
 }
 
-int matrixRank(Matrix& in) {
-  Eigen::MatrixXf x;
-  G_to_Eigen(in, &x);
+int matrixRank(const Matrix& in) {
+  // Eigen::MatrixXf x;
+  // G_to_Eigen(in, &x);
 
+  DECLARE_EIGEN_CONST_MATRIX(in, x);
   const int rank = x.fullPivLu().rank();
   return rank;
 }

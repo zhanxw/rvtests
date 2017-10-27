@@ -10,11 +10,10 @@
 #include "src/GenotypeCounter.h"
 #include "src/Result.h"
 
+class EigenMatrix;
 class SimpleMatrix;
 
 extern Logger* logger;
-
-class EigenMatrix;
 
 /**
  * @return true if any of the markers (@param col) of @param genotype (people by
@@ -32,7 +31,7 @@ void removeMissingMarker(Matrix* genotype);
  * @return true if markers on @param col of @param genotype (people by marker)
  * is monomorphic (genotypes are all the same)
  */
-bool isMonomorphicMarker(Matrix& genotype, int col);
+bool isMonomorphicMarker(const Matrix& genotype, int col);
 
 /**
  * remove monomorphic columns of @param genotype
@@ -124,16 +123,16 @@ class DataConsolidator {
     this->rowLabel = name;
   }
   const std::vector<std::string>& getRowLabel() const { return this->rowLabel; }
-  Matrix& getGenotype() { return this->genotype; }
-  Matrix& getFlippedToMinorPolymorphicGenotype() {
+  const Matrix& getGenotype() { return this->genotype; }
+  const Matrix& getFlippedToMinorPolymorphicGenotype() {
     convertToMinorAlleleCount(this->genotype, &this->flippedToMinorGenotype);
     removeMonomorphicMarker(&flippedToMinorGenotype);
     return this->flippedToMinorGenotype;
   }
   Matrix& getOriginalGenotype() { return this->originalGenotype; }
-  Matrix& getPhenotype() { return this->phenotype; }
-  Matrix& getCovariate() { return this->covariate; }
-  Vector& getWeight() { return this->weight; }
+  const Matrix& getPhenotype() { return this->phenotype; }
+  const Matrix& getCovariate() { return this->covariate; }
+  const Vector& getWeight() { return this->weight; }
   Result& getResult() { return this->result; }
 
   /**

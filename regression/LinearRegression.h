@@ -13,12 +13,16 @@ class LinearRegression {
   LinearRegression() : sigma2(0.){};
   ~LinearRegression(){};
 
-  bool FitLinearModel(Matrix& X, Matrix& y);  // return false if not converging
-  bool FitLinearModel(Matrix& X, Vector& y);  // return false if not converging
+  bool FitLinearModel(const Matrix& X,
+                      const Matrix& y);  // return false if not converging
+  bool FitLinearModel(const Matrix& X,
+                      const Vector& y);  // return false if not converging
 
   // alias function
   bool Fit(Matrix& X, Matrix& y) { return this->FitLinearModel(X, y); }
-  bool Fit(Matrix& X, Vector& y) { return this->FitLinearModel(X, y); }
+  bool Fit(const Matrix& X, const Vector& y) {
+    return this->FitLinearModel(X, y);
+  }
 
   /**
    * @param X typically a covariate matrix

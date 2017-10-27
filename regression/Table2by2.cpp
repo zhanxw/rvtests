@@ -13,7 +13,7 @@
 
 #include <cmath>
 #include <cstring>
-#include "Error.h"
+#include "libsrc/Error.h"
 #include "third/gsl/include/gsl/gsl_cdf.h"
 #include "third/gsl/include/gsl/gsl_sf_gamma.h"
 

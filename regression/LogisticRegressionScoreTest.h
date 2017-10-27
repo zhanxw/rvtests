@@ -27,7 +27,7 @@ class LogisticRegressionScoreTest {
    * Test H0: \beta = 0  (\beta is multiple dimension).
    * y ~ \beta * Xcol + \gamma * Xnull
    */
-  bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
+  bool TestCovariate(const Matrix& Xnull, const Vector& y, const Matrix& Xcol);
 
   // fit y~1+ beta*x  (no covariate)
   bool TestCovariate(Vector& x, Vector& y);
@@ -51,7 +51,7 @@ class LogisticRegressionScoreTest {
   Matrix& GetNullCovB() { return this->lr.GetCovB(); };
 
  private:
-  void splitMatrix(Matrix& x, int col, Matrix& xnull, Vector& xcol);
+  void splitMatrix(const Matrix& x, int col, Matrix& xnull, Vector& xcol);
   double stat;
   double pvalue;
   Matrix Umatrix;

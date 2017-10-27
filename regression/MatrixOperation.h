@@ -82,16 +82,17 @@ inline void copy(Vector& v, Matrix* mat) {
 };
 
 /**
- * Convert matrix @param mat to @parma v
+ * Convert the first column in matrix @param mat to @parma v
  * Note: only first column is used
  */
-inline void copy(Matrix& mat, Vector* v) {
+inline void copy(const Matrix& mat, Vector* v) {
   if (mat.cols < 1) return;
   int n = mat.rows;
   v->Dimension(n);
-  for (int i = 0; i < n; ++i) {
-    (*v)[i] = mat(i, 0);
-  }
+  std::copy(mat.data.begin(), mat.data.begin() + n, v->data.begin());
+  // for (int i = 0; i < n; ++i) {
+  //   (*v)[i] = mat(i, 0);
+  // }
 };
 
 inline void print(Vector& v) {

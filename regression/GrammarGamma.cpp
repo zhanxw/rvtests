@@ -26,7 +26,7 @@ static double goalFunction(double x, void* param);
 class GrammarGamma::Impl {
  public:
   Impl(AFMethod af) { this->afMethod = af; }
-  int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
+  int FitNullModel(const Matrix& mat_Xnull, const Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
     // type conversion
     Eigen::MatrixXf x;
@@ -122,7 +122,7 @@ class GrammarGamma::Impl {
     this->ySigmaY = (resid.array() * transformedY.array()).sum();
     return 0;
   }
-  int TestCovariate(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
+  int TestCovariate(const Matrix& Xnull, const Matrix& Y, const Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
     Eigen::MatrixXf g;
     G_to_Eigen(Xcol, &g);
@@ -254,14 +254,14 @@ GrammarGamma::GrammarGamma(AFMethod af) { this->impl = new Impl(af); }
 GrammarGamma::~GrammarGamma() { delete this->impl; }
 
 // @return 0 when success
-int GrammarGamma::FitNullModel(Matrix& Xnull, Matrix& y,
+int GrammarGamma::FitNullModel(const Matrix& Xnull, const Matrix& y,
                                const EigenMatrix& kinshipU,
                                const EigenMatrix& kinshipS) {
   return this->impl->FitNullModel(Xnull, y, kinshipU, kinshipS);
 }
 
-int GrammarGamma::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
-                                const EigenMatrix& kinshipU,
+int GrammarGamma::TestCovariate(const Matrix& Xnull, const Matrix& y,
+                                const Matrix& Xcol, const EigenMatrix& kinshipU,
                                 const EigenMatrix& kinshipS) {
   return this->impl->TestCovariate(Xnull, y, Xcol, kinshipU, kinshipS);
 }

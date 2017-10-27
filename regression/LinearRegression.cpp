@@ -5,10 +5,11 @@
 #include "third/eigen/Eigen/Cholesky"
 #include "third/gsl/include/gsl/gsl_cdf.h"
 
-bool LinearRegression::FitLinearModel(Matrix& X, Matrix& y) {
+bool LinearRegression::FitLinearModel(const Matrix& X, const Matrix& y) {
   if (y.cols != 1) {
     fprintf(stderr, "%s:%d Use first column of y\n", __FILE__, __LINE__);
   }
+  // todo: do not need to copy data
   Vector v(y.rows);
   for (int i = 0; i < y.rows; ++i) {
     v[i] = y(i, 0);
@@ -16,7 +17,7 @@ bool LinearRegression::FitLinearModel(Matrix& X, Matrix& y) {
   return this->FitLinearModel(X, v);
 }
 
-bool LinearRegression::FitLinearModel(Matrix& X, Vector& y) {
+bool LinearRegression::FitLinearModel(const Matrix& X, const Vector& y) {
   // Matrix Xt;
   // Xt.Transpose(X);
 

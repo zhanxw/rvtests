@@ -1,9 +1,10 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
-#include "LinearRegressionVT.h"
+#include "regression/LinearRegressionVT.h"
 
-#include "LinearRegression.h"
-#include "MatrixOperation.h"
-#include "MultivariateNormalDistribution.h"
+#include "regression/EigenMatrixInterface.h"
+#include "regression/LinearRegression.h"
+#include "regression/MatrixOperation.h"
+#include "regression/MultivariateNormalDistribution.h"
 
 #include "third/eigen/Eigen/Dense"  // eigen definiation and LDLT
 
@@ -22,8 +23,8 @@ void dump(const Eigen::MatrixXf& m, const char* fn) {
 //////////////////////////////////////////////////
 class LinearRegressionVT::LinearVTImpl {
  public:
-  bool FitNullModel(Matrix& Xnull, Vector& y);
-  bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
+  bool FitNullModel(const Matrix& Xnull, const Vector& y);
+  bool TestCovariate(const Matrix& Xnull, const Vector& y, const Matrix& Xcol);
   int GetIndexMax();  // return index to the maximum t
   Matrix& GetU();
   Matrix& GetV();
@@ -33,31 +34,34 @@ class LinearRegressionVT::LinearVTImpl {
   double GetEffect(int index) const;
 
  private:
-  void copy(Matrix& m, Eigen::MatrixXf* out) {
-    Eigen::MatrixXf& o = *out;
-    o.resize(m.rows, m.cols);
-    for (int i = 0; i < m.rows; ++i) {
-      for (int j = 0; j < m.cols; ++j) {
-        o(i, j) = m(i, j);
-      }
-    }
+  void copy(const Matrix& m, Eigen::MatrixXf* out) {
+    G_to_Eigen(m, out);
+    // Eigen::MatrixXf& o = *out;
+    // o.resize(m.rows, m.cols);
+    // for (int i = 0; i < m.rows; ++i) {
+    //   for (int j = 0; j < m.cols; ++j) {
+    //     o(i, j) = m(i, j);
+    //   }
+    // }
   }
   void copy(const Eigen::MatrixXf& m, Matrix* out) {
-    Matrix& o = *out;
-    o.Dimension(m.rows(), m.cols());
-    for (int i = 0; i < m.rows(); ++i) {
-      for (int j = 0; j < m.cols(); ++j) {
-        o(i, j) = m(i, j);
-      }
-    }
+    Eigen_to_G(m, out);
+    // Matrix& o = *out;
+    // o.Dimension(m.rows(), m.cols());
+    // for (int i = 0; i < m.rows(); ++i) {
+    //   for (int j = 0; j < m.cols(); ++j) {
+    //     o(i, j) = m(i, j);
+    //   }
+    // }
   }
-  void copy(Vector& m, Eigen::MatrixXf* out) {
-    Eigen::MatrixXf& o = *out;
-    int n = m.Length();
-    o.resize(n, 1);
-    for (int i = 0; i < n; ++i) {
-      o(i, 0) = m[i];
-    }
+  void copy(const Vector& m, Eigen::MatrixXf* out) {
+    G_to_Eigen(m, out);
+    // Eigen::MatrixXf& o = *out;
+    // int n = m.Length();
+    // o.resize(n, 1);
+    // for (int i = 0; i < n; ++i) {
+    //   o(i, 0) = m[i];
+    // }
   }
 
   void rep(double v, int times, std::vector<double>* out) {
@@ -131,11 +135,12 @@ class LinearRegressionVT::LinearVTImpl {
 LinearRegressionVT::LinearRegressionVT() { this->impl = new LinearVTImpl; };
 LinearRegressionVT::~LinearRegressionVT() { delete this->impl; }
 
-bool LinearRegressionVT::FitNullModel(Matrix& Xnull, Vector& y) {
+bool LinearRegressionVT::FitNullModel(const Matrix& Xnull, const Vector& y) {
   return this->impl->FitNullModel(Xnull, y);
 }
 
-bool LinearRegressionVT::TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol) {
+bool LinearRegressionVT::TestCovariate(const Matrix& Xnull, const Vector& y,
+                                       const Matrix& Xcol) {
   return impl->TestCovariate(Xnull, y, Xcol);
 };
 
@@ -160,13 +165,14 @@ double LinearRegressionVT::GetEffect(int index) const {
 //////////////////////////////////////////////////
 // class LinearRegressionVT::LinearVTImpl //////////////////////////////
 //////////////////////////////////////////////////
-bool LinearRegressionVT::LinearVTImpl::FitNullModel(Matrix& Xnull, Vector& y) {
+bool LinearRegressionVT::LinearVTImpl::FitNullModel(const Matrix& Xnull,
+                                                    const Vector& y) {
   return (this->null.Fit(Xnull, y));
 }
 
-bool LinearRegressionVT::LinearVTImpl::TestCovariate(Matrix& Xnull,
-                                                     Vector& yVec,
-                                                     Matrix& Xcol) {
+bool LinearRegressionVT::LinearVTImpl::TestCovariate(const Matrix& Xnull,
+                                                     const Vector& yVec,
+                                                     const Matrix& Xcol) {
   // const int n = Xnull.rows;
   const int d = Xnull.cols;
   const int k = Xcol.cols;

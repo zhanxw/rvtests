@@ -25,13 +25,14 @@ class SkatO {
    * type "C": continuous response; "D": binary response
    * @return 0 when success
    */
-  int Fit(Vector& res_G,    // residual under NULL -- may change when permuting
-          Vector& v_G,      // variance under NULL -- may change when permuting
-          Matrix& X_G,      // covariate
-          Matrix& G_G,      // genotype
-          Vector& w_G,      // weight
-          const char* type  // response type
-          );
+  int Fit(
+      const Vector& res_G,  // residual under NULL -- may change when permuting
+      const Vector& v_G,    // variance under NULL -- may change when permuting
+      const Matrix& X_G,    // covariate
+      const Matrix& G_G,    // genotype
+      const Vector& w_G,    // weight
+      const char* type      // response type
+      );
 
   double GetPvalue() const;
   double GetQ() const;

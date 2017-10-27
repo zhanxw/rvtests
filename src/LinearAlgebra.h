@@ -180,7 +180,8 @@ inline double getVariance(Vector& v) {
   return s;
 }
 
-inline double getRowVariance(Matrix& m, int idx) {
+inline double getRowVariance(const Matrix& m, int idx) {
+  // todo: may need to make it faster, or bypassing this function
   if (m.cols <= 1) return 0.;
 
   DECLARE_EIGEN_CONST_MATRIX(m, m_e);

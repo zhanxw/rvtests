@@ -172,8 +172,9 @@ bool LinearRegressionScoreTest::TestCovariate(Vector& x, Vector& y) {
  * U^T*inv(V)*U is the score test statistic
  * Hypothese: test efficients of Xcol are all Zero
  */
-bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
-                                              Matrix& Xcol) {
+bool LinearRegressionScoreTest::TestCovariate(const Matrix& Xnull,
+                                              const Vector& y,
+                                              const Matrix& Xcol) {
   if (Xnull.rows != y.Length() || y.Length() != Xcol.rows) {
     fprintf(stderr, "Incompatible dimension.\n");
     return false;
@@ -201,8 +202,8 @@ bool LinearRegressionScoreTest::TestCovariate(Matrix& Xnull, Vector& y,
   // }
   this->Umatrix.Dimension(m, 1);
   DECLARE_EIGEN_MATRIX(this->Umatrix, U);
-  DECLARE_EIGEN_MATRIX(Xcol, Xcol_e);
-  DECLARE_EIGEN_MATRIX(Xnull, Xnull_e);
+  DECLARE_EIGEN_CONST_MATRIX(Xcol, Xcol_e);
+  DECLARE_EIGEN_CONST_MATRIX(Xnull, Xnull_e);
   DECLARE_EIGEN_VECTOR(this->lr.GetResiduals(), resid_e);
   Eigen::MatrixXd SS(m, m);
   Eigen::MatrixXd SZ(m, d);

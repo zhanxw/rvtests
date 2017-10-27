@@ -57,11 +57,11 @@ class SkatO::SkatOImpl {
   void setQuantitativeOutcome() { this->binaryOutcome = false; }
   bool isBinary() { return binaryOutcome; }
 
-  int FitSKAT(Eigen::VectorXd res,  // residual under NULL
-              Eigen::VectorXd v,    // variance under NULL
-              Eigen::MatrixXd X,    // covariance
-              Eigen::MatrixXd G,    // genotype
-              Eigen::VectorXd w)    // weight
+  int FitSKAT(const Eigen::VectorXd res,  // residual under NULL
+              const Eigen::VectorXd v,    // variance under NULL
+              const Eigen::MatrixXd X,    // covariance
+              Eigen::MatrixXd G,          // genotype
+              const Eigen::VectorXd w)    // weight
   {
     this->rho = 0;
 
@@ -98,11 +98,11 @@ class SkatO::SkatOImpl {
     return 0;
   }
 
-  int Fit(Vector& res_G,  // residual under NULL
-          Vector& v_G,    // variance under NULL
-          Matrix& X_G,    // covariance
-          Matrix& G_G,    // genotype
-          Vector& w_G)    // weight
+  int Fit(const Vector& res_G,  // residual under NULL
+          const Vector& v_G,    // variance under NULL
+          const Matrix& X_G,    // covariance
+          const Matrix& G_G,    // genotype
+          const Vector& w_G)    // weight
   {
     this->nPeople = X_G.rows;
     this->nMarker = G_G.cols;
@@ -497,12 +497,12 @@ SkatO::SkatO() { this->skatoImpl = new SkatOImpl; }
 SkatO::~SkatO() { delete this->skatoImpl; }
 void SkatO::Reset() { this->skatoImpl->Reset(); }
 
-int SkatO::Fit(Vector& res_G,    // residual under NULL
-               Vector& v_G,      // variance under NULL
-               Matrix& X_G,      // covariance
-               Matrix& G_G,      // genotype
-               Vector& w_G,      // weight
-               const char* type  // response type
+int SkatO::Fit(const Vector& res_G,  // residual under NULL
+               const Vector& v_G,    // variance under NULL
+               const Matrix& X_G,    // covariance
+               const Matrix& G_G,    // genotype
+               const Vector& w_G,    // weight
+               const char* type      // response type
                ) {
   if (!type) return -1;
   switch (type[0]) {

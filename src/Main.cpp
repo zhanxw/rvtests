@@ -1022,7 +1022,6 @@ int main(int argc, char** argv) {
   dc.setParRegion(&parRegion);
 
   // genotype will be extracted and stored
-  Matrix& genotype = dc.getOriginalGenotype();
   if (FLAG_freqUpper > 0) {
     ge->setSiteFreqMax(FLAG_freqUpper);
     logger->info("Set upper minor allele frequency limit to %g",
@@ -1044,6 +1043,9 @@ int main(int argc, char** argv) {
     logger->info("Use dosage genotype from VCF flag %s.",
                  FLAG_dosageTag.c_str());
   }
+
+  // multi-allelic sites will be treats as ref/alt1, ref/alt2, ref/alt3..
+  // instead of ref/alt1 (biallelic)
   if (FLAG_multiAllele) {
     ge->enableMultiAllelicMode();
     logger->info("Enable analysis using multiple allelic models");
@@ -1084,6 +1086,7 @@ int main(int argc, char** argv) {
 
   logger->info("Analysis started");
   Result& buf = dc.getResult();
+  Matrix& genotype = dc.getOriginalGenotype();
 
   // we have three modes:
   // * single variant reading, single variant test

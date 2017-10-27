@@ -148,7 +148,7 @@ Vector& LogisticRegression::GetAsyPvalue() {
   return (pValue);
 }
 
-void LogisticRegression::Reset(Matrix& X) {
+void LogisticRegression::Reset(const Matrix& X) {
   int nr = X.rows;
   int nc = X.cols;
 
@@ -194,7 +194,8 @@ void LogisticRegression::Reset(Matrix& X) {
   // XtV.Dimension(nc, nr);
 }
 
-bool LogisticRegression::FitLogisticModel(Matrix& X, Matrix& y, int rnrounds) {
+bool LogisticRegression::FitLogisticModel(const Matrix& X, const Matrix& y,
+                                          int rnrounds) {
   if (y.cols != 1) {
     fprintf(stderr, "%s:%d Use first column of y\n", __FILE__, __LINE__);
   }
@@ -205,8 +206,8 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Matrix& y, int rnrounds) {
   return this->FitLogisticModel(X, v, rnrounds);
 };
 
-bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& succ,
-                                          Vector& total, int nrrounds) {
+bool LogisticRegression::FitLogisticModel(const Matrix& X, const Vector& succ,
+                                          const Vector& total, int nrrounds) {
   // make sure nrrounds >= 1
   if (nrrounds <= 0) {
     return false;
@@ -275,7 +276,8 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& succ,
   return true;
 }
 
-bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& y, int nrrounds) {
+bool LogisticRegression::FitLogisticModel(const Matrix& X, const Vector& y,
+                                          int nrrounds) {
   this->Reset(X);
 
   G_to_Eigen(X, &this->w->X);

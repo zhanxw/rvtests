@@ -65,7 +65,7 @@ define BUILD_each
   -include  $(1).d
   -include  $(1)_dbg.d
   $$(TAR) $$(TAR_DBG): $$(SRC) $$(EIGEN_INC) $$(GSL_INC) $$(NLOPT_INC) $$(CNPY_INC)
-	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ -I$(ROOT) -I$(GONCALO_INC) -I$(EIGEN_INC) -I$(GSL_INC) -I$(NLOPT_INC) -I$(CNPY_INC)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ -I$(ROOT)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))
 

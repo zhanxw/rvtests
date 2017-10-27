@@ -19,7 +19,7 @@ class LinearRegressionScoreTest {
    * Test H0: \beta = 0  (\beta is multiple dimension).
    * y ~ \beta * Xcol + \gamma * Xnull
    */
-  bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
+  bool TestCovariate(const Matrix& Xnull, const Vector& y, const Matrix& Xcol);
 
   // fit y ~ 1 + beta*x  (no covariate)
   bool TestCovariate(Vector& x, Vector& y);

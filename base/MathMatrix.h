@@ -50,7 +50,14 @@ class Matrix {
    */
   void Dimension(int nr, int nc, double val);
   void DimensionQuick(int nr, int nc);
+  void Reserve(int nr, int nc) { data.reserve(nr * nc); }
   void Fill(double val) { std::fill(data.begin(), data.end(), val); }
+  void Ones(int nr, int nc) {
+    rows = nr;
+    cols = nc;
+    colLabel.resize(nc);
+    Fill(1.0);
+  }
   void Zero() { Fill(0.); }
   const std::string& GetColumnLabel(int idx) const { return colLabel[idx]; }
   void SetColumnLabel(int idx, const std::string& label) {
@@ -75,6 +82,13 @@ class Matrix {
    */
   Matrix& StackRight(const Matrix& m);
 
+  Matrix& MakeColumnMatrix(const Vector& v) {
+    rows = v.Length();
+    cols = 1;
+    data = v.data;
+    colLabel.resize(1);
+    return *this;
+  }
 #if 0
   operator Eigen::Map<Eigen::MatrixXd>() {
     Eigen::Map<Eigen::MatrixXd> ret(data.data(), rows, cols);

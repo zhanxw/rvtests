@@ -5,12 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
+#include "third/eigen/Eigen/Cholesky"  // ldlt
+#include "third/eigen/Eigen/Dense"
+#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
-#include "Eigen/Cholesky"  // ldlt
-#include "Eigen/Dense"
-
-#include "Formula.h"
+#include "regression/Formula.h"
 
 typedef Eigen::MatrixXf EMat;
 typedef std::vector<EMat> EMatVec;
@@ -48,7 +47,7 @@ class MultipleTraitLinearRegressionScoreTestInternal {
 };
 
 /// Column names of @param m are stored in @param dict
-void makeColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
+void makeColNameToDict(const Matrix& m, std::map<std::string, int>* dict) {
   std::map<std::string, int>& d = *dict;
   for (int i = 0; i < m.cols; ++i) {
     d[m.GetColumnLabel(i)] = i;
@@ -56,7 +55,7 @@ void makeColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
 }
 
 /// Extract columns, specified by @param index, from @param m, to @param out
-void makeMatrix(Matrix& m, const std::vector<int>& index, EMat* out) {
+void makeMatrix(const Matrix& m, const std::vector<int>& index, EMat* out) {
   (*out).resize(m.rows, index.size());
   for (int i = 0; i < m.rows; ++i) {
     for (size_t j = 0; j < index.size(); ++j) {
@@ -135,7 +134,7 @@ MultipleTraitLinearRegressionScoreTest::
 }
 
 bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
-    Matrix& cov, Matrix& pheno, const FormulaVector& tests) {
+    const Matrix& cov, const Matrix& pheno, const FormulaVector& tests) {
   MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
   // set some values
   w.N = pheno.rows;

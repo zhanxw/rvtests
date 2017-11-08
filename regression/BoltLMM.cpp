@@ -13,6 +13,7 @@
 #include "libsrc/Random.h"
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
+#include "regression/MatrixOperation.h"
 #include "regression/MatrixRef.h"
 
 // 0: no debug info
@@ -99,7 +100,6 @@ class PlinkLoader {
     NumBatch_ = (M_ + BatchSize_) / BatchSize_;
     Nstride_ = (N_ + 3) / 4;  // bytes needed for one marker in PLINK
     M2_ = (M_ + BatchSize_) / BatchSize_ * BatchSize_;
-    // N2_ = (N_ + 4 ) / 4 * 4;
     genotype_ = NULL;  // defer memory allocation in prepareGenotype()
     snpLookupTable_.resize(M2_);
     stage_ = NULL;  // defer memory allocation until covariates are loaded
@@ -208,7 +208,7 @@ class PlinkLoader {
       }
     }
     float avg = y_.sum() / N_;
-    y_.array() -= avg;
+    y_.topLeftCorner(N_, 1).array() -= avg;
     y_.bottomLeftCorner(C_, 1).noalias() =
         z_.transpose() * y_.topLeftCorner(N_, 1);
     return 0;
@@ -227,9 +227,9 @@ class PlinkLoader {
     pin_->readBED(genotype_, M_ * Nstride_);
 
     // calculate maf, norms, build snpLookupTable
-    std::vector<int> alleleCount(256, 0);
-    std::vector<int> alleleCount2(256, 0);
-    std::vector<int> missingCount(256, 0);
+    std::vector<int> alleleCount(256, 0);   // num alt-allele counts
+    std::vector<int> alleleCount2(256, 0);  // num of homAlt genotypes
+    std::vector<int> missingCount(256, 0);  // num of missing genotypes
     for (int i = 0; i < 256; ++i) {
       for (int j = 0; j < 4; ++j) {
         int g = (i & Mask[j]) >> Shift[j];
@@ -264,19 +264,14 @@ class PlinkLoader {
         numMissing += missingCount[(*p)];
         ++p;
       }
-      int numHomAlt = numAllele2;
-      int numHet = numAllele - numAllele2 * 2;
-      int numHomRef = N_ - numMissing - numHet - numHomAlt;
-
-      double mean = 1.0 * numAllele / (N_ - numMissing);
-      // double var = 1.0 *
-      //              (numAllele2 * (N_ - numMissing) - numAllele * numAllele) /
-      //              (N_ - numMissing) / (N_ - numMissing - 1);
-      double var =
-          (numHomRef * mean * mean + numHet * (1.0 - mean) * (1.0 - mean) +
-           numHomAlt * (2.0 - mean) * (2.0 - mean)) /
-          (N_ - 1);
-      double sd = sqrt(var);
+      // const int numHomAlt = numAllele2;
+      // const int numHet = numAllele - numAllele2 * 2;
+      // const int numHomRef = N_ - numMissing - numHet - numHomAlt;
+      const double af = 0.5 * numAllele / (N_ - numMissing);
+      const double mean = af + af;
+      // here we divide sqrt(2*p*q) as GCTA paper describes,
+      // another normalization method is to divide by sqrt(sample variance)
+      const double sd = sqrt(2.0 * af * (1.0 - af));
       if (sd > 0) {
         snpLookupTable_[m][PlinkInputFile::HOM_REF] = (0.0 - mean) / sd;
         snpLookupTable_[m][PlinkInputFile::HET] = (1.0 - mean) / sd;
@@ -660,6 +655,7 @@ class BoltLMM::BoltLMMImpl {
     const char* boltLMMDebugEnv = std::getenv("BOLTLMM_DEBUG");
     if (boltLMMDebugEnv) {
       BoltLMM::BoltLMMImpl::showDebug = atoi(boltLMMDebugEnv);
+      fprintf(stderr, "BOLTLMM_DEBUG=%s\n", boltLMMDebugEnv);
     } else {
       BoltLMM::BoltLMMImpl::showDebug = 0;
     }
@@ -670,6 +666,9 @@ class BoltLMM::BoltLMMImpl {
       return -1;
     }
     // load covariates
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "Load covariate\n");
+    }
     fn += ".covar";
     if (pl.loadCovariate(fn)) {
       fprintf(stderr, "Failed to load covariate file [ %s ]!\n", fn.c_str());
@@ -677,13 +676,22 @@ class BoltLMM::BoltLMMImpl {
     }
 
     // normalize covariate
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "Normalize covariate\n");
+    }
     pl.extractCovariateBasis();
 
     // regress out covariate from phenotype
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "Pre-process phenotypes\n");
+    }
     pl.preparePhenotype(phenotype);
 
     // project Z to G and
     // record mean and sd for each SNP
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "Pre-process genotyeps\n");
+    }
     pl.prepareGenotype();
 
     // get constants
@@ -857,42 +865,52 @@ class BoltLMM::BoltLMMImpl {
   int EstimateHeritabilityMinque(WorkingData* wd) {
     WorkingData& w = *wd;
     // w.x_beta_rand (N_+C_, MCtrial_);
-    fprintf(stderr, "M_ = %d, N_ = %d, BS = %d\n", M_, N_, BatchSize_);
+    fprintf(stderr, "M_ = %d, N_ = %d, BS = %d\n", (int)M_, (int)N_,
+            (int)BatchSize_);
     float* stage_ = pl.getStage();
-    float trace = 0;
-    trace = w.x_beta_rand.squaredNorm();
-    fprintf(stderr, "trace() = %g, %g\n", trace, trace / MCtrial_);
-    float traceK = trace / MCtrial_;
 
-    // float trueTrace = 0;
-    float trace2 = 0;
+    // dumpToFile(w.x_beta_rand, "tmp.x_beta_rand");
+    // trace(K) = E(b' X X' b) = \sum( (X'b)_ij^2 ) , b is a column vector and
+    // each b_i has 0 mean, unit variance
+    float trace = (w.x_beta_rand.topRows(N_).squaredNorm() -
+                   w.x_beta_rand.bottomRows(C_).squaredNorm()) /
+                  MCtrial_;
+    float trueTrace = 0;
+    float trace2 = 0;  // trace(K^2)
     float gy = 0;
     for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPWithCovBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g(stage_, N_ + C_, BatchSize_);
-      // trueTrace += g.topRows(N_).squaredNorm();
+      trueTrace += g.topRows(N_).squaredNorm() - g.bottomRows(C_).squaredNorm();
       trace2 += (g.topRows(N_).transpose() *  // N_ x BatchSize_
                  w.x_beta_rand.topRows(N_))
+                    .squaredNorm() -
+                (g.bottomRows(C_).transpose() *  // N_ x BatchSize_
+                 w.x_beta_rand.bottomRows(C_))
                     .squaredNorm();
-      gy += ((w.y.col(0).head(N_).transpose() * g.topRows(N_))
-                 .colwise()
-                 .squaredNorm() -
-             (w.y.col(0).tail(C_).transpose() * g.bottomRows(C_))
-                 .colwise()
-                 .squaredNorm())
-                .sum();
+      ;
+      gy += (w.y.col(0).head(N_).transpose() * g.topRows(N_)).squaredNorm() -
+            (w.y.col(0).tail(C_).transpose() * g.bottomRows(C_)).squaredNorm();
     }
-    // fprintf(stderr, "true trace() = %g\n", trueTrace / M_);
-    fprintf(stderr, "trace2() = %g, %g\n", trace2 / M_, trace2 / MCtrial_ / M_);
-    fprintf(stderr, "gy = %g, %g \n", gy, gy / M_);
-
-    float traceK2 = trace2 / MCtrial_ / M_;
-    float S = traceK2 / (N_ - 1) / (N_ - 1) - 1.0 / (N_ - 1);
+    trueTrace /= M_;
+    trace2 = trace2 / MCtrial_ / M_;
+    gy /= M_;
     float yNorm2 =
         w.y.col(0).head(N_).squaredNorm() - w.y.col(0).tail(C_).squaredNorm();
-    fprintf(stderr, "yNorm2 = %g\n", yNorm2);
-    float q = (gy / M_ - yNorm2) / (N_ - 1) / (N_ - 1);
 
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "empiricial trace(K) = %g\n", trace);
+      fprintf(stderr, "randomized trace(K) = %g\n", trueTrace);
+      fprintf(stderr, "theoretial trace(K) = %d\n", (int)(N_ - C_));
+      fprintf(stderr, "randomized trace(K^2) = %g\n", trace2);
+      fprintf(stderr, "y'Ky = %g \n", gy);
+      fprintf(stderr, "y'y(yNorm2) = %g\n", yNorm2);
+    }
+
+#if 0
+    // Xiang Zhou's MINQUE method may result in negative variance component estimation
+    float q = (gy / M_ - yNorm2) / (N_ - 1) / (N_ - 1);
+    float S = trace2 / (N_ - 1) / (N_ - 1) - 1.0 / (N_ - 1);
     double sigma2_g_est = q / S;
     double sigma2_e_g_est = (w.y.col(0).head(N_).squaredNorm() -
                              w.y.col(0).tail(C_).squaredNorm()) /
@@ -904,12 +922,29 @@ class BoltLMM::BoltLMMImpl {
     fprintf(stderr, "minque sigma2_g_est = %g\n", sigma2_g_est);
     fprintf(stderr, "minque sigma2_e_est = %g\n",
             sigma2_e_g_est - sigma2_g_est);
-    fprintf(stderr, "minque h2 = %g\n", sigma2_g_est / sigma2_e_g_est);
-    //     fprintf(stderr, "minque end - %s\n", currentTime().c_str());
+    fprintf(stderr, "minque h2 = %g\n", minqueH2);
 
+    // these may be negative
     sigma2_g_est_ = sigma2_g_est;
     sigma2_e_est_ = sigma2_e_g_est - sigma2_g_est;
     h2_ = sigma2_g_est / sigma2_e_g_est;
+#endif
+
+    // use HE equation
+    double sigma2_e_g_est = (w.y.col(0).head(N_).squaredNorm() -
+                             w.y.col(0).tail(C_).squaredNorm()) /
+                            (N_ - 1);
+    // According to Haseman Elston regression:
+    // \hat{sigma_g^2} = trace(yKy) / trace(K^2)
+    sigma2_g_est_ = gy / trace2;
+    sigma2_e_est_ = sigma2_e_g_est - sigma2_g_est_;
+    h2_ = sigma2_g_est_ / sigma2_e_g_est;
+
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "minque sigma2_g_est = %g\n", sigma2_g_est_);
+      fprintf(stderr, "minque sigma2_e_est = %g\n", sigma2_e_est_);
+      fprintf(stderr, "minque h2 = %g\n", h2_);
+    }
 
     // compute Y_rand (Y_data is the first column)
     double delta = sigma2_e_est_ / sigma2_g_est_;
@@ -921,38 +956,6 @@ class BoltLMM::BoltLMMImpl {
     H_inv_y_norm2_ = projNorm2(H_inv_y_)(0);
 
     return 0;
-
-#if 0
-    // use MINQUE to get initial guess on h2
-    // see: Zhou Xiang's bioarxiv paper
-#ifdef DEBUG
-    fprintf(stderr, "minque start - %s\n", currentTime().c_str());
-#endif
-    double S;
-    if (g_.rows() < g_.cols()) {
-      S = (g_ * g_.transpose()).squaredNorm() / M / M / (N - 1) /
-          (N - 1) -
-          1.0 / (N - 1);
-    } else {
-      S = (g_.transpose() * g_).squaredNorm() / M / M / (N - 1) /
-          (N - 1) -
-          1.0 / (N - 1);
-    }
-    double q = ((g_.transpose() * y_).squaredNorm() / M -
-                (y_.squaredNorm())) /
-        (N - 1) / (N - 1);
-    double sigma2_g_est = q / S;
-    double sigma2_e_g_est = y_.squaredNorm() / (N - 1);
-    double minqueH2 = sigma2_g_est / sigma2_e_g_est;
-#ifdef DEBUG
-    fprintf(stderr, "minque S = %g\n", S);
-    fprintf(stderr, "minque q = %g\n", q);
-    fprintf(stderr, "minque sigma2_g_est = %g\n", sigma2_g_est);
-    fprintf(stderr, "minque sigma2_e_est = %g\n",
-            sigma2_e_g_est - sigma2_g_est);
-    fprintf(stderr, "minque end - %s\n", currentTime().c_str());
-#endif
-#endif
   }
 
   int EstimateHeritabilityBolt(WorkingData* wd) {
@@ -964,13 +967,6 @@ class BoltLMM::BoltLMMImpl {
     if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
       fprintf(stderr, "bolt 1a) start - %s\n", currentTime().c_str());
     }
-#if 0
-    double initH2 = minqueH2;
-    if (minqueH2 < 0 || minqueH2 > 1) {
-      fprintf(stderr, "MINQUE h2 is out of range [ %g ]!\n", minqueH2);
-      initH2 = 0.25;  // use BOLT-LMM init value
-    }
-#endif
     double initH2 = 0.25;  // use BOLT-LMM init value
     int i = 0;
     h2[i] = initH2;
@@ -1090,11 +1086,11 @@ class BoltLMM::BoltLMMImpl {
     if (BoltLMM::BoltLMMImpl::showDebug >= 3) {
       dumpToFile(w.y, "tmp.w.y");
       FILE* fp = fopen("tmp.g", "wt");
-      for (int b = 0; b < NumBatch_; ++b) {
+      for (size_t b = 0; b < NumBatch_; ++b) {
         pl.loadSNPWithCovBatch(b, stage_);
         Eigen::Map<Eigen::MatrixXf> g_z(stage_, N_ + C_, BatchSize_);
-        for (int i = 0; i < BatchSize_; ++i) {
-          for (int j = 0; j < N_ + C_; ++j) {
+        for (size_t i = 0; i < BatchSize_; ++i) {
+          for (size_t j = 0; j < N_ + C_; ++j) {
             if (j) fputc('\t', fp);
             fprintf(fp, "%g", g_z(j, i));
           }
@@ -1102,7 +1098,6 @@ class BoltLMM::BoltLMMImpl {
         }
       }
       fclose(fp);
-      dumpToFile(w.y, "tmp.w.y");
     }
     return f;
 

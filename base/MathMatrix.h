@@ -55,6 +55,7 @@ class Matrix {
   void Ones(int nr, int nc) {
     rows = nr;
     cols = nc;
+    data.resize(nr * nc);
     colLabel.resize(nc);
     Fill(1.0);
   }

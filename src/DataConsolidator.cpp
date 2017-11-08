@@ -581,13 +581,23 @@ int DataConsolidator::prepareBoltModel(
     logger->error("%s:%d Unexpected duplicated samples!", __FILE__, __LINE__);
     exit(1);
   }
+  int warnings = 0;
   for (size_t i = 0; i != sampleName.size(); ++i) {
     if (pin.getSampleIdx(sampleName[i]) < 0) {
-      logger->warn(
-          "%s:%d PLINK file [ %s ] does not include sample [ %s "
-          "]!",
-          __FILE__, __LINE__, (prefix + ".fam").c_str(), sampleName[i].c_str());
+      ++warnings;
+      if (warnings < 5) {
+        logger->warn(
+            "%s:%d PLINK file [ %s ] does not include sample [ %s "
+            "]!",
+            __FILE__, __LINE__, (prefix + ".fam").c_str(),
+            sampleName[i].c_str());
+      }
     }
+  }
+  if (warnings >= 5) {
+    logger->warn(
+        "%s:%d PLINK file [ %s ] does not include samples [ %d ] times!",
+        __FILE__, __LINE__, (prefix + ".fam").c_str(), warnings);
   }
 
   const int M = pin.getNumMarker();

@@ -1296,7 +1296,7 @@ int _loadSex(const std::string& fn,
       (*sex)[idx] = -9;
     }
   }
-  logger->info("Loaded %d male, %d female and %d sex-unknonw samples from %s",
+  logger->info("Loaded %d male, %d female and %d sex-unknown samples from %s",
                nMale, nFemale, nUnknonw, fn.c_str());
   return 0;
 }

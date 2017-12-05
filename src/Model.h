@@ -3811,18 +3811,19 @@ class MetaScoreTest : public ModelFitter {
       return v != 0.0 ? 1.0 / sqrt(v) : 0.0;
     }
     double GetPvalue() { return bolt_.GetPvalue(); }
+    void enableBinaryMode() { bolt_.enableBinaryMode(); }
 
    private:
     BoltLMM bolt_;
   };  // class MetaFamQtlBolt
+
   MetaBase* createModel(bool familyModel, bool binaryOutcome) {
     MetaBase* ret = NULL;
     if (this->useBolt) {
-      if (binaryOutcome) {
-        fprintf(stderr, "BoltLMM does not support binary outcomes! Exit...\n");
-        exit(1);
-      }
       ret = new MetaFamQtlBolt;
+      if (binaryOutcome) {
+        ((MetaFamQtlBolt*)ret)->enableBinaryMode();
+      }
       return ret;
     }
 

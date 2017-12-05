@@ -36,6 +36,9 @@ class BoltLMM {
                 double* out);
   void GetCovXX(const FloatMatrixRef& g1, const FloatMatrixRef& g2, float* out);
 
+  // call this method for binary trait
+  void enableBinaryMode();
+
  private:
   // don't copy
   BoltLMM(const BoltLMM&);

@@ -195,7 +195,7 @@ class PlinkLoader {
 
     return 0;
   }
-  int preparePhenotype(const Matrix* phenotype) {
+  int preparePhenotype(const Matrix* phenotype, bool binaryMode) {
     y_ = Eigen::MatrixXf::Zero(N_ + C_, 1);
     if (phenotype) {
       for (int i = 0; i < (int)N_; ++i) {
@@ -207,8 +207,10 @@ class PlinkLoader {
         y_(i, 0) = pheno[i];
       }
     }
-    float avg = y_.sum() / N_;
-    y_.topLeftCorner(N_, 1).array() -= avg;
+    if (!binaryMode) {  // no need to center phenotype for binary trait
+      float avg = y_.sum() / N_;
+      y_.topLeftCorner(N_, 1).array() -= avg;
+    }
     y_.bottomLeftCorner(C_, 1).noalias() =
         z_.transpose() * y_.topLeftCorner(N_, 1);
     return 0;
@@ -314,11 +316,29 @@ class PlinkLoader {
     }
     return 0;
   }
+
   int projectCovariate(Eigen::MatrixXf* mat) {
     assert(mat && (size_t)mat->rows() == N_ + C_);
     Eigen::MatrixXf& m = *mat;
     m.bottomRows(C_).noalias() = z_.transpose() * m.topRows(N_);
     return 0;
+  }
+
+  Eigen::MatrixXf projectToCovariateSpace(const Eigen::MatrixXf& in) {
+    assert(in.rows == N_ + C_);
+    Eigen::MatrixXf out = in.topRows(N_) - z_ * in.bottomRows(C_);
+    return out;
+  }
+
+  Eigen::MatrixXf predictedCovariateEffect() { return z_ * y_.bottomRows(C_); }
+
+  // @param v is the any [N x 1] matrix, usually the predicted response of y
+  // @return y - v
+  Eigen::MatrixXf getResidual(const Eigen::MatrixXf& v) {
+    assert(v.rows == N_);
+    // TODO: remove next line
+    dumpToFile(y_, "tmp.y");
+    return y_.topRows(N_) - v;
   }
 
   void buildTable(int m, float* table) {
@@ -329,6 +349,7 @@ class PlinkLoader {
       }
     }
   }
+
   // load data in batches
   // @param batch to gBatchSize_ [BatchSize_ * (N_)]
   //  @param, marker [batch*BatchSize_, min(
@@ -650,7 +671,9 @@ class BoltLMM::BoltLMMImpl {
         C_(cv.C_),
         MCtrial_(cv.MCtrial_),
         BatchSize_(cv.BatchSize_),
-        NumBatch_(cv.NumBatch_) {}
+        NumBatch_(cv.NumBatch_),
+        binaryMode(false) {}
+  void enableBinaryMode() { this->binaryMode = true; }
   int FitNullModel(const std::string& prefix, const Matrix* phenotype) {
     const char* boltLMMDebugEnv = std::getenv("BOLTLMM_DEBUG");
     if (boltLMMDebugEnv) {
@@ -685,7 +708,7 @@ class BoltLMM::BoltLMMImpl {
     if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
       fprintf(stderr, "Pre-process phenotypes\n");
     }
-    pl.preparePhenotype(phenotype);
+    pl.preparePhenotype(phenotype, binaryMode);
 
     // project Z to G and
     // record mean and sd for each SNP
@@ -773,7 +796,123 @@ class BoltLMM::BoltLMMImpl {
 
     af_ = 0.5 * gg.sum() / gg.rows();
 
+    if (binaryMode && pvalue_ < 0.01) {
+      fprintf(stderr, "Enable binary mode calibration\n");
+      // binary mode correction
+      Eigen::MatrixXf mu;
+      comptueBLUP(&mu);
+      Eigen::MatrixXf resid = pl.getResidual(mu);
+      Eigen::MatrixXf g_tilde = pl.projectToCovariateSpace(g_test_);
+
+      // find root
+      float t_grid[2] = {-5, 5};
+      float y_grid[2];
+      y_grid[0] = CGF_equation(t_grid[0], g_tilde, mu, resid);
+      y_grid[1] = CGF_equation(t_grid[1], g_tilde, mu, resid);
+      assert(y_grid[0] < 0 && y_grid[1] > 0);  // TODO: make this more robust
+      if (y_grid[0] * y_grid[1] > 0) {
+        fprintf(stderr, "Wrong boundary conditions!\n");
+        // dumpToFile(covEffect, "tmp.covEffect");
+        // dumpToFile(xbeta, "tmp.xbeta");
+        dumpToFile(g_tilde, "tmp.g_tilde");
+        dumpToFile(mu, "tmp.mu");
+        dumpToFile(resid, "tmp.resid");
+        exit(1);
+      }
+      float t_new;
+      float y_new;
+      while (fabs(t_grid[1] - t_grid[0]) > 1e-3) {
+        t_new =
+            t_grid[0] +
+            (t_grid[1] - t_grid[0]) * (-y_grid[0]) / (y_grid[1] - y_grid[0]);
+
+        // switch to bisect?
+        const float dist = t_grid[1] - t_grid[0];
+        if (t_grid[1] - t_new < 0.1 * dist) {
+          t_new = t_grid[0] + (t_grid[1] - t_grid[0]) * 0.8;
+        }
+        if (t_new - t_grid[0] < 0.1 * dist) {
+          t_new = t_grid[0] + (t_grid[1] - t_grid[0]) * 0.2;
+        }
+
+        y_new = CGF_equation(t_new, g_tilde, mu, resid);
+        if (y_new == 0) {
+          break;
+        } else if (y_new > 0) {
+          t_grid[1] = t_new;
+          y_grid[1] = y_new;
+        } else if (y_new < 0) {
+          t_grid[0] = t_new;
+          y_grid[0] = y_new;
+        }
+        fprintf(stderr, "%g -> %g, %g -> %g \n", t_grid[0], y_grid[0],
+                t_grid[1], y_grid[1]);
+      }
+
+      // calculate new p_value
+      const float K = K_function(t_new, g_tilde, mu);
+      const float K_prime2 = K_prime2_function(t_new, g_tilde, mu);
+      const float s = (g_tilde.array() * resid.array()).sum();
+      float w = sqrt(2 * (t_new * s - K));
+      if (t_new < 0) {
+        w = -w;
+      }
+      const float v = t_new * sqrt(K_prime2);
+      assert(v / w > 0);
+      float stat = w + log(v / w) / w;
+      stat = stat * stat;
+
+      if (t_new * s < K) {
+        fprintf(stderr, "Wrong sqrt operand!\n");
+        dumpToFile(g_tilde, "tmp.g_tilde");
+        dumpToFile(mu, "tmp.mu");
+        dumpToFile(resid, "tmp.resid");
+        exit(1);
+      }
+
+      fprintf(stderr,
+              "K = %g, K_prime2 = %g, s = %g, w = %g, v = %g, stat = %g\n", K,
+              K_prime2, s, w, v, stat);
+      fprintf(stderr, "old_pvalue = %g\t", pvalue_);
+      pvalue_ = gsl_cdf_chisq_Q(stat, 1.0);
+      fprintf(stderr, "new_pvalue = %g\n", pvalue_);
+    }
+
     return 0;
+  }
+  // CGF - S = K'(t) - S
+  float CGF_equation(float t, const Eigen::MatrixXf& G,
+                     const Eigen::MatrixXf& mu, const Eigen::MatrixXf& resid) {
+    float val = (mu.array() * G.array() /
+                 ((1.0 - mu.array()) * (-G.array() * t).exp() + mu.array()))
+                    .sum() -
+                (G.array() * (resid).array()).sum();
+
+    static int counter = 0;
+    counter++;
+    fprintf(stderr, "[%d] t = %g, CGF_equation(t) = %g\n", counter, t, val);
+
+    return val;
+  }
+  float K_function(float t, const Eigen::MatrixXf& G,
+                   const Eigen::MatrixXf& mu) {
+    return (1 - mu.array() + mu.array() * ((G.array() * t).exp())).log().sum() -
+           t * (G.array() * mu.array()).sum();
+  }
+  float K_prime_function(float t, const Eigen::MatrixXf& G,
+                         const Eigen::MatrixXf& mu) {
+    return (mu.array() * G.array() /
+                ((1.0 - mu.array()) * (-G.array() * t).exp() + mu.array()) -
+            G.array() * mu.array())
+        .sum();
+  }
+  float K_prime2_function(float t, const Eigen::MatrixXf& G,
+                          const Eigen::MatrixXf& mu) {
+    Eigen::ArrayXf denom =
+        (1.0 - mu.array()) * (-G.array() * t).exp() + mu.array();
+    return ((1.0 - mu.array()) * mu.array() * G.array() * G.array() *
+            (-G.array() * t).exp() / (denom * denom))
+        .sum();
   }
 #if 0
   void CalculateAlpha() {
@@ -1233,7 +1372,8 @@ class BoltLMM::BoltLMMImpl {
   // calculate invser(K)*y, aka solve(K, y),
   // where K = G * G' / M
   // y: [ (N) x (1)]
-  // NOTE: when K is GRM, K in singular and cannot be inverted
+  // NOTE: when K is GRM, K in singular and cannot be inverted, so do not use
+  // the codes below.
   void solveKinv(const Eigen::MatrixXf& y, Eigen::MatrixXf* k_inv_y) {
     TIMER(__PRETTY_FUNCTION__);
     // 5e-4 is the default threshold used in BoltLMM paper
@@ -1275,7 +1415,11 @@ class BoltLMM::BoltLMMImpl {
 
   // ret = H * y
   //   where H = X X' / M + delta * I
-  // NOTE: X X' is [X; Z'X] * [X; -Z'X]'
+  // In reality, H = X.plus * X.minus / M + delta * I
+  //             y = [y; Z'y]
+  //             ret = [XX'y - XX'ZZ'y; Z'(XX'y - XX'ZZ'y)]
+  // NOTE: X X' is [X; Z'X] * [X; -Z'X]', denoted as X.plus and X.minus
+  // respectively
   // y: [ (N+C) x (MCtrial + 1) ]
   void computeHx(double delta, const Eigen::MatrixXf& y, Eigen::MatrixXf* ret) {
     // #ifdef DEBUG
@@ -1304,6 +1448,38 @@ class BoltLMM::BoltLMMImpl {
     const float invM = 1.0 / M_;
     (*ret) *= invM;
     (*ret).noalias() += delta * y;
+  }
+
+  // @param ret = BLUP(y) = X * X' / M * sigma2_g * H^(-1) * y + Z Z' y
+  void comptueBLUP(Eigen::MatrixXf* ret) {
+    // X: [X; Z'X] [ (N+C) x M ]
+    //
+    // X_y: [X' -X'Z] [ M by (MCtrial+1) ]
+    ret->resize(N_, 1);
+    ret->setZero();
+    Eigen::MatrixXf X_y =
+        Eigen::MatrixXf::Zero(N_, 1);  // X' * y: [ M * (MCtrial + 1) ]
+
+    for (size_t b = 0; b != NumBatch_; ++b) {
+      pl.loadSNPBatch(b, stage_);
+      int lb = b * BatchSize_;
+      int ub = std::min(lb + BatchSize_, M_);
+
+      Eigen::Map<Eigen::MatrixXf> g(stage_, N_, ub - lb);
+      X_y.block(lb, 0, ub - lb, 1).noalias() =
+          g.transpose() * H_inv_y_.block(0, 0, N_, 1);
+    }
+
+    for (size_t b = 0; b != NumBatch_; ++b) {
+      pl.loadSNPWithCovBatch(b, stage_);
+      int lb = b * BatchSize_;
+      int ub = std::min(lb + BatchSize_, M_);
+      Eigen::Map<Eigen::MatrixXf> g(stage_, N_, ub - lb);
+      (*ret).noalias() += g * X_y.block(lb, 0, ub - lb, 1);
+    }
+    const float scale = sigma2_g_est_ / M_;
+    (*ret) *= scale;
+    (*ret).noalias() += pl.predictedCovariateEffect();
   }
   // ret = K * y
   //   where K = X X' / M
@@ -1486,13 +1662,13 @@ class BoltLMM::BoltLMMImpl {
   PlinkLoader pl;
 
   // Common variables
-  size_t& M_;
-  size_t& M2_;  // this is M round up to multiple of BatchSize_
-  size_t& N_;
-  size_t& C_;
+  const size_t& M_;
+  const size_t& M2_;  // this is M round up to multiple of BatchSize_
+  const size_t& N_;
+  const size_t& C_;
   size_t& MCtrial_;
-  size_t& BatchSize_;  // batch size of marker are processed at a time
-  size_t& NumBatch_;   // number of batches
+  const size_t& BatchSize_;  // batch size of marker are processed at a time
+  const size_t& NumBatch_;   // number of batches
 
   double sigma2_g_est_;
   double sigma2_e_est_;
@@ -1509,7 +1685,7 @@ class BoltLMM::BoltLMMImpl {
   Random random_;
   double delta_;
   double h2_;
-  Eigen::MatrixXf H_inv_y_;
+  Eigen::MatrixXf H_inv_y_;  // H^(-1) * y , [(N+C) x ] matrix
   double H_inv_y_norm2_;
   double infStatCalibration_;
   double xVx_xx_ratio_;
@@ -1517,9 +1693,11 @@ class BoltLMM::BoltLMMImpl {
   // Eigen::MatrixXf alpha_;
   std::string null_model_file_name_;
 
+  bool binaryMode;
+
  private:
   static int showDebug;
-};
+};  // end class BoltLMM::BoltLMMImpl
 
 int BoltLMM::BoltLMMImpl::showDebug = 0;
 
@@ -1549,7 +1727,7 @@ void BoltLMM::GetCovXX(const FloatMatrixRef& g1, const FloatMatrixRef& g2,
                        float* out) {
   impl_->GetCovXX(g1, g2, out);
 }
-
+void BoltLMM::enableBinaryMode() { impl_->enableBinaryMode(); }
 //////////////////////////////////////////////////
 // BoltLMM::BoltLMMImpl class
 //////////////////////////////////////////////////

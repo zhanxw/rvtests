@@ -49,9 +49,11 @@ Matrix& Matrix::operator=(const Matrix& m) {
   data = m.data;
   colLabel = m.colLabel;
 
+#ifndef NDEBUG
   static int i = 0;
   ++i;
-  printf("Matrix operator= called %d times\n", i);
+  printf("%s%d Matrix operator= called %d times\n", __FILE__, __LINE__, i);
+#endif
   return *this;
 }
 

@@ -325,7 +325,7 @@ class PlinkLoader {
   }
 
   Eigen::MatrixXf projectToCovariateSpace(const Eigen::MatrixXf& in) {
-    assert(in.rows == N_ + C_);
+    assert(in.rows() == N_ + C_);
     Eigen::MatrixXf out = in.topRows(N_) - z_ * in.bottomRows(C_);
     return out;
   }
@@ -335,7 +335,7 @@ class PlinkLoader {
   // @param v is the any [N x 1] matrix, usually the predicted response of y
   // @return y - v
   Eigen::MatrixXf getResidual(const Eigen::MatrixXf& v) {
-    assert(v.rows == N_);
+    assert(v.rows() == N_);
     // TODO: remove next line
     dumpToFile(y_, "tmp.y");
     return y_.topRows(N_) - v;
@@ -768,6 +768,13 @@ class BoltLMM::BoltLMMImpl {
                      "a");
     }
 
+    // saddle point approximation
+    if (binaryMode) {
+      comptueBLUP(&mu_);
+      y_ = pl.getPhenotype().topRows(N_);
+      resid_ = pl.getResidual(mu_);
+    }
+
     return 0;
   }
 
@@ -796,97 +803,146 @@ class BoltLMM::BoltLMMImpl {
 
     af_ = 0.5 * gg.sum() / gg.rows();
 
+    // saddle point approximation
     if (binaryMode && pvalue_ < 0.01) {
       fprintf(stderr, "Enable binary mode calibration\n");
       // binary mode correction
-      Eigen::MatrixXf mu;
-      comptueBLUP(&mu);
-      Eigen::MatrixXf resid = pl.getResidual(mu);
-      Eigen::MatrixXf g_tilde = pl.projectToCovariateSpace(g_test_);
-
-      // find root
-      float t_grid[2] = {-5, 5};
-      float y_grid[2];
-      y_grid[0] = CGF_equation(t_grid[0], g_tilde, mu, resid);
-      y_grid[1] = CGF_equation(t_grid[1], g_tilde, mu, resid);
-      assert(y_grid[0] < 0 && y_grid[1] > 0);  // TODO: make this more robust
-      if (y_grid[0] * y_grid[1] > 0) {
-        fprintf(stderr, "Wrong boundary conditions!\n");
-        // dumpToFile(covEffect, "tmp.covEffect");
-        // dumpToFile(xbeta, "tmp.xbeta");
-        dumpToFile(g_tilde, "tmp.g_tilde");
-        dumpToFile(mu, "tmp.mu");
-        dumpToFile(resid, "tmp.resid");
-        exit(1);
+      const Eigen::MatrixXf g_tilde = pl.projectToCovariateSpace(g_test_);
+      float newPvalue;
+      if (!calculateSaddlePointPvalue(g_tilde, &newPvalue)) {
+        fprintf(stderr, "old_pvalue = %g\t", pvalue_);
+        fprintf(stderr, "new_pvalue = %g\n", newPvalue);
+        pvalue_ = newPvalue;
       }
-      float t_new;
-      float y_new;
-      while (fabs(t_grid[1] - t_grid[0]) > 1e-3) {
-        t_new =
-            t_grid[0] +
-            (t_grid[1] - t_grid[0]) * (-y_grid[0]) / (y_grid[1] - y_grid[0]);
-
-        // switch to bisect?
-        const float dist = t_grid[1] - t_grid[0];
-        if (t_grid[1] - t_new < 0.1 * dist) {
-          t_new = t_grid[0] + (t_grid[1] - t_grid[0]) * 0.8;
-        }
-        if (t_new - t_grid[0] < 0.1 * dist) {
-          t_new = t_grid[0] + (t_grid[1] - t_grid[0]) * 0.2;
-        }
-
-        y_new = CGF_equation(t_new, g_tilde, mu, resid);
-        if (y_new == 0) {
-          break;
-        } else if (y_new > 0) {
-          t_grid[1] = t_new;
-          y_grid[1] = y_new;
-        } else if (y_new < 0) {
-          t_grid[0] = t_new;
-          y_grid[0] = y_new;
-        }
-        fprintf(stderr, "%g -> %g, %g -> %g \n", t_grid[0], y_grid[0],
-                t_grid[1], y_grid[1]);
-      }
-
-      // calculate new p_value
-      const float K = K_function(t_new, g_tilde, mu);
-      const float K_prime2 = K_prime2_function(t_new, g_tilde, mu);
-      const float s = (g_tilde.array() * resid.array()).sum();
-      float w = sqrt(2 * (t_new * s - K));
-      if (t_new < 0) {
-        w = -w;
-      }
-      const float v = t_new * sqrt(K_prime2);
-      assert(v / w > 0);
-      float stat = w + log(v / w) / w;
-      stat = stat * stat;
-
-      if (t_new * s < K) {
-        fprintf(stderr, "Wrong sqrt operand!\n");
-        dumpToFile(g_tilde, "tmp.g_tilde");
-        dumpToFile(mu, "tmp.mu");
-        dumpToFile(resid, "tmp.resid");
-        exit(1);
-      }
-
-      fprintf(stderr,
-              "K = %g, K_prime2 = %g, s = %g, w = %g, v = %g, stat = %g\n", K,
-              K_prime2, s, w, v, stat);
-      fprintf(stderr, "old_pvalue = %g\t", pvalue_);
-      pvalue_ = gsl_cdf_chisq_Q(stat, 1.0);
-      fprintf(stderr, "new_pvalue = %g\n", pvalue_);
     }
 
     return 0;
   }
+  int calculateSaddlePointPvalue(const Eigen::MatrixXf& g_tilde,
+                                 float* ret) const {
+    // find root
+    // 1. find boundary of the root
+    //    first try [0, 5] or [0, -5]
+    const float s = (g_tilde.array() * resid_.array()).sum();
+    float t_grid[2];
+    float y_grid[2];
+    if (s > 0) {  // \hat{t} > 0
+      t_grid[0] = -0.01;
+      t_grid[1] = 5;
+    } else {
+      t_grid[0] = 0.01;
+      t_grid[1] = -5;
+    }
+    y_grid[0] = CGF_equation(t_grid[0], g_tilde, mu_, y_);
+    y_grid[1] = CGF_equation(t_grid[1], g_tilde, mu_, y_);
+
+    int iter = 0;
+    // extend boundary
+    // e.g. [0, 5] => [5, 15] => [15, 60]...
+    while (y_grid[0] * y_grid[1] > 0 && fabs(y_grid[1]) > 1e-6) {
+      t_grid[0] = t_grid[1];
+      y_grid[0] = y_grid[1];
+      t_grid[1] *= 4;
+      y_grid[1] = CGF_equation(t_grid[1], g_tilde, mu_, y_);
+
+      ++iter;
+      fprintf(stderr, "iter %d, %g -> %g \n", iter, t_grid[1], y_grid[1]);
+
+      if (iter > 10) {
+        fprintf(stderr,
+                "after 10 iteration, still cannot find boundary conditions\n");
+        dumpToFile(y_, "tmp.y");
+        dumpToFile(g_tilde, "tmp.g_tilde");
+        dumpToFile(mu_, "tmp.mu");
+        dumpToFile(resid_, "tmp.resid");
+        exit(1);
+      }
+    }
+    if (t_grid[0] > t_grid[1]) {
+      std::swap(t_grid[0], t_grid[1]);
+      std::swap(y_grid[0], y_grid[1]);
+    }
+    assert(y_grid[0] < 0 && y_grid[1] > 0);  // TODO: make this more robust
+    if (y_grid[0] * y_grid[1] > 0) {
+      fprintf(stderr, "Wrong boundary conditions!\n");
+      // dumpToFile(covEffect, "tmp.covEffect");
+      // dumpToFile(xbeta, "tmp.xbeta");
+      dumpToFile(g_tilde, "tmp.g_tilde");
+      dumpToFile(mu_, "tmp.mu");
+      dumpToFile(resid_, "tmp.resid");
+      exit(1);
+    }
+    float t_new = t_grid[0];
+    float y_new;
+    while (fabs(t_grid[1] - t_grid[0]) > 1e-3) {
+      t_new = t_grid[0] +
+              (t_grid[1] - t_grid[0]) * (-y_grid[0]) / (y_grid[1] - y_grid[0]);
+
+      // switch to bisect?
+      const float dist = t_grid[1] - t_grid[0];
+      if (t_grid[1] - t_new < 0.1 * dist) {
+        t_new = t_grid[0] + (t_grid[1] - t_grid[0]) * 0.8;
+      }
+      if (t_new - t_grid[0] < 0.1 * dist) {
+        t_new = t_grid[0] + (t_grid[1] - t_grid[0]) * 0.2;
+      }
+
+      y_new = CGF_equation(t_new, g_tilde, mu_, y_);
+      if (y_new == 0) {
+        break;
+      } else if (y_new > 0) {
+        t_grid[1] = t_new;
+        y_grid[1] = y_new;
+      } else if (y_new < 0) {
+        t_grid[0] = t_new;
+        y_grid[0] = y_new;
+      }
+      fprintf(stderr, "%g -> %g, %g -> %g \n", t_grid[0], y_grid[0], t_grid[1],
+              y_grid[1]);
+    }
+
+    // calculate new p_value
+    const float K = K_function(t_new, g_tilde, mu_);
+    const float K_prime2 = K_prime2_function(t_new, g_tilde, mu_);
+    float w = sqrt(2 * (t_new * s - K));
+    if (t_new < 0) {
+      w = -w;
+    }
+    const float v = t_new * sqrt(K_prime2);
+    assert(v / w > 0);
+
+    float stat = w + log(v / w) / w;
+    stat = stat * stat;
+
+    if (t_new * s < K) {
+      fprintf(stderr, "Wrong sqrt operand!\n");
+      fprintf(stderr,
+              "K = %g, K_prime2 = %g, s = %g, t_new = %g, w = %g, v = %g, stat "
+              "= %g\n",
+              K, K_prime2, s, t_new, w, v, stat);
+
+      dumpToFile(g_tilde, "tmp.g_tilde");
+      dumpToFile(mu_, "tmp.mu");
+      dumpToFile(resid_, "tmp.resid");
+      exit(1);
+    }
+
+    fprintf(stderr,
+            "K = %g, K_prime2 = %g, s = %g, w = %g, v = %g, stat = %g\n", K,
+            K_prime2, s, w, v, stat);
+    float& pvalue_ = *ret;
+    pvalue_ = gsl_cdf_chisq_Q(stat, 1.0);
+    return 0;
+  }
+
   // CGF - S = K'(t) - S
   float CGF_equation(float t, const Eigen::MatrixXf& G,
-                     const Eigen::MatrixXf& mu, const Eigen::MatrixXf& resid) {
+                     const Eigen::MatrixXf& mu,
+                     const Eigen::MatrixXf& y) const {
     float val = (mu.array() * G.array() /
                  ((1.0 - mu.array()) * (-G.array() * t).exp() + mu.array()))
                     .sum() -
-                (G.array() * (resid).array()).sum();
+                (G.array() * (y).array()).sum();
 
     static int counter = 0;
     counter++;
@@ -895,19 +951,29 @@ class BoltLMM::BoltLMMImpl {
     return val;
   }
   float K_function(float t, const Eigen::MatrixXf& G,
-                   const Eigen::MatrixXf& mu) {
-    return (1 - mu.array() + mu.array() * ((G.array() * t).exp())).log().sum() -
+                   const Eigen::MatrixXf& mu) const {
+    // NOTE:
+    // calculation of (log(1 - mu.array() + mu.array() * (exp(G.array() * t))))
+    // can be very inaccurate,
+    // when mu*exp(G*t) is very close to mu, 1 - mu + mu*exp(Gt) can cancel out
+    // many useful digits.
+    // refer: google "when log1p should be used".
+    return (log1p(mu.array() *
+                  (G.array() * t).unaryExpr<float (*)(const float)>(&expm1f)))
+               .sum() -
            t * (G.array() * mu.array()).sum();
   }
   float K_prime_function(float t, const Eigen::MatrixXf& G,
-                         const Eigen::MatrixXf& mu) {
+                         const Eigen::MatrixXf& mu) const {
+    Eigen::MatrixXf tmp = exp(-G.array() * t);
+
     return (mu.array() * G.array() /
-                ((1.0 - mu.array()) * (-G.array() * t).exp() + mu.array()) -
+                ((1.0 + mu.array()) * (-G.array() * t).exp() + mu.array()) -
             G.array() * mu.array())
         .sum();
   }
   float K_prime2_function(float t, const Eigen::MatrixXf& G,
-                          const Eigen::MatrixXf& mu) {
+                          const Eigen::MatrixXf& mu) const {
     Eigen::ArrayXf denom =
         (1.0 - mu.array()) * (-G.array() * t).exp() + mu.array();
     return ((1.0 - mu.array()) * mu.array() * G.array() * G.array() *
@@ -1694,7 +1760,9 @@ class BoltLMM::BoltLMMImpl {
   std::string null_model_file_name_;
 
   bool binaryMode;
-
+  Eigen::MatrixXf mu_;     // BLUP of y = \sigma2_g * K * H_inv * y
+  Eigen::MatrixXf y_;      // y [N x 1] matrix
+  Eigen::MatrixXf resid_;  // resid = y - mu [N x 1] matrix
  private:
   static int showDebug;
 };  // end class BoltLMM::BoltLMMImpl

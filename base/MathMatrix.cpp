@@ -52,7 +52,8 @@ Matrix& Matrix::operator=(const Matrix& m) {
 #ifndef NDEBUG
   static int i = 0;
   ++i;
-  printf("%s%d Matrix operator= called %d times\n", __FILE__, __LINE__, i);
+  fprintf(stderr, "%s:%d Matrix operator= called %d times\n", __FILE__,
+          __LINE__, i);
 #endif
   return *this;
 }

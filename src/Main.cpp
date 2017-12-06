@@ -1134,6 +1134,9 @@ int main(int argc, char** argv) {
 
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
 
+      // logger->info("Test variant at site: %s:%s!",
+      //               buf["CHROM"].c_str(), buf["POS"].c_str());
+
       // fit each model
       for (size_t m = 0; m != numModel; m++) {
         model[m]->reset();

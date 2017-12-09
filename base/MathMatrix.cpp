@@ -93,6 +93,11 @@ void Matrix::DimensionQuick(int nr, int nc) {
   colLabel.resize(nc);
 }
 
+void Matrix::Reserve(int nr, int nc) {
+  data.reserve(nr * nc);
+  colLabel.reserve(nc);
+}
+
 double Matrix::Min() const {
   return *std::min_element(data.begin(), data.end());
 }

@@ -30,7 +30,7 @@
 class Vector {
  public:
   Vector() {}
-  Vector(int n) { data.resize(n); }
+  explicit Vector(int n) { data.resize(n); }
   double operator[](int idx) const { return data[idx]; }
   double& operator[](int idx) { return data[idx]; }
   int Length() const { return data.size(); }

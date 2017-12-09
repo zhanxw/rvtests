@@ -126,7 +126,19 @@ inline void print(Matrix& m) {
   printf("\n");
 }
 
-inline void dumpToFile(Matrix& mat, FILE* fp) {
+inline void dumpToFile(float f, const char* fn) {
+    FILE* fp = fopen(fn, "wt");
+    fprintf(fp, "%g\n", f);
+    fclose(fp);
+}
+
+inline void dumpToFile(double f, const char* fn) {
+    FILE* fp = fopen(fn, "wt");
+    fprintf(fp, "%g\n", f);
+    fclose(fp);
+}
+
+inline void dumpToFile(const Matrix& mat, FILE* fp) {
   const int m = mat.rows;
   const int n = mat.cols;
   for (int i = 0; i < m; ++i) {
@@ -138,19 +150,19 @@ inline void dumpToFile(Matrix& mat, FILE* fp) {
   }
 }
 
-inline void dumpToFile(Matrix& mat, const char* fn) {
+inline void dumpToFile(const Matrix& mat, const char* fn) {
   FILE* fp = fopen(fn, "wt");
   dumpToFile(mat, fp);
   fclose(fp);
-};
+}
 
-inline void dumpToFile(Vector& v, const char* fn) {
+inline void dumpToFile(const Vector& v, const char* fn) {
   const int n = v.Length();
   FILE* fp = fopen(fn, "wt");
   for (int i = 0; i < n; ++i) {
     fprintf(fp, "%g\n", v[i]);
   }
   fclose(fp);
-};
+}
 
 #endif /* _MATRIXOPERATION_H_ */

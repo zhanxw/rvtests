@@ -34,7 +34,7 @@
 class Matrix {
  public:
   Matrix();
-  Matrix(int nr, int nc);
+  explicit Matrix(int nr, int nc);
   Matrix(const Matrix& m);
   Matrix& operator=(const Matrix& m);
   double& operator()(int i, int j) { return data[i + j * rows]; }
@@ -49,8 +49,11 @@ class Matrix {
    * Set all matrix elements to @param val
    */
   void Dimension(int nr, int nc, double val);
+  /**
+   * change matrix dimension with keeping contents
+   */
   void DimensionQuick(int nr, int nc);
-  void Reserve(int nr, int nc) { data.reserve(nr * nc); }
+  void Reserve(int nr, int nc);
   void Fill(double val) { std::fill(data.begin(), data.end(), val); }
   void Ones(int nr, int nc) {
     rows = nr;

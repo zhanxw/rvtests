@@ -127,15 +127,15 @@ inline void print(Matrix& m) {
 }
 
 inline void dumpToFile(float f, const char* fn) {
-    FILE* fp = fopen(fn, "wt");
-    fprintf(fp, "%g\n", f);
-    fclose(fp);
+  FILE* fp = fopen(fn, "wt");
+  fprintf(fp, "%g\n", f);
+  fclose(fp);
 }
 
 inline void dumpToFile(double f, const char* fn) {
-    FILE* fp = fopen(fn, "wt");
-    fprintf(fp, "%g\n", f);
-    fclose(fp);
+  FILE* fp = fopen(fn, "wt");
+  fprintf(fp, "%g\n", f);
+  fclose(fp);
 }
 
 inline void dumpToFile(const Matrix& mat, FILE* fp) {

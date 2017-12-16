@@ -36,7 +36,8 @@ BASE = LogisticRegression \
        FastMultipleTraitLinearRegressionScoreTest \
        Formula \
        ConjugateGradientSolver \
-       BoltLMM
+       BoltLMM \
+       BoltPlinkLoader
 
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)

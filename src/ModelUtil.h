@@ -49,15 +49,13 @@ inline void copyVectorToMatrixColumn(Vector& v, SimpleMatrix* out, int column) {
  */
 inline void copyGenotypeWithIntercept(const Matrix& in, Matrix* o) {
   Matrix& out = *o;
-  out.Reserve(in.rows, in.cols + 1);
-
   // for (int i = 0; i < in.rows; ++i) {
   //   out(i, 0) = 1.0;
   //   for (int j = 0; j < in.cols; ++j) {
   //     out(i, j + 1) = in(i, j);
   //   }
   // }
-  std::fill(out.data.begin(), out.data.begin() + in.rows, 1.0);
+  out.Ones(in.rows, 1);
   out.SetColumnLabel(0, "Intercept");
 
   // for (int i = 0; i < in.cols; ++i)
@@ -73,9 +71,7 @@ inline void copyGenotypeWithCovariateAndIntercept(const Matrix& in,
                                                   const Matrix& cov,
                                                   Matrix* o) {
   Matrix& out = *o;
-  out.Reserve(in.rows, 1 + in.cols + cov.cols);
-
-  std::fill(out.data.begin(), out.data.begin() + in.rows, 1.0);
+  out.Ones(in.rows, 1);
   // for (int i = 0; i < in.rows; ++i) {
   //   out(i, 0) = 1.0;
   // }

@@ -37,7 +37,8 @@ BASE = LogisticRegression \
        Formula \
        ConjugateGradientSolver \
        BoltLMM \
-       BoltPlinkLoader
+       BoltPlinkLoader \
+       SaddlePointApproximation
 
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)

@@ -1,4 +1,4 @@
-<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
 - [Introduction](#introduction)
@@ -11,12 +11,12 @@
     - [Meta-analysis tests](#meta-analysis-tests)
         - [Dominant models and recessive models](#dominant-models-and-recessive-models)
 - [Input files](#input-files)
-    - [Genotype file (VCF)](#genotype-file-vcf)
+    - [Genotype files (VCF, BCF, BGEN, KGG)](#genotype-files-vcf-bcf-bgen-kgg)
     - [Phenotype file](#phenotype-file)
     - [Covariate file](#covariate-file)
     - [Trait transformation](#trait-transformation)
 - [Models](#models)
-    - [Single variant tests](#single-variant-tests)
+    - [Single variant tests](#single-variant-tests-1)
     - [Burden tests](#burden-tests)
     - [Variable threshold models](#variable-threshold-models)
     - [Kernel models](#kernel-models)
@@ -41,11 +41,15 @@
 
 [![Build Status](https://travis-ci.org/zhanxw/rvtests.png?branch=master)](https://travis-ci.org/zhanxw/rvtests)
 
-(Updated: June 2017)
+(Updated: October 2017)
 
 # Introduction
 
-Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association studies. It is designed to support unrelated individual or related (family-based) individuals. Both quantitative trait and binary trait are supported. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf] format as genotype input file and takes PLINK format phenotype file and covariate file. From our practice, it is capable to analyze 8,000 related individuals using less than 400 Mb memory. 
+Rvtests, which stands for Rare Variant tests, is a flexible software package for genetic association analysis for sequence datasets. Since its inception, rvtests was developed as a comprehensive tool to support genetic association analysis and meta-analysis. It can analyze both unrelated individual and related (family-based) individuals for both quantitative and binary outcomes. It includes a variety of association tests (e.g. single variant score test, burden test, variable threshold test, SKAT test, fast linear mixed model score test). It takes [VCF][vcf]/BGEN/PLINK format as genotype input file and takes PLINK format phenotype file and covariate file. 
+
+With new implementation of the BOLT-LMM/MINQUE algorithm as well as a series of software engineering optimizations, our software package is capable of analyzing datasets of up to 1,000,000 individuals in linear mixed models on a computer workstation, which makes our tool one of the very few options for analyzing large biobank scale datasets, such as UK Biobank. RVTESTS supports both single variant and gene-level tests. It also allows for highly effcient generation of covariance matrices between score statistics in RAREMETAL format, which can be used to support the next wave of meta-analysis that incorporates large biobank datasets.
+
+A (much) larger sample size can be handled using linear regression or logistic regression models. 
 
 [vcf]: http://www.1000genomes.com/
 
@@ -59,8 +63,13 @@ Bioinformatics 2016 32: 1423-1426. [doi:10.1093/bioinformatics/btw079](http://bi
 
 # Download
 
-Source files can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests).
-Executable binary files (for Linux 64bit) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases).
+Source codes can be downloaded from [github](https://github.com/zhanxw/rvtests/archive/master.zip) or [github page](https://github.com/zhanxw/rvtests). In Linux, you can use 
+```
+git clone https://github.com/zhanxw/rvtests
+``` 
+to retrieve the latest distribution for rvtests. To install, go to the rvtests folder and type `make`. When compilation succeed, the executable is under the `executable` folder. Simply type `executable/rvtests` can get you started.
+
+Alternatively, binary executable files (for Linux 64-bit platform) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases).
 
 
 # Quick tutorial
@@ -141,7 +150,7 @@ coded as 0/0/1. Missing genotypes will be imputed to the mean.
 
 # Input files
 
-## Genotype file (VCF)
+## Genotype files (VCF, BCF, BGEN, KGG)
 
 Rvtests supports VCF (Variant Call Format) files. Files in both plain text format or gzipped format are supported. To use group-based rare variant tests, indexed the VCF files using [tabix](http://samtools.sourceforge.net/tabix.shtml) are required. 
 
@@ -153,6 +162,11 @@ Here are the commands to convert plain text format to bgzipped VCF format:
 The above commands will (1) remove the `chr` prefix from chromosome names; (2) sort VCF files by chromosome first, then by chromosomal positions; (3) compress using bgzip; (4) create tabix index.
 
 Rvtests support genotype dosages. Use `--dosage DosageTag` to specify the dosage tag. For example, if VCF format field is "GT:EC" and individual genotype fields is "0/0:0.02", you can use `--dosage EC`, and rvtests will use the dosage 0.02 in the regression models.
+
+Rvtests suppport [BGEN input format](http://www.well.ox.ac.uk/~gav/bgen_format/) v1.0 throught v1.3. Instead of using `--inVcf`, use `--inBgen` to specify a BGEN file and `--inBgenSample` to specify the accompany SAMPLE file.
+
+Rvtests support [KGGSeq input format](http://grass.cgs.hku.hk/limx/kggseq/doc10/UserManual.html#kedformat). This format is an extension to binary PLINK formats. Use `--inKgg` to replace `--inVcf`.
+
 
 ## Phenotype file
 
@@ -299,12 +313,13 @@ BOLT-LMM covariance           |  boltCov      | Q  |     Y      |         R     
 (##) In trait column, B or Q stand for binary or quantitative trait, respectively.
 
 (###) This is an experimental feature. 
-This method requires LD-pruned gneotype data in the binary PLINK format specified by `--boltPlink`. 
+This method requires LD-pruned genotype data in the binary PLINK format specified by `--boltPlink`. 
 A minimal example to run BOLT-LMM based score tests is: `rvtest --inVcf $inputVCFfile --boltPlink $binaryPlinkPrefix --pheno $phenotype --meta bolt`. 
 To prune your genotype data, an example command line is `plink --vcf $inputVCFFile --maf 0.05 --indep-pairwise 50 5 0.5 --make-bed $binaryPlinkPrefix`.
 Please note RVTESTS additionally prohibit duplicated rs IDs in the PLINK BIM file. 
 To remove duplications, you can list all duplicated `cut -f2 $binaryPlinkBIMfile|sort |uniq -d > duplicate.rsid`, and then 
 use `plink --vcf $inputVCFFile --maf 0.05 --indep-pairwise 50 5 0.5 --exclude duplicate.rsid --make-bed $binaryPlinkPrefix`.
+An example script to run BOLT-LMM model can be found under `example/experimental` directory.
 
 The above models are suitable to generate summary statistics which can be later meta-analyzed (see [Dajiang Liu (2014) Nature Genetics](http://www.nature.com/ng/journal/v46/n2/abs/ng.2852.html)).
 Rvtests implemented the above methods and the results can be further analyzed by RareMetals ([link](http://genome.sph.umich.edu/wiki/RareMETALS)) for quantitative trait and RareMetals2 ([link](http://genome.sph.umich.edu/wiki/RareMETALS2)).
@@ -536,6 +551,13 @@ To generate empirical kinship (`--inVcf`) on both autosomal region and X chromos
     vcf2kinship --inVcf input.vcf.gz --ped input.ped --bn --xHemi --out output
 
 NOTE: you need to provide a pedigree file (PED) in the above case, as `vcf2kinship` needs the sex information of samples to construct kinship for sex chromosome.
+
+For modern genetic datasets, genotype data is often stored by chromosomes, with each chromosome stored in a separate VCF file. In this case, kinship matrix can be first calcualted separately for each chromosome, and then combined using the python script [combineKinship.py](https://github.com/zhanxw/rvtests/tree/master/misc). Specifically, if you generated two kinship matrices for chr1 chr2 (chr1.kinship, and chr2.kinship), you can run the python script to combine them, i.e. 
+```
+python combineKinship.py -o prefix chr1.kinship chr2.kinship
+```
+
+The resulting kinship matrix is equivalent to the kinship matrix calculated using the merged vcf files.  
 
 # Resources
 

@@ -192,7 +192,7 @@ class AbstractFileWriter {
 class FileWriter {
  public:
   FileWriter(const std::string& fileName, bool append = false);
-  FileWriter(const char* fileName, FileType t);
+  FileWriter(const std::string& fileName, FileType t);
   void createBuffer() {
     // create buffer for formatted string
     this->bufLen = 1024;
@@ -283,11 +283,11 @@ class FileWriter {
     }
     this->bufLen = newBufLen;
   }
-  AbstractFileWriter* fp;
-  AbstractFileWriter* fpRaw;
-  char* buf;
-  int bufLen;
-};  // end class FileWriter
+  AbstractFileWriter* fp;     // usually the buffered writer
+  AbstractFileWriter* fpRaw;  // the class actually do the work
+  char* buf;                  // buf only for printf()
+  int bufLen;                 // buf length
+};                            // end class FileWriter
 
 bool fileExists(std::string fn);
 

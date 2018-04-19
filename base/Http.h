@@ -10,7 +10,7 @@ class Http {
   // Make a connect to @param url
   // @param url must be in the format of:
   // http://domain[:port][/path]
-  Http(const std::string& url);
+  Http(const std::string& url, double timeoutSeconds = -1);
   virtual ~Http();
   /**
    * Read everything and store on lines of contents to @param content

@@ -1,7 +1,9 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "base/RingMemoryPool.h"
+
 int main() {
   float* p;
 
@@ -92,5 +94,43 @@ int main() {
     for (int i = 0; i < 8; ++i) {
       mp.deallocate(8 + i);
     }
+  }
+
+  {
+    RingMemoryPool mp(1, 4);
+    for (int i = 0; i < 3; ++i) {
+      int idx = mp.allocate();
+      p = mp.chunk(idx);
+      *p = i;
+    }
+    assert(mp.size() == 3);  // mp: 0 1 2 .
+
+    mp.deallocate(0);
+    mp.deallocate(1);
+    assert(mp.size() == 1);  // mp: . . 2 .
+
+    assert(mp.allocate() == 3);  // mp: . . 2 3
+    *(mp.chunk(3)) = 3;
+    assert(*(mp.lastChunk()) == 3);
+
+    assert(mp.allocate() == 4);  // mp: 4 . 2 3
+    *(mp.chunk(4)) = 4;
+    assert(*(mp.firstChunk()) == 4);
+
+    assert(mp.allocate() == 5);  // mp: 4 5 2 3
+    *(mp.chunk(5)) = 5;
+    assert(mp.size() == 4);
+    assert(mp.capacity() == 4);
+
+    mp.deallocate(2);
+    mp.deallocate(3);
+    assert(mp.allocate() == 6);
+    assert(mp.allocate() == 7);  // mp: 4 5 6 7
+    *(mp.chunk(6)) = 6;
+    *(mp.chunk(7)) = 7;
+    assert(*(mp.firstChunk()) == 4);
+    assert(*(mp.lastChunk()) == 7);
+    assert(mp.size() == 4);
+    assert(mp.capacity() == 4);
   }
 }

@@ -8,6 +8,9 @@
 #include "base/Utils.h"
 #include "third/gsl/include/gsl/gsl_cdf.h"
 
+extern int stringTokenize(const std::string& str, const char delim,
+                          std::vector<std::string>* result);
+
 //////////////////////////////////////////////////
 // Statistics functions
 //////////////////////////////////////////////////
@@ -248,6 +251,14 @@ inline void makeSet(const std::vector<T>& in, std::set<T>* s) {
   if (in.empty()) return;
 
   for (size_t i = 0; i < in.size(); i++) s->insert(in[i]);
+}
+
+template <class T>
+inline std::set<T> makeSet(const std::vector<T>& in) {
+  std::set<T> s;
+  s.clear();
+  for (size_t i = 0; i < in.size(); i++) s.insert(in[i]);
+  return s;
 }
 
 template <class T>

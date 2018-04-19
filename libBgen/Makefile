@@ -3,7 +3,7 @@ all: release
 
 LIB = lib-bgen.a
 LIB_DBG = lib-dbg-bgen.a
-BASE = BGenFile BGenIndex
+BASE = BGenFile BGenIndex BGenVariant
 OBJ = $(BASE:=.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 

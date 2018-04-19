@@ -124,7 +124,7 @@ endif
 ARCH := $(firstword $(shell uname -m))
 SYS := $(firstword $(shell uname -s))
 ifeq ($(SYS), Linux)
-  STATIC_FLAG = -static
+  STATIC_FLAG ?= -static
   OPENMP_FLAG = -fopenmp
 endif
 

@@ -1,4 +1,13 @@
-2017-08-18  Xiaowei Zhan  <zhanxw@bunny.swmed.edu>
+2017-10-09  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Support BGEN format (see example/experimental/cmd.sh)
+	* Add bgen2vcf, bgenFileInfo utitlies
+	* Add timeout when checking new version
+	* Improve speed of covariance calculation
+	* Update combineKinship.py
+	* Support KGGSeq inputs
+
+2017-08-18  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Improve speed of covariance calculations
 	* Clean codes

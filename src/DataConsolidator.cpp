@@ -326,15 +326,14 @@ int DataConsolidator::prepareBoltModel(
     const SimpleMatrix& phenotype) {
   PlinkInputFile pin(prefix);
   if (!isUnique(sampleName)) {
-    error("%s:%d Fatal error, unexpected duplicated samples!\n", __FILE__,
-          __LINE__);
+    logger->error("%s:%d Unexpected duplicated samples!", __FILE__, __LINE__);
     exit(1);
   }
   for (size_t i = 0; i != sampleName.size(); ++i) {
     if (pin.getSampleIdx(sampleName[i]) < 0) {
-      error(
-          "%s:%d Fatal error, PLINK file [ %s ] does not include sample [ %s "
-          "]!\n",
+      logger->warn(
+          "%s:%d PLINK file [ %s ] does not include sample [ %s "
+          "]!",
           __FILE__, __LINE__, (prefix + ".fam").c_str(), sampleName[i].c_str());
     }
   }
@@ -361,9 +360,8 @@ int DataConsolidator::prepareBoltModel(
     std::set<int> badSampleIdx;
     for (int i = 0; i != N; ++i) {
       if (imiss[i] > 0.05) {
-        logger->warn(
-            "Sample [ %s ] has high rate of missing genotype [ %g ]!\n",
-            pin.getIID()[i].c_str(), lmiss[i]);
+        logger->warn("Sample [ %s ] has high rate of missing genotype [ %g ]!",
+                     pin.getIID()[i].c_str(), imiss[i]);
         badSampleIdx.insert(i);
         needNewPlink = true;
       }

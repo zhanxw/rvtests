@@ -1,2 +1,2 @@
-[ERROR] Cannot read BCF by range, please verify you have the index file (or create one use bcftools).
+[ERROR] Cannot read BCF by range, please verify you have the index file (or create one using bcftools).
 Quitting...

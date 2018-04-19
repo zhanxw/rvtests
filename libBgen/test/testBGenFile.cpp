@@ -1,16 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "BGenFile.h"
-
-// #include <stdint.h>  // uint32_t
-// #include <cassert>
-// #include <string>
-// #include <vector>
-
-// #include <sqlite3.h>
-// #include <zlib.h>
-// #include "zstd/lib/zstd.h"
+#include "base/IO.h"
+#include "libBgen/BGenFile.h"
 
 void printVCFMeta() {
   // GP is between 0 and 1 in VCF v4.3, but phred-scaled value in VCF v4.2
@@ -66,21 +58,22 @@ void printVariant(const BGenVariant& var) {
   }
   fputs("\t.\t.\t.", stdout);
 
+  FileWriter fout("stdout");
   if (var.isPhased) {  // phased info
     fputs("\tGT:HP", stdout);
     for (int j = 0; j < var.N; ++j) {
       fputs("\t", stdout);
-      var.printGT(j, stdout);
+      var.printGT(j, &fout);
       fputs(":", stdout);
-      var.printHP(j, stdout);
+      var.printHP(j, &fout);
     }
   } else {  // genotypes
     fputs("\tGT:GP", stdout);
     for (int j = 0; j < var.N; ++j) {
       fputs("\t", stdout);
-      var.printGT(j, stdout);
+      var.printGT(j, &fout);
       fputs(":", stdout);
-      var.printGP(j, stdout);
+      var.printGP(j, &fout);
     }
   }
   fputs("\n", stdout);

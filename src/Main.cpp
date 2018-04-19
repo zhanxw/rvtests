@@ -25,6 +25,7 @@
 #include "src/DataConsolidator.h"
 #include "src/DataLoader.h"
 #include "src/GenotypeExtractor.h"
+#include "src/KGGGenotypeExtractor.h"
 #include "src/ModelFitter.h"
 #include "src/ModelManager.h"
 #include "src/Result.h"
@@ -32,7 +33,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20170818";
+const char* VERSION = "20171009";
 
 void banner(FILE* fp) {
   const char* string =
@@ -43,7 +44,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      August 2017                       | \n"
+      "|      October 2017                      | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -248,6 +249,9 @@ BEGIN_PARAMETER_LIST();
 ADD_PARAMETER_GROUP("Basic Input/Output");
 ADD_STRING_PARAMETER(inVcf, "--inVcf", "Input VCF File");
 ADD_STRING_PARAMETER(inBgen, "--inBgen", "Input BGEN File");
+ADD_STRING_PARAMETER(inBgenSample, "--inBgenSample",
+                     "Input Sample IDs for the BGEN File");
+ADD_STRING_PARAMETER(inKgg, "--inKgg", "Input KGG File");
 ADD_STRING_PARAMETER(outPrefix, "--out", "Output prefix");
 ADD_BOOL_PARAMETER(outputRaw, "--outputRaw",
                    "Output genotypes, phenotype, covariates(if any); and "
@@ -440,13 +444,12 @@ int main(int argc, char** argv) {
 
   if (!FLAG_outPrefix.size()) FLAG_outPrefix = "rvtest";
 
-  if (FLAG_inVcf.empty() && FLAG_inBgen.empty()) {
-    fprintf(stderr, "Please provide one input file using: --inVcf or --inBgen");
-    exit(1);
-  }
-  if (!FLAG_inVcf.empty() && !FLAG_inBgen.empty()) {
+  if ((FLAG_inVcf.empty() ? 0 : 1) + (FLAG_inBgen.empty() ? 0 : 1) +
+          (FLAG_inKgg.empty() ? 0 : 1) !=
+      1) {
     fprintf(stderr,
-            "Please provide one kind of input file using: --inVcf or --inBgen");
+            "Please provide one type of input file using: --inVcf, --inBgen or "
+            "--inKgg\n");
     exit(1);
   }
 
@@ -505,7 +508,9 @@ int main(int argc, char** argv) {
   if (!FLAG_inVcf.empty()) {
     ge = new VCFGenotypeExtractor(FLAG_inVcf);
   } else if (!FLAG_inBgen.empty()) {
-    ge = new BGenGenotypeExtractor(FLAG_inBgen);
+    ge = new BGenGenotypeExtractor(FLAG_inBgen, FLAG_inBgenSample);
+  } else if (!FLAG_inKgg.empty()) {
+    ge = new KGGGenotypeExtractor(FLAG_inKgg);
   } else {
     assert(false);
   }
@@ -547,7 +552,8 @@ int main(int argc, char** argv) {
 
   std::vector<std::string> vcfSampleNames;
   ge->getPeopleName(&vcfSampleNames);
-  logger->info("Loaded [ %zu ] samples from VCF files", vcfSampleNames.size());
+  logger->info("Loaded [ %zu ] samples from genotype files",
+               vcfSampleNames.size());
 
   DataLoader dataLoader;
   dataLoader.setPhenotypeImputation(FLAG_imputePheno);

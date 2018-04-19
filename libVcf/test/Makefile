@@ -7,7 +7,8 @@ EXE = testReadVCF testReadVCFInfo testReadVCFByIndividual testReadVCFByRange \
       testVCFSite \
       testVCFExtractChromXPar \
       testPlinkOutputFile \
-      testPlinkOutputFile2
+      testPlinkOutputFile2 \
+      testKGGInputFile
 
 all: $(EXE)
 debug: all
@@ -40,7 +41,7 @@ endef
 $(foreach s, $(EXE), $(eval $(call BUILD_each, $(s))))
 
 check: check1 check2 check3 check4 check5 check6 check7 check8 check9 check10 \
-       check11 check12 check13 check14 check15
+       check11 check12 check13 check14 check15 check16
 check1:
 	./testPlinkInputFile > testPlinkInputFile.output
 	diff -q testPlinkInputFile.output testPlinkInputFile.output.correct
@@ -96,6 +97,8 @@ check15:
 	-awk '{$$1 = NR; $$3 = 0; $$4 = 0; print ;}' testPlinkInputFile.fam | diff -b testPlinkOutputFile.output.fam -
 	diff -q testPlinkOutputFile.output.bim testPlinkInputFile.bim
 	diff -q testPlinkOutputFile.output.bed testPlinkInputFile.bed
-
+check16:
+	./testKGGInputFile > testKGGInputFile.vcf.output
+	diff testKGGInputFile.vcf.output testKGGInputFile.vcf.output.correct
 clean:
 	-rm -f $(EXE) *.d *.output

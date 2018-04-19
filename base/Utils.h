@@ -11,7 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "base/CommonFunction.h"  // makeset
 #include "base/SimpleString.h"
+#include "base/TypeConversion.h"  // toString
 
 /**
  * String related utility functions
@@ -219,6 +221,21 @@ inline int stringTokenize(const std::string& str, const char delim,
                           std::vector<std::string>* result) {
   std::string d(1, delim);
   return (stringTokenize(str, d, result));
+};
+
+inline std::vector<std::string> stringTokenize(const std::string& str,
+                                               const std::string& delim) {
+  std::vector<std::string> result;
+  stringTokenize(str, delim, &result);
+  return result;
+};
+
+inline std::vector<std::string> stringTokenize(const std::string& str,
+                                               const char delim) {
+  std::vector<std::string> result;
+  std::string d(1, delim);
+  stringTokenize(str, d, &result);
+  return result;
 };
 
 // pretty much like stringTokenize, but @param result will not contain empty

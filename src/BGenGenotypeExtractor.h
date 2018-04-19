@@ -31,6 +31,8 @@ class BGenVariant;
 class BGenGenotypeExtractor : public GenotypeExtractor {
  public:
   explicit BGenGenotypeExtractor(const std::string& fn);
+  explicit BGenGenotypeExtractor(const std::string& fn,
+                                 const std::string& sampleFile);
   virtual ~BGenGenotypeExtractor();
 
  private:

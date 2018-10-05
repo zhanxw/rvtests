@@ -99,7 +99,7 @@ int DataLoader::loadPhenotype(const std::string& pheno,
   this->phenotype.appendCol(vals, label);
   this->phenotype.setRowName(keys);
 
-  logger->info("Loaded [ %zu ] sample pheontypes", phenotype.size());
+  logger->info("Loaded [ %zu ] sample phenotypes", phenotype.size());
   return 0;
 }
 

@@ -1,5 +1,8 @@
 #include "Socket.h"
 
+#include <errno.h>
+
+
 #include <fcntl.h>
 #include <netdb.h>
 #include <string.h>  // memset()
@@ -7,6 +10,7 @@
 #include <sys/time.h>  // struct timeval
 #include <sys/types.h>
 #include <unistd.h>  // close()
+
 
 Socket::Socket(const std::string& host, int port)
     : servinfo(NULL), fd(-1), usable(false), quiet(false) {

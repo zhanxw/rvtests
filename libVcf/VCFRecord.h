@@ -1,7 +1,9 @@
 #ifndef _VCFRECORD_H_
 #define _VCFRECORD_H_
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include "VCFBuffer.h"
 #include "VCFFunction.h"

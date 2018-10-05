@@ -1,5 +1,6 @@
 #include "Socket.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <string.h>  // memset()

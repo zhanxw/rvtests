@@ -19,6 +19,7 @@ tabix: tabix-0.2.6.tar.bz2
 #	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
 	echo | i686-w64-mingw32.static-gcc -E -Wp,-v -
 	i686-w64-mingw32.static-gcc -dM -E - < /dev/null
+	find /usr/lib/mxe/usr |grep zlib.h
 	which i686-w64-mingw32.static-gcc
 	cd tabix-0.2.6; $(MAKE) CC=${CC} AR=${AR} CROSS=i686-w64-mingw32.static- libtabix.a
 

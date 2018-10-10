@@ -5,7 +5,7 @@ set -xue
 # strip build-dir/battleship.exe
 # upx -9 build-dir/battleship.exe
 
-DEPLOY_FILE=dist/test_${PLATFORM}.zip
+DEPLOY_FILE=dist/rvtests_${PLATFORM}.zip
 rm executable/*.d
 rename 's/$/.exe/g' executable/*
 # mv executable/main executable/main.exe

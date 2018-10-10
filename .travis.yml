@@ -35,3 +35,4 @@ deploy:
   on:
     repo: zhanxw/rvtests
     branch: master
+    tags: true

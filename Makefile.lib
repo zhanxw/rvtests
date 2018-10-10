@@ -1,29 +1,35 @@
 ## this file describe how we build libs
 ROOT?=.
 
+##################################################
+## Win32
+ifneq ($(WIN32),)
+MAKEFILE=-f Makefile.win CROSS=i686-w64-mingw32.static- WIN32=1
+endif
+
 ## third-party lib
 $(TABIX_INC) $(TABIX_LIB):
-	$(MAKE) -C $(ROOT)/third tabix
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third tabix
 $(EIGEN_INC) $(EIGEN_LIB):
-	$(MAKE) -C $(ROOT)/third eigen
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third eigen
 $(PCRE_INC) $(PCRE_LIB):
-	$(MAKE) -C $(ROOT)/third pcre
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third pcre
 $(GSL_INC) $(GSL_LIB):
-	$(MAKE) -C $(ROOT)/third gsl
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third gsl
 $(NLOPT_INC) $(NLOPT_LIB):
-	$(MAKE) -C $(ROOT)/third nlopt
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third nlopt
 $(ZLIB_INC) $(ZLIB_LIB):
-	$(MAKE) -C $(ROOT)/third zlib 
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third zlib 
 $(BZIP2_INC) $(BZIP2_LIB):
-	$(MAKE) -C $(ROOT)/third bzip2
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third bzip2
 $(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
-	$(MAKE) -C $(ROOT)/third samtools
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third samtools
 $(RAPIDJSON_INC):
-	$(MAKE) -C $(ROOT)/third rapidjson
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third rapidjson
 $(SQLITE_INC) $(SQLITE_LIB):
-	$(MAKE) -C $(ROOT)/third sqlite
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third sqlite
 $(ZSTD_INC) $(ZSTD_LIB):
-	$(MAKE) -C $(ROOT)/third zstd
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third zstd
 
 ## our libs
 $(BASE_LIB):

@@ -12,11 +12,11 @@ tabix: tabix-0.2.6.tar.bz2
 
 pcre: pcre-8.36.tar.gz
 	-mv pcre-8.36.tar.gz* pcre-8.36.tar.gz
-	tar zvxf pcre-8.36.tar.gz
+	tar zxf pcre-8.36.tar.gz
 	-(DIR=`pwd`; cd pcre-8.36; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
 
 gsl: gsl-1.16.tar.gz
-	tar zvxf gsl-1.16.tar.gz
+	tar zxf gsl-1.16.tar.gz
 	-(DIR=`pwd`; cd gsl-1.16; ./configure --prefix="$${DIR}"/gsl; make -j; make install)
 
 eigen: eigen-3.3.5.tar.bz2
@@ -26,12 +26,12 @@ eigen: eigen-3.3.5.tar.bz2
 	ln -s -f eigen-3.3.5 eigen
 
 zlib: zlib-1.2.8.tar.gz
-	tar zvxf $<
+	tar zxf $<
 	ln -s -f zlib-1.2.8 zlib
 	(cd zlib; ./configure; make)
 
 bzip2: bzip2-1.0.6.tar.gz
-	tar zvxf $<
+	tar zxf $<
 	ln -s -f bzip2-1.0.6 bzip2
 	(cd bzip2-1.0.6; make)
 
@@ -41,20 +41,20 @@ samtools: samtools-0.1.19.tar.bz2
 	(cd samtools; make lib-recur)
 
 nlopt: nlopt-2.4.2.tar.gz
-	tar zvxf $<
+	tar zxf $<
 	-(DIR=`pwd`; cd nlopt-2.4.2; ./configure --prefix="$${DIR}"/nlopt; make -j; make install)
 
 rapidjson: rapidjson-1.0.2.tar.gz
-	tar zvxf $<
+	tar zxf $<
 	ln -s -f rapidjson-1.0.2 rapidjson
 	sh -c '# no need to compile, just need its header'
 
 sqlite: sqlite-autoconf-3200100.tar.gz
-	tar zvxf $<
+	tar zxf $<
 	-(DIR=`pwd`; cd sqlite-autoconf-3200100; ./configure --prefix="$${DIR}"/sqlite --enable-dynamic-extensions=no; make -j; make install)
 
 zstd: zstd-1.3.1.tar.gz
-	tar zvxf $<
+	tar zxf $<
 	ln -s -f zstd-1.3.1 zstd
 	(cd zstd; make)
 

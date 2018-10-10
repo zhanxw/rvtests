@@ -19,6 +19,7 @@ export LD=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-ld
 export AR=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-ar
 export FC=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-gfortran
 export PKG_CONFIG=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-pkg-config
+export LDFLAGS=
 make -f Makefile.win CROSS=i686-w64-mingw32.static- WIN32=1
 
 set +xue

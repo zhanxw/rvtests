@@ -1,4 +1,4 @@
-os: Visual Studio 2013
+clone_depth: 5
 
 environment:
   CTEST_OUTPUT_ON_FAILURE: 1
@@ -28,7 +28,7 @@ install:
 build_script:
   - ps: |
       if ($env:Compiler -eq "mingw") {
-        mingw32-make -j4 
+        mingw32-make -j4 -f Makefile.win WIN32=1
       } else {
         msbuild /m:4 /p:"Configuration=$env:Config;Platform=$env:Platform" sassc\win\sassc.sln
       }

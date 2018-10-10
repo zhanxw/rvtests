@@ -17,7 +17,10 @@ tabix: tabix-0.2.6.tar.bz2
 	tar jxf tabix-0.2.6.tar.bz2
 	ln -s -f tabix-0.2.6 tabix
 #	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
-	(cd tabix-0.2.6; $(MAKE) CC=${CC} AR=${AR} CROSS=i686-w64-mingw32.static- libtabix.a)
+	echo | gcc -E -Wp,-v -
+	gcc -dM -E - < /dev/null
+	which i686-w64-mingw32.static-gcc
+	cd tabix-0.2.6; $(MAKE) CC=${CC} AR=${AR} CROSS=i686-w64-mingw32.static- libtabix.a
 
 pcre: pcre-8.36.tar.gz
 	-mv pcre-8.36.tar.gz* pcre-8.36.tar.gz

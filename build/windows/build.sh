@@ -3,6 +3,7 @@
 set -xue
 
 MXE_DIR=/usr/lib/mxe
+export PATH=${MXE_DIR}/usr/bin:$PATH
 
 if [ "$PLATFORM" = "windows32" ]; then
     MXE_TARGET=i686-w64-mingw32.static

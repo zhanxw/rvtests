@@ -4,7 +4,7 @@ ROOT?=.
 ##################################################
 ## Win32
 ifneq ($(WIN32),)
-MAKEFILE=-f Makefile.win CROSS=i686-w64-mingw32.static- WIN32=1
+MAKEFILE=-f Makefile.win CROSS=${CROSS} WIN32=1
 endif
 
 ## third-party lib

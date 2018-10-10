@@ -6,10 +6,10 @@ set -xue
 # upx -9 build-dir/battleship.exe
 
 DEPLOY_FILE=dist/rvtests_${PLATFORM}.zip
-rm executable/*.d
+rm -f executable/*.d
 rename 's/$/.exe/g' executable/*
 # mv executable/main executable/main.exe
-zip $DEPLOY_FILE executable example README.md
+zip $DEPLOY_FILE executable/* example/* README.md
 
 # cp build-dir/battleship.exe $PORTABLE_FILE
 

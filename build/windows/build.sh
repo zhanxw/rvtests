@@ -13,13 +13,20 @@ if [ "$PLATFORM" = "windows64" ]; then
     MXE_TARGET=x86_64-w64-mingw32.static
 fi
 
-export CC=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-gcc
-export CXX=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-g++
-export LD=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-ld
-export AR=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-ar
-export FC=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-gfortran
-export PKG_CONFIG=${MXE_DIR}/usr/bin/i686-w64-mingw32.static-pkg-config
+export CC=${MXE_DIR}/usr/bin/${MXE_TARGET}-gcc
+export CXX=${MXE_DIR}/usr/bin/${MXE_TARGET}-g++
+export LD=${MXE_DIR}/usr/bin/${MXE_TARGET}-ld
+export AR=${MXE_DIR}/usr/bin/${MXE_TARGET}-ar
+export FC=${MXE_DIR}/usr/bin/${MXE_TARGET}-gfortran
+export PKG_CONFIG=${MXE_DIR}/usr/bin/${MXE_TARGET}-pkg-config
 export LDFLAGS=
-make -f Makefile.win CROSS=i686-w64-mingw32.static- WIN32=1
+
+if [ "$PLATFORM" = "windows32" ]; then
+    make -f Makefile.win CROSS=i686-w64-mingw32.static WIN32=1
+fi
+
+if [ "$PLATFORM" = "windows64" ]; then
+    make -f Makefile.win CROSS=x86_64-w64-mingw32.static WIN32=1
+fi
 
 set +xue

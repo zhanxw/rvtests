@@ -1,11 +1,12 @@
-#make -f Makefile.win CROSS=i686-w64-mingw32.static-
-CC=$(CROSS)gcc
-CXX=$(CROSS)g++
-LD=$(CROSS)ld
-RANLIB=$(CROSS)ranlib
-AR=$(CROSS)ar
-PKG_CONFIG=$(CROSS)pkg-config
-CONFIGURE_HOST=--host=i686-w64-mingw32.static --enable-static --disable-shared
+#make -f Makefile.win CROSS=i686-w64-mingw32.static
+CC=$(CROSS)-gcc
+CXX=$(CROSS)-g++
+LD=$(CROSS)-ld
+RANLIB=$(CROSS)-ranlib
+AR=$(CROSS)-ar
+PKG_CONFIG=$(CROSS)-pkg-config
+# CONFIGURE_HOST=--host=i686-w64-mingw32.static --enable-static --disable-shared
+CONFIGURE_HOST=--host=$(CROSS) --enable-static --disable-shared
 
 # download all third party library and compile them
 
@@ -17,20 +18,16 @@ tabix: tabix-0.2.6.tar.bz2
 	tar jxf tabix-0.2.6.tar.bz2
 	ln -s -f tabix-0.2.6 tabix
 #	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
-	echo | i686-w64-mingw32.static-gcc -E -Wp,-v -
-	i686-w64-mingw32.static-gcc -dM -E - < /dev/null
-	find /usr/lib/mxe/usr |grep zlib.h
-	which i686-w64-mingw32.static-gcc
-	cd tabix-0.2.6; $(MAKE) CC=${CC} AR=${AR} CROSS=i686-w64-mingw32.static- libtabix.a
+	cd tabix-0.2.6; $(MAKE) CC=${CC} AR=${AR} CROSS=${CROSS}- libtabix.a
 
 pcre: pcre-8.36.tar.gz
 	-mv pcre-8.36.tar.gz* pcre-8.36.tar.gz
 	tar zxf pcre-8.36.tar.gz
-	DIR=`pwd`; echo ${CC}; cd pcre-8.36; ./configure ${CONFIGURE_HOST} --prefix="$${DIR}"/pcre; $(MAKE) CROSS=i686-w64-mingw32.static-; make install
+	DIR=`pwd`; echo ${CC}; cd pcre-8.36; ./configure ${CONFIGURE_HOST} --prefix="$${DIR}"/pcre; $(MAKE) CROSS=${CROSS}-; make install
 
 gsl: gsl-1.16.tar.gz
 	tar zxf gsl-1.16.tar.gz
-	-(DIR=`pwd`; cd gsl-1.16; ./configure ${CONFIGURE_HOST} --prefix="$${DIR}"/gsl; make -j CROSS=i686-w64-mingw32.static-; make install)
+	-(DIR=`pwd`; cd gsl-1.16; ./configure ${CONFIGURE_HOST} --prefix="$${DIR}"/gsl; make -j CROSS=${CROSS}-; make install)
 
 eigen: eigen-3.3.5.tar.bz2
 	-rm -rf eigen-eigen*
@@ -51,7 +48,7 @@ bzip2: bzip2-1.0.6.tar.gz
 samtools: samtools-0.1.19.tar.bz2
 	tar jxf $<
 	ln -s -f samtools-0.1.19 samtools
-	(cd samtools; make lib-recur CC=${CC} AR=${AR} CROSS=i686-w64-mingw32.static- )
+	(cd samtools; make lib-recur CC=${CC} AR=${AR} CROSS=${CROSS}- )
 
 nlopt: nlopt-2.4.2.tar.gz
 	tar zxf $<

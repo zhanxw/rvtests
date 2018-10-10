@@ -5,7 +5,7 @@ all: $(LIB)
 
 tabix: tabix-0.2.6.tar.bz2
 	-mv tabix-0.2.6.tar.bz2* tabix-0.2.6.tar.bz2
-	tar jvxf tabix-0.2.6.tar.bz2
+	tar jxf tabix-0.2.6.tar.bz2
 	ln -s -f tabix-0.2.6 tabix
 #	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
 	(cd tabix-0.2.6; make)
@@ -21,7 +21,7 @@ gsl: gsl-1.16.tar.gz
 
 eigen: eigen-3.3.5.tar.bz2
 	-rm -rf eigen-eigen*
-	tar jvxf eigen-3.3.5.tar.bz2
+	tar jxf eigen-3.3.5.tar.bz2
 	-mv eigen-eigen-* eigen-3.3.5
 	ln -s -f eigen-3.3.5 eigen
 
@@ -36,7 +36,7 @@ bzip2: bzip2-1.0.6.tar.gz
 	(cd bzip2-1.0.6; make)
 
 samtools: samtools-0.1.19.tar.bz2
-	tar jvxf $<
+	tar jxf $<
 	ln -s -f samtools-0.1.19 samtools
 	(cd samtools; make lib-recur)
 

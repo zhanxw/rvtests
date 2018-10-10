@@ -3,7 +3,11 @@
 
 #include <string>
 
+#ifndef _WIN32
 struct addrinfo;
+#else
+#include <winsock2.h>
+#endif
 
 // currently this class is a wrapper to read data in TCP IPv4
 class Socket {
@@ -22,8 +26,14 @@ class Socket {
   void disableQuiet() { this->quiet = false; }
 
  private:
+#ifndef _WIN32
   struct addrinfo* servinfo;
   int fd;
+#else
+  WSADATA wsa;
+  SOCKET s;
+ 
+#endif
   bool usable;
   // char buffer[4096];
   bool quiet;

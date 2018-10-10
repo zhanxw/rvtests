@@ -37,5 +37,7 @@ char const* ssechr(char const* s, char ch) {
 
 #else
 #pragma message "Disabled SSE2 => no optimized ssechr"
-#define ssechr strchr
+char const* ssechr(char const* s, char ch) {
+  return strchr(s, ch);
+}
 #endif

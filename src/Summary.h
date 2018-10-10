@@ -2,7 +2,9 @@
 #define _SUMMARY_H_
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
+
 #include "base/CommonFunction.h"  // calculateMean, calculateSampleSD
 #include "base/IO.h"
 #include "base/SimpleMatrix.h"
@@ -152,13 +154,13 @@ class SummaryHeader {
         fp->write("## - ");
         fp->write(fittedResidualModel.getRowName()[i]);
         fp->write("\t");
-        if (finite(fittedResidualModel[i][0])) {
+        if (std::isfinite(fittedResidualModel[i][0])) {
           fp->printf("%g", fittedResidualModel[i][0]);
         } else {
           fp->write("NA");
         }
         fp->write("\t");
-        if (finite(fittedResidualModel[i][1])) {
+        if (std::isfinite(fittedResidualModel[i][1])) {
           fp->printf("%g", fittedResidualModel[i][1]);
         } else {
           fp->write("NA");

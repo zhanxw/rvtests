@@ -75,6 +75,13 @@ CXX_LIB = $(LIB) -lm -lpthread
 CXX_LIB_DBG = $(LIB_DBG) -lm -lpthread
 
 ##################################################
+## Win32
+ifneq ($(WIN32),)
+CXX_LIB += -lws2_32
+CXX_LIB_DBG += -lws2_32
+endif
+
+##################################################
 ## MKL library
 USE_MKL ?=
 MKL_ROOT = /home/zhanxw/intel/compilers_and_libraries

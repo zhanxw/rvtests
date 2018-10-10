@@ -1,6 +1,8 @@
 #ifndef _DATACONSOLIDATOR_H_
 #define _DATACONSOLIDATOR_H_
 
+#include <cmath> // std::isfinite
+
 #include "base/Logger.h"
 #include "base/ParRegion.h"
 #include "libsrc/MathMatrix.h"
@@ -206,7 +208,7 @@ class DataConsolidator {
     const int nc = a.cols;
     for (int i = 0; i < nr; ++i) {
       for (int j = 0; j < nc; ++j) {
-        if (finite(a[i][j]) && finite(b[i][j]) && a[i][j] != b[i][j])
+        if (std::isfinite(a[i][j]) && std::isfinite(b[i][j]) && a[i][j] != b[i][j])
           return false;
       }
     }

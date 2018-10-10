@@ -34,4 +34,4 @@ deploy:
   skip_cleanup: true
   on:
     repo: zhanxw/rvtests
-    branch: ci
+    branch: master

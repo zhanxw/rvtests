@@ -18,6 +18,7 @@ tabix: tabix-0.2.6.tar.bz2
 	tar jxf tabix-0.2.6.tar.bz2
 	ln -s -f tabix-0.2.6 tabix
 #	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
+	sed -i 's:INCLUDES=:INCLUDES=-I. -I../zlib :g' tabix/Makefile
 	cd tabix-0.2.6; $(MAKE) CC=${CC} AR=${AR} CROSS=${CROSS}- libtabix.a
 
 pcre: pcre-8.36.tar.gz
@@ -48,7 +49,10 @@ bzip2: bzip2-1.0.6.tar.gz
 samtools: samtools-0.1.19.tar.bz2
 	tar jxf $<
 	ln -s -f samtools-0.1.19 samtools
-	(cd samtools; make lib-recur CC=${CC} AR=${AR} CROSS=${CROSS}- )
+	sed -i 's:INCLUDES=:INCLUDES=-I. -I../zlib :g' samtools/Makefile
+	cd samtools; make libbam.a CC=${CC} AR=${AR} CROSS=${CROSS}- ; cd ..
+	sed -i 's:INCLUDES=:INCLUDES=-I. -I../../zlib :g' samtools/bcftools/Makefile
+	cd samtools/bcftools; make libbcf.a CC=${CC} AR=${AR} CROSS=${CROSS}- ; cd ../..
 
 nlopt: nlopt-2.4.2.tar.gz
 	tar zxf $<

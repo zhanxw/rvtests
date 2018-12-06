@@ -1,0 +1,8 @@
+title: Rvtests
+description: Rare variant test software for next generation sequencing data
+google_analytics: UA-21871925-1
+show_downloads: true
+theme: jekyll-theme-architect
+
+gems:
+  - jekyll-mentions

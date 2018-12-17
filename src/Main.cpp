@@ -34,7 +34,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20171009";
+const char* VERSION = "20181216";
 
 void banner(FILE* fp) {
   const char* string =
@@ -45,7 +45,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      December 2017                     | \n"
+      "|      December 2018                     | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -264,7 +264,7 @@ ADD_STRING_PARAMETER(
     covName, "--covar-name",
     "Specify the column name in covariate file to be included in analysis");
 ADD_BOOL_PARAMETER(sex, "--sex",
-                   "Include sex (5th column in the PED file); as a covariate");
+                   "Include sex (5th column in the PED file) as a covariate");
 
 ADD_PARAMETER_GROUP("Specify Phenotype");
 ADD_STRING_PARAMETER(pheno, "--pheno", "Specify phenotype file");
@@ -562,7 +562,6 @@ int main(int argc, char** argv) {
 
   if (FLAG_multiplePheno.empty()) {
     dataLoader.loadPhenotype(FLAG_pheno, FLAG_mpheno, FLAG_phenoName);
-
     // // load phenotypes
     // std::map<std::string, double> phenotype;
     // if (FLAG_pheno.empty()) {
@@ -604,7 +603,6 @@ int main(int argc, char** argv) {
     // rearrange phenotypes
     // drop samples from phenotype or vcf
     matchPhenotypeAndVCF("missing phenotype", &dataLoader, ge);
-
     // // phenotype names (vcf sample names) arranged in the same order as in
     // VCF
     // std::vector<std::string> phenotypeNameInOrder;
@@ -650,7 +648,6 @@ int main(int argc, char** argv) {
     // }
     dataLoader.loadCovariate(FLAG_cov, FLAG_covName);
     matchCovariateAndVCF("missing covariate", &dataLoader, ge);
-
     // // load covariate
     // Matrix covariate;
     // HandleMissingCov handleMissingCov = COVARIATE_DROP;

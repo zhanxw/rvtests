@@ -20,7 +20,7 @@ int BGenIndex::queryRange(const std::string& chrom, int begin, int end) {
   char sql[512];
   snprintf(sql, 512,
            "SELECT file_start_position, size_in_bytes FROM Variant "
-           "WHERE chromosome == '%s' AND position >= %d AND position < %d",
+           "WHERE chromosome == '%s' AND position >= %d AND position <= %d",
            chrom.c_str(), begin, end);
   // printf("SQL = \n%s\n", sql);
   int rc = sqlite3_prepare_v2(db_, sql, -1, &stmt_, NULL);

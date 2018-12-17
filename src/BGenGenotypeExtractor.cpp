@@ -11,7 +11,6 @@
 #include "libBgen/BGenFile.h"
 
 DECLARE_BOOL_PARAMETER(outputID);
-
 extern Logger* logger;
 
 BGenGenotypeExtractor::BGenGenotypeExtractor(const std::string& fn)
@@ -415,7 +414,9 @@ double BGenGenotypeExtractor::getGenotype(const BGenVariant& var, int indvIdx,
                                           const bool useDosage,
                                           const bool hemiRegion,
                                           const int sex) {
-  const int idx = this->bgenIn->getEffectiveIndex(indvIdx);
+  // indvIdx is the index for all samples in the bgen file, not the index for
+  // the effective samples
+  const int idx = indvIdx;
   double ret;
   if (var.missing[idx]) {
     return MISSING_GENOTYPE;

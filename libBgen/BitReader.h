@@ -1,6 +1,8 @@
 #ifndef _BITREADER_H_
 #define _BITREADER_H_
 
+#include <string.h>  // memcpy
+
 /**
  * B = 3
  * data[0]:   22 111 000
@@ -36,12 +38,14 @@ class BitReader {
       return (float(data[offset++]) * scale);
     }
     if (B == 16) {
-      uint16_t v = *(uint16_t*)(data + offset);
+      uint16_t v;
+      memcpy(&v, (data + offset), 2);
       offset += 2;
       return (float(v) * scale);
     }
     if (B == 32) {
-      uint32_t v = *(uint32_t*)(data + offset);
+      uint32_t v;
+      memcpy(&v, (data + offset), 4);
       offset += 4;
       return (float(v) * scale);
     }

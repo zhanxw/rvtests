@@ -31,7 +31,7 @@ CREATE TABLE Variant (
   /**
    * Contruct a SQL based on the specified range chrom:begin-end
    * @param int begin inclusive
-   * @param int end exclusive
+   * @param int end inclusive
    */
   int setRange(const RangeList& r);
   /**

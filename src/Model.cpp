@@ -903,6 +903,8 @@ int MetaCovTest::fitWithGivenGenotype(const Matrix& genotype,
     // copyCovariateAndIntercept(genotype.rows, covariate, &cov);
     fitOK = (0 == model->FitNullModel(genotype, dc));
     if (!fitOK) return -1;
+    model->calculateZZ(&this->covZZ);
+    CholeskyInverseMatrix(this->covZZ, &this->covZZInv);
     model->needToFitNullModel = false;
   }
 
@@ -923,11 +925,11 @@ int MetaCovTest::fitWithGivenGenotype(const Matrix& genotype,
     if (nCovariate) {
       model->calculateXZ(x, xz);
     }
-    if (model->needToFitNullModel || dc->isPhenotypeUpdated() ||
-        dc->isCovariateUpdated()) {
-      model->calculateZZ(&this->covZZ);
-      CholeskyInverseMatrix(this->covZZ, &this->covZZInv);
-    }
+    // if (model->needToFitNullModel || dc->isPhenotypeUpdated() ||
+    //     dc->isCovariateUpdated()) {
+    //   model->calculateZZ(&this->covZZ);
+    //   CholeskyInverseMatrix(this->covZZ, &this->covZZInv);
+    // }
   }
   fitOK = true;
   return 0;

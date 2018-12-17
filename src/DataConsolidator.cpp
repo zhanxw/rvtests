@@ -154,7 +154,8 @@ DataConsolidator::DataConsolidator()
       counter(NULL),
       parRegion(NULL) {
   this->originalGenotype = new Matrix;
-  flippedToMinorGenotype = new Matrix;
+  this->flippedToMinorGenotype = new Matrix;
+  this->weight = new Vector;
 }
 
 DataConsolidator::~DataConsolidator() {
@@ -165,6 +166,10 @@ DataConsolidator::~DataConsolidator() {
   if (this->flippedToMinorGenotype) {
     delete this->flippedToMinorGenotype;
     this->flippedToMinorGenotype = NULL;
+  }
+  if (this->weight) {
+    delete this->weight;
+    this->weight = NULL;
   }
 }
 

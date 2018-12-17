@@ -3,11 +3,11 @@
 LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson sqlite zstd
 all: $(LIB)
 
-tabix: tabix-0.2.6.tar.bz2
+tabix: tabix-0.2.6.tar.bz2 zlib
 	-mv tabix-0.2.6.tar.bz2* tabix-0.2.6.tar.bz2
 	tar jvxf tabix-0.2.6.tar.bz2
 	ln -s -f tabix-0.2.6 tabix
-#	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
+	sed -i.bak 's:^CFLAGS=:CFLAGS=-I../zlib-1.2.8:;s:^LIBPATH=:LIBPATH=-L../zlib-1.2.8:'  tabix/Makefile
 	(cd tabix-0.2.6; make)
 
 pcre: pcre-8.36.tar.gz
@@ -35,9 +35,10 @@ bzip2: bzip2-1.0.6.tar.gz
 	ln -s -f bzip2-1.0.6 bzip2
 	(cd bzip2-1.0.6; make)
 
-samtools: samtools-0.1.19.tar.bz2
+samtools: samtools-0.1.19.tar.bz2 zlib
 	tar jvxf $<
 	ln -s -f samtools-0.1.19 samtools
+	sed -i.bak 's:^CFLAGS=:CFLAGS=-I../zlib-1.2.8 -I../../zlib-1.2.8:;s:^LIBPATH=:LIBPATH=-L../zlib-1.2.8 -L../../zlib-1.2.8:' samtools/Makefile samtools/bcftools/Makefile
 	(cd samtools; make lib-recur)
 
 nlopt: nlopt-2.4.2.tar.gz

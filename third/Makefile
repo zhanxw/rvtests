@@ -19,11 +19,11 @@ gsl: gsl-1.16.tar.gz
 	tar zvxf gsl-1.16.tar.gz
 	-(DIR=`pwd`; cd gsl-1.16; ./configure --prefix="$${DIR}"/gsl; make -j; make install)
 
-eigen: eigen-3.3.4.tar.bz2
+eigen: eigen-3.3.7.tar.bz2
 	-rm -rf eigen-eigen*
-	tar jvxf eigen-3.3.4.tar.bz2
-	-mv eigen-eigen-* eigen-3.3.4
-	ln -s -f eigen-3.3.4 eigen
+	tar jvxf eigen-3.3.7.tar.bz2
+	-mv eigen-eigen-* eigen-3.3.7
+	ln -s -f eigen-3.3.7 eigen
 
 zlib: zlib-1.2.8.tar.gz
 	tar zvxf $<
@@ -77,9 +77,9 @@ endif
 pcre-8.36.tar.gz:
 	echo "obtain PCRE..."
 	$(call DOWNLOAD,ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.36.tar.gz)
-eigen-3.3.4.tar.bz2:
+eigen-3.3.7.tar.bz2:
 	echo "obtain Eigen..."
-	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.3.3.tar.bz2,$@)
+	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2,$@)
 
 gsl-1.16.tar.gz:
 	echo "obtain GSL"
@@ -120,7 +120,7 @@ deepclean:
 	-rm -rf tabix-0.2.6
 	-rm -rf pcre-8.36
 	-rm -rf gsl-1.16
-	-rm -rf eigen-3.3.4
+	-rm -rf eigen-3.3.7
 	-rm -rf bzip2-1.0.6
 	-rm -rf samtools-0.1.19
 	-rm -rf rapidjson-1.0.2

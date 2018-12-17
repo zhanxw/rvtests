@@ -113,6 +113,7 @@ class DataConsolidator {
   void copyRow(Matrix& src, const int srcRow, Matrix* dest, const int destRow);
 
   void copyColName(Matrix& src, Matrix* dest) {
+    if (&src == dest) return;
     dest->Dimension(dest->rows, src.cols);
     for (int i = 0; i < src.cols; ++i) {
       dest->SetColumnLabel(i, src.GetColumnLabel(i));
@@ -123,16 +124,16 @@ class DataConsolidator {
     this->rowLabel = name;
   }
   const std::vector<std::string>& getRowLabel() const { return this->rowLabel; }
-  const Matrix& getGenotype() { return this->genotype; }
+  const Matrix& getGenotype() const { return *this->genotype; }
   const Matrix& getFlippedToMinorPolymorphicGenotype() {
-    convertToMinorAlleleCount(this->genotype, &this->flippedToMinorGenotype);
-    removeMonomorphicMarker(&flippedToMinorGenotype);
-    return this->flippedToMinorGenotype;
+    convertToMinorAlleleCount(*this->genotype, this->flippedToMinorGenotype);
+    removeMonomorphicMarker(this->flippedToMinorGenotype);
+    return *this->flippedToMinorGenotype;
   }
-  Matrix& getOriginalGenotype() { return this->originalGenotype; }
-  const Matrix& getPhenotype() { return this->phenotype; }
-  const Matrix& getCovariate() { return this->covariate; }
-  const Vector& getWeight() { return this->weight; }
+  Matrix& getOriginalGenotype() { return *this->originalGenotype; }
+  const Matrix& getPhenotype() { return *this->phenotype; }
+  const Matrix& getCovariate() { return *this->covariate; }
+  const Vector& getWeight() { return *this->weight; }
   Result& getResult() { return this->result; }
 
   /**
@@ -198,7 +199,7 @@ class DataConsolidator {
    */
   bool isHemiRegion(int columnIndex) {
     assert(this->parRegion);
-    std::string chromPos = this->genotype.GetColumnLabel(columnIndex);
+    std::string chromPos = this->genotype->GetColumnLabel(columnIndex);
     size_t posColon = chromPos.find(":");
     if (posColon == std::string::npos) return false;
     std::string chrom = chromPos.substr(0, posColon);
@@ -290,13 +291,13 @@ class DataConsolidator {
  private:
   int strategy;
   Random random;
-  Matrix genotype;
-  Matrix flippedToMinorGenotype;
-  Matrix phenotype;
-  Matrix covariate;
-  Vector weight;
+  Matrix* genotype;
+  Matrix* flippedToMinorGenotype;
+  Matrix* phenotype;
+  Matrix* covariate;
+  Vector* weight;
   Result result;
-  Matrix originalGenotype;
+  Matrix* originalGenotype;
   bool phenotypeUpdated;
   bool covariateUpdated;
   std::vector<std::string> originalRowLabel;

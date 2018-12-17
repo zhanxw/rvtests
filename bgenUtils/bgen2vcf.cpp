@@ -185,8 +185,8 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> sm = read.getSampleIdentifier();
   if (sm.empty()) {
     fprintf(stderr,
-            "Cannot find sample names from BGEN input file. Sample names wth "
-            "be set at sample_0, sample_1, ...\n");
+            "Cannot find sample names from BGEN input file. Sample names will "
+            "be set as: sample_0, sample_1, ...\n");
     char buf[1024];
     for (int i = 0; i < N; ++i) {
       sprintf(buf, "sample_%d", i);
@@ -212,11 +212,14 @@ int main(int argc, char* argv[]) {
   fprintf(stderr, "BGEN File has [ %d ] samples, [ %d ] markers\n", N, M);
   fprintf(stderr, "Effective sample size is [ %d ]\n",
           read.getNumEffectiveSample());
+  int numProcessedVariant = 0;
   while (read.readRecord()) {
+    ++numProcessedVariant;
     printVariant(read, FLAG_hideVarId, FLAG_hideGT, FLAG_showDS, &fout);
   }  // loop marker
 
-  fprintf(stderr, "Total %d sample and %d variatns processed\n", N, M);
+  fprintf(stderr, "Total %d samples and %d variants processed\n",
+          read.getNumEffectiveSample(), numProcessedVariant);
   fprintf(stderr, "Conversion succeed!\n");
   return 0;
 }

@@ -1309,7 +1309,7 @@ class MadsonBrowningTest : public ModelFitter {
     siteInfo.writeHeaderTab(fp);
 
     if (isBinaryOutcome()) {
-      perm.writeHeaderTab(fp);
+      perm.writeHeader(fp);
     } else {
       fp->write("Pvalue\n");
     }

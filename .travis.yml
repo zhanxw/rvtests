@@ -11,7 +11,6 @@ matrix:
           packages: ['g++-4.7']
       env:
         - COMPILER=g++-4.7
-
     - os: linux
       compiler: gcc
       addons:
@@ -20,7 +19,7 @@ matrix:
           packages: ['g++-4.8']
       env:
         - COMPILER=g++-4.8
-
+      if: branch = master
     - os: linux
       compiler: gcc
       addons:
@@ -29,7 +28,7 @@ matrix:
           packages: ['g++-4.9']
       env:
         - COMPILER=g++-4.9
-
+      if: branch = master
     - os: linux
       compiler: gcc
       addons:
@@ -38,7 +37,7 @@ matrix:
           packages: ['g++-5']
       env:
         - COMPILER=g++-5
-
+      if: branch = master
     - os: linux
       compiler: gcc
       addons:
@@ -47,7 +46,7 @@ matrix:
           packages: ['g++-6']
       env:
         - COMPILER=g++-6
-
+      if: branch = master
 ## clang's support for OpenMP requires extra work
 ## just skip it for now
 #    - os: linux
@@ -135,12 +134,20 @@ matrix:
       env:
         - COMPILER=g++
         - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
+      addons:
+        homebrew:
+          packages:
+            - gfortran
     - os: osx
       osx_image: xcode8
       compiler: g++
       env:
         - COMPILER=g++
         - MATRIX_EVAL="brew install gcc && CC=gcc-7 && CXX=g++-7"
+      addons:
+        homebrew:
+          packages:
+            - gfortran
 
 before_install:
   - uname -a

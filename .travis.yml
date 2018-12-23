@@ -117,23 +117,31 @@ matrix:
 #       compiler: clang
 #       env:
 #         - COMPILER=clang++
-    - os: osx
-      osx_image: xcode10
-      compiler: g++
-      env:
-        - COMPILER=g++
-    - os: osx
-      osx_image: xcode9
-      compiler: g++
-      env:
-        - COMPILER=g++
+
+## For simplicity, do not need to compile for xcode9, xcode10
+    # - os: osx
+    #   osx_image: xcode10
+    #   compiler: g++
+    #   env:
+    #     - COMPILER=g++
+    # - os: osx
+    #   osx_image: xcode9
+    #   compiler: g++
+    #   env:
+    #     - COMPILER=g++
     - os: osx
       osx_image: xcode8
       compiler: g++
       env:
         - COMPILER=g++
-# refer: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60670
-# for install a gcc on mac with OpenMP support
+        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
+    - os: osx
+      osx_image: xcode8
+      compiler: g++
+      env:
+        - COMPILER=g++
+        - MATRIX_EVAL="brew install gcc && CC=gcc-7 && CXX=g++-7"
+
 before_install:
   - uname -a
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then free -m; fi
@@ -141,5 +149,6 @@ before_install:
   - df -h
   - ulimit -a
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q && sudo apt-get install -y -qq gfortran; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install gcc; brew reinstall gcc --without-multilib; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then eval "${MATRIX_EVAL}"; fi
+
 script: make CXX=$COMPILER

@@ -219,7 +219,7 @@ int DataLoader::loadPhenotype(const std::string& pheno,
   this->phenotype.appendCol(vals, label);
   this->phenotype.setRowName(keys);
 
-  logger->info("Loaded [ %zu ] sample pheontypes", phenotype.size());
+  logger->info("Loaded [ %zu ] sample phenotypes", phenotype.size());
   return 0;
 }
 
@@ -1416,7 +1416,7 @@ int _loadSex(const std::string& fn,
       (*sex)[idx] = -9;
     }
   }
-  logger->info("Loaded %d male, %d female and %d sex-unknonw samples from %s",
+  logger->info("Loaded %d male, %d female and %d sex-unknown samples from %s",
                nMale, nFemale, nUnknonw, fn.c_str());
   return 0;
 }

@@ -320,19 +320,22 @@ int PlinkOutputFile::extractFAMWithPhenotype(PlinkInputFile& pin,
                                              const SimpleMatrix& pheno) {
   // assert((int)sampleIdx.size() == pheno.nrow());
   for (size_t i = 0; i != sampleIdx.size(); ++i) {
+    const int idx = sampleIdx[i];
     /// TODO: should also output family id
     fprintf(this->fpFam, "%s\t%s\t0\t0\t%d\t%g\n",
-            pin.getSampleName()[i].c_str(), pin.getSampleName()[i].c_str(),
-            pin.getSex()[i], pheno[i][0]);
+            pin.getSampleName()[idx].c_str(), pin.getSampleName()[idx].c_str(),
+            pin.getSex()[idx], pheno[i][0]);
   }
   return 0;
 }
 int PlinkOutputFile::extractBIM(PlinkInputFile& pin,
                                 const std::vector<int>& snpIdx) {
   for (size_t i = 0; i != snpIdx.size(); ++i) {
-    this->writeBIM(pin.getChrom()[i].c_str(), pin.getMarkerName()[i].c_str(),
-                   pin.getMapDist()[i], pin.getPosition()[i],
-                   pin.getRef()[i].c_str(), pin.getAlt()[i].c_str());
+    const int idx = snpIdx[i];
+    this->writeBIM(pin.getChrom()[idx].c_str(),
+                   pin.getMarkerName()[idx].c_str(), pin.getMapDist()[idx],
+                   pin.getPosition()[idx], pin.getRef()[idx].c_str(),
+                   pin.getAlt()[idx].c_str());
   }
   return 0;
 }

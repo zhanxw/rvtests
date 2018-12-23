@@ -1,11 +1,18 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "BoltPlinkLoader.h"
 
-#include "third/eigen/Eigen/Dense"
-
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
 #include "regression/MatrixOperation.h"
+#include "third/eigen/Eigen/Dense"
+
+#ifdef _OPENMP
+// highly recommmended to include omp to speed up
+#include <omp.h>
+#else
+int omp_get_max_threads() { return 1; }
+int omp_get_thread_num() { return 0; }
+#endif
 
 const int BoltPlinkLoader::Mask[4] = {3, 3 << 2, 3 << 4, 3 << 6};
 const int BoltPlinkLoader::Shift[4] = {0, 2, 4, 6};
@@ -151,9 +158,6 @@ int BoltPlinkLoader::preparePhenotype(const Matrix* phenotype,
   }
   y_.bottomLeftCorner(C_, 1).noalias() =
       z_.transpose() * y_.topLeftCorner(N_, 1);
-
-  // TODO: remove next line
-  dumpToFile(y_, "tmp.y");
 
   return 0;
 }

@@ -666,8 +666,8 @@ int DataConsolidator::prepareBoltModel(
     for (size_t i = 0; i != maf.size(); ++i) {
       if (maf[i] < 0.05 || lmiss[i] > 0.05) {
         needNewPlink = true;
-        fprintf(stderr, "%s:%d marker %d fails MAF filter\n", __FILE__,
-                __LINE__, i);
+        // fprintf(stderr, "%s:%d marker %d fails MAF filter\n", __FILE__,
+        //         __LINE__, i);
         continue;
       } else {
         snpIdx.push_back(i);

@@ -219,103 +219,19 @@ class VCFRecord {
       this->allIndv[i] = NULL;
     }
   }
-
   //////////////////////////////////////////////////////////////////////
   // Code related with include/exclude people
-  void includePeople(const std::string& name) {
-    if (name.size() == 0) return;
+  void includePeople(const std::string& name);
+  void includePeople(const std::set<std::string>& v);
+  void includePeople(const std::vector<std::string>& v);
+  void includePeopleFromFile(const char* fn);
+  void includeAllPeople();
+  void excludePeople(const std::string& name);
+  void excludePeople(const std::set<std::string>& name);
+  void excludePeople(const std::vector<std::string>& v);
+  void excludePeopleFromFile(const char* fn);
+  void excludeAllPeople();
 
-    // tokenize @param name by ','
-    int beg = 0;
-    size_t end = name.find(',');
-    std::string s;
-    while (end != std::string::npos) {
-      s = name.substr(beg, end - beg);
-      beg = end + 1;
-      end = name.find(',', beg);
-      this->includePeople(s);
-    }
-    s = name.substr(beg, end);
-
-    bool included = false;
-    for (unsigned int i = 0; i != this->allIndv.size(); i++) {
-      VCFIndividual* p = this->allIndv[i];
-      if (p->getName() == s) {
-        p->include();
-        included = true;
-        fprintf(stderr, "Include sample [ %s ].\n", s.c_str());
-      }
-    }
-    if (!included) {
-      fprintf(stderr, "Failed to include sample [ %s ] - not in VCF file.\n",
-              s.c_str());
-    }
-    this->hasAccess = false;
-  }
-  void includePeople(const std::vector<std::string>& v) {
-    for (unsigned int i = 0; i < v.size(); i++) {
-      this->includePeople(v[i]);
-    }
-    this->hasAccess = false;
-  }
-  void includePeopleFromFile(const char* fn) {
-    if (!fn || strlen(fn) == 0) return;
-    LineReader lr(fn);
-    std::vector<std::string> fd;
-    while (lr.readLineBySep(&fd, "\t ")) {
-      for (unsigned int i = 0; i < fd.size(); i++) this->includePeople(fd[i]);
-    }
-    this->hasAccess = false;
-  }
-  void includeAllPeople() {
-    for (unsigned int i = 0; i != this->allIndv.size(); i++) {
-      VCFIndividual* p = this->allIndv[i];
-      p->include();
-    }
-    this->hasAccess = false;
-  }
-  void excludePeople(const std::string& name) {
-    if (name.empty()) return;
-    for (size_t i = 0; i != this->allIndv.size(); i++) {
-      VCFIndividual* p = this->allIndv[i];
-      if (p->getName() == name) {
-        p->exclude();
-      }
-    }
-    this->hasAccess = false;
-  }
-  void excludePeople(const std::set<std::string>& name) {
-    if (name.empty()) return;
-    for (size_t i = 0; i != this->allIndv.size(); i++) {
-      VCFIndividual* p = this->allIndv[i];
-      if (name.count(p->getName())) {
-        p->exclude();
-      }
-    }
-    this->hasAccess = false;
-  }
-  void excludePeople(const std::vector<std::string>& v) {
-    std::set<std::string> s;
-    makeSet(v, &s);
-    this->excludePeople(s);
-  }
-  void excludePeopleFromFile(const char* fn) {
-    if (!fn || strlen(fn) == 0) return;
-    LineReader lr(fn);
-    std::vector<std::string> fd;
-    std::set<std::string> toExclude;
-    while (lr.readLineBySep(&fd, "\t ")) {
-      for (unsigned int i = 0; i != fd.size(); i++) toExclude.insert(fd[i]);
-    }
-    this->excludePeople(toExclude);
-  }
-  void excludeAllPeople() {
-    for (unsigned int i = 0; i != this->allIndv.size(); i++) {
-      VCFIndividual* p = this->allIndv[i];
-      p->exclude();
-    }
-    this->hasAccess = false;
-  }
   VCFInfo& getVCFInfo() { return this->vcfInfo; }
   const VCFValue& getInfoTag(const char* tag, bool* exists) {
     return this->vcfInfo.getTag(tag, exists);

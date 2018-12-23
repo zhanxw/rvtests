@@ -23,6 +23,12 @@
 // 2: most debug info (timing)
 // 3: most debug info (timing + intermediate file)
 static int BOLTLMM_DEBUG = 0;
+
+// Helpful environment variables:
+// BOLTLMM_SAVE_NULL_MODEL=filename => save null model
+// BOLTLMM_LOAD_NULL_MODEL=filename => load null model, need to verify it loads
+// correctly
+
 // #define DEBUG
 
 // #include <fstream>
@@ -145,8 +151,10 @@ class BoltLMM::BoltLMMImpl {
         BatchSize_(cv.BatchSize_),
         NumBatch_(cv.NumBatch_),
         binaryMode(false),
-        saddlePointCalculator(NULL) {}
-  ~BoltLMMImpl() {
+        saddlePointCalculator(NULL),
+        useSaddlePoint(false)  // default: turn off saddle point approximation
+  {}
+  virtual ~BoltLMMImpl() {
     if (saddlePointCalculator) {
       delete saddlePointCalculator;
     }
@@ -248,15 +256,54 @@ class BoltLMM::BoltLMMImpl {
     }
 
     // saddle point approximation
-    if (binaryMode) {
+    if (binaryMode && useSaddlePoint) {
       // printf("calculate saddle point\n");
       comptueBLUP(&mu_);
       y_ = pl.getPhenotype().topRows(N_);
       resid_ = pl.getResidual(mu_);
       saddlePointCalculator = new SaddlePointApproximation(y_, mu_, resid_);
+
+      // prepare monte-carlo data
+      saddlePointCalculator_mc_ = new SaddlePointApproximation*[10];
+      resid_mc_.resize(10);
+      y_mc_.resize(10);
+      for (int i = 0; i < 10; ++i) {
+        simulateMC(mu_, y_, &resid_mc_[i], &y_mc_[i]);
+        saddlePointCalculator_mc_[i] =
+            new SaddlePointApproximation(y_mc_[i], mu_, resid_mc_[i]);
+      }
+
+      fprintf(stderr, "y_mc = \n");
+      for (int i = 0; i < 15; ++i) {
+        for (int j = 0; j < 10; ++j) {
+          fprintf(stderr, " %g", y_mc_[j](i, 0));
+        }
+        fprintf(stderr, "\n");
+      }
+
+      fprintf(stderr, "resid_mc = \n");
+      for (int i = 0; i < 15; ++i) {
+        for (int j = 0; j < 10; ++j) {
+          fprintf(stderr, " %g", resid_mc_[j](i, 0));
+        }
+        fprintf(stderr, "\n");
+      }
     }
 
     return 0;
+  }  // end FitNullModel
+  void simulateMC(const Eigen::MatrixXf& mu, const Eigen::MatrixXf& y,
+                  Eigen::MatrixXf* resid_mc, Eigen::MatrixXf* y_mc) {
+    (*resid_mc).resize(N_, 1);
+    (*y_mc).resize(N_, 1);
+    for (int i = 0; i < N_; ++i) {
+      if (random_.Next() <= mu(i, 0)) {
+        (*y_mc)(i, 0) = 1;
+      } else {
+        (*y_mc)(i, 0) = 0;
+      }
+    }
+    (*resid_mc) = (*y_mc) - mu;
   }
 
   // test @param Xcol
@@ -286,26 +333,56 @@ class BoltLMM::BoltLMMImpl {
     af_ = 0.5 * gg.sum() / gg.rows();
 
     // saddle point approximation
-    if (binaryMode && pvalue_ < 0.01) {
-      fprintf(stderr, "Enable binary mode calibration\n");
-      // binary mode correction
-      const Eigen::MatrixXf g_tilde = pl.projectToCovariateSpace(g_test_);
-      float newPvalue;
-      if (!saddlePointCalculator->calculatePvalue(g_tilde, &newPvalue)) {
-        fprintf(stderr, "old_pvalue = %g\t", pvalue_);
-        fprintf(stderr, "new_pvalue = %g\n", newPvalue);
-#ifdef DEBUG
-        if (newPvalue * 100 < pvalue_) {
-          fprintf(stderr, "Suspicious result!\n");
+    if (binaryMode && useSaddlePoint) {
+      if (pvalue_ < 1e-6) {
+        fprintf(stderr, "Enable binary mode calibration via MonteCarlo\n");
+        // calculate de-correlated x
+        const Eigen::MatrixXf g_tilde = pl.projectToCovariateSpace(g_test_);
+        Eigen::MatrixXf x_decorr;
+        solve(g_tilde, delta_, &x_decorr);
+        for (int i = 0; i < 10; ++i) {
+          fprintf(stderr, "g_tilde(%d, 0) = %g\n", i, g_tilde(i, 0));
+          fprintf(stderr, "x_decorr(%d, 0) = %g\n", i, x_decorr(i, 0));
         }
-#endif
-        pvalue_ = newPvalue;
-      }
-    }
 
+        // average p-values
+        Eigen::MatrixXf p_value(10, 1);
+        for (int i = 0; i < 10; ++i) {
+          saddlePointCalculator_mc_[i]->calculatePvalue(x_decorr,
+                                                        &p_value(i, 0));
+        }
+
+        float newPvalue = p_value.sum() / 10;
+        if (true) {
+          fprintf(stderr, "old_pvalue = %g, new_pvalue = %g, from [", pvalue_,
+                  newPvalue);
+          for (int i = 0; i < 10; ++i) {
+            fprintf(stderr, "%g, ", p_value(i));
+          }
+          fprintf(stderr, "]\n");
+        }
+        if (std::isfinite(newPvalue)) {
+          pvalue_ = newPvalue;
+        }
+      } else if (pvalue_ < 0.001) {
+        fprintf(stderr, "Enable binary mode calibration\n");
+        // binary mode correction
+        const Eigen::MatrixXf g_tilde = pl.projectToCovariateSpace(g_test_);
+        float newPvalue;
+        if (!saddlePointCalculator->calculatePvalue(g_tilde, &newPvalue)) {
+          fprintf(stderr, "old_pvalue = %g\t", pvalue_);
+          fprintf(stderr, "new_pvalue = %g\n", newPvalue);
+#ifdef DEBUG
+          if (newPvalue * 100 < pvalue_) {
+            fprintf(stderr, "Suspicious result!\n");
+          }
+#endif
+          pvalue_ = newPvalue;
+        }
+      }
+    }  // end if (binaryMode)
     return 0;
   }
-
 #if 0
   void CalculateAlpha() {
     // // refer to GetAF() for formula details
@@ -478,10 +555,10 @@ class BoltLMM::BoltLMMImpl {
     }
 
     // compute Y_rand (Y_data is the first column)
-    const double delta = sigma2_e_est_ / sigma2_g_est_;
+    delta_ = sigma2_e_est_ / sigma2_g_est_;
     // computeY(w.x_beta_rand, w.e_rand, delta, &w.y);
     // solve H_inv_y, and beta
-    solve(w.y.col(0), delta, &w.H_inv_y);
+    solve(w.y.col(0), delta_, &w.H_inv_y);
     fprintf(stderr, "=> Finish solve(%d)\n", __LINE__);
 
     H_inv_y_ = w.H_inv_y.col(0) / sigma2_g_est_;
@@ -693,8 +770,10 @@ class BoltLMM::BoltLMMImpl {
     const double Tol = 5e-4;  // BOLT-LMM tolerence
     const int maxIter = std::min((int)N_, MaxIter);
     for (int i = 0; i < maxIter; ++i) {
-      fprintf(stderr, "i = %d, delta = %g\n", i, delta);
-      char fn[50];
+      if (BOLTLMM_DEBUG >= 1) {
+        fprintf(stderr, "i = %d, delta = %g\n", i, delta);
+      }
+      // char fn[50];
       computeHx(delta, p, &ap);
       // sprintf(fn, "tmp.cg.%d.p", i);
       // dumpToFile(p, fn);
@@ -704,8 +783,10 @@ class BoltLMM::BoltLMMImpl {
       // dumpToFile(p, "tmp.p");
       // dumpToFile(ap, "tmp.ap");
       Eigen::RowVectorXf tmp = projDot(p, ap);
-      for (int ii = 0; ii < 5; ++ii) {
-        fprintf(stderr, "p(%d) = %g\tap(%d) = %g\n", ii, p(ii), ii, ap(ii));
+      if (BOLTLMM_DEBUG >= 1) {
+        for (int ii = 0; ii < 5; ++ii) {
+          fprintf(stderr, "p(%d) = %g\tap(%d) = %g\n", ii, p(ii), ii, ap(ii));
+        }
       }
       alpha = rsold.array() / projDot(p, ap).array();
       // dumpToFile(alpha, "tmp.alpha");
@@ -728,11 +809,6 @@ class BoltLMM::BoltLMMImpl {
         }
       }
       x = x + p * alpha.asDiagonal();
-      if (r.cols() == 4) {
-        printf("");
-        ;
-      }
-
       r = r - ap * alpha.asDiagonal();
       projNorm2(r, &rsnew);
 
@@ -854,7 +930,7 @@ class BoltLMM::BoltLMMImpl {
     Eigen::MatrixXf X_y =
         Eigen::MatrixXf::Zero(M2_, y.cols());  // X' * y: [ M * (MCtrial + 1) ]
 
-    char fn[50];
+    // char fn[50];
     static int freq = 0;
     freq++;
 
@@ -1066,8 +1142,12 @@ class BoltLMM::BoltLMMImpl {
 
     Eigen::MatrixXf g(N_ + C_, nSnp);
     pl.loadRandomSNPWithCov(nSnp, g.data());
+    // dumpToFile(g, "tmp.g");
     Eigen::MatrixXf V_inv_x(g.rows(), g.cols());
     solve(g, sigma2_g_est_, sigma2_e_est_, &V_inv_x);
+    // fprintf(stderr, "sigma2_g_est_ = %g, sigma2_e_est_ = %g\n",
+    // sigma2_g_est_, sigma2_e_est_);
+    // dumpToFile(V_inv_x, "tmp.V_inv_x");
     fprintf(stderr, "=> Finish solve(%d)\n", __LINE__);
 
     Eigen::VectorXf prospectiveStat(nSnp);
@@ -1170,6 +1250,12 @@ class BoltLMM::BoltLMMImpl {
   Eigen::MatrixXf resid_;  // resid = y - mu [N x 1] matrix
 
   SaddlePointApproximation* saddlePointCalculator;
+
+  // Monte-carlo method
+  std::vector<Eigen::MatrixXf> y_mc_;
+  std::vector<Eigen::MatrixXf> resid_mc_;
+  SaddlePointApproximation** saddlePointCalculator_mc_;
+  bool useSaddlePoint;
 
  private:
   static int showDebug;

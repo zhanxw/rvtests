@@ -3,6 +3,11 @@
 
 #include "third/eigen/Eigen/Dense"
 
+/**
+ * Saddlepoint approximation method
+ * See: https://en.wikipedia.org/wiki/Saddlepoint_approximation_method
+ * Notation follows: https://www.biorxiv.org/content/early/2017/04/06/109876
+ */
 class SaddlePointApproximation {
  public:
   SaddlePointApproximation(const Eigen::MatrixXf& y_,
@@ -12,7 +17,6 @@ class SaddlePointApproximation {
    * @return 0, saddlepoint approximation succeed; -1, failed; -2, approximate
    * works poorly (too far from the mean)
    */
-
   int calculatePvalue(const Eigen::MatrixXf& g_tilde, float* newPvalue);
 
  private:

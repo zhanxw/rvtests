@@ -1,10 +1,9 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "SaddlePointApproximation.h"
 
-#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
-
 #include "regression/EigenMatrixInterface.h"
-#include "regression/MatrixOperation.h"  // dumpToFile
+#include "regression/MatrixOperation.h"     // dumpToFile
+#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
 SaddlePointApproximation::SaddlePointApproximation(const Eigen::MatrixXf& y,
                                                    const Eigen::MatrixXf& mu,
@@ -78,6 +77,11 @@ int SaddlePointApproximation::calculatePvalue(const Eigen::MatrixXf& g_tilde,
   }
   float t_new = t_grid[0];
   float y_new;
+  iter = 0;
+  // stop condition:
+  // 1. secant method narrows to a small enough region
+  // 2. new propose point has the differnt sign of statistic s. Usually they
+  // have the same sign. Unless numerical issue arises.
   while (fabs(t_grid[1] - t_grid[0]) > 1e-3 || t_new * s < 0) {
     t_new = t_grid[0] +
             (t_grid[1] - t_grid[0]) * (-y_grid[0]) / (y_grid[1] - y_grid[0]);
@@ -101,8 +105,19 @@ int SaddlePointApproximation::calculatePvalue(const Eigen::MatrixXf& g_tilde,
       t_grid[0] = t_new;
       y_grid[0] = y_new;
     }
+    ++iter;
     fprintf(stderr, "%g -> %g, %g -> %g \n", t_grid[0], y_grid[0], t_grid[1],
             y_grid[1]);
+
+    if (iter > 10) {
+      fprintf(stderr,
+              "after 10 iteration, secant method still cannot find solution\n");
+      dumpToFile(y_, "tmp.y");
+      dumpToFile(g_tilde, "tmp.g_tilde");
+      dumpToFile(mu_, "tmp.mu");
+      dumpToFile(resid_, "tmp.resid");
+      break;
+    }
   }
   if (fabs(t_new) < 1e-4 && !std::getenv("BOLTLMM_FORCE_SADDLEPOINT")) {
     fprintf(stderr, "Skip saddle point approximation (t is too small: %g)\n",
@@ -179,6 +194,7 @@ float SaddlePointApproximation::K_function(float t, const Eigen::MatrixXf& G,
   ret -= t * (G.array() * mu.array());
   return ret.isFinite().select(ret, 0).sum();
 }
+
 float SaddlePointApproximation::K_prime_function(
     float t, const Eigen::MatrixXf& G, const Eigen::MatrixXf& mu) const {
   Eigen::MatrixXf tmp = exp(-G.array() * t);
@@ -188,6 +204,7 @@ float SaddlePointApproximation::K_prime_function(
           G.array() * mu.array())
       .sum();
 }
+
 float SaddlePointApproximation::K_prime2_function(
     float t, const Eigen::MatrixXf& G, const Eigen::MatrixXf& mu) const {
   Eigen::ArrayXf denom =

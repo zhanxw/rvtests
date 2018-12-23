@@ -5,7 +5,7 @@ LIB = lib-vcf.a
 LIB_DBG = lib-dbg-vcf.a
 BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile \
        VCFIndividual SiteSet VCFHeader BCFReader VCFExtractor VCFFilter VCFValue \
-       VCFBuffer KGGInputFile
+       VCFBuffer KGGInputFile VCFRecord
 
 OBJ = $(BASE:=.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
@@ -64,7 +64,10 @@ define BUILD_each
   TAR_DBG := $(1)_dbg.o
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR) $$(TAR_DBG): $$(SRC) $$(THIRD_INC)
+  $$(TAR): $$(SRC) $$(THIRD_INC)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ $$(CXXFLAGS)
+  -include  $(1)_dbg.d
+  $$(TAR_DBG): $$(SRC) $$(THIRD_INC)
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ $$(CXXFLAGS)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))

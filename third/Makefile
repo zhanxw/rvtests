@@ -60,7 +60,7 @@ zstd: zstd-1.3.1.tar.gz
 	(cd zstd; make)
 
 cnpy: cnpy.zip
-	unzip -f $<    ## -f: refresh unzipped files
+	unzip -o $<    ## -o: overwrite existing file
 	ln -s -f cnpy-master cnpy
 	(cd cnpy; $(CXX) -std=c++11 -c cnpy.cpp; $(AR) rcs libcnpy.a cnpy.o)
 

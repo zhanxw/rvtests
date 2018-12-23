@@ -143,7 +143,7 @@ matrix:
       compiler: g++
       env:
         - COMPILER=g++
-        - MATRIX_EVAL="brew install gcc && CC=gcc-7 && CXX=g++-7"
+        - MATRIX_EVAL="brew update && brew install gcc && CC=gcc-7 && CXX=g++-7"
       addons:
         homebrew:
           packages:

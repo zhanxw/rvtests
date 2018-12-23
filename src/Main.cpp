@@ -598,7 +598,7 @@ int main(int argc, char** argv) {
     //     return -1;
     //   }
     // }
-    // logger->info("Loaded [ %zu ] sample pheontypes.", phenotype.size());
+    // logger->info("Loaded [ %zu ] sample phenotypes.", phenotype.size());
 
     // rearrange phenotypes
     // drop samples from phenotype or vcf

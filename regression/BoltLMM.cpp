@@ -36,6 +36,11 @@ static int BOLTLMM_DEBUG = 0;
 #include "base/SimpleTimer.h"
 #include "base/TimeUtil.h"
 
+#if defined(__APPLE__) && !defined(_OPENMP)
+int omp_get_max_threads() { return 1; }
+int omp_get_thread_num() { return 0; }
+#endif
+
 class QuickTimer {
  public:
   QuickTimer(const std::string& msg) { start(msg); }

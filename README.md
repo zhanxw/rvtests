@@ -643,6 +643,10 @@ However, users can use p.adjust() function provided in R to calculate adjust p-v
 For example, users can choose "bonferroni" or "BH" (Benjamini and Hochberg).
 For advanced users, qvalues can be calculated from the qvalue package provided by BioConductor.
 
+* How to use multiple threads?
+
+You can use `--numThread N` for rvtest, and `--thread N` for vcf2kinship. 
+Please note when the sample size is small, multiple threads may be slower than a single thread.
 
 # Feedback/Contact
 

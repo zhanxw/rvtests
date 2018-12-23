@@ -44,14 +44,14 @@
 #include "src/Result.h"
 #include "src/Summary.h"
 
-#if 0
+#if 1
 // may decrease speed.
 #ifdef _OPENMP
 #include <omp.h>
 #pragma message "Enable multithread using OpenMP"
 #endif
 #endif
-#include <omp.h>
+
 DECLARE_BOOL_PARAMETER(hideCovar);
 
 extern SummaryHeader* g_SummaryHeader;

@@ -620,16 +620,16 @@ int DataConsolidator::prepareBoltModel(
     }
   }
   if (warnings >= 5) {
-    logger->warn(
-        "%s:%d PLINK file [ %s ] does not include samples [ %d ] times!",
-        __FILE__, __LINE__, (prefix + ".fam").c_str(), warnings);
+    logger->warn("%s:%d PLINK file [ %s ] does not include [ %d ] samples!",
+                 __FILE__, __LINE__, (prefix + ".fam").c_str(), warnings);
   }
 
   const int M = pin.getNumMarker();
   const int N = pin.getNumIndv();
   bool needNewPlink = false;
-  std::vector<int> sampleIdx;  // keep these samples
-  std::vector<int> snpIdx;     // keep these SNPs
+  std::vector<int>
+      sampleIdx;  // keep these samples, the index for the input plink file
+  std::vector<int> snpIdx;  // keep these SNPs
   if (FLAG_boltPlinkNoCheck) {
     // do nothing
     logger->info(
@@ -647,23 +647,27 @@ int DataConsolidator::prepareBoltModel(
     std::set<int> badSampleIdx;
     for (int i = 0; i != N; ++i) {
       if (imiss[i] > 0.05) {
-        logger->warn("Sample [ %s ] has high rate of missing genotype [ %g ]!",
-                     pin.getIID()[i].c_str(), imiss[i]);
+        logger->warn(
+            "Sample [ %s ] has high rate missing rate [ %g ] genotype [ %g ]!",
+            pin.getIID()[i].c_str(), 0.05, imiss[i]);
         badSampleIdx.insert(i);
         needNewPlink = true;
       }
     }
     if (badSampleIdx.size()) {
       logger->warn(
-          "[ %d ] sample(s) have high missing rate, need to create new binary "
+          "[ %d ] sample(s) have high missing rate [ %g ], need to create new "
+          "binary "
           "PLINK files",
-          (int)badSampleIdx.size());
+          (int)badSampleIdx.size(), 0.05);
     }
 
     // choose SNPs to keep
     for (size_t i = 0; i != maf.size(); ++i) {
       if (maf[i] < 0.05 || lmiss[i] > 0.05) {
         needNewPlink = true;
+        fprintf(stderr, "%s:%d marker %d fails MAF filter\n", __FILE__,
+                __LINE__, i);
         continue;
       } else {
         snpIdx.push_back(i);
@@ -671,10 +675,11 @@ int DataConsolidator::prepareBoltModel(
     }
     if ((int)snpIdx.size() != M) {
       logger->warn(
-          "[ %d ] markers have high missing rate or low MAF, need to create "
+          "[ %d ] markers have high missing rate or low MAF [ %g ], need to "
+          "create "
           "new "
           "binary PLINK files",
-          M - (int)snpIdx.size());
+          M - (int)snpIdx.size(), 0.05);
     }
 
     // build a sample index, such that plink.fam[index] is in the same order as
@@ -683,9 +688,15 @@ int DataConsolidator::prepareBoltModel(
       if (badSampleIdx.count(i)) {
         continue;
       }
-      sampleIdx.push_back(pin.getSampleIdx(sampleName[i]));
+      const int idx = pin.getSampleIdx(sampleName[i]);
+      if (idx < 0) {
+        logger->error("PLINK input file does not have the sample [ %s ]",
+                      sampleName[i].c_str());
+        return -1;
+      }
+      sampleIdx.push_back(idx);
     }
-    // check order
+    // check sample order
     for (size_t i = 0; i != sampleName.size(); ++i) {
       if (pin.getSampleIdx(sampleName[i]) != (int)i) {
         needNewPlink = true;

@@ -13,6 +13,8 @@ export FC=${MXE_DIR}/bin/${MXE_TARGET}-gfortran
 export PKG_CONFIG=${MXE_DIR}/bin/${MXE_TARGET}-pkg-config
 export LDFLAGS=
 
+ls ${MXE_DIR}/bin
+
 make -f Makefile.win CROSS=${MXE_TARGET} MUSL=1
 
 set +xue

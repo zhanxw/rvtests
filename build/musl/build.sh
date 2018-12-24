@@ -13,7 +13,6 @@ export FC=${MXE_DIR}/bin/${MXE_TARGET}-gfortran
 export PKG_CONFIG=${MXE_DIR}/bin/${MXE_TARGET}-pkg-config
 export LDFLAGS=
 
-MXE_DIR=$HOME/x86_64-linux-musl-8.2.0
 ls $HOME
 ls $MXE_DIR
 ls ${MXE_DIR}/bin

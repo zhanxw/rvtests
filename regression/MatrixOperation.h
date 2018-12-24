@@ -1,4 +1,4 @@
-#ifndef _MATRIXOPERATxoION_H_
+#ifndef _MATRIXOPERATION_H_
 #define _MATRIXOPERATION_H_
 
 #include <stdio.h>

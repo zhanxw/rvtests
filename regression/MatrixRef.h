@@ -5,7 +5,7 @@
   Eigen::Map<Eigen::MatrixXf> varName((matRef).memory_, (matRef).nrow_, \
                                       (matRef).ncol_);
 
-struct FloatMatrixRef {
+class FloatMatrixRef {
  public:
   FloatMatrixRef(float* memory, int nrow, int ncol)
       : memory_(memory), nrow_(nrow), ncol_(ncol) {}

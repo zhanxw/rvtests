@@ -1,4 +1,8 @@
 language: cpp
+addons:
+  homebrew:
+    packages:
+      - gfortran
 matrix:
   allow_failures:
     - os: osx
@@ -11,7 +15,6 @@ matrix:
           packages: ['g++-4.7']
       env:
         - COMPILER=g++-4.7
-
     - os: linux
       compiler: gcc
       addons:
@@ -20,7 +23,7 @@ matrix:
           packages: ['g++-4.8']
       env:
         - COMPILER=g++-4.8
-
+      if: branch = master
     - os: linux
       compiler: gcc
       addons:
@@ -29,7 +32,7 @@ matrix:
           packages: ['g++-4.9']
       env:
         - COMPILER=g++-4.9
-
+      if: branch = master
     - os: linux
       compiler: gcc
       addons:
@@ -38,7 +41,7 @@ matrix:
           packages: ['g++-5']
       env:
         - COMPILER=g++-5
-
+      if: branch = master
     - os: linux
       compiler: gcc
       addons:
@@ -47,7 +50,7 @@ matrix:
           packages: ['g++-6']
       env:
         - COMPILER=g++-6
-
+      if: branch = master
 ## clang's support for OpenMP requires extra work
 ## just skip it for now
 #    - os: linux
@@ -117,23 +120,25 @@ matrix:
 #       compiler: clang
 #       env:
 #         - COMPILER=clang++
-    - os: osx
-      osx_image: xcode10
-      compiler: g++
-      env:
-        - COMPILER=g++
-    - os: osx
-      osx_image: xcode9
-      compiler: g++
-      env:
-        - COMPILER=g++
+
+## For simplicity, do not need to compile for xcode9, xcode10
+    # - os: osx
+    #   osx_image: xcode10
+    #   compiler: g++
+    #   env:
+    #     - COMPILER=g++
+    # - os: osx
+    #   osx_image: xcode9
+    #   compiler: g++
+    #   env:
+    #     - COMPILER=g++
     - os: osx
       osx_image: xcode8
       compiler: g++
       env:
         - COMPILER=g++
-# refer: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60670
-# for install a gcc on mac with OpenMP support
+        - MATRIX_EVAL="brew update && brew install gcc && CC=gcc && CXX=g++"
+
 before_install:
   - uname -a
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then free -m; fi
@@ -141,5 +146,6 @@ before_install:
   - df -h
   - ulimit -a
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q && sudo apt-get install -y -qq gfortran; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install gcc; brew reinstall gcc --without-multilib; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then eval "${MATRIX_EVAL}"; fi
+
 script: make CXX=$COMPILER

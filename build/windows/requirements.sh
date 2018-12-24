@@ -31,11 +31,11 @@ fi
 
 MXE2_TARGET=$(echo "$MXE_TARGET" | sed 's/_/-/g')
 sudo apt-get --yes install \
-     mxe-${MXE2_TARGET}-qt
+     mxe-${MXE2_TARGET}-gcc
 
-# MXE doesn't have 64bit NSIS
-sudo apt-get --yes install \
-     mxe-i686-w64-mingw32.static-nsis
+## # MXE doesn't have 64bit NSIS
+## sudo apt-get --yes install \
+##      mxe-i686-w64-mingw32.static-nsis
 
 sudo apt-get --yes install upx-ucl
 

@@ -1,8 +1,7 @@
 #!/bin/bash
 
 set -xue
-
-MXE_DIR=$HOME/x86_64-linux-musl-8.2.0
+MXE_DIR=$HOME/build/zhanxw/rvtests/x86_64-linux-musl-8.2.0
 export PATH=${MXE_DIR}/bin:$PATH
 MXE_TARGET=x86_64-linux-musl
 

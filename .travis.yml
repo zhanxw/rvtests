@@ -1,4 +1,8 @@
 language: cpp
+addons:
+  homebrew:
+    packages:
+      - gfortran
 matrix:
   allow_failures:
     - os: osx
@@ -134,20 +138,12 @@ matrix:
       env:
         - COMPILER=g++
         - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
-      addons:
-        homebrew:
-          packages:
-            - gfortran
     - os: osx
       osx_image: xcode8
       compiler: g++
       env:
         - COMPILER=g++
-        - MATRIX_EVAL="brew update && brew install gcc && CC=gcc && CXX=g++"
-      addons:
-        homebrew:
-          packages:
-            - gfortran
+        - MATRIX_EVAL="brew update && brew install gcc gfortran && CC=gcc && CXX=g++"
 
 before_install:
   - uname -a

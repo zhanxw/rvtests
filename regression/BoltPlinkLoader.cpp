@@ -10,8 +10,8 @@
 // highly recommmended to include omp to speed up
 #include <omp.h>
 #else
-int omp_get_max_threads() { return 1; }
-int omp_get_thread_num() { return 0; }
+static int omp_get_max_threads() { return 1; }
+static int omp_get_thread_num() { return 0; }
 #endif
 
 const int BoltPlinkLoader::Mask[4] = {3, 3 << 2, 3 << 4, 3 << 6};

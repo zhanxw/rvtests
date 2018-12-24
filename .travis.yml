@@ -137,13 +137,7 @@ matrix:
       compiler: g++
       env:
         - COMPILER=g++
-        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
-    - os: osx
-      osx_image: xcode8
-      compiler: g++
-      env:
-        - COMPILER=g++
-        - MATRIX_EVAL="brew update && brew install gcc gfortran && CC=gcc && CXX=g++"
+        - MATRIX_EVAL="brew update && brew install gcc && CC=gcc && CXX=g++"
 
 before_install:
   - uname -a

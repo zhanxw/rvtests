@@ -7,7 +7,7 @@
 #include <map>
 #include <set>
 #include <string>
-#include <tr1/unordered_map>
+#include <unordered_map>
 #include <vector>
 
 #include "Utils.h"
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
   int lineNo = 0;
 
   // StringIntHash includeSiteHash;
-  std::tr1::unordered_map<std::string, int> includeSiteHash;
+  std::unordered_map<std::string, int> includeSiteHash;
   if (!FLAG_siteFile.empty()) {
     // create a hash to store all the sites to be included
     printf("siteFile = %s\n", FLAG_siteFile.c_str());

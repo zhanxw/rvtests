@@ -1,19 +1,30 @@
 all: release
 
+## check compiler exists
+DEFAULT_F77_PROG := $(shell command -v $(FC) 2> /dev/null)
+GFORTRAN_PROG := $(shell command -v gfortran 2> /dev/null)
+
+ifndef DEFAULT_F77_PROG
+  ifndef GFORTRAN_PROG
+    $(error "$(FC) or gfortran is not available please install (e.g. gfortran)")
+  endif
+endif
+
+## define ROOT directory as it will be used in Makefile.{common,lib}
 ROOT=$(shell pwd)
 export ROOT
-
 include Makefile.common
 include Makefile.lib
 
+## output directories
 DIR_EXEC = ./executable
 DIR_EXEC_DBG = ./executable/dbg
-
 $(DIR_EXEC):
 	mkdir -p $@
 $(DIR_EXEC_DBG):
 	mkdir -p $@
 
+## goals
 .PHONY: release debug profile lib lib-dbg clean tar doc
 release: lib
 	$(MAKE) -C $(ROOT)/src release

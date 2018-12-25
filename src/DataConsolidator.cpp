@@ -1,6 +1,7 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "DataConsolidator.h"
 
+#include <cmath>  // std::isfinite
 #include <string>
 #include <vector>
 
@@ -336,7 +337,8 @@ bool DataConsolidator::isEqual(Matrix& a, Matrix& b) {
   const int nc = a.cols;
   for (int i = 0; i < nr; ++i) {
     for (int j = 0; j < nc; ++j) {
-      if (finite(a(i, j)) && finite(b(i, j)) && a(i, j) != b(i, j))
+      if (std::isfinite(a(i, j)) && std::isfinite(b(i, j)) &&
+          a(i, j) != b(i, j))
         return false;
     }
   }

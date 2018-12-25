@@ -10,7 +10,7 @@ CONFIGURE_HOST=--host=$(CROSS) --enable-static --disable-shared
 
 # download all third party library and compile them
 
-LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson sqlite zstd
+LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson sqlite zstd nlopt cnpy
 all: $(LIB)
 
 tabix: tabix-0.2.6.tar.bz2

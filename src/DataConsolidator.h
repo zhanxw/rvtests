@@ -1,6 +1,8 @@
 #ifndef _DATACONSOLIDATOR_H_
 #define _DATACONSOLIDATOR_H_
 
+#include <cmath>  // std::isfinite
+
 #include "base/KinshipHolder.h"
 #include "base/Logger.h"
 #include "base/MathMatrix.h"

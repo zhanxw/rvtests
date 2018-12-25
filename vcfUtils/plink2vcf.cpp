@@ -1,3 +1,5 @@
+#include <ctime>
+
 #include "Argument.h"
 #include "IO.h"
 #include "PlinkInputFile.h"

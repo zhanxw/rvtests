@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <ctime>
 #include <deque>
 #include <map>
 #include <set>

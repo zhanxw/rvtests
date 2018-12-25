@@ -1,5 +1,6 @@
 #include "Socket.h"
 
+#ifndef _WIN32
 #include <errno.h>  // perror()
 #include <fcntl.h>
 #include <netdb.h>
@@ -8,18 +9,46 @@
 #include <sys/time.h>  // struct timeval
 #include <sys/types.h>
 #include <unistd.h>  // close()
+#else
+#include <stdio.h>
+#include <winsock2.h>
+#pragma comment(lib, "ws2_32.lib")  // Winsock Library
+#endif
 
 Socket::Socket(const std::string& host, int port)
-    : servinfo(NULL), fd(-1), usable(false), quiet(false) {
+    : usable(false), quiet(false) {
+#ifndef _WIN32
+  servinfo = NULL;
+  fd = -1;
+#else
+  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+    printf("Failed. Error Code : %d", WSAGetLastError());
+    return;
+  }
+#endif
   connect(host, port);
 }
 
 Socket::Socket(const std::string& host, int port, double timeoutSeconds)
-    : servinfo(NULL), fd(-1), usable(false), quiet(false) {
+    : usable(false), quiet(false) {
+#ifndef _WIN32
+  servinfo = NULL;
+  fd = -1;
+#else
+  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+    printf("Failed. Error Code : %d", WSAGetLastError());
+    return;
+  }
+#endif
   timedConnect(host, port, timeoutSeconds);
 }
 
-Socket::~Socket() { this->close(); }
+Socket::~Socket() {
+  this->close();
+#ifdef _WIN32
+  WSACleanup();
+#endif
+}
 
 int Socket::connect(const std::string& host, int port) {
   if (host.empty()) return -1;
@@ -28,6 +57,7 @@ int Socket::connect(const std::string& host, int port) {
   // 0. close
   this->close();
 
+#ifndef _WIN32
   // 1. Get IP
   int status;
   struct addrinfo hints;
@@ -64,7 +94,71 @@ int Socket::connect(const std::string& host, int port) {
     }
     return -1;
   }
+#else
+  // winsocks
+  // 1. Get IP
+  // int status;
+  struct hostent* he;
+  // struct in_addr **addr_list;
+  if ((he = gethostbyname(host.c_str())) == NULL) {
+    // gethostbyname failed
+    printf("gethostbyname failed : %d", WSAGetLastError());
+    return -1;
+  }
+  // Cast the h_addr_list to in_addr , since h_addr_list also has the ip address
+  // in long format only
+  // addr_list = (struct in_addr **) he->h_addr_list;
 
+  struct sockaddr_in server;
+  // server.sin_addr.s_addr = inet_addr("74.125.235.20");
+  server.sin_addr.s_addr = inet_addr(he->h_addr_list[0]);
+  server.sin_family = AF_INET;
+  server.sin_port = htons(80);
+
+  // struct addrinfo hints;
+  // this->servinfo = NULL;            // will point to the results
+  // memset(&hints, 0, sizeof hints);  // make sure the struct is empty
+  // hints.ai_family = AF_UNSPEC;      // don't care IPv4 or IPv6
+  // hints.ai_socktype = SOCK_STREAM;  // TCP stream sockets
+  // hints.ai_flags = AI_PASSIVE;      // fill in my IP for me
+  // char strPort[128];
+  // sprintf(strPort, "%d", port);
+  // if ((status = getaddrinfo(host.c_str(), strPort, &hints, &servinfo)) != 0)
+  // {
+  //   if (!this->quiet) {
+  //     fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+  //   }
+  //   return -1;
+  // }
+
+  // 2. get socket
+  if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+    printf("Could not create socket : %d", WSAGetLastError());
+  }
+  // // use the first servinfo TODO: will try second, third ... if the first
+  // fails
+  // this->fd = ::socket(this->servinfo->ai_family, this->servinfo->ai_socktype,
+  //                     this->servinfo->ai_protocol);
+  // if (this->fd == -1) {
+  //   if (!this->quiet) {
+  //     perror("socket() error");
+  //   }
+  //   return -1;
+  // }
+
+  // 3. connect
+  if (::connect(s, (struct sockaddr*)&server, sizeof(server)) < 0) {
+    puts("connect error");
+    return -1;
+  }
+// if (::connect(this->fd, this->servinfo->ai_addr,
+//               this->servinfo->ai_addrlen) == -1) {
+//   if (!this->quiet) {
+//     perror("connect() errror");
+//   }
+//   return -1;
+// }
+#endif
   usable = true;
   return 0;
 }
@@ -73,6 +167,7 @@ int Socket::timedConnect(const std::string& host, int port, double seconds) {
   if (host.empty()) return -1;
   if (port <= 0) return -1;
 
+#ifndef _WIN32
   // 0. close
   this->close();
 
@@ -157,12 +252,16 @@ int Socket::timedConnect(const std::string& host, int port, double seconds) {
     fprintf(stderr, "connect() timeout %s:%d\n", host.c_str(), port);
     return -1;
   }
-
+#else
+#warning "WIN32 has not implemented timedConnect()"
+  this->connect(host, port);
+#endif
   usable = true;
   return 0;
 }
 
 void Socket::close() {
+#ifndef _WIN32
   if (this->fd && this->fd != -1) {  // -1: error or not yet openned
     ::close(fd);
     fd = -1;
@@ -171,6 +270,9 @@ void Socket::close() {
     freeaddrinfo(servinfo);  // free the linked-list
     servinfo = NULL;
   }
+#else
+  closesocket(s);
+#endif
   this->usable = false;
 }
 
@@ -179,13 +281,21 @@ int Socket::send(const std::string& msg) {
   int len = msg.size();
   int nSent = 0;
   while (true) {
+#ifndef _WIN32
     nSent += ::send(this->fd, msg.c_str() + nSent, msg.size(), 0);
+#else
+    nSent += ::send(this->s, msg.c_str() + nSent, msg.size(), 0);
+#endif
     if (nSent == len) {
       break;
     }
     if (nSent < 0) {
       if (!this->quiet) {
+#ifndef _WIN32
         perror("send() error");
+#else
+        puts("Send failed");
+#endif
       }
       return -1;
     }
@@ -197,10 +307,17 @@ int Socket::recv(void* buf, int len) {
   if (!usable) {
     return -1;
   }
+#ifndef _WIN32
   int nRecv = ::recv(this->fd, buf, len, 0);
   if (!quiet && nRecv < 0) {
     perror("recv() error");
   }
+#else
+  int nRecv = ::recv(this->s, (char*)buf, len, 0);
+  if (!quiet && nRecv < 0) {
+    puts("recv failed");
+  }
+#endif
   return (nRecv);
 }
 
@@ -208,7 +325,7 @@ int Socket::timedRecv(void* buf, int len, double seconds) {
   if (!usable) {
     return -1;
   }
-
+#ifndef _WIN32
   fd_set readfds;
   FD_ZERO(&readfds);
   FD_SET(this->fd, &readfds);
@@ -231,4 +348,8 @@ int Socket::timedRecv(void* buf, int len, double seconds) {
   } else {
     return this->recv(buf, len);
   }
+#else
+#warning "WIN32 has not implemented timedRecv()"
+  return this->recv(buf, len);
+#endif
 }

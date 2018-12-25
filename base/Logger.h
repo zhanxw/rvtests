@@ -43,10 +43,13 @@ class Logger {
   static void sync(FILE* f) {
     if (f) {
       fflush(f);
+#ifndef _WIN32
+      // fsync is not available on windows
       int no = (fileno(f));
       if (no > 0) {
         fsync(no);
       }
+#endif
     }
   }
   static void sync() {

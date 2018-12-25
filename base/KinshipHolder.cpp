@@ -7,6 +7,11 @@
 #include "third/eigen/Eigen/Core"
 #include "third/eigen/Eigen/Eigenvalues"
 
+#ifdef _WIN32
+// this is to avoid using _chsize
+#define FTRUNCATE_DEFINED
+#endif
+
 #include "base/CommonFunction.h"
 #include "base/IO.h"
 #include "base/Logger.h"

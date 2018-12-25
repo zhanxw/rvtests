@@ -1,151 +1,48 @@
 language: cpp
-addons:
-  homebrew:
-    packages:
-      - gfortran
 matrix:
-  allow_failures:
-    - os: osx
   include:
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-4.7']
-      env:
-        - COMPILER=g++-4.7
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-4.8']
-      env:
-        - COMPILER=g++-4.8
-      if: branch = master
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-4.9']
-      env:
-        - COMPILER=g++-4.9
-      if: branch = master
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-5']
-      env:
-        - COMPILER=g++-5
-      if: branch = master
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-6']
-      env:
-        - COMPILER=g++-6
-      if: branch = master
-## clang's support for OpenMP requires extra work
-## just skip it for now
-#    - os: linux
-#      compiler: clang
-#      env:
-#        - COMPILER=clang++
-#
-#    - os: linux
-#      compiler: clang
-#      addons:
-#        apt:
-#          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.5']
-#          packages: ['clang-3.5']
-#      env:
-#        - COMPILER=clang++-3.5
-#
-#    - os: linux
-#      compiler: clang
-#      addons:
-#        apt:
-#          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.6']
-#          packages: ['clang-3.6']
-#      env:
-#        - COMPILER=clang++-3.6
-#
-#    - os: linux
-#      compiler: clang
-#      addons:
-#        apt:
-#          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7']
-#          packages: ['clang-3.7']
-#      env:
-#        - COMPILER=clang++-3.7
-#
-#    - os: linux
-#      compiler: clang
-#      addons:
-#        apt:
-#          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
-#          packages: ['clang-3.8']
-#      env:
-#        - COMPILER=clang++-3.8
-#
-##    - os: linux
-##      compiler: clang
-##      addons:
-##        apt:
-##          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.9']
-##          packages: ['clang-3.9']
-##      env:
-##        - COMPILER=clang++-3.9
-# 
-#     - os: osx
-#       osx_image: xcode6.4
-#       compiler: clang
-#       env:
-#         - COMPILER=clang++
-# 
-#     - os: osx
-#       osx_image: xcode7.3
-#       compiler: clang
-#       env:
-#         - COMPILER=clang++
-# 
-#     - os: osx
-#       osx_image: xcode8.2
-#       compiler: clang
-#       env:
-#         - COMPILER=clang++
-
-## For simplicity, do not need to compile for xcode9, xcode10
-    # - os: osx
-    #   osx_image: xcode10
-    #   compiler: g++
-    #   env:
-    #     - COMPILER=g++
-    # - os: osx
-    #   osx_image: xcode9
-    #   compiler: g++
-    #   env:
-    #     - COMPILER=g++
-    - os: osx
-      osx_image: xcode8
-      compiler: g++
-      env:
-        - COMPILER=g++
-        - MATRIX_EVAL="brew update && brew install gcc && CC=gcc && CXX=g++"
-
+  - env: PLATFORM='linux64'
+    os: linux
+    dist: trusty
+    sudo: required
+    compiler: gcc
+  - env: PLATFORM='windows32'
+    os: linux
+    dist: xenial 
+    sudo: required
+    compiler: gcc
+  - env: PLATFORM='macos'
+    os: osx
+    osx_image: xcode8
+    compiler: clang
+  - env: PLATFORM='musl64'
+    os: linux
+    dist: trusty
+    sudo: required
+    compiler: gcc
 before_install:
-  - uname -a
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then free -m; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then vm_stat; fi
   - df -h
   - ulimit -a
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q && sudo apt-get install -y -qq gfortran; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then eval "${MATRIX_EVAL}"; fi
+  - TARGET="${PLATFORM::${#PLATFORM}-2}"
+  - "./build/${TARGET}/requirements.sh"
+install:
+  - source ./build/${TARGET}/build.sh
+script:
+  - echo "Nothing."
+before_deploy:
+  - mkdir -p dist
+  - "./build/${TARGET}/package.sh"
+deploy:
+  provider: releases
+  api_key:
+    secure: ILnaYSSn9uaRUq8g0UOoAwdltVx9Qy/B7DPlt4ANMV3f4oxW9I7IotPnGcUpi7SzCAR9FlH9Drpct7awBWCXHRd9bp8nfhRnqnjwymhuyO08xkMYcdu3+TE5SjtKWnicakJZqwgAeUl0YSsEOl0M0A5LShKaFTn55tNQ/PPZe28=
+  file:
+    - "$(ls dist/*tar.gz dist/*.zip)"
+  skip_cleanup: true
+  on:
+    repo: zhanxw/rvtests
+    branch: master
+    tags: true
 
-script: make CXX=$COMPILER

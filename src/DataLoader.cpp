@@ -1,6 +1,7 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "DataLoader.h"
 
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -607,7 +608,7 @@ int DataLoader::checkConstantCovariate() {
   for (int i = 0; i < nc; ++i) {
     s.clear();
     for (int j = 0; j < nr; ++j) {
-      if (finite(covariate[j][i])) {
+      if (std::isfinite(covariate[j][i])) {
         s.insert(covariate[j][i]);
       } else {
         numNAN++;

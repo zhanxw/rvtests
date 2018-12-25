@@ -1,49 +1,62 @@
+#make -f Makefile.win CROSS=i686-w64-mingw32.static
+CC=$(CROSS)-gcc
+CXX=$(CROSS)-g++
+LD=$(CROSS)-ld
+RANLIB=$(CROSS)-ranlib
+AR=$(CROSS)-ar
+PKG_CONFIG=$(CROSS)-pkg-config
+# CONFIGURE_HOST=--host=i686-w64-mingw32.static --enable-static --disable-shared
+CONFIGURE_HOST=--host=$(CROSS) --enable-static --disable-shared
+
 # download all third party library and compile them
 
-LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson sqlite zstd nlopt
+LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson sqlite zstd
 all: $(LIB)
 
-tabix: tabix-0.2.6.tar.bz2 zlib
+tabix: tabix-0.2.6.tar.bz2
 	-mv tabix-0.2.6.tar.bz2* tabix-0.2.6.tar.bz2
 	tar jxf tabix-0.2.6.tar.bz2
 	ln -s -f tabix-0.2.6 tabix
-	sed -i.bak 's:^CFLAGS=:CFLAGS=-I../zlib-1.2.8:;s:^LIBPATH=:LIBPATH=-L../zlib-1.2.8:'  tabix/Makefile
-	(cd tabix-0.2.6; make)
+#	sed -i -e 's:-D_USE_KNETFILE::' tabix/Makefile
+	sed -i 's:INCLUDES=:INCLUDES=-I. -I../zlib :g' tabix/Makefile
+	cd tabix-0.2.6; $(MAKE) CC=${CC} AR=${AR} CROSS=${CROSS}- libtabix.a
 
 pcre: pcre-8.36.tar.gz
 	-mv pcre-8.36.tar.gz* pcre-8.36.tar.gz
 	tar zxf pcre-8.36.tar.gz
-	-(DIR=`pwd`; cd pcre-8.36; ./configure --prefix="$${DIR}"/pcre; make -j; make install)
+	DIR=`pwd`; echo ${CC}; cd pcre-8.36; ./configure ${CONFIGURE_HOST} --prefix="$${DIR}"/pcre; $(MAKE) CROSS=${CROSS}-; make install
 
 gsl: gsl-1.16.tar.gz
 	tar zxf gsl-1.16.tar.gz
-	-(DIR=`pwd`; cd gsl-1.16; ./configure --prefix="$${DIR}"/gsl; make -j; make install)
+	-(DIR=`pwd`; cd gsl-1.16; ./configure ${CONFIGURE_HOST} --prefix="$${DIR}"/gsl; make -j CROSS=${CROSS}-; make install)
 
-eigen: eigen-3.3.7.tar.bz2
+eigen: eigen-3.3.5.tar.bz2
 	-rm -rf eigen-eigen*
-	tar jxf eigen-3.3.7.tar.bz2
-	-mv eigen-eigen-* eigen-3.3.7
-	ln -s -f eigen-3.3.7 eigen
+	tar jxf eigen-3.3.5.tar.bz2
+	-mv eigen-eigen-* eigen-3.3.5
+	ln -s -f eigen-3.3.5 eigen
 
 zlib: zlib-1.2.8.tar.gz
 	tar zxf $<
 	ln -s -f zlib-1.2.8 zlib
-	(cd zlib; ./configure; make)
+	(cd zlib; ./configure --static ; make libz.a)
 
 bzip2: bzip2-1.0.6.tar.gz
 	tar zxf $<
 	ln -s -f bzip2-1.0.6 bzip2
-	(cd bzip2-1.0.6; make)
+	(cd bzip2-1.0.6; sed -i 's/sys\\stat\.h/sys\/stat\.h/g' bzip2.c; make CC=${CC} RANLIB=${RANLIB} AR=${AR} libbz2.a)
 
-samtools: samtools-0.1.19.tar.bz2 zlib
+samtools: samtools-0.1.19.tar.bz2
 	tar jxf $<
 	ln -s -f samtools-0.1.19 samtools
-	sed -i.bak 's:^CFLAGS=:CFLAGS=-I../zlib-1.2.8 -I../../zlib-1.2.8:;s:^LIBPATH=:LIBPATH=-L../zlib-1.2.8 -L../../zlib-1.2.8:' samtools/Makefile samtools/bcftools/Makefile
-	(cd samtools; make lib-recur)
+	sed -i 's:INCLUDES=:INCLUDES=-I. -I../zlib :g' samtools/Makefile
+	cd samtools; make libbam.a CC=${CC} AR=${AR} CROSS=${CROSS}- ; cd ..
+	sed -i 's:INCLUDES=:INCLUDES=-I. -I../../zlib :g' samtools/bcftools/Makefile
+	cd samtools/bcftools; make libbcf.a CC=${CC} AR=${AR} CROSS=${CROSS}- ; cd ../..
 
 nlopt: nlopt-2.4.2.tar.gz
 	tar zxf $<
-	-(DIR=`pwd`; cd nlopt-2.4.2; ./configure --prefix="$${DIR}"/nlopt; make -j; make install)
+	-(DIR=`pwd`; cd nlopt-2.4.2; ./configure ${CONFIGURE_HOST} --prefix="$${DIR}"/nlopt; make -j; make install)
 
 rapidjson: rapidjson-1.0.2.tar.gz
 	tar zxf $<
@@ -52,17 +65,12 @@ rapidjson: rapidjson-1.0.2.tar.gz
 
 sqlite: sqlite-autoconf-3200100.tar.gz
 	tar zxf $<
-	-(DIR=`pwd`; cd sqlite-autoconf-3200100; ./configure --prefix="$${DIR}"/sqlite --enable-dynamic-extensions=no; make -j; make install)
+	-(DIR=`pwd`; cd sqlite-autoconf-3200100; ./configure ${CONFIGURE_HOST}  --prefix="$${DIR}"/sqlite --enable-dynamic-extensions=no; make -j; make install)
 
 zstd: zstd-1.3.1.tar.gz
 	tar zxf $<
 	ln -s -f zstd-1.3.1 zstd
 	(cd zstd; make)
-
-cnpy: cnpy.zip
-	unzip -o $<    ## -o: overwrite existing file
-	ln -s -f cnpy-master cnpy
-	(cd cnpy; $(CXX) -std=c++11 -c cnpy.cpp; $(AR) rcs libcnpy.a cnpy.o)
 
 ######################################################################
 # download sources
@@ -78,10 +86,9 @@ endif
 pcre-8.36.tar.gz:
 	echo "obtain PCRE..."
 	$(call DOWNLOAD,ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.36.tar.gz)
-
-eigen-3.3.7.tar.bz2:
+eigen-3.3.5.tar.bz2:
 	echo "obtain Eigen..."
-	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2,$@)
+	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.3.5.tar.bz2,$@)
 
 gsl-1.16.tar.gz:
 	echo "obtain GSL"
@@ -111,10 +118,6 @@ zstd-1.3.1.tar.gz:
 	echo "obtain zstd"
 	$(call DOWNLOAD_RENAME,https://github.com/facebook/zstd/archive/v1.3.1.tar.gz,$@)
 
-cnpy.zip:
-	echo "obtain cnpy"
-	$(call DOWNLOAD_RENAME,https://github.com/rogersce/cnpy/archive/master.zip,$@)
-
 clean:
 	-rm -rf $(LIB)
 deepclean:
@@ -122,7 +125,7 @@ deepclean:
 	-rm -rf tabix-0.2.6
 	-rm -rf pcre-8.36
 	-rm -rf gsl-1.16
-	-rm -rf eigen-3.3.7
+	-rm -rf eigen-3.3.5
 	-rm -rf bzip2-1.0.6
 	-rm -rf samtools-0.1.19
 	-rm -rf rapidjson-1.0.2
@@ -130,4 +133,3 @@ deepclean:
 	-rm -rf zlib-1.2.8
 	-rm -rf sqlite-autoconf-3200100
 	-rm -rf zstd-1.3.1
-	-rm -rf cnpy

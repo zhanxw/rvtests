@@ -1,3 +1,8 @@
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "tCnbR5qSmTKnX4INhymQNdodn3U6VunImiSrM9/mFI0IoxDBPMF+NXBxkQdPD1BjKwb8qmqX3gKXUmxjZWAg5JSypUdg9M0iDyTYd6pPXyS2wa/jrbfrjtMkoE7bQejaY8gjmcA96d0Td7NHcAhw5A0qq5Z3WspdpzldusQcq6M="
 language: cpp
 matrix:
   include:
@@ -21,6 +26,7 @@ matrix:
     sudo: required
     compiler: gcc
 before_install:
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then free -m; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then vm_stat; fi
   - df -h
@@ -46,3 +52,12 @@ deploy:
     branch: master
     tags: true
 
+addons:
+  coverity_scan:
+    project:
+      name: "zhanxw/rvtests"
+      description: "Rare variant test software for next generation sequencing data"
+    notification_email: zhanxw@gmail.com
+    build_command_prepend: "uname -a"
+    build_command: "make"
+    branch_pattern: coverity_scan

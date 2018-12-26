@@ -6,9 +6,12 @@ LIB_DBG = lib-dbg-vcf.a
 BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile \
        VCFIndividual SiteSet VCFHeader BCFReader VCFExtractor VCFFilter VCFValue \
        VCFBuffer KGGInputFile VCFRecord
-
 OBJ = $(BASE:=.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
+
+ifndef ROOT
+ROOT?=..
+endif
 
 TABIX_INC = ../third/tabix
 TABIX_LIB = ../third/tabix/libtabix.a

@@ -1,7 +1,6 @@
 all: release
 
 ROOT?=..
-
 include $(ROOT)/Makefile.common
 include $(ROOT)/Makefile.lib
 

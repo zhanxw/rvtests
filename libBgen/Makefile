@@ -7,6 +7,10 @@ BASE = BGenFile BGenIndex BGenVariant
 OBJ = $(BASE:=.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 
+ifndef ROOT
+ROOT?=..
+endif
+
 TABIX_INC = ../third/tabix
 TABIX_LIB = ../third/tabix/libtabix.a
 $(TABIX_INC) $(TABIX_LIB):

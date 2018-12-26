@@ -26,28 +26,46 @@ def getVariant(fn):
     return int(ret)
 
 def loadKinship(fn):
+    import numpy as np
     ids = []
-    kin = []
+    kin = None
     ncol = -1
     for i, ln in enumerate(myopen(fn)):
         fd = ln.strip().split()
         if i == 0:
             ncol = len(fd)
+            nsample = ncol - 2
+            kin = np.empty([nsample, nsample])
             continue
         ids.append(fd[:2])
-        kin.append([float(i) for i in fd[2:]])
+        kin[i - 1, ] = [float(ii) for ii in fd[2:]]
+        if i % 1000 == 0:
+            print 'i = ', i
+
     nsample = ncol - 2
     if len(ids) != nsample or \
        any([nsample != len(i) for i in kin]):
         print >> sys.stderr, "Dimension not match in ", fn
+
+    if kin.shape[0] != kin.shape[1] or kin.shape[0] != nsample:
+        print >> sys.stderr, "Dimension not match in ", fn
+
+    # save to disk
+    fnDisk = 'tmp.' + os.path.basename(fn) + '.mmap.npy'
+    kinDisk = np.memmap(fnDisk, dtype='float32', mode='w+', shape=kin.shape)
+    kinDisk[:] = kin[:]
+    del kinDisk
+    kin = np.memmap(fnDisk, dtype='float32', mode='r', shape=kin.shape)
+    
     print >> sys.stderr, "Kinship file %s with %d samples loaded" % (fn, nsample)
     return ids, kin
 
 def combineKinship(kin1, cnt1, kin2, cnt2):
-    kin = kin1
-    for i in xrange(len(kin1)):
-        for j in xrange(len(kin1[0])):
-            kin[i][j] = (kin1[i][j] * cnt1 + kin2[i][j] * cnt2) / (cnt1 + cnt2)
+    # kin = kin1
+    # for i in xrange(len(kin1)):
+    #     for j in xrange(len(kin1[0])):
+    #         kin[i][j] = (kin1[i][j] * cnt1 + kin2[i][j] * cnt2) / (cnt1 + cnt2)
+    kin = (kin1 * cnt1 + kin2 * cnt2 ) / (cnt1 + cnt2)
     cnt = cnt1 + cnt2
     print >> sys.stderr, "Combined %d variants from %d and %d variants" % (cnt, cnt1, cnt2)
     return kin, cnt
@@ -99,11 +117,13 @@ if __name__ == '__main__':
     print >> sys.stderr, "Total %d variants from %d files are recognized." % (sum(numAuto), len(fn))
     
     # read first kinship
+    print >> sys.stderr, "Process kinship file [ %s ]" % (fn[0])    
     ids, kin = loadKinship(fn[0])
     cnt = numAuto[0]
     
     # gradually combine rest kinships
     for i in xrange(1, len(fn)):
+        print >> sys.stderr, "Process kinship file [ %s ]" % (fn[i])
         ids2, kin2 = loadKinship(fn[i])
         cnt2 = numAuto[i]
         if not isSameId(ids, ids2):

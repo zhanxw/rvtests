@@ -1,14 +1,59 @@
 #include "Http.h"
+
+#include <stdlib.h>  //getenv
 #include "Socket.h"
 #include "TypeConversion.h"
 #include "Utils.h"
+
+HttpResponse::HttpResponse() {
+  // status_ table
+  // 0 : uninitialized
+  // 1 : header
+  // 2 : body
+  status_ = 0;
+}
+
+void HttpResponse::addLine(const std::string& line) {
+  if (status_ == 0) {
+    if (line.size()) {
+      if (line.substr(0, 5) == "HTTP/") {
+        status_ = 1;
+        header_.push_back(line);
+      } else {
+        status_ = 2;
+        body_.push_back(line);
+      }
+    }
+  } else if (status_ == 1) {
+    if (line.size()) {
+      header_.push_back(line);
+    } else {
+      status_ = 2;
+    }
+  } else if (status_ == 2) {
+    body_.push_back(line);
+  }
+}
+
+void HttpResponse::clear() {
+  header_.clear();
+  body_.clear();
+  status_ = 0;
+}
+
+size_t HttpResponse::size() { return (header_.size() + body_.size()); }
+
+//////////////////////////////////////////////////
 
 Http::Http(const std::string& url, double timeoutSeconds) {
   // url format:
   // scheme://[user:password@]domain:port/path?query_string#fragment_id
   // ref: https://en.wikipedia.org/wiki/Uniform_resource_locator
   socket = NULL;
-  quiet = false;
+  quiet = true;
+  if (std::getenv("HTTP_DEBUG")) {
+    quiet = false;
+  }
 
   const std::string scheme = "http://";
   if (url.find(scheme) != 0) {
@@ -35,7 +80,9 @@ Http::Http(const std::string& url, double timeoutSeconds) {
   // check if proxy is used
   char* pProxy = getenv("http_proxy");
   if (pProxy) {
-    // proxy used
+    if (!this->quiet) {
+      fprintf(stderr, "Use proxy [ %s ]\n", pProxy);
+    }
     this->proxy = pProxy;
     if (proxy.find(scheme) == 0) {
       this->proxy = proxy.substr(scheme.size());
@@ -63,6 +110,9 @@ Http::Http(const std::string& url, double timeoutSeconds) {
     this->request += "\r\n\r\n";
   } else {
     // no proxy
+    if (!this->quiet) {
+      fprintf(stderr, "No proxy used\n");
+    }
     if (timeoutSeconds > 0) {
       socket = new Socket(this->domain, port, timeoutSeconds);
     } else {
@@ -77,6 +127,8 @@ Http::Http(const std::string& url, double timeoutSeconds) {
   }
   if (this->quiet) {
     this->enableQuiet();
+  } else {
+    this->disableQuiet();
   }
 }
 
@@ -87,23 +139,31 @@ Http::~Http() {
   }
 }
 
-int Http::read(std::vector<std::string>* content) {
+int Http::read(HttpResponse* response, int maxBodyLines) {
   if (!socket || !socket->isUsable()) {
     return -1;
   }
 
   socket->send(request);
   int ret = 0;
-  content->clear();
   std::string s;
+  response->clear();
   while (true) {
     ret = socket->timedRecv(buf, bufSize, 2.0);
     if (ret < 0) {
       // error happens
+      if (!this->quiet) {
+        fprintf(stderr, "timedRecv failed with ret = [ %d ]\n", ret);
+      }
       break;
     }
     if (ret == 0) {
       // socket shutdown or timeout
+      if (!this->quiet) {
+        fprintf(
+            stderr,
+            "timedRecv receives nothing as socket shuts down or is timedout\n");
+      }
       break;
     }
     for (int i = 0; i < ret; ++i) {
@@ -111,28 +171,34 @@ int Http::read(std::vector<std::string>* content) {
       if (buf[i] != '\n') {
         s.push_back(buf[i]);
       } else {
-        content->push_back(s);
+        response->addLine(s);
         s.clear();
       }
     }
-  }
-  if (!s.empty()) {
-    content->push_back(s);
-  }
-
-  // check header
-  // NOTE: HTTP header is optional
-  if (hasHeader(*content)) {
-    // get response code
-    if (getStatusCode(*content) != 200) {
-      return -1;
+    if (!this->quiet) {
+      fprintf(stderr, "timedRecv receives [ %d ] bytes: [ ", ret);
+      for (int i = 0; i < ret; ++i) {
+        if (buf[i] == '\r') {
+          fprintf(stderr, "\\r");
+        } else if (buf[i] == '\n') {
+          fprintf(stderr, "\\n");
+        } else {
+          fprintf(stderr, "%c", buf[i]);
+        }
+      }
+      fprintf(stderr, " ]\n");
     }
 
-    // strip out head lines if any
-    stripHeader(content);
+    if (maxBodyLines > 0 &&
+        response->getBody().size() >= (size_t)maxBodyLines) {
+      break;
+    }
+  }
+  if (!s.empty()) {  // remaining bytes read, so need to place it.
+    response->addLine(s);
   }
 
-  return ((int)content->size());
+  return ((int)response->size());
 }
 
 void Http::enableQuiet() {
@@ -140,6 +206,7 @@ void Http::enableQuiet() {
     this->socket->enableQuiet();
   }
 }
+
 void Http::disableQuiet() {
   if (this->socket) {
     this->socket->disableQuiet();
@@ -164,6 +231,7 @@ void Http::stripHeader(std::vector<std::string>* all) const {
   }
 }
 
+#if 0
 bool Http::hasHeader(const std::vector<std::string>& response) const {
   if (response.size() && response[0].substr(0, 5) == "HTTP/") {
     return true;
@@ -181,3 +249,4 @@ int Http::getStatusCode(const std::vector<std::string>& response) const {
   if (str2int(res[1], &code)) return code;
   return -1;
 }
+#endif

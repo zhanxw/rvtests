@@ -3,17 +3,46 @@
 #include "Http.h"
 #include "TypeConversion.h"
 
+VersionChecker::VersionChecker() {
+  this->quiet = (std::getenv("VERSIONCHECKER_DEBUG") == NULL);
+}
+
 int VersionChecker::retrieveRemoteVersion(const std::string& urlToVersion) {
   Http http(urlToVersion, 0.5);
-  http.enableQuiet();
-
-  if (http.read(&this->remoteInformation) < 0) {
+  HttpResponse response;
+  if (this->quiet) {
+    http.enableQuiet();
+  } else {
+    http.disableQuiet();
+  }
+  if (!this->quiet) {
+    fprintf(stderr, "retrieve remote version from [ %s ]\n",
+            urlToVersion.c_str());
+  }
+  // 2: the remote version file has two lines
+  int ret = http.read(&response, 2);
+  if (ret < 0) {
+    if (!this->quiet) {
+      fprintf(
+          stderr,
+          "Failed to retrieve remote version, probably due to wrong http\n");
+    }
     return -1;
   }
+  this->remoteInformation = response.getBody();
   if (this->remoteInformation.size() < 1) {
+    if (!this->quiet) {
+      fprintf(stderr,
+              "Failed to retrieve remote version due to empty version "
+              "information\n");
+    }
     return -1;
   }
   this->remoteVersion = this->remoteInformation[0];
+  if (!this->quiet) {
+    fprintf(stderr, "Retrieved remote version [ %s ]\n",
+            this->remoteVersion.c_str());
+  }
   return 0;
 }
 

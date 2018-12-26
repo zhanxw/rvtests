@@ -6,6 +6,7 @@
 
 class VersionChecker {
  public:
+  VersionChecker();
   /**
    * @return 0 only if succeed
    */
@@ -29,6 +30,7 @@ class VersionChecker {
   std::string localVersion;
   std::string remoteVersion;
   std::vector<std::string> remoteInformation;
+  bool quiet;
 };
 
 #endif /* VERSIONCHECKER_H */

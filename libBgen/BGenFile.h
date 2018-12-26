@@ -33,6 +33,7 @@ class BGenFile {
   } Mode;
 
   BGenFile(const std::string& fn);
+  virtual ~BGenFile();
   /**
    * @return true: if a valid record is read
    */
@@ -102,6 +103,8 @@ class BGenFile {
 
   // sample inclusion/exclusion related
   void setPeopleMask(const std::string& s, bool b);
+  void setPeopleMask(const std::vector<std::string>& sampleNames, bool b);
+  void setPeopleMask(const std::set<std::string>& setOfSample, bool b);
   void setPeopleMaskFromFile(const char* fn, bool b);
   void setRangeMode();
   // range list related

@@ -1,7 +1,7 @@
 #ifndef FASTMULTIPLETRAITSCORETEST_H
 #define FASTMULTIPLETRAITSCORETEST_H
 
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 
 class FastMultipleTraitLinearRegressionScoreTestInternal;
 class FormulaVector;
@@ -10,12 +10,13 @@ class FastMultipleTraitLinearRegressionScoreTest {
  public:
   FastMultipleTraitLinearRegressionScoreTest(int blockSize);
   virtual ~FastMultipleTraitLinearRegressionScoreTest();
-  bool FitNullModel(Matrix& cov, Matrix& y, const FormulaVector& tests);
+  bool FitNullModel(const Matrix& cov, const Matrix& y,
+                    const FormulaVector& tests);
   bool AddGenotype(const Matrix& g);
   bool TestCovariateBlock();
-  const Vector& GetPvalue(int i) const { return this->pvalue[i]; };
-  const Vector& GetU(int i) const { return this->ustat[i]; };
-  const Vector& GetV(int i) const { return this->vstat[i]; };
+  const Matrix& GetPvalue() const { return this->pvalue; };
+  const Matrix& GetU() const { return this->ustat; };
+  const Matrix& GetV() const { return this->vstat; };
   void flush() { resultLength = 0; };
 
  private:

@@ -15,14 +15,14 @@ class LogisticRegressionVT {
   LogisticRegressionVT();
   ~LogisticRegressionVT();
 
-  bool FitNullModel(Matrix& Xnull, Vector& y, int nRound = 100);
+  bool FitNullModel(const Matrix& Xnull, const Vector& y, int nRound = 100);
 
   /**
    * Test H0: \beta = 0  (\beta is multiple dimension).
    * y ~ \beta * Xcol + \gamma * Xnull
    * @return false if not working
    */
-  bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
+  bool TestCovariate(const Matrix& Xnull, const Vector& y, const Matrix& Xcol);
 
   int GetIndexMax();  // return index to the maximum t
   Matrix& GetU();

@@ -1,15 +1,15 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LMM.h"
 
 #include <limits>
 #include <vector>
 
-#include "nlopt.h"
+#include "base/MathMatrix.h"
+#include "regression/EigenMatrix.h"
+#include "regression/EigenMatrixInterface.h"
+#include "third/eigen/Eigen/Dense"
+#include "third/nlopt/include/nlopt.h"
 
-#include "Eigen/Dense"
-#include "EigenMatrix.h"
-#include "EigenMatrixInterface.h"
-
-#include "MathMatrix.h"
 #define PI 3.141592653
 
 double goalFunction(unsigned n, const double* x, double* grad,

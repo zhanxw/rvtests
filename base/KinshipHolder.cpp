@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "KinshipHolder.h"
 
 #include <string>
@@ -5,6 +6,11 @@
 
 #include "third/eigen/Eigen/Core"
 #include "third/eigen/Eigen/Eigenvalues"
+
+#ifdef _WIN32
+// this is to avoid using _chsize
+#define FTRUNCATE_DEFINED
+#endif
 
 #include "base/CommonFunction.h"
 #include "base/IO.h"

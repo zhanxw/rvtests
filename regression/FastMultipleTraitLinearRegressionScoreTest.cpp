@@ -1,13 +1,13 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "FastMultipleTraitLinearRegressionScoreTest.h"
 
 #include <map>
 #include <string>
 #include <vector>
 
-#include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
-
-#include "Eigen/Cholesky"  // ldlt
-#include "Eigen/Dense"
+#include "third/eigen/Eigen/Cholesky"  // ldlt
+#include "third/eigen/Eigen/Dense"
+#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
 #include "base/Utils.h"  // tolower
 #include "regression/Formula.h"
@@ -53,7 +53,7 @@ class FastMultipleTraitLinearRegressionScoreTestInternal {
 };
 
 /// Column names of @param m are stored in @param dict
-void addColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
+void addColNameToDict(const Matrix& m, std::map<std::string, int>* dict) {
   std::map<std::string, int>& d = *dict;
   for (int i = 0; i < m.cols; ++i) {
     const int n = d.size();
@@ -231,7 +231,7 @@ FastMultipleTraitLinearRegressionScoreTest::
 }
 
 bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
-    Matrix& cov, Matrix& pheno, const FormulaVector& tests) {
+    const Matrix& cov, const Matrix& pheno, const FormulaVector& tests) {
   FastMultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
   // set some values
   const int N = pheno.rows;
@@ -289,7 +289,7 @@ bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
     const int phenoCol = pheno2Idx[iter->first];
     const int yzCol = iter->second;
     for (int i = 0; i < N; ++i) {
-      w.Y_Z(i, yzCol) = pheno[i][phenoCol];
+      w.Y_Z(i, yzCol) = pheno(i, phenoCol);
     }
   }
   for (std::map<std::string, int>::const_iterator iter = covDict.begin();
@@ -297,7 +297,7 @@ bool FastMultipleTraitLinearRegressionScoreTest::FitNullModel(
     const int covCol = cov2Idx[iter->first];
     const int yzCol = iter->second + uniqT;
     for (int i = 0; i < N; ++i) {
-      w.Y_Z(i, yzCol) = cov[i][covCol];
+      w.Y_Z(i, yzCol) = cov(i, covCol);
     }
   }
 
@@ -381,7 +381,7 @@ bool FastMultipleTraitLinearRegressionScoreTest::AddGenotype(const Matrix& g) {
   assert(resultLength < blockSize);
   const int N = g.rows;
   for (int j = 0; j < N; ++j) {
-    G(j, resultLength) = g[j][0];
+    G(j, resultLength) = g(j, 0);
   }
 
   resultLength++;
@@ -455,14 +455,14 @@ bool FastMultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
       TestSet& ts = w.testSet[j];
       const float u = ts.ustat(i);
       const float v = ts.vstat(i);
-      this->ustat[i][j] = u;
-      this->vstat[i][j] = v;
+      this->ustat(i, j) = u;
+      this->vstat(i, j) = v;
 
-      if (this->vstat[i][j] == 0.0) {
-        this->pvalue[i][j] = NAN;
+      if (this->vstat(i, j) == 0.0) {
+        this->pvalue(i, j) = NAN;
       } else {
         float stat = u * u / v;
-        this->pvalue[i][j] = gsl_cdf_chisq_Q(stat, 1.0);
+        this->pvalue(i, j) = gsl_cdf_chisq_Q(stat, 1.0);
       }
     }
   }

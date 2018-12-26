@@ -75,19 +75,19 @@ int main(int argc, char* argv[]) {
       printf("Test covariate block failed!\n");
       exit(1);
     }
-    const Vector& u = mt.GetU(0);
+    const Matrix& u = mt.GetU();
     printf("u\t");
-    Print(u);
+    PrintRow(u, 0);
     printf("\n");
 
-    const Vector& v = mt.GetV(0);
+    const Matrix& v = mt.GetV();
     printf("v\t");
-    Print(v);
+    PrintRow(v, 0);
     printf("\n");
 
-    const Vector& pval = mt.GetPvalue(0);
+    const Matrix& pval = mt.GetPvalue();
     printf("pval\t");
-    Print(pval);
+    PrintRow(pval, 0);
     printf("\n");
   }
   return 0;

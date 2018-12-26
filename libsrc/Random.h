@@ -1,20 +1,19 @@
-////////////////////////////////////////////////////////////////////// 
-// libsrc/Random.h 
+//////////////////////////////////////////////////////////////////////
+// libsrc/Random.h
 // (c) 2000-2010 Goncalo Abecasis
-// 
-// This file is distributed as part of the Goncalo source code package   
-// and may not be redistributed in any form, without prior written    
-// permission from the author. Permission is granted for you to       
-// modify this file for your own personal use, but modified versions  
-// must retain this copyright notice and must not be distributed.     
-// 
-// Permission is granted for you to use this file to compile Goncalo.    
-// 
-// All computer programs have bugs. Use this file at your own risk.   
-// 
+//
+// This file is distributed as part of the Goncalo source code package
+// and may not be redistributed in any form, without prior written
+// permission from the author. Permission is granted for you to
+// modify this file for your own personal use, but modified versions
+// must retain this copyright notice and must not be distributed.
+//
+// Permission is granted for you to use this file to compile Goncalo.
+//
+// All computer programs have bugs. Use this file at your own risk.
+//
 // Sunday May 02, 2010
-// 
- 
+//
 
 //////////////////////////////////////////////////////////////////////////////
 // This file includes code derived from the original Mersenne Twister Code
@@ -46,7 +45,8 @@
 //   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 //   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 //   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-//   A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+//   A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER
+//   OR
 //   CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
 //   EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
 //   PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
@@ -56,7 +56,6 @@
 //   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////////
-
 
 #ifndef __RANDOM_H__
 #define __RANDOM_H__
@@ -71,63 +70,56 @@ class Random
 // Implements the Mersenne Twister as default random number generator.
 // Compilation flag __NO_MERSENNE sets default generator to
 // a minimal Park-Miller with Bays-Durham shuffle and added safe guards.
-   {
-   protected:
-      // values for "minimal random values"
-      long  seed;
-      long  last;
-      long  * shuffler;
+{
+ protected:
+  // values for "minimal random values"
+  long seed;
+  long last;
+  long* shuffler;
 
-      // and for normal deviates
-      int      normSaved;
-      double   normStore;
+  // and for normal deviates
+  int normSaved;
+  double normStore;
 
-      double mersenneMult;
+  double mersenneMult;
 
-      // Array for Mersenne state vector
-      unsigned long * mt;
+  // Array for Mersenne state vector
+  unsigned long* mt;
 
-      // Used to signal that Mersenne state vector is not initialized
-      int mti;
+  // Used to signal that Mersenne state vector is not initialized
+  int mti;
 
+ public:
+  Random(long s = 0x7654321);
+  ~Random();
 
-   public:
+  // Next bit in series of 0s and 1s
+  int Binary();  // Next bit in series of 0s and 1s
 
-      Random(long s = 0x7654321);
-      ~Random();
+  // Next value in series, between 0 and 1
+  double Next();
 
-      // Next bit in series of 0s and 1s
-      int    Binary();     // Next bit in series of 0s and 1s
+  // Next integer
+  unsigned long NextInt();
 
-      // Next value in series, between 0 and 1
-      double Next();
+  // Random number form N(0,1)
+  double Normal();
 
-      // Next integer
-      unsigned long NextInt();
+  void Reset(long s);
+  void InitMersenne(unsigned long s);
 
-      // Random number form N(0,1)
-      double Normal();
+  // Random number between 0 and 1
+  operator double() { return Next(); }
 
-      void   Reset(long s);
-      void   InitMersenne(unsigned long s);
+  // Random number between arbitrary bounds
+  double Uniform(double lo = 0.0, double hi = 1.0) {
+    return lo + (hi - lo) * Next();
+  }
 
-      // Random number between 0 and 1
-      operator double()
-         { return Next(); }
-
-      // Random number between arbitrary bounds
-      double Uniform(double lo = 0.0, double hi = 1.0)
-         {
-         return lo + (hi - lo) * Next();
-         }
-
-      void Choose(int * array, int n, int k);
-      void Choose(int * array, float * weights, int n, int k);
-
-   };
+  void Choose(int* array, int n, int k);
+  void Choose(int* array, float* weights, int n, int k);
+};
 
 extern Random globalRandom;
 
 #endif
-
- 

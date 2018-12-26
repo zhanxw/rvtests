@@ -52,6 +52,7 @@ void BGenVariant::findGenotype(int idx, int ploidy, int allele,
     ploidy--;
   }
 }
+
 void BGenVariant::printGT(int i, FileWriter* fp) const {
   if (isPhased) {
     if (missing[i]) {

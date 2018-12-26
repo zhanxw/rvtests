@@ -9,7 +9,8 @@ LIB = lib-base.a
 LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship Profiler VersionChecker \
-       Socket Http TextMatrix Indexer KinshipHolder RingMemoryPool
+       Socket Http TextMatrix Indexer KinshipHolder RingMemoryPool \
+       MathVector MathMatrix
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 
@@ -17,7 +18,7 @@ DEFAULT_CXXFLAGS ?= -std=c++0x -I. -I$(ROOT) $(addprefix -I, $(THIRD_INC))
 # enable read over HTTP and FTP
 DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 
-release: CXXFLAGS = -O2 $(DEFAULT_CXXFLAGS)
+release: CXXFLAGS = -O2 -DNDEBUG $(DEFAULT_CXXFLAGS)
 release: $(LIB)
 
 debug: CXXFLAGS = -Wall -ggdb -O0 $(DEFAULT_CXXFLAGS)

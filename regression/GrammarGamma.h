@@ -20,9 +20,9 @@ class GrammarGamma {
   ~GrammarGamma();
 
   // @return 0 when success
-  int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
-                   const EigenMatrix& kinshipS);
-  int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
+  int FitNullModel(const Matrix& Xnull, const Matrix& y,
+                   const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  int TestCovariate(const Matrix& Xnull, const Matrix& y, const Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
   double GetAFFromMean();

@@ -3,11 +3,10 @@
 // Copyright 2011 Gao Wang
 // Modified 2014 Xiaowei Zhan
 #include "kbac.h"
-//#include <stdio.h>
-#include "gsl/gsl_rng.h"
-#include "gsl/gsl_randist.h"
-#include "gsl/gsl_cdf.h"
-#include "gsl/gsl_sf_gamma.h"
+#include "third/gsl/include/gsl/gsl_cdf.h"
+#include "third/gsl/include/gsl/gsl_randist.h"
+#include "third/gsl/include/gsl/gsl_rng.h"
+#include "third/gsl/include/gsl/gsl_sf_gamma.h"
 
 namespace {
 const double AFFECTED = 1.0, UNAFFECTED = 0.0, HOMO_ALLELE = 2.0,
@@ -62,7 +61,8 @@ KbacTest::KbacTest(int* nn, int* qq, double* aa, double* mafUpper,
               << nInvalidGenotypes
               << " variant sites (codings must be 0 = wild-type, 1 = "
                  "heterozygous, or 2 = homozygous. KBAC will treat them as 0 = "
-                 "wild-type" << std::endl;
+                 "wild-type"
+              << std::endl;
   }
 
   if (__quiet == false) {
@@ -157,7 +157,8 @@ void KbacTest::calcKbacP(double* pvalue, int* sided) {
 
   if (uniqueId.size() == 0) {
     std::cout << "**Warning** non-wildtype genotype data is empty. KBAC has "
-                 "nothing to work on. Return p-value 1.0" << std::endl;
+                 "nothing to work on. Return p-value 1.0"
+              << std::endl;
     *pvalue = 1.0;
     return;
   }
@@ -173,10 +174,12 @@ void KbacTest::calcKbacP(double* pvalue, int* sided) {
 
   if (__quiet == false) {
     std::cout << "All individual genotype patterns: "
-              << "\n" << std::endl;
+              << "\n"
+              << std::endl;
     std::cout << genotypeId << std::endl;
     std::cout << "Unique individual genotype patterns: "
-              << "\n" << std::endl;
+              << "\n"
+              << std::endl;
     std::cout << uniquePattern << std::endl;
   }
 
@@ -203,7 +206,8 @@ void KbacTest::calcKbacP(double* pvalue, int* sided) {
   if (__quiet == false) {
     std::cout << "Number of each unique individual genotype patterns (totaling "
               << uniquePattern.size() << " patterns excluding wildtype): "
-              << "\n" << std::endl;
+              << "\n"
+              << std::endl;
     for (unsigned int u = 0; u != uniquePattern.size(); ++u)
       std::cout << uniquePatternCounts[u] << ", ";
     std::cout << "\n" << std::endl;

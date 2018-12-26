@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "MathMatrix.h"
-#include "MathVector.h"
-#include "LogisticRegression.h"
 #include "InputFile.h"
+#include "LogisticRegression.h"
+#include "MathMatrix.h"
 #include "MathSVD.h"
+#include "MathVector.h"
 
 #include <iostream>
 

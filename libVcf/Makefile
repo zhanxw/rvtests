@@ -5,7 +5,7 @@ LIB = lib-vcf.a
 LIB_DBG = lib-dbg-vcf.a
 BASE = PeopleSet VCFUtil PlinkInputFile PlinkOutputFile VCFInfo VCFInputFile \
        VCFIndividual SiteSet VCFHeader BCFReader VCFExtractor VCFFilter VCFValue \
-       VCFBuffer KGGInputFile
+       VCFBuffer KGGInputFile VCFRecord
 
 OBJ = $(BASE:=.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
@@ -39,8 +39,9 @@ $(BZIP2_INC):
 THIRD_INC = $(BCF_INC) $(TABIX_INC) $(PCRE_INC) $(BZIP2_INC) $(ZLIB_INC) $(GSL_INC)
 THIRD_INC_FLAGS = $(addprefix -I,$(THIRD_INC))
 
-### put BCF_INC ahead of TABIX, so correct kseq.h can be included
-DEFAULT_CXXFLAGS = -std=c++0x -D__STDC_LIMIT_MACROS -I. -I.. -I../base $(THIRD_INC_FLAGS) -D_FILE_OFFSET_BITS=64 -D_USE_KNETFILE -fopenmp
+DEFAULT_CXXFLAGS ?= -std=c++0x -I. -I$(ROOT) $(addprefix -I, $(THIRD_INC))
+# enable read over HTTP and FTP
+DEFAULT_CXXFLAGS += -D_USE_KNETFILE
 
 # 'make release' will: clean current build; build with -O2 flags;
 # NOTE: don't use -j flag!
@@ -64,7 +65,10 @@ define BUILD_each
   TAR_DBG := $(1)_dbg.o
   SRC := $(1).cpp
   -include  $(1).d
-  $$(TAR) $$(TAR_DBG): $$(SRC) $$(THIRD_INC)
+  $$(TAR): $$(SRC) $$(THIRD_INC)
+	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ $$(CXXFLAGS)
+  -include  $(1)_dbg.d
+  $$(TAR_DBG): $$(SRC) $$(THIRD_INC)
 	$$(CXX) -MMD $$(CXXFLAGS) -c $$< -o $$@ $$(CXXFLAGS)
 endef
 $(foreach s, $(BASE), $(eval $(call BUILD_each, $(s))))

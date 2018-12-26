@@ -2,14 +2,15 @@
 #define _LINEARREGRESSIONPERMUTATIONTEST_H_
 
 #include <cmath>
-#include "MathCholesky.h"
-#include "MathMatrix.h"
-#include "MathSVD.h"
-#include "MathStats.h"
-#include "StringArray.h"
-#include "StringHash.h"
+// #include "MathCholesky.h"
+#include "base/MathMatrix.h"
+// #include "MathSVD.h"
+// #include "MathStats.h"
+// #include "StringArray.h"
+// #include "StringHash.h"
 
-#include "LinearRegression.h"
+#include "regression/LinearRegression.h"
+#include "third/eigen/Eigen/Cholesky"
 
 class LinearRegressionPermutationTest {
  public:
@@ -24,29 +25,37 @@ class LinearRegressionPermutationTest {
                       double threshold) {
     this->numPermutation = nPerm;
 
-    Matrix Xt;
-    Xt.Transpose(X);
+    // Matrix Xt;
+    // Xt.Transpose(X);
 
-    Matrix XtX;
-    XtX.Product(Xt, X);
-    Cholesky chol;
-    if (!chol.TryDecompose(XtX)) return false;
-    chol.Decompose(XtX);
-    chol.Invert();
-    Matrix XtXinv = chol.inv;
+    // Matrix XtX;
+    // XtX.Product(Xt, X);
+    // Cholesky chol;
+    // if (!chol.TryDecompose(XtX)) return false;
+    // chol.Decompose(XtX);
+    // chol.Invert();
+    // Matrix XtXinv = chol.inv;
 
-    Matrix XtXInvXt;
-    XtXInvXt.Product(XtXinv, Xt);
+    // Matrix XtXInvXt;
+    // XtXInvXt.Product(XtXinv, Xt);
 
-    Vector v;
-    v.Product(XtXInvXt, Y);
-    this->observeT = v[Xcol];
+    DECLARE_EIGEN_MATRIX(X, X_e);
+    DECLARE_EIGEN_VECTOR(Y, Y_e);
+    // const int ncol = X_e.cols();
+    Eigen::MatrixXd XtXInvXt =
+        (X_e.transpose() * X_e).llt().solve(X_e.transpose());
+    // Vector v;
+    // v.Product(XtXInvXt, Y);
+    Eigen::VectorXd v = XtXInvXt * Y_e;
+    // this->observeT = v[Xcol];
+    this->observeT = v(Xcol);
     this->absObserveT = fabs(this->observeT);
 
     // fprintf(stderr, "obs = %.2f\n", this->observeT);
 
     // permuatation part
     Vector yPerm = Y;
+    DECLARE_EIGEN_VECTOR(yPerm, yPerm_e);
     this->actualPerm = 0;
     this->numLarge = 0;
     this->numLess = 0;
@@ -60,8 +69,10 @@ class LinearRegressionPermutationTest {
       actualPerm++;
       permutateVector(yPerm);
 
-      v.Product(XtXInvXt, yPerm);
-      z = v[Xcol];
+      // v.Product(XtXInvXt, yPerm);
+      // z = v[Xcol];
+      v = XtXInvXt * yPerm_e;
+      z = v(Xcol);
 
       if (z > this->absObserveT) {
         this->numLarge++;
@@ -199,8 +210,8 @@ class LinearRegressionPermutationTest {
     double xy = 0.;
     double xx = 0.;
     for (int i = 0; i < y.Length(); i++) {
-      xy += (X[i][0] * y[i]);
-      xx += (X[i][0] * X[i][0]);
+      xy += (X(i, 0) * y[i]);
+      xx += (X(i, 0) * X(i, 0));
     }
     this->observeT = xy / (sqrt(xx) + 1e-20);
     this->absObserveT = fabs(this->observeT);
@@ -220,8 +231,8 @@ class LinearRegressionPermutationTest {
       double xy;
       double xx;
       for (int i = 0; i < y.Length(); i++) {
-        xy += (X[i][0] * y[i]);
-        xx += (X[i][0] * X[i][0]);
+        xy += (X(i, 0) * y[i]);
+        xx += (X(i, 0) * X(i, 0));
       }
 
       z = xy / (sqrt(xx) + 1e-20);

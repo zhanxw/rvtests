@@ -7,9 +7,13 @@
 #include <stdio.h>
 #include <string>
 
+#ifdef _WIN32
+// avoid _imp_regcomp et al missing problem
+#define PCRE_STATIC
+#endif
 // use third/ pcre library instead of
 // system provided header file
-#include "pcreposix.h"
+#include "third/pcre/include/pcreposix.h"
 
 #define ERROR_BUF_LEN 64
 class Regex {

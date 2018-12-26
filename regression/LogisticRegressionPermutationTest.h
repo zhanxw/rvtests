@@ -1,16 +1,18 @@
 #ifndef _LOGISTICREGRESSIONPERMUTATIONTEST_H_
 #define _LOGISTICREGRESSIONPERMUTATIONTEST_H_
 
-#include "MathMatrix.h"
-#include "MathCholesky.h"
-#include "StringHash.h"
-#include "StringArray.h"
+// #include "MathCholesky.h"
+// #include "StringHash.h"
+// #include "StringArray.h"
 #include <cmath>
-#include "MathStats.h"
-#include "MathSVD.h"
+// #include "MathStats.h"
+// #include "MathSVD.h"
 
-#include "Random.h"
-#include "LogisticRegression.h"
+#include "base/MathMatrix.h"
+#include "libsrc/Random.h"
+#include "regression/LogisticRegression.h"
+
+#include "third/eigen/Eigen/Core"
 
 class LogisticRegressionPermutationTest {
  public:
@@ -98,10 +100,15 @@ class LogisticRegressionPermutationTest {
     Vector beta_null = lr.GetCovEst();
 
     Vector prob_null;
-    prob_null.Product(cov, beta_null);
-    for (int i = 0; i < prob_null.Length(); i++) {
-      prob_null[i] = 1.0 / (1.0 + exp(-prob_null[i]));
-    }
+    prob_null.Dimension(X.rows);
+    // prob_null.Product(cov, beta_null);
+    // for (int i = 0; i < prob_null.Length(); i++) {
+    //   prob_null[i] = 1.0 / (1.0 + exp(-prob_null[i]));
+    // }
+    DECLARE_EIGEN_MATRIX(cov, cov_e);
+    DECLARE_EIGEN_VECTOR(beta_null, beta_null_e);
+    DECLARE_EIGEN_VECTOR(prob_null, prob_null_e);
+    prob_null_e = 1.0 / (1.0 + (-cov_e * beta_null_e).array().exp());
 
     // permuatation part
     Vector yPerm = Y;

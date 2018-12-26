@@ -1,18 +1,22 @@
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "regression/BoltLMM.h"
+#include "regression/BoltPlinkLoader.h"
 
+#include "third/cnpy/cnpy.h"
 #include "third/eigen/Eigen/Dense"
 #include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
 #include "base/IO.h"
+#include "base/MathMatrix.h"
 #include "base/TypeConversion.h"
 #include "base/Utils.h"
 #include "libVcf/PlinkInputFile.h"
-#include "libsrc/MathMatrix.h"
 #include "libsrc/Random.h"
 #include "regression/EigenMatrix.h"
 #include "regression/EigenMatrixInterface.h"
+#include "regression/MatrixOperation.h"
 #include "regression/MatrixRef.h"
+#include "regression/SaddlePointApproximation.h"
 
 // 0: no debug info
 // 1: some debug info
@@ -20,10 +24,22 @@
 // 3: most debug info (timing + intermediate file)
 static int BOLTLMM_DEBUG = 0;
 
+// Helpful environment variables:
+// BOLTLMM_SAVE_NULL_MODEL=filename => save null model
+// BOLTLMM_LOAD_NULL_MODEL=filename => load null model, need to verify it loads
+// correctly
+
+// #define DEBUG
+
 // #include <fstream>
 // #include "base/Profiler.h"
 #include "base/SimpleTimer.h"
 #include "base/TimeUtil.h"
+
+#if defined(__APPLE__) && !defined(_OPENMP)
+static int omp_get_max_threads() { return 1; }
+static int omp_get_thread_num() { return 0; }
+#endif
 
 class QuickTimer {
  public:
@@ -51,513 +67,6 @@ class QuickTimer {
 
 #define TIMER(msg) QuickTimer qt(msg);
 
-struct Float4 {
-  float x[4];
-  float operator[](int i) const { return x[i]; }
-  float& operator[](int i) { return x[i]; }
-};
-
-// serveral modules share these settings
-struct CommonVariable {
-  CommonVariable() : random_(12345) {}
-  size_t M_;
-  size_t M2_;  // this is M round up to multiple of BatchSize_
-  size_t N_;
-  // size_t N2;       // this is N round up to multiple of 4
-  size_t C_;  // >= 1 size_teger (size_tercept)
-  size_t MCtrial_;
-  size_t BatchSize_;  // batch size of marker are processed at a time
-  size_t NumBatch_;   // number of batches
-  Random random_;
-};
-
-class PlinkLoader {
- public:
-  PlinkLoader(CommonVariable& cv)
-      : pin_(NULL),
-        M_(cv.M_),
-        M2_(cv.M2_),
-        N_(cv.N_),
-        // N2_(cv.N2_),
-        C_(cv.C_),
-        BatchSize_(cv.BatchSize_),
-        NumBatch_(cv.NumBatch_),
-        random_(cv.random_),
-        Nstride_(-1),
-        genotype_(NULL),
-        stage_(NULL),
-        byte2genotype_(NULL) {}
-  // PlinkLoader(const std::string& fn) : pin_(fn) {
-  int open(const std::string& fn) {
-    pin_ = new PlinkInputFile(fn);
-    M_ = pin_->getNumMarker();
-    N_ = pin_->getNumSample();
-    C_ = INT_MIN;
-    BatchSize_ = 64;
-
-    NumBatch_ = (M_ + BatchSize_) / BatchSize_;
-    Nstride_ = (N_ + 3) / 4;  // bytes needed for one marker in PLINK
-    M2_ = (M_ + BatchSize_) / BatchSize_ * BatchSize_;
-    // N2_ = (N_ + 4 ) / 4 * 4;
-    genotype_ = NULL;  // defer memory allocation in prepareGenotype()
-    snpLookupTable_.resize(M2_);
-    stage_ = NULL;  // defer memory allocation until covariates are loaded
-    if (omp_get_max_threads() > (int)BatchSize_) {
-      fprintf(stderr,
-              "Please specify OpenMP threads less than [ %d ], current value "
-              "is [ %d ]\n",
-              (int)BatchSize_, omp_get_max_threads());
-      exit(1);
-    }
-    byte2genotype_ = new float[omp_get_max_threads() * 256 * 4 * sizeof(float)];
-
-    return 0;
-  }
-  ~PlinkLoader() {
-    if (genotype_) {
-      delete[] genotype_;
-      genotype_ = NULL;
-    }
-    if (stage_) {
-      delete[] stage_;
-      stage_ = NULL;
-    }
-    if (byte2genotype_) {
-      delete[] byte2genotype_;
-      byte2genotype_ = NULL;
-    }
-    delete pin_;
-  }
-  int loadCovariate(const std::string& fn) {
-    FILE* fp = fopen(fn.c_str(), "r");
-    if (fp == NULL) {
-      // no .covar file => only intercept
-      C_ = 1;
-      z_ = Eigen::MatrixXf::Ones(N_, C_);
-    } else {
-      fclose(fp);
-      C_ = 1;  // intercept
-      const std::vector<std::string>& iid = pin_->getSampleName();
-      LineReader lr(fn);
-      std::vector<std::string> fd;
-      int lineNo = 0;
-      while (lr.readLineBySep(&fd, "\t ")) {
-        ++lineNo;
-        if (lineNo == 1) {
-          if ((toupper(fd[0]) != "FID") || toupper(fd[1]) != "IID") {
-            fprintf(stderr, "%s file does not have a proper header line!\n",
-                    fn.c_str());
-            return -1;
-          }
-          C_ += fd.size() - 2;  // first two columns are fid and iid
-          z_.resize(N_, C_);
-          continue;
-        }
-        if (fd[1] != iid[lineNo - 2]) {  // lineNo is 1-based and covar file
-                                         // usually have header, so minus 2
-          fprintf(
-              stderr,
-              "Mismatched order of PLINK FAM and covariate file on line %d!\n",
-              lineNo);
-          return (-1);
-        }
-        z_(lineNo - 2, 0) = 1.0;
-        for (size_t i = 1; i != C_; ++i) {
-          z_(lineNo - 2, i) = atof(fd[2 + i - 1]);
-        }
-      }
-    }
-    stage_ = new float[BatchSize_ * (N_ + C_)];
-    return 0;
-  }
-  int extractCovariateBasis() {
-    int numSingularValueKept = 1;
-    if (N_ < 16) {
-      Eigen::JacobiSVD<Eigen::MatrixXf> svd(z_, Eigen::ComputeThinU);
-      float threshold = svd.singularValues()[0] * 1e-8;
-      for (size_t i = 1; i != C_; ++i) {
-        if (svd.singularValues()[i] > threshold) {
-          numSingularValueKept++;
-        }
-      }
-      z_ = svd.matrixU().leftCols(numSingularValueKept);
-    } else {
-      Eigen::BDCSVD<Eigen::MatrixXf> svd(z_, Eigen::ComputeThinU);
-      float threshold = svd.singularValues()[0] * 1e-8;
-      for (size_t i = 1; i != C_; ++i) {
-        if (svd.singularValues()[i] > threshold) {
-          numSingularValueKept++;
-        }
-      }
-      z_ = svd.matrixU().leftCols(numSingularValueKept);
-    }
-
-    return 0;
-  }
-  int preparePhenotype(const Matrix* phenotype) {
-    y_ = Eigen::MatrixXf::Zero(N_ + C_, 1);
-    if (phenotype) {
-      for (int i = 0; i < (int)N_; ++i) {
-        y_(i, 0) = (*phenotype)[i][0];
-      }
-    } else {
-      const std::vector<double>& pheno = pin_->getPheno();
-      for (int i = 0; i < (int)N_; ++i) {
-        y_(i, 0) = pheno[i];
-      }
-    }
-    float avg = y_.sum() / N_;
-    y_.array() -= avg;
-    y_.bottomLeftCorner(C_, 1).noalias() =
-        z_.transpose() * y_.topLeftCorner(N_, 1);
-    return 0;
-  }
-  int prepareGenotype() {
-    // load .bed file to the memory
-
-    // convert to size_t is necessary
-    // e.g. when Nstride_ * M2_ = 20000 * 123648 = 2.4 x 10^9
-    // since the maximum 32bit integer is ~2 x 109,
-    // there will be integer overflow, and thus crash the program with bad_alloc
-    // NOTE: in gdb, this type of error can be caught using:
-    //       b 'std::bad_alloc::bad_alloc()'
-    // fprintf(stderr, "Allocate unsigned char [ %d * %d]", Nstride_, M2_);
-    genotype_ = new unsigned char[Nstride_ * M2_];
-    pin_->readBED(genotype_, M_ * Nstride_);
-
-    // calculate maf, norms, build snpLookupTable
-    std::vector<int> alleleCount(256, 0);
-    std::vector<int> alleleCount2(256, 0);
-    std::vector<int> missingCount(256, 0);
-    for (int i = 0; i < 256; ++i) {
-      for (int j = 0; j < 4; ++j) {
-        int g = (i & Mask[j]) >> Shift[j];
-        switch (g) {
-          case PlinkInputFile::HET:
-            alleleCount[i]++;
-            alleleCount2[i]++;
-            break;
-          case PlinkInputFile::HOM_ALT:
-            alleleCount[i] += 2;
-            alleleCount2[i] += 4;
-            break;
-          case PlinkInputFile::MISSING:
-            missingCount[i]++;
-        }
-      }
-    }
-    unsigned char* p = genotype_;
-    for (size_t m = 0; m != M_; ++m) {
-      assert(p == (genotype_ + m * Nstride_));
-      int numAllele = 0;
-      int numAllele2 = 0;
-      int numMissing = 0;
-      // NOTE: in PLINK when the number of samples are not multiple of 4
-      // the remainder bits are 00 (homozygous REF)
-      // since we count alternative alleles, we do not need to deal with the
-      // remainder genotypes with special care.
-      for (size_t n = 0; n != Nstride_; ++n) {
-        numAllele += alleleCount[(*p)];
-        numAllele2 += alleleCount2[(*p)];
-        numMissing += missingCount[(*p)];
-        ++p;
-      }
-      double mean = 1.0 * numAllele / (N_ - numMissing);
-      double var = 1.0 *
-                   (numAllele2 * (N_ - numMissing) - numAllele * numAllele) /
-                   (N_ - numMissing) / (N_ - numMissing - 1);
-      double sd = sqrt(var);
-      if (sd > 0) {
-        snpLookupTable_[m][PlinkInputFile::HOM_REF] = (0.0 - mean) / sd;
-        snpLookupTable_[m][PlinkInputFile::HET] = (1.0 - mean) / sd;
-        snpLookupTable_[m][PlinkInputFile::HOM_ALT] = (2.0 - mean) / sd;
-        snpLookupTable_[m][PlinkInputFile::MISSING] = 0.0;
-      } else {
-        snpLookupTable_[m][PlinkInputFile::HOM_REF] = 0.0;
-        snpLookupTable_[m][PlinkInputFile::HET] = 0.0;
-        snpLookupTable_[m][PlinkInputFile::HOM_ALT] = 0.0;
-        snpLookupTable_[m][PlinkInputFile::MISSING] = 0.0;
-      }
-    }
-    for (size_t m = M_ + 1; m != M2_; ++m) {
-      snpLookupTable_[m][PlinkInputFile::HOM_REF] = 0.0;
-      snpLookupTable_[m][PlinkInputFile::HET] = 0.0;
-      snpLookupTable_[m][PlinkInputFile::HOM_ALT] = 0.0;
-      snpLookupTable_[m][PlinkInputFile::MISSING] = 0.0;
-    }
-
-    // prepare Z'X and gNorm2
-    zg_.resize(C_, M2_);
-    zg_.setZero();
-    gNorm2_.resize(M2_);
-    gNorm2_.setZero();
-
-    // load SNP in batches
-    for (size_t batch = 0; batch != NumBatch_; ++batch) {
-      loadSNPBatch(batch, stage_);
-      int lb = batch * BatchSize_;
-      int ub = std::min(lb + BatchSize_, M_);
-
-      // gBatch/g: [BatchSize_ x N_]
-      Eigen::Map<Eigen::MatrixXf> g(stage_, N_, ub - lb);
-      zg_.block(0, lb, C_, ub - lb).noalias() = z_.transpose() * g;
-
-      // calculate squared norm of (I-Z'Z)X
-      gNorm2_.segment(lb, ub - lb) =
-          g.colwise().squaredNorm() -
-          zg_.block(0, lb, C_, ub - lb).colwise().squaredNorm();
-    }
-    return 0;
-  }
-  int projectCovariate(Eigen::MatrixXf* mat) {
-    assert(mat && (size_t)mat->rows() == N_ + C_);
-    Eigen::MatrixXf& m = *mat;
-    m.bottomRows(C_).noalias() = z_.transpose() * m.topRows(N_);
-    return 0;
-  }
-
-  void buildTable(int m, float* table) {
-    const float* v = (float*)&snpLookupTable_[m];
-    for (int i = 0; i < 256; ++i) {
-      for (int j = 0; j < 4; ++j) {
-        *(table++) = *(v + ((i & Mask[j]) >> Shift[j]));
-      }
-    }
-  }
-  // load data in batches
-  // @param batch to gBatchSize_ [BatchSize_ * (N_)]
-  //  @param, marker [batch*BatchSize_, min(
-  // (batch+1)*BatchSize_, M_)]
-  // will be extracted and stored in gBatchSize_
-  int loadSNPBatch(size_t batch, float* stage) {
-    // #ifdef DEBUG
-    //     QuickTimer qt(__PRETTY_FUNCTION__);
-    // #endif
-    size_t lb = batch * BatchSize_;
-    size_t ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
-#pragma omp parallel for
-    for (size_t i = lb; i < ub; ++i) {
-      unsigned char* g = genotype_ + i * Nstride_;
-      float* p = stage + (i - lb) * N_;
-      // build lookup table
-      float* table =
-          byte2genotype_ + omp_get_thread_num() * 256 * 4 * sizeof(float);
-      buildTable(i, table);
-      // look up normalized genotypes
-      const int strides = (N_ & ~0x3) >> 2;
-      for (int j = 0; j < strides; ++j) {
-        memcpy(p, table + *(g + j) * 4, sizeof(float) * 4);
-        p += 4;
-      }
-      const int remainder = N_ & 0x3;
-      if (remainder) {
-        memcpy(p, table + *(g + Nstride_) * 4, sizeof(float) * remainder);
-        p += remainder;
-      }
-      assert(p == stage + (i - lb) * N_ + (N_));
-#if 0
-      // naive method - slow
-      for (int j = 0; j < N_; ++j) {
-        const unsigned char gg = *(g + (j >> 2));
-        const int offset = j & 0x3;
-        *p = snpLookupTable_[i][(gg & Mask[offset]) >> Shift[offset]];
-        p++;
-      }
-#endif
-    }
-    return 0;
-  }
-  // load batch @param batch to gBatchSize_ [BatchSize_ * (N_ + C_)]
-  // for a given batch @param, marker [batch*BatchSize_, min(
-  // (batch+1)*BatchSize_, M_)]
-  // will be extracted and stored in gBatchSize_
-  int loadSNPWithCovBatch(size_t batch, float* stage) {
-    // #ifdef DEBUG
-    //     QuickTimer qt(__PRETTY_FUNCTION__);
-    // #endif
-    size_t lb = batch * BatchSize_;
-    size_t ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
-
-#pragma omp parallel for
-    for (size_t i = lb; i < ub; ++i) {
-      unsigned char* g = genotype_ + i * Nstride_;
-      float* p = stage + (i - lb) * (N_ + C_);
-      // build lookup table
-      float* table =
-          byte2genotype_ + omp_get_thread_num() * 256 * 4 * sizeof(float);
-      buildTable(i, table);
-      // look up normalized genotypes
-      const int strides = (N_ & ~0x3) >> 2;
-      for (int j = 0; j < strides; ++j) {
-        memcpy(p, table + *(g + j) * 4, sizeof(float) * 4);
-        p += 4;
-      }
-      const int remainder = N_ & 0x3;
-      if (remainder) {
-        memcpy(p, table + *(g + Nstride_) * 4, sizeof(float) * remainder);
-        p += remainder;
-      }
-#if 0
-      for (int j = 0; j < N_; ++j) {
-        const unsigned char gg = *(g + (j >> 2));
-        const int offset = j & 0x3;
-        *p = snpLookupTable_[i][(gg & Mask[offset]) >> Shift[offset]];
-        p++;
-
-      }
-#endif
-      assert(p == stage + (i - lb) * (N_ + C_) + (N_));
-
-      float* pCov = zg_.data() + i * zg_.rows();
-      memcpy(p, pCov, sizeof(float) * C_);
-
-#if 0      
-      for (int j = 0; j < C_; ++j) {
-        *p = zg_(j, i);
-        p++;
-      }
-
-#endif
-    }
-    return 0;
-  }
-  // load batch @param batch to gBatchSize_ [BatchSize_ * (N_ + C_)]
-  // for a given batch @param, marker [batch*BatchSize_, min(
-  // (batch+1)*BatchSize_, M_)]
-  // will be extracted and stored in gBatchSize_
-  int loadSNPWithNegCovBatch(size_t batch, float* stage) {
-    // #ifdef DEBUG
-    //     QuickTimer qt(__PRETTY_FUNCTION__);
-    // #endif
-    size_t lb = batch * BatchSize_;
-    size_t ub = lb + BatchSize_;  // std::min(lb + BatchSize_, M_);
-#pragma omp parallel for
-    for (size_t i = lb; i < ub; ++i) {
-      unsigned char* g = genotype_ + i * Nstride_;
-      float* p = stage + (i - lb) * (N_ + C_);
-      // build lookup table
-      float* table =
-          byte2genotype_ + omp_get_thread_num() * 256 * 4 * sizeof(float);
-      buildTable(i, table);
-      // look up normalized genotypes
-      const int strides = (N_ & ~0x3) >> 2;
-      for (int j = 0; j < strides; ++j) {
-        memcpy(p, table + *(g + j) * 4, sizeof(float) * 4);
-        p += 4;
-      }
-      const int remainder = N_ & 0x3;
-      if (remainder) {
-        memcpy(p, table + *(g + Nstride_) * 4, sizeof(float) * remainder);
-        p += remainder;
-      }
-#if 0
-      for (int j = 0; j < N_; ++j) {
-        const unsigned char gg = *(g + (j >> 2));
-        const int offset = j & 0x3;
-        *p = snpLookupTable_[i][(gg & Mask[offset]) >> Shift[offset]];
-        p++;
-      }
-#endif
-      for (size_t j = 0; j != C_; ++j) {
-        *p = -zg_(j, i);
-        p++;
-      }
-      assert(p == stage + (i - lb) * (N_ + C_) + (N_ + C_));
-    }
-    return 0;
-  }
-  // load data in batches
-  // @param nSnp into [nSnp * (N_+C_)]
-  int loadRandomSNPWithCov(int nSnp, float* stage) {
-    std::vector<size_t> indice(nSnp);
-    for (int i = 0; i < nSnp; ++i) {
-      indice[i] = (size_t)(random_.Next() * M_);
-    }
-
-// #ifdef DEBUG
-//     QuickTimer qt(__PRETTY_FUNCTION__);
-// #endif
-#pragma omp parallel for
-    for (int i = 0; i < nSnp; ++i) {
-      unsigned char* g = genotype_ + indice[i] * Nstride_;
-      float* p = stage + (i) * (N_ + C_);
-      // build lookup table
-      float* table =
-          byte2genotype_ + omp_get_thread_num() * 256 * 4 * sizeof(float);
-      buildTable(i, table);
-      // look up normalized genotypes
-      const int strides = (N_ & ~0x3) >> 2;
-      for (int j = 0; j < strides; ++j) {
-        memcpy(p, table + *(g + j) * 4, sizeof(float) * 4);
-        p += 4;
-      }
-      const int remainder = N_ & 0x3;
-      if (remainder) {
-        memcpy(p, table + *(g + Nstride_) * 4, sizeof(float) * remainder);
-        p += remainder;
-      }
-      assert(p == stage + (i) * (N_ + C_) + (N_));
-#if 0      
-      for (int j = 0; j < N_; ++j) {
-        const unsigned char gg = *(g + (j >> 2));
-        const int offset = j & 0x3;
-        *p = snpLookupTable_[i][(gg & Mask[offset]) >> Shift[offset]];
-        p++;
-      }
-#endif
-    }
-
-    Eigen::Map<Eigen::MatrixXf> g(stage, (N_ + C_), nSnp);
-    g.bottomRows(C_).noalias() = z_.transpose() * g.topRows(N_);
-    return 0;
-  }
-
-  const Eigen::MatrixXf& getPhenotype() const { return y_; }
-  float* getStage() const { return stage_; }
-
- private:
-  PlinkInputFile* pin_;
-
-  // Common variables
-  size_t& M_;
-  size_t& M2_;  // this is M round up to multiple of BatchSize_
-  size_t& N_;
-  size_t& C_;
-  size_t& BatchSize_;  // batch size of marker are processed at a time
-  size_t& NumBatch_;   // number of batches
-  Random& random_;
-
-  size_t Nstride_;
-  Eigen::MatrixXf z_;   // covariate [ N x C ] matrix
-  Eigen::MatrixXf y_;   // phenotype [ N x C ] matrix
-  Eigen::MatrixXf zg_;  // Z' * G , [ C x M ] matrix
-  std::vector<Float4>
-      snpLookupTable_;      // [M x 4] snpTable[i][j] store normalized values
-  Eigen::VectorXf gNorm2_;  // vector norm of (g - Z Z' g)
-
-  // the BED file content
-  EIGEN_ALIGN16 unsigned char*
-      genotype_;  // PLINK genotype matrix, SNP major, 2 bits/genotype
-
-  // centered and scaled genotyped in a batch,
-  // allocated to be a matrix of [(N+C) x BatchSize_ ]
-  // used as [ N x BatchSize_ ] without covariate
-  // or [(N+C) x BatchSize_ ] with covariates
-  float* stage_;
-
-  static const int Mask[4];
-  static const int Shift[4];
-  static const float Plink2Geno[4];
-  // this is for fast loading genotypes
-  // each OpenMP threads takes a 256 x 4 memory lot
-  EIGEN_ALIGN16 float* byte2genotype_;
-};  // class PlinkLoader
-
-const int PlinkLoader::Mask[4] = {3, 3 << 2, 3 << 4, 3 << 6};
-const int PlinkLoader::Shift[4] = {0, 2, 4, 6};
-// (HOM_REF, MISSING, HET, HOM_ALT) == (0, 1, 2, 3)
-const float PlinkLoader::Plink2Geno[4] = {0, -1, 1, 2};
-
 class WorkingData {
  public:
   explicit WorkingData(CommonVariable& cv)
@@ -578,7 +87,7 @@ class WorkingData {
     // see:
     // https://github.com/eddelbuettel/rcppziggurat/blob/master/man/ziggurat.Rd
   }
-  void init(PlinkLoader& pl) {
+  void init(BoltPlinkLoader& pl) {
     // fill beta_rand with N(0, 1/M)
     // fill e_rand with N(0, 1)
     const double sqrtMInv = 1.0 / sqrt((double)M_);
@@ -633,7 +142,7 @@ class WorkingData {
 
   Eigen::MatrixXf beta_hat;  // [M2 x (MCtrial+1)]
   Eigen::MatrixXf e_hat;     //  [(N+C) x (MCtrial+1)]
-};
+};                           // class WorkingData
 
 class BoltLMM::BoltLMMImpl {
  public:
@@ -645,11 +154,23 @@ class BoltLMM::BoltLMMImpl {
         C_(cv.C_),
         MCtrial_(cv.MCtrial_),
         BatchSize_(cv.BatchSize_),
-        NumBatch_(cv.NumBatch_) {}
-  int FitNullModel(const std::string& prefix, Matrix* phenotype) {
+        NumBatch_(cv.NumBatch_),
+        binaryMode(false),
+        saddlePointCalculator(NULL),
+        useSaddlePoint(false)  // default: turn off saddle point approximation
+  {}
+  virtual ~BoltLMMImpl() {
+    if (saddlePointCalculator) {
+      delete saddlePointCalculator;
+    }
+  }
+
+  void enableBinaryMode() { this->binaryMode = true; }
+  int FitNullModel(const std::string& prefix, const Matrix* phenotype) {
     const char* boltLMMDebugEnv = std::getenv("BOLTLMM_DEBUG");
     if (boltLMMDebugEnv) {
       BoltLMM::BoltLMMImpl::showDebug = atoi(boltLMMDebugEnv);
+      fprintf(stderr, "BOLTLMM_DEBUG=%s\n", boltLMMDebugEnv);
     } else {
       BoltLMM::BoltLMMImpl::showDebug = 0;
     }
@@ -660,6 +181,9 @@ class BoltLMM::BoltLMMImpl {
       return -1;
     }
     // load covariates
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "Load covariate\n");
+    }
     fn += ".covar";
     if (pl.loadCovariate(fn)) {
       fprintf(stderr, "Failed to load covariate file [ %s ]!\n", fn.c_str());
@@ -667,34 +191,128 @@ class BoltLMM::BoltLMMImpl {
     }
 
     // normalize covariate
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "Normalize covariate\n");
+    }
     pl.extractCovariateBasis();
 
     // regress out covariate from phenotype
-    pl.preparePhenotype(phenotype);
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "Pre-process phenotypes\n");
+    }
+    pl.preparePhenotype(phenotype, binaryMode);
 
     // project Z to G and
     // record mean and sd for each SNP
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "Pre-process genotyeps\n");
+    }
     pl.prepareGenotype();
 
     // get constants
     stage_ = pl.getStage();
 
-    // calculate heritability
-    EstimateHeritability();
+    // load null model if necessary
+    null_model_file_name_ = std::getenv("BOLTLMM_LOAD_NULL_MODEL")
+                                ? std::getenv("BOLTLMM_LOAD_NULL_MODEL")
+                                : "";
+    if (null_model_file_name_.empty()) {
+      fprintf(stderr, "Run BOLT Null Model\n");
 
-    // calibrate a scaling factor
-    EstimateInfStatCalibration(pl);
+      // calculate heritability
+      EstimateHeritability();
 
+      // calibrate a scaling factor
+      EstimateInfStatCalibration(pl);
+    } else {
+      fprintf(stderr, "Load BOLT Null Model: %s\n",
+              null_model_file_name_.c_str());
+      cnpy::npz_t my_npz = cnpy::npz_load(null_model_file_name_);
+      cnpy::NpyArray tmp = my_npz["H_inv_y"];
+      Eigen::Map<Eigen::MatrixXf> tmp2(tmp.data<float>(), tmp.shape[0],
+                                       tmp.shape[1]);
+      H_inv_y_ = tmp2;
+      H_inv_y_norm2_ = *my_npz["H_inv_y_norm2"].data<double>();
+      infStatCalibration_ = *my_npz["infStatCalibration"].data<double>();
+      xVx_xx_ratio_ = *my_npz["xVx_xx_ratio"].data<double>();
+    }
     // // calcualte alpha to speed up AF calculation in the future
     // Given (1) empirical kinship is not invertible; (2) N is large,
     // we just report the averaged allele frequencies.
     // CalculateAlpha();
 
+    // save null model
+    null_model_file_name_ = std::getenv("BOLTLMM_SAVE_NULL_MODEL")
+                                ? std::getenv("BOLTLMM_SAVE_NULL_MODEL")
+                                : "";
+    if (!null_model_file_name_.empty()) {
+      fprintf(stderr, "Save BOLT Null Model: %s\n",
+              null_model_file_name_.c_str());
+      cnpy::npz_save(
+          null_model_file_name_, "H_inv_y", H_inv_y_.data(),
+          {(unsigned long)H_inv_y_.rows(), (unsigned long)H_inv_y_.cols()},
+          "w");
+      cnpy::npz_save(null_model_file_name_, "H_inv_y_norm2", &H_inv_y_norm2_,
+                     {1}, "a");
+      cnpy::npz_save(null_model_file_name_, "infStatCalibration",
+                     &infStatCalibration_, {1}, "a");
+      cnpy::npz_save(null_model_file_name_, "xVx_xx_ratio", &xVx_xx_ratio_, {1},
+                     "a");
+    }
+
+    // saddle point approximation
+    if (binaryMode && useSaddlePoint) {
+      // printf("calculate saddle point\n");
+      comptueBLUP(&mu_);
+      y_ = pl.getPhenotype().topRows(N_);
+      resid_ = pl.getResidual(mu_);
+      saddlePointCalculator = new SaddlePointApproximation(y_, mu_, resid_);
+
+      // prepare monte-carlo data
+      saddlePointCalculator_mc_ = new SaddlePointApproximation*[10];
+      resid_mc_.resize(10);
+      y_mc_.resize(10);
+      for (int i = 0; i < 10; ++i) {
+        simulateMC(mu_, y_, &resid_mc_[i], &y_mc_[i]);
+        saddlePointCalculator_mc_[i] =
+            new SaddlePointApproximation(y_mc_[i], mu_, resid_mc_[i]);
+      }
+
+      fprintf(stderr, "y_mc = \n");
+      for (int i = 0; i < 15; ++i) {
+        for (int j = 0; j < 10; ++j) {
+          fprintf(stderr, " %g", y_mc_[j](i, 0));
+        }
+        fprintf(stderr, "\n");
+      }
+
+      fprintf(stderr, "resid_mc = \n");
+      for (int i = 0; i < 15; ++i) {
+        for (int j = 0; j < 10; ++j) {
+          fprintf(stderr, " %g", resid_mc_[j](i, 0));
+        }
+        fprintf(stderr, "\n");
+      }
+    }
+
     return 0;
+  }  // end FitNullModel
+  void simulateMC(const Eigen::MatrixXf& mu, const Eigen::MatrixXf& y,
+                  Eigen::MatrixXf* resid_mc, Eigen::MatrixXf* y_mc) {
+    (*resid_mc).resize(N_, 1);
+    (*y_mc).resize(N_, 1);
+    for (int i = 0; i < N_; ++i) {
+      if (random_.Next() <= mu(i, 0)) {
+        (*y_mc)(i, 0) = 1;
+      } else {
+        (*y_mc)(i, 0) = 0;
+      }
+    }
+    (*resid_mc) = (*y_mc) - mu;
   }
 
   // test @param Xcol
-  int TestCovariate(Matrix& Xcol) {
+  int TestCovariate(const Matrix& Xcol) {
     static Eigen::MatrixXf gg;
     G_to_Eigen(Xcol, &gg);
     if ((size_t)g_test_.rows() != N_ + C_) {
@@ -706,18 +324,68 @@ class BoltLMM::BoltLMMImpl {
     // v_ = (g_test_.squaredNorm() * H_inv_y_norm2_) * infStatCalibration_ /
     //      g_test_.rows();
     u_ = projDot(g_test_, H_inv_y_)(0, 0);
+    // dumpToFile(H_inv_y_, "tmp.H_inv_y_");
     v_ = projNorm2(g_test_)(0) * H_inv_y_norm2_ * infStatCalibration_ / N_;
 
     if (v_ > 0.0) {
       effect_ = u_ / v_;
       pvalue_ = gsl_cdf_chisq_Q(u_ * u_ / v_, 1.0);
     } else {
+      v_ = 0;  // reset to zero, this can occur due to float point arithmetic
       effect_ = 0.;
       pvalue_ = 1.0;
     }
-
     af_ = 0.5 * gg.sum() / gg.rows();
 
+    // saddle point approximation
+    if (binaryMode && useSaddlePoint) {
+      if (pvalue_ < 1e-6) {
+        fprintf(stderr, "Enable binary mode calibration via MonteCarlo\n");
+        // calculate de-correlated x
+        const Eigen::MatrixXf g_tilde = pl.projectToCovariateSpace(g_test_);
+        Eigen::MatrixXf x_decorr;
+        solve(g_tilde, delta_, &x_decorr);
+        for (int i = 0; i < 10; ++i) {
+          fprintf(stderr, "g_tilde(%d, 0) = %g\n", i, g_tilde(i, 0));
+          fprintf(stderr, "x_decorr(%d, 0) = %g\n", i, x_decorr(i, 0));
+        }
+
+        // average p-values
+        Eigen::MatrixXf p_value(10, 1);
+        for (int i = 0; i < 10; ++i) {
+          saddlePointCalculator_mc_[i]->calculatePvalue(x_decorr,
+                                                        &p_value(i, 0));
+        }
+
+        float newPvalue = p_value.sum() / 10;
+        if (true) {
+          fprintf(stderr, "old_pvalue = %g, new_pvalue = %g, from [", pvalue_,
+                  newPvalue);
+          for (int i = 0; i < 10; ++i) {
+            fprintf(stderr, "%g, ", p_value(i));
+          }
+          fprintf(stderr, "]\n");
+        }
+        if (std::isfinite(newPvalue)) {
+          pvalue_ = newPvalue;
+        }
+      } else if (pvalue_ < 0.001) {
+        fprintf(stderr, "Enable binary mode calibration\n");
+        // binary mode correction
+        const Eigen::MatrixXf g_tilde = pl.projectToCovariateSpace(g_test_);
+        float newPvalue;
+        if (!saddlePointCalculator->calculatePvalue(g_tilde, &newPvalue)) {
+          fprintf(stderr, "old_pvalue = %g\t", pvalue_);
+          fprintf(stderr, "new_pvalue = %g\n", newPvalue);
+#ifdef DEBUG
+          if (newPvalue * 100 < pvalue_) {
+            fprintf(stderr, "Suspicious result!\n");
+          }
+#endif
+          pvalue_ = newPvalue;
+        }
+      }
+    }  // end if (binaryMode)
     return 0;
   }
 #if 0
@@ -801,52 +469,118 @@ class BoltLMM::BoltLMMImpl {
     WorkingData w(cv);
     w.init(pl);
 
-    double h2[7] = {0.};  // 7 is the limit of iterations used by BoltLMM
-    double logDelta[7] = {0.};
-    double f[7] = {0.};
+    if (std::getenv("BOLTLMM_MINQUE")) {
+      return EstimateHeritabilityMinque(&w);
+    } else {
+      return EstimateHeritabilityBolt(&w);
+    }
+  }
+  int EstimateHeritabilityMinque(WorkingData* wd) {
+    WorkingData& w = *wd;
+    // w.x_beta_rand (N_+C_, MCtrial_);
+    fprintf(stderr, "M_ = %d, N_ = %d, BS = %d\n", (int)M_, (int)N_,
+            (int)BatchSize_);
+    float* stage_ = pl.getStage();
+
+    // dumpToFile(w.x_beta_rand, "tmp.x_beta_rand");
+    // trace(K) = E(b' X X' b) = \sum( (X'b)_ij^2 ) , b is a column vector and
+    // each b_i has 0 mean, unit variance
+    float trace = (w.x_beta_rand.topRows(N_).squaredNorm() -
+                   w.x_beta_rand.bottomRows(C_).squaredNorm()) /
+                  MCtrial_;
+    float trueTrace = 0;
+    float trace2 = 0;  // trace(K^2)
+    float gy = 0;
+    for (size_t b = 0; b != NumBatch_; ++b) {
+      pl.loadSNPWithCovBatch(b, stage_);
+      Eigen::Map<Eigen::MatrixXf> g(stage_, N_ + C_, BatchSize_);
+      trueTrace += g.topRows(N_).squaredNorm() - g.bottomRows(C_).squaredNorm();
+      trace2 += (g.topRows(N_).transpose() *  // N_ x BatchSize_
+                 w.x_beta_rand.topRows(N_))
+                    .squaredNorm() -
+                (g.bottomRows(C_).transpose() *  // N_ x BatchSize_
+                 w.x_beta_rand.bottomRows(C_))
+                    .squaredNorm();
+      ;
+      gy += (w.y.col(0).head(N_).transpose() * g.topRows(N_)).squaredNorm() -
+            (w.y.col(0).tail(C_).transpose() * g.bottomRows(C_)).squaredNorm();
+    }
+    trueTrace /= M_;
+    trace2 = trace2 / MCtrial_ / M_;
+    gy /= M_;
+    float yNorm2 =
+        w.y.col(0).head(N_).squaredNorm() - w.y.col(0).tail(C_).squaredNorm();
+
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "empiricial trace(K) = %g\n", trace);
+      fprintf(stderr, "randomized trace(K) = %g\n", trueTrace);
+      fprintf(stderr, "theoretial trace(K) = %d\n", (int)(N_ - C_));
+      fprintf(stderr, "randomized trace(K^2) = %g\n", trace2);
+      fprintf(stderr, "y'Ky = %g \n", gy);
+      fprintf(stderr, "y'y(yNorm2) = %g\n", yNorm2);
+    }
 
 #if 0
-    // use MINQUE to get initial guess on h2
-    // see: Zhou Xiang's bioarxiv paper
-#ifdef DEBUG
-    fprintf(stderr, "minque start - %s\n", currentTime().c_str());
-#endif
-    double S;
-    if (g_.rows() < g_.cols()) {
-      S = (g_ * g_.transpose()).squaredNorm() / M / M / (N - 1) /
-          (N - 1) -
-          1.0 / (N - 1);
-    } else {
-      S = (g_.transpose() * g_).squaredNorm() / M / M / (N - 1) /
-          (N - 1) -
-          1.0 / (N - 1);
-    }
-    double q = ((g_.transpose() * y_).squaredNorm() / M -
-                (y_.squaredNorm())) /
-        (N - 1) / (N - 1);
+    // Xiang Zhou's MINQUE method may result in negative variance component estimation
+    float q = (gy / M_ - yNorm2) / (N_ - 1) / (N_ - 1);
+    float S = trace2 / (N_ - 1) / (N_ - 1) - 1.0 / (N_ - 1);
     double sigma2_g_est = q / S;
-    double sigma2_e_g_est = y_.squaredNorm() / (N - 1);
+    double sigma2_e_g_est = (w.y.col(0).head(N_).squaredNorm() -
+                             w.y.col(0).tail(C_).squaredNorm()) /
+                            (N_ - 1);
     double minqueH2 = sigma2_g_est / sigma2_e_g_est;
-#ifdef DEBUG
+
     fprintf(stderr, "minque S = %g\n", S);
     fprintf(stderr, "minque q = %g\n", q);
     fprintf(stderr, "minque sigma2_g_est = %g\n", sigma2_g_est);
     fprintf(stderr, "minque sigma2_e_est = %g\n",
             sigma2_e_g_est - sigma2_g_est);
-    fprintf(stderr, "minque end - %s\n", currentTime().c_str());
+    fprintf(stderr, "minque h2 = %g\n", minqueH2);
+
+    // these may be negative
+    sigma2_g_est_ = sigma2_g_est;
+    sigma2_e_est_ = sigma2_e_g_est - sigma2_g_est;
+    h2_ = sigma2_g_est / sigma2_e_g_est;
 #endif
-#endif
+
+    // use HE equation
+    double sigma2_e_g_est = (w.y.col(0).head(N_).squaredNorm() -
+                             w.y.col(0).tail(C_).squaredNorm()) /
+                            (N_ - 1);
+    // According to Haseman Elston regression:
+    // \hat{sigma_g^2} = trace(yKy) / trace(K^2)
+    sigma2_g_est_ = gy / trace2;
+    sigma2_e_est_ = sigma2_e_g_est - sigma2_g_est_;
+    h2_ = sigma2_g_est_ / sigma2_e_g_est;
+
+    if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
+      fprintf(stderr, "minque sigma2_g_est = %g\n", sigma2_g_est_);
+      fprintf(stderr, "minque sigma2_e_est = %g\n", sigma2_e_est_);
+      fprintf(stderr, "minque h2 = %g\n", h2_);
+    }
+
+    // compute Y_rand (Y_data is the first column)
+    delta_ = sigma2_e_est_ / sigma2_g_est_;
+    // computeY(w.x_beta_rand, w.e_rand, delta, &w.y);
+    // solve H_inv_y, and beta
+    solve(w.y.col(0), delta_, &w.H_inv_y);
+    fprintf(stderr, "=> Finish solve(%d)\n", __LINE__);
+
+    H_inv_y_ = w.H_inv_y.col(0) / sigma2_g_est_;
+    H_inv_y_norm2_ = projNorm2(H_inv_y_)(0);
+
+    return 0;
+  }
+
+  int EstimateHeritabilityBolt(WorkingData* wd) {
+    WorkingData& w = *wd;
+    double h2[7] = {0.};  // 7 is the limit of iterations used by BoltLMM
+    double logDelta[7] = {0.};
+    double f[7] = {0.};
 
     if (BoltLMM::BoltLMMImpl::showDebug >= 1) {
       fprintf(stderr, "bolt 1a) start - %s\n", currentTime().c_str());
     }
-#if 0
-    double initH2 = minqueH2;
-    if (minqueH2 < 0 || minqueH2 > 1) {
-      fprintf(stderr, "MINQUE h2 is out of range [ %g ]!\n", minqueH2);
-      initH2 = 0.25;  // use BOLT-LMM init value
-    }
-#endif
     double initH2 = 0.25;  // use BOLT-LMM init value
     int i = 0;
     h2[i] = initH2;
@@ -943,6 +677,7 @@ class BoltLMM::BoltLMMImpl {
     computeY(w.x_beta_rand, w.e_rand, delta, &w.y);
     // solve H_inv_y, and beta
     solve(w.y, delta, &w.H_inv_y);
+    fprintf(stderr, "=> Finish solve(%d)\n", __LINE__);
 
     // w.beta_hat_data = g_.transpose() * w.H_inv_y_data / w.M;
     // w.e_hat_data = delta * w.H_inv_y_data;
@@ -966,11 +701,11 @@ class BoltLMM::BoltLMMImpl {
     if (BoltLMM::BoltLMMImpl::showDebug >= 3) {
       dumpToFile(w.y, "tmp.w.y");
       FILE* fp = fopen("tmp.g", "wt");
-      for (int b = 0; b < NumBatch_; ++b) {
+      for (size_t b = 0; b < NumBatch_; ++b) {
         pl.loadSNPWithCovBatch(b, stage_);
         Eigen::Map<Eigen::MatrixXf> g_z(stage_, N_ + C_, BatchSize_);
-        for (int i = 0; i < BatchSize_; ++i) {
-          for (int j = 0; j < N_ + C_; ++j) {
+        for (size_t i = 0; i < BatchSize_; ++i) {
+          for (size_t j = 0; j < N_ + C_; ++j) {
             if (j) fputc('\t', fp);
             fprintf(fp, "%g", g_z(j, i));
           }
@@ -978,7 +713,6 @@ class BoltLMM::BoltLMMImpl {
         }
       }
       fclose(fp);
-      dumpToFile(w.y, "tmp.w.y");
     }
     return f;
 
@@ -1011,41 +745,71 @@ class BoltLMM::BoltLMMImpl {
   // calculate invser(H)*y, aka solve(H, y),
   // where H = G * G' /M + delta * diag(N)
   // y: [ (N+C) x (MCtrial+1)] or [ (N+C) x (# of random SNPs) ]
+  // delta: sigma2_e / sigma2_g
   void solve(const Eigen::MatrixXf& y, const double delta,
              Eigen::MatrixXf* h_inv_y) {
     TIMER(__PRETTY_FUNCTION__);
-
+    fprintf(stderr, "=> Enter solve()\n");
     // 5e-4 is the default threshold used in BoltLMM paper
     // conjugateSolverBolt(g_, y, delta, 5e-4, h_inv_y);
     Eigen::MatrixXf& x = *h_inv_y;
-    assert(x.rows() == y.rows() && y.cols() == y.cols());
-    x.setZero();
+    // x.resize(y.rows(), y.cols());
+    // x.setZero();
+    x = y.array() / delta;
 
-    Eigen::MatrixXf r = y;
-    Eigen::MatrixXf p = y;
-    Eigen::VectorXf rsold;
-    Eigen::VectorXf rsnew;
-    Eigen::VectorXf ratio;  // rsnew / rsold
-    Eigen::MatrixXf ap;     // [ (N+C) x (MCtrial+1) ]
-    Eigen::VectorXf alpha;  // [ (MCtrial + 1) ]
+    Eigen::MatrixXf r = y;  // [ (N+C) x (MCtrial + 1) ]
+    Eigen::MatrixXf p = r;  // [ (N+C) x (MCtrial + 1) ]
+    Eigen::RowVectorXf rsold;
+    Eigen::RowVectorXf rsnew;
+    Eigen::RowVectorXf ratio;  // rsnew / rsold
+    Eigen::MatrixXf ap;        // [ (N+C) x (MCtrial+1) ]
+    Eigen::RowVectorXf alpha;  // [ (MCtrial + 1) ]
     const int NUM_COL = y.cols();
+
+    computeHx(delta, x, &ap);
+    r = y - ap;
+    p = r;
     projNorm2(r, &rsold);
 
     const int MaxIter = 250;  // BOLT-LMM maximum iteration in conjugate solver
     const double Tol = 5e-4;  // BOLT-LMM tolerence
     const int maxIter = std::min((int)N_, MaxIter);
     for (int i = 0; i < maxIter; ++i) {
-      computeHx(delta, p, &ap);
-      alpha = rsold.array() / projDot(p, ap).array();
-#ifdef DEBUG
-      fprintf(stderr, "alpha:");
-      for (int ii = 0; ii != NUM_COL; ++ii) {
-        fprintf(stderr, "\t%f", alpha(ii));
+      if (BOLTLMM_DEBUG >= 1) {
+        fprintf(stderr, "i = %d, delta = %g\n", i, delta);
       }
-      fprintf(stderr, "\n");
+      // char fn[50];
+      computeHx(delta, p, &ap);
+      // sprintf(fn, "tmp.cg.%d.p", i);
+      // dumpToFile(p, fn);
+      // sprintf(fn, "tmp.cg.%d.ap", i);
+      // dumpToFile(ap, fn);
+      // dumpToFile(rsold, "tmp.rsold");
+      // dumpToFile(p, "tmp.p");
+      // dumpToFile(ap, "tmp.ap");
+      Eigen::RowVectorXf tmp = projDot(p, ap);
+      if (BOLTLMM_DEBUG >= 1) {
+        for (int ii = 0; ii < 5; ++ii) {
+          fprintf(stderr, "p(%d) = %g\tap(%d) = %g\n", ii, p(ii), ii, ap(ii));
+        }
+      }
+      alpha = rsold.array() / projDot(p, ap).array();
+      // dumpToFile(alpha, "tmp.alpha");
+      if (alpha.size() != NUM_COL) {
+        fprintf(stderr, "%d != %d\n", (int)alpha.size(), NUM_COL);
+        exit(1);
+      }
+#ifdef DEBUG
+// fprintf(stderr, "alpha:");
+// for (int ii = 0; ii != NUM_COL; ++ii) {
+//   fprintf(stderr, "\t%.2g", alpha(ii));
+// }
+// fprintf(stderr, "\n");
 #endif
       for (int ii = 0; ii != NUM_COL; ++ii) {
-        if (!std::isfinite(alpha(ii)) || fabs(alpha(ii)) < Tol) {
+        // if (!std::isfinite(alpha(ii)) || fabs(alpha(ii)) < Tol) {
+        if (!std::isfinite(alpha(ii))) {
+          fprintf(stderr, "alpha(%d) = %g\n", ii, alpha(ii));
           alpha(ii) = 0.0;
         }
       }
@@ -1054,47 +818,43 @@ class BoltLMM::BoltLMMImpl {
       projNorm2(r, &rsnew);
 
       if ((rsnew.array() < Tol).all()) {
+        fprintf(stderr, "reach tolerence\n");
         break;
       }
       if ((rsnew - rsold).array().abs().maxCoeff() < Tol) {
+        fprintf(stderr, "no improvement\n");
         break;
       }
       ratio = rsnew.array() / rsold.array();
 #ifdef DEBUG
-      fprintf(stderr, "ratio:");
+      fprintf(stderr, "\trsold\trsnew\talpha\tratio\n");
       for (int ii = 0; ii != NUM_COL; ++ii) {
-        fprintf(stderr, "\t%f", ratio(ii));
+        fprintf(stderr, "\t%.2g", rsold(ii));
+        fprintf(stderr, "\t%.2g", rsnew(ii));
+        fprintf(stderr, "\t%.2g", alpha(ii));
+        fprintf(stderr, "\t%.2g", ratio(ii));
+        fprintf(stderr, "\n");
       }
-      fprintf(stderr, "\n");
-      fprintf(stderr, "rsnew:");
-      for (int ii = 0; ii != NUM_COL; ++ii) {
-        fprintf(stderr, "\t%f", rsnew(ii));
-      }
-      fprintf(stderr, "\n");
-      fprintf(stderr, "rsold:");
-      for (int ii = 0; ii != NUM_COL; ++ii) {
-        fprintf(stderr, "\t%f", rsold(ii));
-      }
-      fprintf(stderr, "\n");
 #endif
       for (int ii = 0; ii != NUM_COL; ++ii) {
         if (rsnew(ii) < Tol || !std::isfinite(ratio(ii))) {
           ratio(ii) = 0.0;
         }
       }
-      p = r + p * ratio.matrix().asDiagonal();
+      p = r + p * ratio.asDiagonal();
 
-      rsold = rsnew;
       if (BoltLMM::BoltLMMImpl::showDebug >= 2) {
-        fprintf(stderr, "i = %d\tdelta = %g", i, delta);
-        for (int ii = 0; ii < rsnew.size(); ++ii) {
-          fprintf(stderr, "\t%g", rsnew(ii));
-        }
-        fprintf(stderr, "\n");
+        // fprintf(stderr, "i = %d\tdelta = %g\tNorm2[", i, delta);
+        // for (int ii = 0; ii < rsnew.size(); ++ii) {
+        //   fprintf(stderr, "\t%.2g", rsnew(ii));
+        // }
+        // fprintf(stderr, "]\n");
         if ((rsnew.array() < -1.0).any()) {
           fprintf(stderr, "Norm2 should be always positive!\n");
         }
       }
+
+      rsold = rsnew;
     }
   }
 
@@ -1110,17 +870,18 @@ class BoltLMM::BoltLMMImpl {
     solve(y, delta, h_inv_y);  // h_inv_y is H^(-1)*y
     (*h_inv_y) /= sigma2_g;
   }
-
+#if 0
   // calculate invser(K)*y, aka solve(K, y),
   // where K = G * G' / M
   // y: [ (N) x (1)]
-  // NOTE: when K is GRM, K in singular and cannot be inverted
+  // NOTE: when K is GRM, K in singular and cannot be inverted, so do not use
+  // the codes below.
   void solveKinv(const Eigen::MatrixXf& y, Eigen::MatrixXf* k_inv_y) {
     TIMER(__PRETTY_FUNCTION__);
     // 5e-4 is the default threshold used in BoltLMM paper
     // conjugateSolverBolt(g_, y, delta, 5e-4, h_inv_y);
     Eigen::MatrixXf& x = *k_inv_y;
-    assert(x.rows() == y.rows() && y.cols() == y.cols());
+    assert(x.rows() == y.rows() && x.cols() == y.cols());
     assert(y.cols() == 1);
     x.setZero();
 
@@ -1153,10 +914,14 @@ class BoltLMM::BoltLMMImpl {
       }
     }
   }
-
+#endif
   // ret = H * y
   //   where H = X X' / M + delta * I
-  // NOTE: X X' is [X; Z'X] * [X; -Z'X]'
+  // In reality, H = X.plus * X.minus / M + delta * I
+  //             y = [y; Z'y]
+  //             ret = [XX'y - XX'ZZ'y; Z'(XX'y - XX'ZZ'y)]
+  // NOTE: X X' is [X; Z'X] * [X; -Z'X]', denoted as X.plus and X.minus
+  // respectively
   // y: [ (N+C) x (MCtrial + 1) ]
   void computeHx(double delta, const Eigen::MatrixXf& y, Eigen::MatrixXf* ret) {
     // #ifdef DEBUG
@@ -1169,22 +934,80 @@ class BoltLMM::BoltLMMImpl {
     ret->setZero();
     Eigen::MatrixXf X_y =
         Eigen::MatrixXf::Zero(M2_, y.cols());  // X' * y: [ M * (MCtrial + 1) ]
+
+    // char fn[50];
+    static int freq = 0;
+    freq++;
+
     for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPWithNegCovBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g(stage_, N_ + C_, BatchSize_);
       X_y.block(b * BatchSize_, 0, BatchSize_, y.cols()).noalias() =
           g.transpose() * y;
+
+      // if (freq <= 1) {
+      //   sprintf(fn, "tmp.%d.snpNegCov.%d", freq, (int)b);
+      //   dumpToFile(g, fn);
+      // }
     }
+    // sprintf(fn, "tmp.%d.X_y", freq);
+    // dumpToFile(X_y, fn);
 
     for (size_t b = 0; b != NumBatch_; ++b) {
       pl.loadSNPWithCovBatch(b, stage_);
       Eigen::Map<Eigen::MatrixXf> g(stage_, N_ + C_, BatchSize_);
       (*ret).noalias() +=
           g * X_y.block(b * BatchSize_, 0, BatchSize_, y.cols());
+
+      // if (freq <= 1) {
+      //   sprintf(fn, "tmp.%d.snpPosCov.%d", (int)b);
+      //   dumpToFile(g, fn);
+      // }
     }
+
+    // sprintf(fn, "tmp.%d.ret", freq);
+    // dumpToFile((*ret), fn);
+
     const float invM = 1.0 / M_;
     (*ret) *= invM;
     (*ret).noalias() += delta * y;
+
+    // sprintf(fn, "tmp.Hx.%d.y", freq);
+    // dumpToFile(y, fn);
+    // sprintf(fn, "tmp.Hx.%d.ret", freq);
+    // dumpToFile((*ret), fn);
+  }
+
+  // @param ret = BLUP(y) = X * X' / M * sigma2_g * H^(-1) * y + Z Z' y
+  void comptueBLUP(Eigen::MatrixXf* ret) {
+    // X: [X; Z'X] [ (N+C) x M ]
+    //
+    // X_y: [X' -X'Z] [ M by (MCtrial+1) ]
+    ret->resize(N_, 1);
+    ret->setZero();
+    Eigen::MatrixXf X_y =
+        Eigen::MatrixXf::Zero(N_, 1);  // X' * y: [ M * (MCtrial + 1) ]
+
+    for (size_t b = 0; b != NumBatch_; ++b) {
+      pl.loadSNPBatch(b, stage_);
+      int lb = b * BatchSize_;
+      int ub = std::min(lb + BatchSize_, M_);
+
+      Eigen::Map<Eigen::MatrixXf> g(stage_, N_, ub - lb);
+      X_y.block(lb, 0, ub - lb, 1).noalias() =
+          g.transpose() * H_inv_y_.block(0, 0, N_, 1);
+    }
+
+    for (size_t b = 0; b != NumBatch_; ++b) {
+      pl.loadSNPWithCovBatch(b, stage_);
+      int lb = b * BatchSize_;
+      int ub = std::min(lb + BatchSize_, M_);
+      Eigen::Map<Eigen::MatrixXf> g(stage_, N_, ub - lb);
+      (*ret).noalias() += g * X_y.block(lb, 0, ub - lb, 1);
+    }
+    const float scale = sigma2_g_est_ / M_;
+    (*ret) *= scale;
+    (*ret).noalias() += pl.predictedCovariateEffect();
   }
   // ret = K * y
   //   where K = X X' / M
@@ -1238,48 +1061,84 @@ class BoltLMM::BoltLMMImpl {
   // delta = sigma2_e / sigma2_g (ref. eq 29)
   double getLogDeltaFromH2(const double h2) { return log((1.0 - h2) / h2); }
 
-  Eigen::VectorXf projDot(const Eigen::MatrixXf& v1,
-                          const Eigen::MatrixXf& v2) {
+  Eigen::RowVectorXf projDot(const Eigen::MatrixXf& v1,
+                             const Eigen::MatrixXf& v2) {
     assert(C_ > 0);
     assert((size_t)v1.rows() == N_ + C_);
     assert((size_t)v2.rows() == N_ + C_);
     assert(v1.cols() == v2.cols());
 
-    Eigen::VectorXf ret =
+    // Eigen::VectorXf r1 = (v1.topRows(N_).array() * v2.topRows(N_).array())
+    //                          .matrix()
+    //                          .colwise()
+    //                          .sum();
+    // Eigen::VectorXf r2 = (v1.bottomRows(C_).array() *
+    // v2.bottomRows(C_).array())
+    //                          .matrix()
+    //                          .colwise()
+    //                          .sum();
+    // dumpToFile(r1, "tmp.r1");
+    // dumpToFile(r2, "tmp.r2");
+    // Eigen::MatrixXf s1 = (v1.topRows(N_).array() *
+    // v2.topRows(N_).array()).matrix();
+    // Eigen::MatrixXf s2 = (v1.bottomRows(C_).array() *
+    // v2.bottomRows(C_).array()).matrix();
+    // dumpToFile(r1, "tmp.s1");
+    // dumpToFile(r2, "tmp.s2");
+    Eigen::RowVectorXf ret =
         (v1.topRows(N_).array() * v2.topRows(N_).array())
+            .eval()
             .matrix()
             .colwise()
             .sum() -
         (v1.bottomRows(C_).array() * v2.bottomRows(C_).array())
+            .eval()
             .matrix()
             .colwise()
             .sum();
     return ret;
   }
   void projDot(const Eigen::MatrixXf& v1, const Eigen::MatrixXf& v2,
-               Eigen::VectorXf* ret) {
+               Eigen::RowVectorXf* ret) {
     assert(C_ > 0);
     assert((size_t)v1.rows() == N_ + C_);
     assert((size_t)v2.rows() == N_ + C_);
     assert(v1.cols() == v2.cols());
 
     (*ret).noalias() = (v1.topRows(N_).array() * v2.topRows(N_).array())
+                           .eval()
                            .matrix()
                            .colwise()
                            .sum() -
                        (v1.bottomRows(C_).array() * v2.bottomRows(C_).array())
+                           .eval()
                            .matrix()
                            .colwise()
                            .sum();
   }
 
-  void projNorm2(const Eigen::MatrixXf& v, Eigen::VectorXf* ret) {
-    projDot(v, v, ret);
+  void projNorm2(const Eigen::MatrixXf& v, Eigen::RowVectorXf* ret) {
+    assert(C_ > 0);
+    assert((size_t)v.rows() == N_ + C_);
+
+    *ret = (v.topRows(N_).cwiseAbs2().eval().colwise().sum() -
+            v.bottomRows(C_).cwiseAbs2().eval().colwise().sum())
+               .row(0);
+    assert(v.cols() == ret->size());
   }
-  Eigen::VectorXf projNorm2(const Eigen::MatrixXf& v) { return projDot(v, v); }
+
+  Eigen::RowVectorXf projNorm2(const Eigen::MatrixXf& v) {
+    assert(C_ > 0);
+    assert((size_t)v.rows() == N_ + C_);
+
+    Eigen::RowVectorXf ret =
+        v.topRows(N_).cwiseAbs2().eval().colwise().sum() -
+        v.bottomRows(C_).cwiseAbs2().eval().colwise().sum();
+    return ret;
+  }
 
   // estimate scaling factor using some random SNPs
-  int EstimateInfStatCalibration(PlinkLoader& pl) {
+  int EstimateInfStatCalibration(BoltPlinkLoader& pl) {
     TIMER(__PRETTY_FUNCTION__);
 
     int nSnp = BatchSize_;
@@ -1288,8 +1147,13 @@ class BoltLMM::BoltLMMImpl {
 
     Eigen::MatrixXf g(N_ + C_, nSnp);
     pl.loadRandomSNPWithCov(nSnp, g.data());
+    // dumpToFile(g, "tmp.g");
     Eigen::MatrixXf V_inv_x(g.rows(), g.cols());
     solve(g, sigma2_g_est_, sigma2_e_est_, &V_inv_x);
+    // fprintf(stderr, "sigma2_g_est_ = %g, sigma2_e_est_ = %g\n",
+    // sigma2_g_est_, sigma2_e_est_);
+    // dumpToFile(V_inv_x, "tmp.V_inv_x");
+    fprintf(stderr, "=> Finish solve(%d)\n", __LINE__);
 
     Eigen::VectorXf prospectiveStat(nSnp);
     Eigen::VectorXf uncalibratedRetrospectiveStat(nSnp);
@@ -1343,37 +1207,24 @@ class BoltLMM::BoltLMMImpl {
         fprintf(stderr, "%d\t%f\t%f\t%f\n", i, x_V_inv_x(i), x_x(i),
                 x_x(i) == 0 ? 0.0 : x_V_inv_x(i) / x_x(i));
       }
-      fprintf(stderr, "ratio = %f\n", x_V_inv_x.sum() / x_x.sum());
+      fprintf(stderr, "ratio = %f\n", xVx_xx_ratio_);
     }
-    fprintf(stderr, "infStatCalibration_ = %f\n", infStatCalibration_);
-
-    // calculate empirically X'HX / X'X
-    xVx_xx_ratio_ = x_V_inv_x.sum() / x_x.sum();
-    if (!std::isfinite(xVx_xx_ratio_)) {
-      xVx_xx_ratio_ = 1.0;
-    }
-    fprintf(stderr, "\ni\tx_v_inv_x\tx_x\tratio\n");
-    for (int i = 0; i < nSnp; ++i) {
-      fprintf(stderr, "%d\t%f\t%f\t%f\n", i, x_V_inv_x(i), x_x(i),
-              x_x(i) == 0 ? 0.0 : x_V_inv_x(i) / x_x(i));
-    }
-    fprintf(stderr, "ratio = %f\n", x_V_inv_x.sum() / x_x.sum());
 
     return 0;
   }
 
  private:
   CommonVariable cv;
-  PlinkLoader pl;
+  BoltPlinkLoader pl;
 
   // Common variables
-  size_t& M_;
-  size_t& M2_;  // this is M round up to multiple of BatchSize_
-  size_t& N_;
-  size_t& C_;
+  const size_t& M_;
+  const size_t& M2_;  // this is M round up to multiple of BatchSize_
+  const size_t& N_;
+  const size_t& C_;
   size_t& MCtrial_;
-  size_t& BatchSize_;  // batch size of marker are processed at a time
-  size_t& NumBatch_;   // number of batches
+  const size_t& BatchSize_;  // batch size of marker are processed at a time
+  const size_t& NumBatch_;   // number of batches
 
   double sigma2_g_est_;
   double sigma2_e_est_;
@@ -1388,18 +1239,32 @@ class BoltLMM::BoltLMMImpl {
   double effect_;
   double pvalue_;
   Random random_;
-  double delta_;
+  double delta_;  //   sigma2_e / sigma2_g (ref. eq 29)
   double h2_;
-  Eigen::MatrixXf H_inv_y_;
+  Eigen::MatrixXf H_inv_y_;  // H^(-1) * y , [(N+C) x 1] matrix
   double H_inv_y_norm2_;
   double infStatCalibration_;
   double xVx_xx_ratio_;
   Eigen::MatrixXf g_test_;
-  Eigen::MatrixXf alpha_;
+  // Eigen::MatrixXf alpha_;
+  std::string null_model_file_name_;
+
+  bool binaryMode;
+  Eigen::MatrixXf mu_;     // BLUP of y = \sigma2_g * K * H_inv * y
+  Eigen::MatrixXf y_;      // y [N x 1] matrix
+  Eigen::MatrixXf resid_;  // resid = y - mu [N x 1] matrix
+
+  SaddlePointApproximation* saddlePointCalculator;
+
+  // Monte-carlo method
+  std::vector<Eigen::MatrixXf> y_mc_;
+  std::vector<Eigen::MatrixXf> resid_mc_;
+  SaddlePointApproximation** saddlePointCalculator_mc_;
+  bool useSaddlePoint;
 
  private:
   static int showDebug;
-};
+};  // end class BoltLMM::BoltLMMImpl
 
 int BoltLMM::BoltLMMImpl::showDebug = 0;
 
@@ -1409,10 +1274,12 @@ int BoltLMM::BoltLMMImpl::showDebug = 0;
 BoltLMM::BoltLMM() { impl_ = new BoltLMMImpl; }
 BoltLMM::~BoltLMM() { delete impl_; }
 
-int BoltLMM::FitNullModel(const std::string& prefix, Matrix* phenotype) {
+int BoltLMM::FitNullModel(const std::string& prefix, const Matrix* phenotype) {
   return impl_->FitNullModel(prefix, phenotype);
 }
-int BoltLMM::TestCovariate(Matrix& Xcol) { return impl_->TestCovariate(Xcol); }
+int BoltLMM::TestCovariate(const Matrix& Xcol) {
+  return impl_->TestCovariate(Xcol);
+}
 
 double BoltLMM::GetAF() { return impl_->GetAF(); }
 double BoltLMM::GetU() { return impl_->GetU(); }
@@ -1427,7 +1294,7 @@ void BoltLMM::GetCovXX(const FloatMatrixRef& g1, const FloatMatrixRef& g2,
                        float* out) {
   impl_->GetCovXX(g1, g2, out);
 }
-
+void BoltLMM::enableBinaryMode() { impl_->enableBinaryMode(); }
 //////////////////////////////////////////////////
 // BoltLMM::BoltLMMImpl class
 //////////////////////////////////////////////////

@@ -11,9 +11,11 @@ class LMM {
  public:
   LMM();
   virtual ~LMM();
+
  public:
   class Impl;
   Impl* impl;
+
  public:
   // @return 0 when success
   int FitNullModel(Matrix& Xnull, Matrix& y);
@@ -25,8 +27,9 @@ class LMM {
   double GetUStat() const;
   double GetVStat() const;
   const std::vector<double>& GetSigma2() const;
+
  public:
-  enum Model { EXACT = 0, APPROXIMATE = 1};
+  enum Model { EXACT = 0, APPROXIMATE = 1 };
 };
 
 #endif /* LMM_H */

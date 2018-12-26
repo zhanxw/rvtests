@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <ctime>
 #include <deque>
 #include <map>
 #include <set>
@@ -238,13 +239,13 @@ double calculateR2(Matrix& genotype, const int i, const int j){
   double sum_j2 = 0.0 ; // sum of genotype[,j]*genotype[,j]
   int n = 0;
   for (int c = 0; c < genotype.cols; c++) { //iterator each people
-    if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
+    if (genotype(i, c) < 0 || genotype(j, c) < 0) continue;
     ++n;
-    sum_i += genotype[i][c];
-    sum_i2 += genotype[i][c]*genotype[i][c];
-    sum_ij += genotype[i][c]*genotype[j][c];
-    sum_j += genotype[j][c];
-    sum_j2 += genotype[j][c]*genotype[j][c];
+    sum_i += genotype(i, c);
+    sum_i2 += genotype(i, c)*genotype(i, c);
+    sum_ij += genotype(i, c)*genotype(j, c);
+    sum_j += genotype(j, c);
+    sum_j2 += genotype(j, c)*genotype(j, c);
   };
   // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 = %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
   double cov_ij = sum_ij - sum_i * sum_j / n;
@@ -267,11 +268,11 @@ double calculateCov(Matrix& genotype, const int i, const int j) {
   double sum_j = 0.0;   // sum of genotype[,j]
   int n = 0;
   for (int c = 0; c < genotype.cols; c++) {  // iterator each people
-    if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
+    if (genotype(i, c) < 0 || genotype(j, c) < 0) continue;
     ++n;
-    sum_i += genotype[i][c];
-    sum_ij += genotype[i][c] * genotype[j][c];
-    sum_j += genotype[j][c];
+    sum_i += genotype(i, c);
+    sum_ij += genotype(i, c) * genotype(j, c);
+    sum_j += genotype(j, c);
   };
   // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 =
   // %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);

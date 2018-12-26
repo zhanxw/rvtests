@@ -1,13 +1,16 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LogisticRegressionVT.h"
-#include "MatrixOperation.h"
+
 #include "LogisticRegression.h"
+#include "MatrixOperation.h"
 #include "MultivariateNormalDistribution.h"
-#include <Eigen/Dense>  // eigen definiation and LDLT
+
+#include "third/eigen/Eigen/Dense"  // eigen definiation and LDLT
 
 #undef DEBUG
 #ifdef DEBUG
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 void dump(const Eigen::MatrixXf& m, const char* fn) {
   std::ofstream out(fn);
@@ -19,8 +22,8 @@ void dump(const Eigen::MatrixXf& m, const char* fn) {
 //////////////////////////////////////////////////
 class LogisticRegressionVT::LogisticVTImpl {
  public:
-  bool FitNullModel(Matrix& Xnull, Vector& y, int nRound = 100);
-  bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
+  bool FitNullModel(const Matrix& Xnull, const Vector& y, int nRound = 100);
+  bool TestCovariate(const Matrix& Xnull, const Vector& y, const Matrix& Xcol);
   int GetIndexMax();  // return index to the maximum t
   Matrix& GetU();
   Matrix& GetV();
@@ -30,12 +33,12 @@ class LogisticRegressionVT::LogisticVTImpl {
   double GetEffect(int index) const;
 
  private:
-  void copy(Matrix& m, Eigen::MatrixXf* out) {
+  void copy(const Matrix& m, Eigen::MatrixXf* out) {
     Eigen::MatrixXf& o = *out;
     o.resize(m.rows, m.cols);
     for (int i = 0; i < m.rows; ++i) {
       for (int j = 0; j < m.cols; ++j) {
-        o(i, j) = m[i][j];
+        o(i, j) = m(i, j);
       }
     }
   }
@@ -44,17 +47,21 @@ class LogisticRegressionVT::LogisticVTImpl {
     o.Dimension(m.rows(), m.cols());
     for (int i = 0; i < m.rows(); ++i) {
       for (int j = 0; j < m.cols(); ++j) {
-        o[i][j] = m(i, j);
+        o(i, j) = m(i, j);
       }
     }
   }
-  void copy(Vector& m, Eigen::MatrixXf* out) {
-    Eigen::MatrixXf& o = *out;
-    int n = m.Length();
-    o.resize(n, 1);
-    for (int i = 0; i < n; ++i) {
-      o(i, 0) = m[i];
-    }
+  void copy(const Vector& m, Eigen::MatrixXf* out) {
+    (*out).resize(m.Length(), 1);
+    DECLARE_EIGEN_CONST_VECTOR(m, tmp);
+    (*out) = tmp.cast<float>();
+
+    // Eigen::MatrixXf& o = *out;
+    // int n = m.Length();
+    // o.resize(n, 1);
+    // for (int i = 0; i < n; ++i) {
+    //   o(i, 0) = m[i];
+    // }
   }
 
   void rep(double v, int times, std::vector<double>* out) {
@@ -131,12 +138,13 @@ LogisticRegressionVT::LogisticRegressionVT() {
 };
 LogisticRegressionVT::~LogisticRegressionVT() { delete this->impl; }
 
-bool LogisticRegressionVT::FitNullModel(Matrix& Xnull, Vector& y, int nRound) {
+bool LogisticRegressionVT::FitNullModel(const Matrix& Xnull, const Vector& y,
+                                        int nRound) {
   return this->impl->FitNullModel(Xnull, y, nRound);
 }
 
-bool LogisticRegressionVT::TestCovariate(Matrix& Xnull, Vector& y,
-                                         Matrix& Xcol) {
+bool LogisticRegressionVT::TestCovariate(const Matrix& Xnull, const Vector& y,
+                                         const Matrix& Xcol) {
   return impl->TestCovariate(Xnull, y, Xcol);
 };
 
@@ -161,14 +169,15 @@ double LogisticRegressionVT::GetEffect(int index) const {
 //////////////////////////////////////////////////
 // class LogisticRegressionVT::LogisticVTImpl //////////////////////////////
 //////////////////////////////////////////////////
-bool LogisticRegressionVT::LogisticVTImpl::FitNullModel(Matrix& Xnull,
-                                                        Vector& y, int nRound) {
+bool LogisticRegressionVT::LogisticVTImpl::FitNullModel(const Matrix& Xnull,
+                                                        const Vector& y,
+                                                        int nRound) {
   return (this->null.Fit(Xnull, y));
 }
 
-bool LogisticRegressionVT::LogisticVTImpl::TestCovariate(Matrix& Xnull,
-                                                         Vector& yVec,
-                                                         Matrix& Xcol) {
+bool LogisticRegressionVT::LogisticVTImpl::TestCovariate(const Matrix& Xnull,
+                                                         const Vector& yVec,
+                                                         const Matrix& Xcol) {
   // const int n = Xnull.rows;
   const int d = Xnull.cols;
   const int k = Xcol.cols;

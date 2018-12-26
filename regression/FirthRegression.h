@@ -1,7 +1,8 @@
 #ifndef __FIRTH_REGRESSION_H__
 #define __FIRTH_REGRESSION_H__
 
-#include "MathMatrix.h"
+#include "base/MathMatrix.h"
+
 // use Wald statistics
 class FirthRegression {
  public:
@@ -47,13 +48,13 @@ class FirthRegression {
   FirthRegression& operator=(const FirthRegression& l);
 
  private:
-  Vector B;        // coefficient vector
-  Matrix covB;     // coefficient covariance matrix
-  Vector pValue;   // pvalues
-  Vector p;        // p: estimted prob;
-  Vector V;        // V: p(1-p) ;
+  Vector B;       // coefficient vector
+  Matrix covB;    // coefficient covariance matrix
+  Vector pValue;  // pvalues
+  Vector p;       // p: estimted prob;
+  Vector V;       // V: p(1-p) ;
  private:
   class WorkingData;  // store temporary data structure
-  WorkingData* w;  // holding temporary caluclation results
+  WorkingData* w;     // holding temporary caluclation results
 };
 #endif

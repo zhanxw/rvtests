@@ -54,7 +54,7 @@ class MixtureChiSquare {
   // use Davies's method to calculate P-value
   double getPvalue(double Q);
   // use Liu's method to calculate P-value
-  double getLiuPvalue(double Q);  
+  double getLiuPvalue(double Q);
   void dumpLambda() const;
 
  private:

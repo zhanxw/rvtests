@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "BGenGenotypeExtractor.h"
 
 #include "GenotypeCounter.h"
@@ -5,12 +6,11 @@
 
 #include "base/Argument.h"
 #include "base/Logger.h"
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 #include "libBgen/BGenFile.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
 
 DECLARE_BOOL_PARAMETER(outputID);
-
 extern Logger* logger;
 
 BGenGenotypeExtractor::BGenGenotypeExtractor(const std::string& fn)
@@ -281,7 +281,7 @@ int loadMarkerFromBGEN(const std::string& fileName, const std::string& marker,
       if (GTidx >= 0) {
         // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
         // field of each individual
-        m[i][col] = indv->justGet(GTidx).getGenotype();
+        m(i,col) = indv->justGet(GTidx).getGenotype();
       } else {
         logger->error("Cannot find GT field!");
         return -1;
@@ -414,7 +414,9 @@ double BGenGenotypeExtractor::getGenotype(const BGenVariant& var, int indvIdx,
                                           const bool useDosage,
                                           const bool hemiRegion,
                                           const int sex) {
-  const int idx = this->bgenIn->getEffectiveIndex(indvIdx);
+  // indvIdx is the index for all samples in the bgen file, not the index for
+  // the effective samples
+  const int idx = indvIdx;
   double ret;
   if (var.missing[idx]) {
     return MISSING_GENOTYPE;

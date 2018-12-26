@@ -1,8 +1,8 @@
 #include "MixtureChiSquare.h"
 
 #include <stdlib.h>
-#include "cdflib.h" // for noncentral chi-sq
-#include "qfc.c"    // for mixutre chi-sq
+#include "cdflib.h"  // for noncentral chi-sq
+#include "qfc.c"     // for mixutre chi-sq
 
 double MixtureChiSquare::getPvalue(double Q) {
   if (lambda_size == 1) {

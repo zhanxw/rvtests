@@ -10,6 +10,22 @@
 #include <map>
 #include <queue>
 
+// define gethostname if needed
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+#include <windows.h>
+int gethostname(char* name, size_t len) {
+  /* GetComputerName is not the right thing.  gethostname from <winsock2.h>
+     would be right, but requires linking with -lws2_32.  So we use
+     GetComputerNameEx.  */
+  DWORD size = (len <= (DWORD)~0 ? len : (DWORD)~0);
+
+  if (!GetComputerNameEx(ComputerNameDnsHostname, name, &size)) {
+    return -1;
+  }
+  return 0;
+}
+#endif
+
 #include "base/LineBreaker.h"
 #include "base/TypeConversion.h"
 

@@ -23,11 +23,12 @@ class Skat {
    * w weight for G
    * @return 0 when success
    */
-  int Fit(Vector& res_G,  // residual under NULL -- may change when permuting
-          Vector& v_G,    // variance under NULL -- may change when permuting
-          Matrix& X_G,    // covariate
-          Matrix& G_G,    // genotype
-          Vector& w_G);   // weight
+  int Fit(
+      const Vector& res_G,  // residual under NULL -- may change when permuting
+      const Vector& v_G,    // variance under NULL -- may change when permuting
+      const Matrix& X_G,    // covariate
+      const Matrix& G_G,    // genotype
+      const Vector& w_G);   // weight
 
   double GetQFromNewResidual(
       Vector& res_G);  // e.g. permuted residual under NULL

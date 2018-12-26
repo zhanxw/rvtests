@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 /*
  *  Table2by2.cpp
  *  LogitReg
@@ -9,10 +10,12 @@
  */
 
 #include "Table2by2.h"
-#include "Error.h"
+
 #include <cmath>
 #include <cstring>
-#include <gsl/gsl_sf_gamma.h>
+#include "libsrc/Error.h"
+#include "third/gsl/include/gsl/gsl_cdf.h"
+#include "third/gsl/include/gsl/gsl_sf_gamma.h"
 
 Table2by2::Table2by2() {
   // initialize the cell count to be 0
@@ -141,10 +144,10 @@ void Table2by2::InitializeFromVecMat(Vector &yIn, Matrix &xIn) {
     }
   }
   for (int i = 0; i < xyLen; i++) {
-    if (xIn[i][0] != 0.0) {  // code nonzero xIn as 1
+    if (xIn(i, 0) != 0.0) {  // code nonzero xIn as 1
       Increment((int)(1 - yIn[i]), 1);
     } else {
-      Increment((int)(1 - yIn[i]), (int)xIn[i][0]);
+      Increment((int)(1 - yIn[i]), (int)xIn(i, 0));
     }
   }
   UpdateMarginSum();
@@ -194,7 +197,8 @@ void Table2by2::ChisqTest(bool &valid) {
   }
   // p value (df for IbyJ table the df is (I-1)*(J-1))
   //      printf("pChisq = %f,chisqStat = %f\n",pChisq,chisqStat);
-  pChisq = chidist(chisqStat, 1);
+  // pChisq = chidist(chisqStat, 1);
+  pChisq = gsl_cdf_chisq_Q(chisqStat, 1);
 }
 
 void Table2by2::PearsonChisq() {

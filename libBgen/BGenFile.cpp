@@ -131,6 +131,13 @@ BGenFile::BGenFile(const std::string& fn) : var(this->N) {
   fileSize = getFileSize(fn);
 }
 
+BGenFile::~BGenFile() {
+  if (this->fp) {
+    fclose(fp);
+    fp = NULL;
+  }
+}
+
 bool BGenFile::readRecord() {
   if (mode == BGEN_RANGE_MODE) {
     int file_pos, bytes;
@@ -463,12 +470,26 @@ void BGenFile::setPeopleMask(const std::string& s, bool b) {
   }
   buildEffectiveIndex();
 }
+void BGenFile::setPeopleMask(const std::vector<std::string>& sampleNames,
+                             bool b) {
+  std::set<std::string> setOfSample;
+  makeSet(sampleNames, &setOfSample);
+  setPeopleMask(setOfSample, b);
+}
+
+void BGenFile::setPeopleMask(const std::set<std::string>& setOfSample, bool b) {
+  for (size_t i = 0; i != sampleIdentifier.size(); ++i) {
+    if (setOfSample.count(sampleIdentifier[i])) {
+      sampleMask[i] = b;
+    }
+  }
+  buildEffectiveIndex();
+}
+
 void BGenFile::includePeople(const std::string& s) { setPeopleMask(s, false); }
 
 void BGenFile::includePeople(const std::vector<std::string>& v) {
-  for (size_t i = 0; i != v.size(); ++i) {
-    includePeople(v[i].c_str());
-  }
+  setPeopleMask(v, false);
 }
 void BGenFile::setPeopleMaskFromFile(const char* fn, bool b) {
   if (!fn || strlen(fn) == 0) {
@@ -476,11 +497,14 @@ void BGenFile::setPeopleMaskFromFile(const char* fn, bool b) {
   }
   LineReader lr(fn);
   std::vector<std::string> fd;
+  std::set<std::string> content;
   while (lr.readLineBySep(&fd, "\t ")) {
     for (unsigned int i = 0; i < fd.size(); i++) {
-      setPeopleMask(fd[i].c_str(), b);
+      content.insert(fd[i]);
     }
   }
+
+  setPeopleMask(content, b);
   buildEffectiveIndex();
 }
 void BGenFile::includePeopleFromFile(const char* fn) {
@@ -493,9 +517,7 @@ void BGenFile::includeAllPeople() {
 
 void BGenFile::excludePeople(const std::string& s) { setPeopleMask(s, true); }
 void BGenFile::excludePeople(const std::vector<std::string>& v) {
-  for (size_t i = 0; i != v.size(); ++i) {
-    excludePeople(v[i]);
-  }
+  setPeopleMask(v, true);
 }
 void BGenFile::excludePeopleFromFile(const char* fn) {
   setPeopleMaskFromFile(fn, true);
@@ -727,7 +749,7 @@ void BGenFile::printInfo() {
       break;
     }
 
-    printf("\t[Variant %d]\n", (int)i);
+    printf("\n\t[Variant %d]\n", (int)i);
 
     printf("\tChromosomal position: %s:%d\n", var.chrom.c_str(), var.pos);
     printf("\tRSID = %s\n", var.rsid.c_str());

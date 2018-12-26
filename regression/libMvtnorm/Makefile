@@ -19,7 +19,7 @@ release: libMvtnorm.a
 debug: libMvtnorm.a
 
 libMvtnorm.a: mvtnorm.o mvt.o randomF77.o 
-	ar rcs $@ $^ 
+	$(AR) rcs $@ $^ 
 
 mvtnorm.o: mvtnorm.cpp mvtnorm.h
 	$(CXX) $(CXXFLAGS) -c mvtnorm.cpp -o mvtnorm.o

@@ -55,11 +55,11 @@ inline void centerMatrix(Matrix* v) {
   for (int i = 0; i < m.cols; ++i) {
     double s = 0.;
     for (int j = 0; j < m.rows; ++j) {
-      s += m[j][i];
+      s += m(j, i);
     }
     s /= m.rows;
     for (int j = 0; j < m.rows; ++j) {
-      m[j][i] -= s;
+      m(j, i) -= s;
     }
   }
 }
@@ -68,7 +68,7 @@ inline void toVector(Matrix& m, int col, Vector* vec) {
   Vector& v = *vec;
   v.Dimension(m.rows);
   for (int i = 0; i < m.rows; ++i) {
-    v[i] = m[i][col];
+    v[i] = m(i, col);
   }
 }
 
@@ -140,7 +140,7 @@ inline int extractColumn(Matrix& m, int col, Vector* v) {
   }
   v->Dimension(m.rows);
   for (int i = 0; i < m.rows; ++i) {
-    (*v)[i] = m[i][col];
+    (*v)[i] = m(i, col);
   };
   return 0;
 }
@@ -153,12 +153,12 @@ inline double getVariance(Matrix& m, int idx) {
 
   double s = 0.;
   for (int i = 0; i < m.rows; ++i) {
-    s += m[i][idx];
+    s += m(i, idx);
   }
   double avg = s / m.rows;
   s = 0.;
   for (int i = 0; i < m.rows; ++i) {
-    s += (m[i][idx] - avg) * (m[i][idx] - avg);
+    s += (m(i, idx) - avg) * (m(i, idx) - avg);
   }
   s /= m.rows;
   return s;
@@ -178,6 +178,28 @@ inline double getVariance(Vector& v) {
   }
   s /= n;
   return s;
+}
+
+inline double getRowVariance(const Matrix& m, int idx) {
+  // todo: may need to make it faster, or bypassing this function
+  if (m.cols <= 1) return 0.;
+
+  DECLARE_EIGEN_CONST_MATRIX(m, m_e);
+
+  double avg = m_e.row(idx).sum() / m_e.cols();
+  return (m_e.row(idx).array() - avg).square().sum() / m_e.cols();
+
+  // double s = 0.;
+  // for (int i = 0; i < m.rows; ++i) {
+  //   s += m(i,idx);
+  // }
+  // double avg = s / m.rows;
+  // s = 0.;
+  // for (int i = 0; i < m.rows; ++i) {
+  //   s += (m(i,idx) - avg) * (m(i,idx) - avg);
+  // }
+  // s /= m.rows;
+  // return s;
 }
 
 #endif /* _LINEARALGEBRA_H_ */

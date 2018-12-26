@@ -1,8 +1,8 @@
 #include "base/IO.h"
 
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 #include "libVcf/PlinkOutputFile.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
 #include "regression/BoltLMM.h"
 #include "regression/test/MatrixIO.h"
 
@@ -196,7 +196,7 @@ void assignColumn(Matrix& G, int colIdx, Matrix* Xcol) {
   Matrix& x = *Xcol;
   x.Dimension(G.rows, 1);
   for (int i = 0; i < G.rows; ++i) {
-    x[i][0] = G[i][colIdx];
+    x(i, 0) = G(i, colIdx);
   }
 }
 

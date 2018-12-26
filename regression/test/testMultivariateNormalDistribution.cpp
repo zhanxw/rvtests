@@ -12,15 +12,12 @@
 
 #include "MultivariateNormalDistribution.h"
 
-bool equal(double a, double b, double eps) {
-  return (fabs(a - b) <= eps);
-}
+bool equal(double a, double b, double eps) { return (fabs(a - b) <= eps); }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   MultivariateNormalDistribution mvn;
   const double eps = mvn.getAbsEps();
-  
+
   // repeat process by pmvnorm() in libmvtnorm R package
   {
     /*
@@ -34,15 +31,15 @@ int main(int argc, char *argv[])
        prob <- pmvnorm(lower, upper, mean, corr)
        print(prob)
     */
-    
+
     Matrix cor;
     cor.Dimension(5, 5);
     for (int i = 0; i < 5; ++i) {
       for (int j = 0; j < 5; ++j) {
         if (i == j) {
-          cor[i][j] = 1.;
+          cor(i, j) = 1.;
         } else {
-          cor[i][j] = .5;
+          cor(i, j) = .5;
         }
       }
     }
@@ -50,17 +47,12 @@ int main(int argc, char *argv[])
     std::vector<double> upper(5, 3.);
 
     double res = -1.;
-    int ret = mvn.getBandProbFromCor(5,
-                                     lower.data(),
-                                     upper.data(),
-                                     cor,
-                                     &res);
+    int ret = mvn.getBandProbFromCor(5, lower.data(), upper.data(), cor, &res);
     assert(ret == 0);
     assert(equal(res, 0.5800051, eps));
   }
 
   {
-    
     /*
 
       stopifnot(pmvnorm(lower=-Inf, upper=3, mean=0, sigma=1) == pnorm(3))
@@ -68,11 +60,11 @@ int main(int argc, char *argv[])
     */
     Matrix v;
     v.Dimension(1, 1);
-    v[0][0] = 1.;
+    v(0, 0) = 1.;
     double res;
     int ret = mvn.getLowerFromCov(3., v, &res);
     assert(ret == 0);
-    assert(equal(res, gsl_cdf_ugaussian_P(3.), eps) );
+    assert(equal(res, gsl_cdf_ugaussian_P(3.), eps));
   }
 
   {
@@ -92,16 +84,14 @@ int main(int argc, char *argv[])
     mean[1] = 4.;
     Matrix v;
     v.Dimension(2, 2);
-    v[0][0] = v[1][1] = 1.;
-    v[1][0] = v[0][1] = 0.;
+    v(0, 0) = v(1, 1) = 1.;
+    v(1, 0) = v(0, 1) = 0.;
 
     double res;
     int ret = mvn.getLowerFromCov(2, upper.data(), mean, v, &res);
     assert(ret == 0);
-    double truth = gsl_cdf_ugaussian_P(.3 - 2.) *
-                    gsl_cdf_ugaussian_P(.5 - 4.);
+    double truth = gsl_cdf_ugaussian_P(.3 - 2.) * gsl_cdf_ugaussian_P(.5 - 4.);
     assert(equal(res, truth, eps));
-    
   }
 
   {
@@ -124,13 +114,12 @@ int main(int argc, char *argv[])
     Matrix v;
     v.Dimension(3, 3);
     v.Zero();
-    v[0][0] = v[1][1] = v[2][2] = 1.;
-    
+    v(0, 0) = v(1, 1) = v(2, 2) = 1.;
+
     double res;
     int ret = mvn.getLowerFromCov(3, upper.data(), mean, v, &res);
     assert(ret == 0);
-    double truth = gsl_cdf_ugaussian_P(.3 - 2.) *
-                   gsl_cdf_ugaussian_P(.5 - 4.) *
+    double truth = gsl_cdf_ugaussian_P(.3 - 2.) * gsl_cdf_ugaussian_P(.5 - 4.) *
                    gsl_cdf_ugaussian_P(1 - 1.);
     assert(ret == 0);
     assert(equal(res, truth, eps));
@@ -154,11 +143,11 @@ int main(int argc, char *argv[])
     Matrix v;
     v.Dimension(3, 3);
     v.Zero();
-    v[1][0] = v[0][1] = 3./5;
-    v[2][0] = v[0][2] = 1./3;
-    v[2][1] = v[1][2] = 11./15;
-    v[0][0] = v[1][1] = v[2][2] = 1.0;
-    
+    v(1, 0) = v(0, 1) = 3. / 5;
+    v(2, 0) = v(0, 2) = 1. / 3;
+    v(2, 1) = v(1, 2) = 11. / 15;
+    v(0, 0) = v(1, 1) = v(2, 2) = 1.0;
+
     double res;
     int ret = mvn.getLowerFromCov(3, upper.data(), v, &res);
     assert(ret == 0);
@@ -172,24 +161,22 @@ int main(int argc, char *argv[])
       a <- pmvnorm(lower=-Inf, upper=c(2,2), sigma = diag(2)*2)
       b <- pmvnorm(lower=-Inf, upper=c(2,2)/sqrt(2), corr=diag(2))
       stopifnot(all.equal(round(a,5) , round(b, 5)))
-      
+
      */
     Matrix v;
     v.Dimension(2, 2);
     v.Zero();
-    v[0][0] = v[1][1] = 2.;
+    v(0, 0) = v(1, 1) = 2.;
     double upper = 2.;
     double res1;
     int ret = mvn.getLowerFromCov(2., v, &res1);
     assert(ret == 0);
 
     double res2;
-    v[0][0] = v[1][1] = 1.0;
+    v(0, 0) = v(1, 1) = 1.0;
     ret = mvn.getLowerFromCov(2. / sqrt(2.), v, &res2);
     assert(ret == 0);
-    assert(equal(res1, res2, eps) );
-    
+    assert(equal(res1, res2, eps));
   }
   return 0;
 };
-

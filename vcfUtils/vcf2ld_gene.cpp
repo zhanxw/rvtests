@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <ctime>
 #include <map>
 #include <set>
 #include <string>
@@ -64,8 +65,8 @@ void imputeGenotype(Matrix* genotype, Random* r) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] >= 0) {
-        ac += m[i][j];
+      if (m(i, j) >= 0) {
+        ac += m(i, j);
         an += 2;
       }
     }
@@ -73,14 +74,14 @@ void imputeGenotype(Matrix* genotype, Random* r) {
     double pRef = p * p;
     double pHet = pRef + 2.0 * p * (1.0 - p);
     for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] < 0) {
+      if (m(i, j) < 0) {
         double v = r->Next();
         if (v < pRef) {
-          m[i][j] = 0;
+          m(i, j) = 0;
         } else if (v < pHet) {
-          m[i][j] = 1;
+          m(i, j) = 1;
         } else {
-          m[i][j] = 2;
+          m(i, j) = 2;
         }
       }
     }
@@ -97,15 +98,15 @@ void imputeGenotypeToMean(Matrix* genotype) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] >= 0) {
-        ac += m[i][j];
+      if (m(i, j) >= 0) {
+        ac += m(i, j);
         an += 2;
       }
     }
     double p = an == 0 ? 0. : 1.0 * ac / an;
     for (int j = 0; j < m.cols; j++) {
-      if (m[i][j] < 0) {
-        m[i][j] = p;
+      if (m(i, j) < 0) {
+        m(i, j) = p;
       }
     }
   }
@@ -117,7 +118,7 @@ void imputeGenotypeToMean(Matrix* genotype) {
 // void toMatrix(const std::vector<double>& v, Matrix* m) {
 //   m->Dimension(v.size(), 1);
 //   for (size_t i = 0; i < v.size(); i++) {
-//     (*m)[i][0] = v[i];
+//     (*m)(i, 0) = v[i];
 //   }
 // };
 
@@ -175,13 +176,13 @@ double calculateR2(Matrix& genotype, const int i, const int j) {
   double sum_j2 = 0.0;  // sum of genotype[,j]*genotype[,j]
   int n = 0;
   for (int c = 0; c < genotype.cols; c++) {  // iterator each people
-    if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
+    if (genotype(i, c) < 0 || genotype(j, c) < 0) continue;
     ++n;
-    sum_i += genotype[i][c];
-    sum_i2 += genotype[i][c] * genotype[i][c];
-    sum_ij += genotype[i][c] * genotype[j][c];
-    sum_j += genotype[j][c];
-    sum_j2 += genotype[j][c] * genotype[j][c];
+    sum_i += genotype(i, c);
+    sum_i2 += genotype(i, c) * genotype(i, c);
+    sum_ij += genotype(i, c) * genotype(j, c);
+    sum_j += genotype(j, c);
+    sum_j2 += genotype(j, c) * genotype(j, c);
   };
   // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 =
   // %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
@@ -204,11 +205,11 @@ double calculateCov(Matrix& genotype, const int i, const int j) {
   double sum_j = 0.0;   // sum of genotype[,j]
   int n = 0;
   for (int c = 0; c < genotype.cols; c++) {  // iterator each people
-    if (genotype[i][c] < 0 || genotype[j][c] < 0) continue;
+    if (genotype(i, c) < 0 || genotype(j, c) < 0) continue;
     ++n;
-    sum_i += genotype[i][c];
-    sum_ij += genotype[i][c] * genotype[j][c];
-    sum_j += genotype[j][c];
+    sum_i += genotype(i, c);
+    sum_ij += genotype(i, c) * genotype(j, c);
+    sum_j += genotype(j, c);
   };
   // fprintf(stderr, "sum_ij = %g sum_i = %g sum_j = %g sum_i2 = %g sum_j2 =
   // %g\n", sum_ij, sum_i, sum_j, sum_i2, sum_j2);
@@ -224,24 +225,24 @@ double calculateCov(Matrix& genotype, const int i, const int j) {
  * Note: this version is fast, but it only handles non-missing, integer genotypes
  */
 double calculateR2(Matrix& genotype, const int i, const int j){
-  int m[3][3] = {0};
+  int m(3, 3) = {0};
   for (int c = 0; c < genotype.cols; c++) {
-    int g1 = (int)genotype[i][c];
-    int g2 = (int)genotype[i][c];
+    int g1 = (int)genotype(i, c);
+    int g2 = (int)genotype(i, c);
     if (g1 >= 0 && g2 >= 0) {
       if (g1 <=2 && g2 <= 2) {
-        m[g1][g2] ++;
+        m(g1, g2) ++;
       } else {
         fprintf(stderr, "Strange genotype for i = %d, j = %d, genotype = %d, %d\n", i, j, g1, g2);
         continue;
       }
     }
   };
-  int numer = m[1][1] + 2 * (m[1][2] + m[2][1]) + 4 * m[2][2];
-  int m1_ = m[1][0] + m[1][1] + m[1][2];
-  int m2_ = m[2][0] + m[2][1] + m[2][2];
-  int m_1 = m[0][1] + m[1][1] + m[2][1];
-  int m_2 = m[0][2] + m[1][2] + m[2][2];
+  int numer = m(1, 1) + 2 * (m(1, 2) + m(2, 1)) + 4 * m(2, 2);
+  int m1_ = m(1, 0) + m(1, 1) + m(1, 2);
+  int m2_ = m(2, 0) + m(2, 1) + m(2, 2);
+  int m_1 = m(0, 1) + m(1, 1) + m(2, 1);
+  int m_2 = m(0, 2) + m(1, 2) + m(2, 2);
   int denom =  (m1_ + 4 * m2_) * (m_1 + 4* m_2);
   
   if (denom == 0) {
@@ -497,9 +498,9 @@ int main(int argc, char** argv) {
         if (GTidx >= 0)
           // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
           // field of each individual
-          genotype[row][i] = indv->justGet(GTidx).getGenotype();
+          genotype(row, i) = indv->justGet(GTidx).getGenotype();
         else
-          genotype[row][i] = -9;
+          genotype(row, i) = -9;
       }
       ++row;
     }

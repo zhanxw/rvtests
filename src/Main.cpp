@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include <algorithm>
 #include <cassert>
 #include <map>
@@ -12,14 +13,14 @@
 #include "base/CommonFunction.h"
 #include "base/Indexer.h"
 #include "base/Logger.h"
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 #include "base/OrderedMap.h"
 #include "base/RangeList.h"
 #include "base/SimpleMatrix.h"
 #include "base/TimeUtil.h"
 #include "base/Utils.h"
 #include "base/VersionChecker.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
 
 #include "src/BGenGenotypeExtractor.h"
 #include "src/DataConsolidator.h"
@@ -33,7 +34,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20171009";
+const char* VERSION = "20181216";
 
 void banner(FILE* fp) {
   const char* string =
@@ -44,7 +45,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      October 2017                      | \n"
+      "|      December 2018                     | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -66,7 +67,7 @@ void citation(FILE* fp) {
 void toMatrix(const std::vector<double>& v, Matrix* m) {
   m->Dimension(v.size(), 1);
   for (size_t i = 0; i < v.size(); i++) {
-    (*m)[i][0] = v[i];
+    (*m)(i, 0) = v[i];
   }
 }
 
@@ -78,7 +79,7 @@ void toMatrix(const SimpleMatrix& from, Matrix* to) {
   // copy value
   for (int i = 0; i < nr; ++i) {
     for (int j = 0; j < nc; ++j) {
-      (*to)[i][j] = from[i][j];
+      (*to)(i, j) = from[i][j];
     }
   }
   // copy col labels
@@ -263,7 +264,7 @@ ADD_STRING_PARAMETER(
     covName, "--covar-name",
     "Specify the column name in covariate file to be included in analysis");
 ADD_BOOL_PARAMETER(sex, "--sex",
-                   "Include sex (5th column in the PED file); as a covariate");
+                   "Include sex (5th column in the PED file) as a covariate");
 
 ADD_PARAMETER_GROUP("Specify Phenotype");
 ADD_STRING_PARAMETER(pheno, "--pheno", "Specify phenotype file");
@@ -561,7 +562,6 @@ int main(int argc, char** argv) {
 
   if (FLAG_multiplePheno.empty()) {
     dataLoader.loadPhenotype(FLAG_pheno, FLAG_mpheno, FLAG_phenoName);
-
     // // load phenotypes
     // std::map<std::string, double> phenotype;
     // if (FLAG_pheno.empty()) {
@@ -598,12 +598,11 @@ int main(int argc, char** argv) {
     //     return -1;
     //   }
     // }
-    // logger->info("Loaded [ %zu ] sample pheontypes.", phenotype.size());
+    // logger->info("Loaded [ %zu ] sample phenotypes.", phenotype.size());
 
     // rearrange phenotypes
     // drop samples from phenotype or vcf
     matchPhenotypeAndVCF("missing phenotype", &dataLoader, ge);
-
     // // phenotype names (vcf sample names) arranged in the same order as in
     // VCF
     // std::vector<std::string> phenotypeNameInOrder;
@@ -649,7 +648,6 @@ int main(int argc, char** argv) {
     // }
     dataLoader.loadCovariate(FLAG_cov, FLAG_covName);
     matchCovariateAndVCF("missing covariate", &dataLoader, ge);
-
     // // load covariate
     // Matrix covariate;
     // HandleMissingCov handleMissingCov = COVARIATE_DROP;
@@ -763,7 +761,7 @@ int main(int argc, char** argv) {
   //   std::set<double> s;
   //   s.clear();
   //   for (int j = 0; j < covariate.rows; ++j) {
-  //     s.insert(covariate[j][i]);
+  //     s.insert(covariate(j,i));
   //   }
   //   if (s.size() == 1) {
   //     logger->error(
@@ -1021,7 +1019,6 @@ int main(int argc, char** argv) {
   dc.setParRegion(&parRegion);
 
   // genotype will be extracted and stored
-  Matrix& genotype = dc.getOriginalGenotype();
   if (FLAG_freqUpper > 0) {
     ge->setSiteFreqMax(FLAG_freqUpper);
     logger->info("Set upper minor allele frequency limit to %g",
@@ -1043,6 +1040,9 @@ int main(int argc, char** argv) {
     logger->info("Use dosage genotype from VCF flag %s.",
                  FLAG_dosageTag.c_str());
   }
+
+  // multi-allelic sites will be treats as ref/alt1, ref/alt2, ref/alt3..
+  // instead of ref/alt1 (biallelic)
   if (FLAG_multiAllele) {
     ge->enableMultiAllelicMode();
     logger->info("Enable analysis using multiple allelic models");
@@ -1083,6 +1083,7 @@ int main(int argc, char** argv) {
 
   logger->info("Analysis started");
   Result& buf = dc.getResult();
+  Matrix& genotype = dc.getOriginalGenotype();
 
   // we have three modes:
   // * single variant reading, single variant test
@@ -1129,6 +1130,9 @@ int main(int argc, char** argv) {
       dc.consolidate(phenotypeMatrix, covariate, genotype);
 
       buf.updateValue("N_INFORMATIVE", toString(genotype.rows));
+
+      // logger->info("Test variant at site: %s:%s!",
+      //               buf["CHROM"].c_str(), buf["POS"].c_str());
 
       // fit each model
       for (size_t m = 0; m != numModel; m++) {

@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "SingleDummy.h"
 
 #include "src/DataConsolidator.h"
@@ -9,9 +10,9 @@ int SingleDummy::fit(DataConsolidator* dc) {
 
   // this is extract genotype, phenotype and covariate for further analysis
   // let's say you want to get the max and min values among them
-  Matrix& phenotype = dc->getPhenotype();
-  Matrix& genotype = dc->getGenotype();
-  Matrix& cov = dc->getCovariate();
+  const Matrix& phenotype = dc->getPhenotype();
+  const Matrix& genotype = dc->getGenotype();
+  const Matrix& cov = dc->getCovariate();
   max_ = std::max(std::max(phenotype.Max(), genotype.Max()), cov.Max());
   min_ = std::min(std::max(phenotype.Min(), genotype.Min()), cov.Min());
 

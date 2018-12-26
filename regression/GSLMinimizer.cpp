@@ -1,8 +1,8 @@
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_min.h>
-
 #include "GSLMinimizer.h"
+
+#include "third/gsl/include/gsl/gsl_errno.h"
+#include "third/gsl/include/gsl/gsl_math.h"
+#include "third/gsl/include/gsl/gsl_min.h"
 
 Minimizer::Minimizer()
     : finalX(NAN), finalY(NAN), epsabs(0.001), epsrel(0.0), maxIter(100) {

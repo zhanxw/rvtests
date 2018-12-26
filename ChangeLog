@@ -1,7 +1,11 @@
+2017-10-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Minor text changes
+
 2017-10-09  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Support BGEN format (see example/experimental/cmd.sh)
-	* Add bgen2vcf, bgenFileInfo utitlies
+	* Add bgen2vcf, bgenFileInfo utilities
 	* Add timeout when checking new version
 	* Improve speed of covariance calculation
 	* Update combineKinship.py
@@ -53,7 +57,7 @@
 
 2017-02-28  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
-	* Fix a bug when loadindg a group of varaints
+	* Fix a bug when loading a group of variants
 	* Fix SE calculation in '--single score' for quantitative traits
 	* Fix BoltLMM implementation
 	* Improve SkatO robustness
@@ -90,7 +94,7 @@
 
 2016-05-16  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
-	* Optimize code (faster speed, smaller memory consumptions)
+	* Optimize code (faster speed, smaller memory consumption)
 
 2016-05-04  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
@@ -151,7 +155,7 @@
 2015-08-14  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Add version checker for Linux version
-	* Improve user interface by print effective commandline options
+	* Improve user interface by print effective command line options
 
 2015-08-14  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
@@ -207,7 +211,7 @@
 2015-04-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix bug when dealing binary phenotypes
-	* Imporve stability in Firth regression
+	* Improve stability in Firth regression
 	* Revise banner
 
 2015-03-24  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
@@ -295,7 +299,7 @@
 
 2014-04-01  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
-	* New parallele computation option (--thread) in vcf2kinship
+	* New parallel computation option (--thread) in vcf2kinship
 
 2014-03-30  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

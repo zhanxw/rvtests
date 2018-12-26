@@ -1,5 +1,5 @@
-#ifndef _IO_H_
-#define _IO_H_
+#ifndef _FILE_IO_H_
+#define _FILE_IO_H_
 
 #define UNUSED(x) ((void)(x))
 #include <assert.h>  //assert
@@ -291,4 +291,4 @@ class FileWriter {
 
 bool fileExists(std::string fn);
 
-#endif /* _IO_H_ */
+#endif /* _FILE_IO_H_ */

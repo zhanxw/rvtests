@@ -6,7 +6,7 @@
 
 #include <deque>
 
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 
 #include "base/Argument.h"
 #include "base/ParRegion.h"
@@ -44,14 +44,14 @@
 #include "src/Result.h"
 #include "src/Summary.h"
 
-#if 0
+#if 1
 // may decrease speed.
 #ifdef _OPENMP
 #include <omp.h>
 #pragma message "Enable multithread using OpenMP"
 #endif
 #endif
-#include <omp.h>
+
 DECLARE_BOOL_PARAMETER(hideCovar);
 
 extern SummaryHeader* g_SummaryHeader;
@@ -69,27 +69,29 @@ double getMarkerFrequency(DataConsolidator* dc, int col);
 void getMarkerFrequency(DataConsolidator* dc, std::vector<double>* freq);
 double getMarkerFrequencyFromControl(Matrix& in, Vector& pheno, int col);
 
-void cmcCollapse(DataConsolidator* dc, Matrix& in, Matrix* out);
-void cmcCollapse(DataConsolidator* dc, Matrix& in, const std::vector<int>& idx,
-                 Matrix* out, int index);
+void cmcCollapse(DataConsolidator* dc, const Matrix& in, Matrix* out);
+void cmcCollapse(DataConsolidator* dc, const Matrix& in,
+                 const std::vector<int>& idx, Matrix* out, int index);
 
-void zegginiCollapse(DataConsolidator* dc, Matrix& in, Matrix* out);
-void zegginiCollapse(DataConsolidator* dc, Matrix& in,
+void zegginiCollapse(DataConsolidator* dc, const Matrix& in, Matrix* out);
+void zegginiCollapse(DataConsolidator* dc, const Matrix& in,
                      const std::vector<int>& idx, Matrix* out, int index);
 
-void fpCollapse(DataConsolidator* dc, Matrix& in, Matrix* out);
+void fpCollapse(DataConsolidator* dc, const Matrix& in, Matrix* out);
 
-void madsonBrowningCollapse(DataConsolidator* dc, Matrix& genotype,
+void madsonBrowningCollapse(DataConsolidator* dc, const Matrix& genotype,
                             Vector& phenotype, Matrix* out);
 
 void groupFrequency(const std::vector<double>& freq,
                     std::map<double, std::vector<int> >* group);
 void convertToReferenceAlleleCount(Matrix& in, Matrix* g);
 
-void makeVariableThreshodlGenotype(
-    DataConsolidator* dc, Matrix& in, Matrix* out, std::vector<double>* freqOut,
-    void (*collapseFunc)(DataConsolidator* dc, Matrix&, const std::vector<int>&,
-                         Matrix*, int));
+void makeVariableThreshodlGenotype(DataConsolidator* dc, const Matrix& in,
+                                   Matrix* out, std::vector<double>* freqOut,
+                                   void (*collapseFunc)(DataConsolidator* dc,
+                                                        const Matrix&,
+                                                        const std::vector<int>&,
+                                                        Matrix*, int));
 
 void appendHeritability(FileWriter* fp, const FastLMM& model);
 void appendHeritability(FileWriter* fp, const GrammarGamma& model);
@@ -105,9 +107,9 @@ class SingleVariantWaldTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& cov = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& cov = dc->getCovariate();
 
     if (genotype.cols != 1) {
       fitOK = false;
@@ -153,11 +155,11 @@ class SingleVariantWaldTest : public ModelFitter {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
           beta = linear.GetCovEst()[i];
-          se = sqrt(linear.GetCovB()[i][i]);
+          se = sqrt(linear.GetCovB()(i, i));
           pval = linear.GetAsyPvalue()[i];
         } else {
           beta = logistic.GetCovEst()[i];
-          se = sqrt(logistic.GetCovB()[i][i]);
+          se = sqrt(logistic.GetCovB()(i, i));
           pval = logistic.GetAsyPvalue()[i];
         }
 
@@ -188,9 +190,9 @@ class SingleVariantFirthTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& cov = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& cov = dc->getCovariate();
 
     if (genotype.cols != 1) {
       fitOK = false;
@@ -237,7 +239,7 @@ class SingleVariantFirthTest : public ModelFitter {
       result.updateValue("Test", this->X.GetColumnLabel(i));
       if (fitOK) {
         result.updateValue("Beta", firth.GetCovEst()[i]);
-        result.updateValue("SE", sqrt(firth.GetCovB()[i][i]));
+        result.updateValue("SE", sqrt(firth.GetCovB()(i, i)));
         result.updateValue("Pvalue", firth.GetAsyPvalue()[i]);
       }
       result.writeValueLine(fp);
@@ -259,9 +261,9 @@ class SingleVariantScoreTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     if (genotype.cols != 1) {
       fitOK = false;
@@ -324,28 +326,28 @@ class SingleVariantScoreTest : public ModelFitter {
     result.updateValue("AF", af);
     if (fitOK) {
       if (!isBinaryOutcome()) {
-        const double u = linear.GetU()[0][0];
-        const double v = linear.GetV()[0][0];
+        const double u = linear.GetU()(0, 0);
+        const double v = linear.GetV()(0, 0);
         result.updateValue("U", u);
         result.updateValue("V", v);
         result.updateValue("STAT", linear.GetStat());
         if (u != 0) {
-          result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" : "-");
+          result.updateValue("DIRECTION", linear.GetU()(0, 0) > 0 ? "+" : "-");
         }
         if (v > 0) {
-          result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+          result.updateValue("EFFECT", linear.GetBeta()(0, 0));
           result.updateValue("SE", linear.GetSEBeta(0));
         }
         result.updateValue("PVALUE", linear.GetPvalue());
       } else {
-        const double u = logistic.GetU()[0][0];
-        const double v = logistic.GetV()[0][0];
+        const double u = logistic.GetU()(0, 0);
+        const double v = logistic.GetV()(0, 0);
         result.updateValue("U", u);
         result.updateValue("V", v);
         result.updateValue("STAT", logistic.GetStat());
         if (u != 0) {
           result.updateValue("DIRECTION",
-                             logistic.GetU()[0][0] > 0 ? "+" : "-");
+                             logistic.GetU()(0, 0) > 0 ? "+" : "-");
         }
         if (v > 0) {
           result.updateValue("EFFECT", u / v);
@@ -406,9 +408,9 @@ class SingleVariantFisherExactTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& cov = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& cov = dc->getCovariate();
 
     if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
@@ -437,8 +439,8 @@ class SingleVariantFisherExactTest : public ModelFitter {
     // step 1, fit two by two table
     int numPeople = genotype.rows;
     for (int i = 0; i < numPeople; i++) {
-      int geno = genotype[i][0];
-      int pheno = phenotype[i][0];
+      int geno = genotype(i, 0);
+      int pheno = phenotype(i, 0);
       if (!(0 <= geno && geno <= 2)) continue;
       if (!(0 <= pheno && pheno <= 1)) continue;
       if (pheno == 1) {
@@ -543,9 +545,9 @@ class SingleVariantFamilyScore : public ModelFitter {
       fitOK = false;
       return -1;
     }
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
@@ -638,9 +640,9 @@ class SingleVariantFamilyLRT : public ModelFitter {
       fitOK = false;
       return -1;
     }
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
@@ -731,9 +733,9 @@ class SingleVariantFamilyGrammarGamma : public ModelFitter {
       fitOK = false;
       return -1;
     }
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     if (genotype.cols != 1 || isMonomorphicMarker(genotype, 0)) {
       fitOK = false;
@@ -814,9 +816,9 @@ class CMCTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
@@ -828,7 +830,7 @@ class CMCTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     cmcCollapse(dc, genotype, &collapsedGenotype);
@@ -889,7 +891,7 @@ class CMCTest : public ModelFitter {
   int totalNonRefSite() {
     int s = 0;
     for (int i = 0; i < collapsedGenotype.rows; ++i) {
-      s += collapsedGenotype[i][0] == 0.0 ? 0 : 1;
+      s += collapsedGenotype(i, 0) == 0.0 ? 0 : 1;
     }
     return (s);
   }
@@ -912,9 +914,9 @@ class CMCWaldTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
@@ -925,7 +927,7 @@ class CMCWaldTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     cmcCollapse(dc, genotype, &collapsedGenotype);
@@ -958,11 +960,11 @@ class CMCWaldTest : public ModelFitter {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
           beta = linear.GetCovEst()[i];
-          se = sqrt(linear.GetCovB()[i][i]);
+          se = sqrt(linear.GetCovB()(i, i));
           pval = linear.GetAsyPvalue()[i];
         } else {
           beta = logistic.GetCovEst()[i];
-          se = sqrt(logistic.GetCovB()[i][i]);
+          se = sqrt(logistic.GetCovB()(i, i));
           pval = logistic.GetAsyPvalue()[i];
         }
         result.updateValue("Beta", beta);
@@ -980,7 +982,7 @@ class CMCWaldTest : public ModelFitter {
   int totalNonRefSite() {
     int s = 0;
     for (int i = 0; i < collapsedGenotype.rows; ++i) {
-      s += collapsedGenotype[i][0] == 0.0 ? 0 : 1;
+      s += collapsedGenotype(i, 0) == 0.0 ? 0 : 1;
     }
     return (s);
   }
@@ -1003,9 +1005,9 @@ class ZegginiWaldTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
@@ -1016,7 +1018,7 @@ class ZegginiWaldTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     zegginiCollapse(dc, genotype, &collapsedGenotype);
@@ -1049,11 +1051,11 @@ class ZegginiWaldTest : public ModelFitter {
         double beta, se, pval;
         if (!isBinaryOutcome()) {
           beta = linear.GetCovEst()[i];
-          se = sqrt(linear.GetCovB()[i][i]);
+          se = sqrt(linear.GetCovB()(i, i));
           pval = linear.GetAsyPvalue()[i];
         } else {
           beta = logistic.GetCovEst()[i];
-          se = sqrt(logistic.GetCovB()[i][i]);
+          se = sqrt(logistic.GetCovB()(i, i));
           pval = logistic.GetAsyPvalue()[i];
         }
         result.updateValue("Beta", beta);
@@ -1087,9 +1089,9 @@ class CMCFisherExactTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& cov = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& cov = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
       warnOnce(
@@ -1117,8 +1119,8 @@ class CMCFisherExactTest : public ModelFitter {
     // step 1, fit two by two table
     int numPeople = collapsedGenotype.rows;
     for (int i = 0; i < numPeople; i++) {
-      int geno = collapsedGenotype[i][0];
-      int pheno = phenotype[i][0];
+      int geno = collapsedGenotype(i, 0);
+      int pheno = phenotype(i, 0);
       if (!(0 <= geno && geno <= 1)) continue;
       if (!(0 <= pheno && pheno <= 1)) continue;
       model.Increment(geno, pheno);
@@ -1170,9 +1172,9 @@ class ZegginiTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
@@ -1185,7 +1187,7 @@ class ZegginiTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     zegginiCollapse(dc, genotype, &collapsedGenotype);
@@ -1245,9 +1247,9 @@ class MadsonBrowningTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
       warnOnce(
@@ -1307,7 +1309,7 @@ class MadsonBrowningTest : public ModelFitter {
     siteInfo.writeHeaderTab(fp);
 
     if (isBinaryOutcome()) {
-      perm.writeHeaderTab(fp);
+      perm.writeHeader(fp);
     } else {
       fp->write("Pvalue\n");
     }
@@ -1346,9 +1348,9 @@ class FpTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
@@ -1361,7 +1363,7 @@ class FpTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     fpCollapse(dc, genotype, &collapsedGenotype);
@@ -1420,9 +1422,9 @@ class RareCoverTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
       warnOnce(
@@ -1449,7 +1451,7 @@ class RareCoverTest : public ModelFitter {
     Vector pheno;
     pheno.Dimension(phenotype.rows);
     for (int i = 0; i < phenotype.rows; i++) {
-      pheno[i] = phenotype[i][0];
+      pheno[i] = phenotype(i, 0);
     }
 
     // find highest correlation coef.
@@ -1511,7 +1513,7 @@ class RareCoverTest : public ModelFitter {
       double corr;
       for (int i = 0; i < genotype.rows; ++i) {
         if (selected.count(i)) continue;
-        corr = calculateCorrelation(genotype[i], c, phenotype);
+        corr = calculateCorrelation(genotype, i, c, phenotype);
         if (corr > maxCorr) {
           maxCorr = corr;
           maxIdx = i;
@@ -1524,7 +1526,7 @@ class RareCoverTest : public ModelFitter {
           // update selection
           stat = maxCorr;
           selected.insert(maxIdx);
-          combine(&c, genotype[maxIdx]);
+          combine(&c, genotype, maxIdx);
         } else {  // no select any new marker
           break;
         }
@@ -1534,8 +1536,10 @@ class RareCoverTest : public ModelFitter {
   }
   /**
    * Calculate correlatio of (g + collapsed, pheno)
+   * In the above: g = m[rowsIdx,]
    */
-  double calculateCorrelation(Vector& g, Vector& collapsed, Vector& pheno) {
+  double calculateCorrelation(Matrix& m, int rowIdx, Vector& collapsed,
+                              Vector& pheno) {
     double sum_g = 0.0;
     double sum_g2 = 0.0;
     double sum_p = 0.0;
@@ -1543,7 +1547,7 @@ class RareCoverTest : public ModelFitter {
     double sum_gp = 0.0;
     int n = pheno.Length();
     for (int i = 0; i < n; ++i) {
-      double geno = (g[i] + collapsed[i] > 0) ? 1.0 : 0.0;
+      double geno = (m(rowIdx, i) + collapsed[i] > 0) ? 1.0 : 0.0;
       if (geno > 0.0) {
         sum_g += geno;
         sum_g2 += geno * geno;
@@ -1564,10 +1568,10 @@ class RareCoverTest : public ModelFitter {
     double corr = cov_gp / sqrt(v);
     return corr;
   }
-  void combine(Vector* c, Vector& v) {
-    int n = v.Length();
+  void combine(Vector* c, const Matrix& m, int mRowIdx) {
+    int n = m.cols;
     for (int i = 0; i < n; ++i) {
-      if ((*c)[i] + v[i] > 0) {
+      if ((*c)[i] + m(mRowIdx, i) > 0) {
         (*c)[i] = 1.0;
       }
     }
@@ -1592,7 +1596,7 @@ class CMATTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
       warnOnce(
@@ -1645,9 +1649,9 @@ class CMATTest : public ModelFitter {
   double calculateStat(DataConsolidator* dc, double* p_N_A, double* p_N_U,
                        double* p_m_A, double* p_m_U, double* p_M_A,
                        double* p_M_U) {
-    Matrix& phenotype = dc->getPhenotype();
+    const Matrix& phenotype = dc->getPhenotype();
     copyPhenotype(phenotype, &this->pheno);
-    Matrix& genotype = dc->getGenotype();
+    const Matrix& genotype = dc->getGenotype();
 
     double& N_A = *p_N_A;
     double& N_U = *p_N_U;
@@ -1664,7 +1668,7 @@ class CMATTest : public ModelFitter {
     M_U = 0;
 
     for (int i = 0; i < pheno.Length(); ++i) {
-      if (phenotype[i] == 1) {
+      if (phenotype(i, 0) == 1) {
         ++N_A;
       } else {
         ++N_U;
@@ -1678,21 +1682,21 @@ class CMATTest : public ModelFitter {
         flip = true;
       }
       for (int j = 0; j < genotype.rows; ++j) {
-        if (phenotype[j] == 1) {
+        if (phenotype(j, 0) == 1) {
           if (!flip) {
-            m_A += genotype[j][i];
-            M_A += (2.0 - genotype[j][i]);
+            m_A += genotype(j, i);
+            M_A += (2.0 - genotype(j, i));
           } else {
-            m_A += (2.0 - genotype[j][i]);
-            M_A += genotype[j][i];
+            m_A += (2.0 - genotype(j, i));
+            M_A += genotype(j, i);
           }
         } else {
           if (!flip) {
-            m_U += genotype[j][i];
-            M_U += (2.0 - genotype[j][i]);
+            m_U += genotype(j, i);
+            M_U += (2.0 - genotype(j, i));
           } else {
-            m_U += (2.0 - genotype[j][i]);
-            M_U += genotype[j][i];
+            m_U += (2.0 - genotype(j, i));
+            M_U += genotype(j, i);
           }
         }
       }
@@ -1743,10 +1747,10 @@ class VariableThresholdPrice : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
-    Vector& weight = dc->getWeight();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
+    const Vector& weight = dc->getWeight();
 
     if (genotype.cols == 0) {
       fitOK = false;
@@ -1822,8 +1826,8 @@ class VariableThresholdPrice : public ModelFitter {
     g->Transpose(tmp);
   }
 
-  int calculateZ(Vector& pheno, Matrix& sortedBurden, Vector& weight,
-                 double* zmax, double* optimFreq) {
+  int calculateZ(const Vector& pheno, const Matrix& sortedBurden,
+                 const Vector& weight, double* zmax, double* optimFreq) {
     assert(pheno.Length() == sortedBurden.cols);
     assert(sortedBurden.rows > 1);
     assert(weight.Length() == 0);
@@ -1833,7 +1837,7 @@ class VariableThresholdPrice : public ModelFitter {
 
     for (int i = 0; i < sortedBurden.rows; ++i) {
       const double z =
-          calculateZthreshold(pheno, this->sortedBurden[i], weight);
+          calculateZthreshold(pheno, this->sortedBurden, i, weight);
       if (fabs(z) > *zmax || i == 0) {
         *zmax = fabs(z);
         *optimFreq = this->freq[i];
@@ -1842,19 +1846,20 @@ class VariableThresholdPrice : public ModelFitter {
     return 0;
   }
 
-  double calculateZthreshold(Vector& y, Vector& x, Vector& weight) {
+  double calculateZthreshold(const Vector& y, const Matrix& x, int xRowIdx,
+                             const Vector& weight) {
     double ret = 0;
     int n = y.Length();
     if (weight.Length() == 0) {
       for (int i = 0; i < n; ++i) {
-        ret += x[i] * y[i];
+        ret += x(xRowIdx, i) * y[i];
       }
     } else {
       for (int i = 0; i < n; ++i) {
-        ret += x[i] * y[i] * weight[i];
+        ret += x(xRowIdx, i) * y[i] * weight[i];
       }
     }
-    double sd = sqrt(getVariance(x));
+    double sd = sqrt(getRowVariance(x, xRowIdx));
     if (sd != 0) {
       ret /= sd;
     }
@@ -1902,7 +1907,7 @@ class VariableThresholdCMC: public ModelFitter{
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
-    Matrix& genotype = dc->getGenotype();
+    const Matrix& genotype = dc->getGenotype();
     Matrix& covariate= dc->getCovariate();
 
     if (genotype.cols > modelLen) {
@@ -1969,9 +1974,9 @@ class VTCMC : public ModelFitter {
     result.addHeader("Pvalue");
   }
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     copy(phenotype, &this->pheno);
 
@@ -2052,12 +2057,12 @@ class VTCMC : public ModelFitter {
 
  private:
   int fitNullModel(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
     if (this->needToFitNullModel || dc->isPhenotypeUpdated() ||
         dc->isCovariateUpdated()) {
-      copyCovariateAndIntercept(genotype.rows, covariate, &covariate);
+      copyCovariateAndIntercept(genotype.rows, covariate, &this->covariate);
       copyPhenotype(phenotype, &this->pheno);
       if (isBinaryOutcome()) {
         fitOK = logistic.FitNullModel(covariate, pheno);
@@ -2075,12 +2080,13 @@ class VTCMC : public ModelFitter {
     int n = m.cols;
     out->resize(n);
     for (int i = 0; i < n; ++i) {
-      (*out)[i] = m[0][i];
+      (*out)[i] = m(0, i);
     }
   }
   Matrix geno;
   Matrix sortedGenotype;
   Vector pheno;
+  Matrix covariate;
   std::vector<double> freq;
   std::vector<double> U;
   std::vector<double> V;
@@ -2122,9 +2128,9 @@ class AnalyticVT : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
     copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
     if (genotype.cols == 0) {
@@ -2281,9 +2287,9 @@ class FamCMC : public ModelFitter {
       return -1;
     }
 
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
@@ -2399,9 +2405,9 @@ class FamZeggini : public ModelFitter {
       return -1;
     }
 
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
@@ -2514,9 +2520,9 @@ class FamFp : public ModelFitter {
       return -1;
     }
 
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->numVariant = genotype.cols;
     if (genotype.cols == 0) {
@@ -2619,9 +2625,9 @@ class SkatTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
     // not use dc->getWeight(), but use model specific weight
     // Vector& weight = dc->getWeight();
 
@@ -2776,9 +2782,9 @@ class SkatOTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
     // not use dc->getWeight(), but use model specific weight
     // Vector& weight = dc->getWeight();
 
@@ -2914,9 +2920,9 @@ class KBACTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     if (!isBinaryOutcome()) {
       warnOnce(
@@ -2945,9 +2951,9 @@ class KBACTest : public ModelFitter {
         // we essentially store xmat in a array where the order is
         // people1 marker1, people1 marker2, people1 marker3.... then
         // people2 marker1, people2 marker2, people2 marker3....
-        xdatIn[i * genotype.cols + j] = genotype[i][j];
-        /* if (genotype[i][j] != 0.0) { */
-        /*   fprintf(stderr, "i=%d, j=%d, genotype=%g\n", i,j,genotype[i][j]);
+        xdatIn[i * genotype.cols + j] = genotype(i, j);
+        /* if (genotype(i,j) != 0.0) { */
+        /*   fprintf(stderr, "i=%d, j=%d, genotype=%g\n", i,j,genotype(i,j));
          */
         /*   fprintf(stderr, "j*genotype.rows +i = %d, xdatIn[..] = %g\n", j *
          * genotype.rows + i, xdatIn[j * genotype.rows + i]); */
@@ -2955,7 +2961,7 @@ class KBACTest : public ModelFitter {
       }
     }
     for (int i = 0; i < genotype.rows; ++i) {
-      ydatIn[i] = phenotype[i][0];
+      ydatIn[i] = phenotype(i, 0);
     }
     for (int j = 0; j < genotype.cols; ++j) {
       mafIn[j] = getMarkerFrequency(dc, j);
@@ -3047,9 +3053,9 @@ class FamSkatTest : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getFlippedToMinorPolymorphicGenotype();
+    const Matrix& covariate = dc->getCovariate();
     // not use dc->getWeight(), but use model specific weight
     // Vector& weight = dc->getWeight();
 
@@ -3173,10 +3179,10 @@ class MetaScoreTest : public ModelFitter {
   }
   // fitting model
   virtual int fit(DataConsolidator* dc) {
-    Matrix& genotype = dc->getGenotype();
+    const Matrix& genotype = dc->getGenotype();
     return this->fitWithGivenGenotype(genotype, dc);
   }
-  int fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc) {
+  int fitWithGivenGenotype(const Matrix& genotype, DataConsolidator* dc) {
     this->useFamilyModel = dc->hasKinship();
 
     // check column name for hemi region
@@ -3360,9 +3366,9 @@ class MetaScoreTest : public ModelFitter {
    public:
     MetaBase() : needToFitNullModel(true) {}
     virtual ~MetaBase() {}
-    virtual int FitNullModel(Matrix& genotype, DataConsolidator* dc) = 0;
-    virtual int TestCovariate(Matrix& genotype, DataConsolidator* dc) = 0;
-    virtual double GetAF(Matrix& geno, DataConsolidator* dc) = 0;
+    virtual int FitNullModel(const Matrix& genotype, DataConsolidator* dc) = 0;
+    virtual int TestCovariate(const Matrix& genotype, DataConsolidator* dc) = 0;
+    virtual double GetAF(const Matrix& geno, DataConsolidator* dc) = 0;
     virtual void PrintNullModel(FileWriter* fp,
                                 const std::vector<std::string>& covLabel) = 0;
     // this method is for printing extra stuffs
@@ -3385,9 +3391,9 @@ class MetaScoreTest : public ModelFitter {
   class MetaFamQtl : public MetaBase {
    public:
     MetaFamQtl() : lmm(FastLMM::SCORE, FastLMM::MLE) {}
-    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-      Matrix& phenotype = dc->getPhenotype();
-      Matrix& covariate = dc->getCovariate();
+    int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
+      const Matrix& phenotype = dc->getPhenotype();
+      const Matrix& covariate = dc->getCovariate();
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
       bool fitOK;
@@ -3410,9 +3416,9 @@ class MetaScoreTest : public ModelFitter {
       }
       return -1;
     }
-    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
-      Matrix& phenotype = dc->getPhenotype();
-      Matrix& cov = dc->getCovariate();
+    int TestCovariate(const Matrix& genotype, DataConsolidator* dc) {
+      const Matrix& phenotype = dc->getPhenotype();
+      const Matrix& cov = dc->getCovariate();
       if (!hemiRegion) {
         return lmm.TestCovariate(cov, phenotype, genotype,
                                  *dc->getKinshipUForAuto(),
@@ -3423,7 +3429,7 @@ class MetaScoreTest : public ModelFitter {
                                  *dc->getKinshipSForX());
       }
     }
-    double GetAF(Matrix& geno, DataConsolidator* dc) {
+    double GetAF(const Matrix& geno, DataConsolidator* dc) {
       if (!hemiRegion) {
         return lmm.FastGetAF(*dc->getKinshipUForAuto(),
                              *dc->getKinshipSForAuto(), dc->getGenotype());
@@ -3443,12 +3449,12 @@ class MetaScoreTest : public ModelFitter {
 
       fp->write("##NullModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd(0, 0));
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
         if (i + 1 >= beta.Length()) break;
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
-                   betaSd[i + 1][i + 1]);
+                   betaSd(i + 1, i + 1));
       }
       // sigma
       fp->printf("## - SigmaG2\t%g\tNA\n", sigmaG2);
@@ -3472,7 +3478,7 @@ class MetaScoreTest : public ModelFitter {
       for (int i = 0; i < m.rows; ++i) {
         for (int j = 0; j < m.cols; ++j) {
           if (j) fw.write("\t");
-          fw.printf("%g", m[i][j]);
+          fw.printf("%g", m(i, j));
         }
         fw.write("\n");
       }
@@ -3491,9 +3497,9 @@ class MetaScoreTest : public ModelFitter {
   };  // class MetaFamQtl
   class MetaUnrelatedQtl : public MetaBase {
    public:
-    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-      Matrix& phenotype = dc->getPhenotype();
-      Matrix& covariate = dc->getCovariate();
+    int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
+      const Matrix& phenotype = dc->getPhenotype();
+      const Matrix& covariate = dc->getCovariate();
 
       copyCovariateAndIntercept(genotype.rows, covariate, &this->cov);
       copyPhenotype(phenotype, &this->pheno);
@@ -3504,12 +3510,12 @@ class MetaScoreTest : public ModelFitter {
       sigma2 = linear.GetSigma2();
       return 0;
     }
-    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
+    int TestCovariate(const Matrix& genotype, DataConsolidator* dc) {
       bool fitOK = linear.TestCovariate(cov, pheno, genotype);
       if (!fitOK) return -1;
       return 0;
     }
-    double GetAF(Matrix& geno, DataConsolidator* dc) {
+    double GetAF(const Matrix& geno, DataConsolidator* dc) {
       assert(false);
       ;  // should not reach here
       return 0.0;
@@ -3521,20 +3527,20 @@ class MetaScoreTest : public ModelFitter {
 
       fp->write("##NullModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd(0, 0));
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
         if (i + 1 >= beta.Length()) break;
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
-                   betaSd[i + 1][i + 1]);
+                   betaSd(i + 1, i + 1));
       }
       // sigma
       fp->printf("## - Sigma2\t%g\tNA\n", sigma2);
     }
-    double GetU() { return linear.GetU()[0][0] / sigma2; }
-    double GetV() { return linear.GetV()[0][0] / sigma2 / sigma2; }
+    double GetU() { return linear.GetU()(0, 0) / sigma2; }
+    double GetV() { return linear.GetV()(0, 0) / sigma2 / sigma2; }
     double GetEffect() {
-      return linear.GetV()[0][0] != 0.0 ? linear.GetBeta()[0][0] : 0.0;
+      return linear.GetV()(0, 0) != 0.0 ? linear.GetBeta()(0, 0) : 0.0;
     }
     double GetEffectSE() { return linear.GetSEBeta(0); }
     double GetPvalue() { return linear.GetPvalue(); }
@@ -3549,18 +3555,18 @@ class MetaScoreTest : public ModelFitter {
     MetaFamBinary() : lmm(FastLMM::SCORE, FastLMM::MLE) {
       lmm.disableCenterGenotype();
     }
-    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-      Matrix& phenotype = dc->getPhenotype();
-      Matrix& covariate = dc->getCovariate();
+    int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
+      const Matrix& phenotype = dc->getPhenotype();
+      const Matrix& covariate = dc->getCovariate();
       copyCovariateAndIntercept(genotype.rows, covariate, &cov);
 
       // calculate alpha, b
       int nCase = 0;
       int nCtrl = 0;
       for (int i = 0; i < phenotype.rows; ++i) {
-        if (phenotype[i][0] == 1) {
+        if (phenotype(i, 0) == 1) {
           ++nCase;
-        } else if (phenotype[i][0] == 0) {
+        } else if (phenotype(i, 0) == 0) {
           ++nCtrl;
         }
       }
@@ -3591,9 +3597,9 @@ class MetaScoreTest : public ModelFitter {
       }
       return -1;
     }
-    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
-      Matrix& phenotype = dc->getPhenotype();
-      Matrix& cov = dc->getCovariate();
+    int TestCovariate(const Matrix& genotype, DataConsolidator* dc) {
+      const Matrix& phenotype = dc->getPhenotype();
+      const Matrix& cov = dc->getCovariate();
       if (!hemiRegion) {
         return lmm.TestCovariate(cov, phenotype, genotype,
                                  *dc->getKinshipUForAuto(),
@@ -3604,7 +3610,7 @@ class MetaScoreTest : public ModelFitter {
                                  *dc->getKinshipSForX());
       }
     }
-    double GetAF(Matrix& geno, DataConsolidator* dc) {
+    double GetAF(const Matrix& geno, DataConsolidator* dc) {
       if (!hemiRegion) {
         return lmm.FastGetAF(*dc->getKinshipUForAuto(),
                              *dc->getKinshipSForAuto(), dc->getGenotype());
@@ -3624,12 +3630,12 @@ class MetaScoreTest : public ModelFitter {
 
       fp->write("##NullModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd(0, 0));
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
         if (i + 1 >= beta.Length()) break;
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
-                   betaSd[i + 1][i + 1]);
+                   betaSd(i + 1, i + 1));
       }
       // sigma
       fp->printf("## - SigmaG2\t%g\tNA\n", sigmaG2);
@@ -3660,9 +3666,9 @@ class MetaScoreTest : public ModelFitter {
   class MetaUnrelatedBinary : public MetaBase {
    public:
     MetaUnrelatedBinary() : useMLE(false) {}
-    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
-      Matrix& phenotype = dc->getPhenotype();
-      Matrix& covariate = dc->getCovariate();
+    int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
+      const Matrix& phenotype = dc->getPhenotype();
+      const Matrix& covariate = dc->getCovariate();
 
       copyCovariateAndIntercept(genotype.rows, covariate, &this->cov);
       copyPhenotype(phenotype, &this->pheno);
@@ -3672,9 +3678,9 @@ class MetaScoreTest : public ModelFitter {
         int nCase = 0;
         int nCtrl = 0;
         for (int i = 0; i < phenotype.rows; ++i) {
-          if (phenotype[i][0] == 1) {
+          if (phenotype(i, 0) == 1) {
             ++nCase;
-          } else if (phenotype[i][0] == 0) {
+          } else if (phenotype(i, 0) == 0) {
             ++nCtrl;
           }
         }
@@ -3694,14 +3700,14 @@ class MetaScoreTest : public ModelFitter {
       needToFitNullModel = false;
       return 0;
     }
-    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
+    int TestCovariate(const Matrix& genotype, DataConsolidator* dc) {
       bool fitOK = logistic.TestCovariate(cov, pheno, genotype);
       if (!fitOK) return -1;
 
       if (useMLE) {
         // this part may be optimized by using approximations
         // fit alternative model
-        Matrix& covariate = dc->getCovariate();
+        const Matrix& covariate = dc->getCovariate();
         if (covariate.cols) {
           copyGenotypeWithCovariateAndIntercept(genotype, covariate, &this->X);
         } else {
@@ -3720,7 +3726,7 @@ class MetaScoreTest : public ModelFitter {
       }
       return 0;
     }
-    double GetAF(Matrix& geno, DataConsolidator* dc) {
+    double GetAF(const Matrix& geno, DataConsolidator* dc) {
       assert(false);
       ;  // should not reach here
       return 0.0;
@@ -3732,22 +3738,22 @@ class MetaScoreTest : public ModelFitter {
 
       fp->write("##NullModelEstimates\n");
       fp->write("## - Name\tBeta\tSD\n");
-      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd[0][0]);
+      fp->printf("## - Intercept\t%g\t%g\n", beta[0], betaSd(0, 0));
       const int n = covLabel.size();
       for (int i = 0; i < n; ++i) {
         if (i + 1 >= beta.Length()) break;
         fp->printf("## - %s\t%g\t%g\n", covLabel[i].c_str(), beta[i + 1],
-                   betaSd[i + 1][i + 1]);
+                   betaSd(i + 1, i + 1));
       }
       // sigma
       fp->printf("## - Sigma2\tNA\tNA\n");
     }
-    double GetU() { return logistic.GetU()[0][0]; }
-    double GetV() { return logistic.GetV()[0][0]; }
+    double GetU() { return logistic.GetU()(0, 0); }
+    double GetV() { return logistic.GetV()(0, 0); }
     double GetEffect() {
       if (!useMLE) {
-        if (logistic.GetU()[0][0] != 0.0) {
-          return logistic.GetU()[0][0] / logistic.GetV()[0][0];
+        if (logistic.GetU()(0, 0) != 0.0) {
+          return logistic.GetU()(0, 0) / logistic.GetV()(0, 0);
         }
       } else {
         return logisticAlt.GetCovEst()[1];
@@ -3777,7 +3783,7 @@ class MetaScoreTest : public ModelFitter {
   class MetaFamQtlBolt : public MetaBase {
    public:
     MetaFamQtlBolt() { fprintf(stderr, "MetaFamQtlBolt model started\n"); }
-    int FitNullModel(Matrix& genotype, DataConsolidator* dc) {
+    int FitNullModel(const Matrix& genotype, DataConsolidator* dc) {
       const std::string& fn = dc->getBoltGenotypeFilePrefix();
 
       // fit null model
@@ -3786,12 +3792,14 @@ class MetaScoreTest : public ModelFitter {
       needToFitNullModel = false;
       return 0;
     }
-    int TestCovariate(Matrix& genotype, DataConsolidator* dc) {
+    int TestCovariate(const Matrix& genotype, DataConsolidator* dc) {
       bool fitOK = 0 == bolt_.TestCovariate(genotype);
       if (!fitOK) return -1;
       return 0;
     }
-    double GetAF(Matrix& geno, DataConsolidator* dc) { return bolt_.GetAF(); }
+    double GetAF(const Matrix& geno, DataConsolidator* dc) {
+      return bolt_.GetAF();
+    }
     void PrintNullModel(FileWriter* fp,
                         const std::vector<std::string>& covLabel) {}
     double GetU() { return bolt_.GetU(); }
@@ -3803,18 +3811,19 @@ class MetaScoreTest : public ModelFitter {
       return v != 0.0 ? 1.0 / sqrt(v) : 0.0;
     }
     double GetPvalue() { return bolt_.GetPvalue(); }
+    void enableBinaryMode() { bolt_.enableBinaryMode(); }
 
    private:
     BoltLMM bolt_;
   };  // class MetaFamQtlBolt
+
   MetaBase* createModel(bool familyModel, bool binaryOutcome) {
     MetaBase* ret = NULL;
     if (this->useBolt) {
-      if (binaryOutcome) {
-        fprintf(stderr, "BoltLMM does not support binary outcomes! Exit...\n");
-        exit(1);
-      }
       ret = new MetaFamQtlBolt;
+      if (binaryOutcome) {
+        ((MetaFamQtlBolt*)ret)->enableBinaryMode();
+      }
       return ret;
     }
 
@@ -3925,10 +3934,10 @@ class MetaCovTest : public ModelFitter {
   }
   // fitting model
   virtual int fit(DataConsolidator* dc) {
-    Matrix& genotype = dc->getGenotype();
+    const Matrix& genotype = dc->getGenotype();
     return this->fitWithGivenGenotype(genotype, dc);
   }
-  int fitWithGivenGenotype(Matrix& genotype, DataConsolidator* dc);
+  int fitWithGivenGenotype(const Matrix& genotype, DataConsolidator* dc);
 
   // write result header
   void writeHeader(FileWriter* fp, const Result& siteInfo) {
@@ -3955,7 +3964,7 @@ class MetaCovTest : public ModelFitter {
   }
 
  private:
-  void assignGenotype(Matrix& genotype, Genotype& genoIdx);
+  void assignGenotype(const Matrix& genotype, Genotype& genoIdx);
   /**
    * @return max integer if different chromosome; or return difference between
    * head and tail locus.
@@ -3978,13 +3987,14 @@ class MetaCovTest : public ModelFitter {
   // return: a' * X * b
   // = \sum_i \sum_j a_i * X_{ij} * b_j
   // = \sum_i {a_i * X_ii * b_i + \sum_{j!=i} (a_i * b_j + a_j *b_i) * X_{ij}
-  float computeQuadraticForm(FloatMatrixRef& a, Matrix& X, FloatMatrixRef& b) {
+  float computeQuadraticForm(FloatMatrixRef& a, const Matrix& X,
+                             FloatMatrixRef& b) {
     // const int n = X.rows;
     // float s = 0.;
     // for (int i = 0; i < n; ++i) {
-    //   s += a[i] * X[i][i] * b[i];
+    //   s += a[i] * X(i,i) * b[i];
     //   for (int j = 0; j < i; ++j) {
-    //     s += (a[i] * b[j] + a[j] * b[i]) * X[i][j];
+    //     s += (a[i] * b[j] + a[j] * b[i]) * X(i,j);
     //   }
     // }
     // return s;
@@ -3997,7 +4007,7 @@ class MetaCovTest : public ModelFitter {
   }
   // return = covX1X2 - covX1Z' * covZZInv * covX2Z
   float computeScaledXX(const float covX1X2, FloatMatrixRef& covX1Z,
-                        FloatMatrixRef& covX2Z, Matrix& covZZInv) {
+                        FloatMatrixRef& covX2Z, const Matrix& covZZInv) {
     float ret = covX1X2;
     if (covX1Z.ncol_) {
       ret -= computeQuadraticForm(covX1Z, covZZInv, covX2Z);
@@ -4035,7 +4045,7 @@ class MetaCovTest : public ModelFitter {
       s += toString(vec.memory_[i] * scale);
     }
   }
-  void appendToString(Matrix& mat, const float scale, std::string* out) {
+  void appendToString(const Matrix& mat, const float scale, std::string* out) {
     if (mat.cols != mat.rows) {
       fprintf(stderr, "only square matrix is supported!\n");
     }
@@ -4043,7 +4053,7 @@ class MetaCovTest : public ModelFitter {
     for (int i = 0; i < mat.rows; ++i) {
       for (int j = 0; j <= i; ++j) {
         if (i || j) s += ',';
-        s += floatToString(mat[i][j] * scale);
+        s += floatToString(mat(i, j) * scale);
       }
     }
   }
@@ -4163,8 +4173,8 @@ class MetaSkewTest: public ModelFitter{
   // fitting model
   int fit(DataConsolidator* dc) {
     Matrix& phenotype = dc-> getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
     Result& siteInfo = dc->getResult();
 
     if (genotype.cols != 1) {
@@ -4228,7 +4238,7 @@ class MetaSkewTest: public ModelFitter{
     }
     loci.geno.resize(nSample);
     for (int i = 0; i < nSample; ++i) {
-      loci.geno[i] = genotype[i][0];
+      loci.geno[i] = genotype(i,0);
     }
     fitOK = true;
     return (fitOK ? 0 : -1);
@@ -4481,8 +4491,8 @@ class MetaKurtTest: public ModelFitter{
   // fitting model
   int fit(DataConsolidator* dc) {
     // Matrix& phenotype = dc-> getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    // Matrix& covariate = dc->getCovariate();
+    const Matrix& genotype = dc->getGenotype();
+    // const Matrix& covariate = dc->getCovariate();
     Result& siteInfo = dc->getResult();
 
     if (genotype.cols != 1) {
@@ -4546,7 +4556,7 @@ class MetaKurtTest: public ModelFitter{
     }
     loci.geno.resize(nSample);
     for (int i = 0; i < nSample; ++i) {
-      loci.geno[i] = genotype[i][0];
+      loci.geno[i] = genotype(i,0);
     }
     fitOK = true;
     return (fitOK ? 0 : -1);
@@ -4749,9 +4759,9 @@ class MultipleTraitScoreTest : public ModelFitter {
   ~MultipleTraitScoreTest() { flushOutput(); }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
     const FormulaVector& tests = *dc->getFormula();
 
     if (genotype.cols != 1) {
@@ -4835,29 +4845,29 @@ class MultipleTraitScoreTest : public ModelFitter {
         if (numResult == blockSize) {
           flushOutput();
         }
-        // const double u = linear.GetU()[0][0];
-        // const double v = linear.GetV()[0][0];
+        // const double u = linear.GetU()(0,0);
+        // const double v = linear.GetV()(0,0);
         // result.updateValue("U", u);
         // result.updateValue("V", v);
         // result.updateValue("STAT", linear.GetStat());
         // if (u != 0) {
-        //   result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" :
+        //   result.updateValue("DIRECTION", linear.GetU()(0,0) > 0 ? "+" :
         //   "-");
         // }
         // if (v > 0) {
-        //   result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+        //   result.updateValue("EFFECT", linear.GetBeta()(0,0));
         //   result.updateValue("SE", 1.0 / sqrt(v));
         // }
         // result.updateValue("PVALUE", linear.GetPvalue());
       } else {
-        // const double u = logistic.GetU()[0][0];
-        // const double v = logistic.GetV()[0][0];
+        // const double u = logistic.GetU()(0,0);
+        // const double v = logistic.GetV()(0,0);
         // result.updateValue("U", u);
         // result.updateValue("V", v);
         // result.updateValue("STAT", logistic.GetStat());
         // if (u != 0) {
         //   result.updateValue("DIRECTION",
-        //                      logistic.GetU()[0][0] > 0 ? "+" : "-");
+        //                      logistic.GetU()(0,0) > 0 ? "+" : "-");
         // }
         // if (v > 0 && b > 0) {
         //   result.updateValue("EFFECT", u / v / b);
@@ -4875,9 +4885,9 @@ class MultipleTraitScoreTest : public ModelFitter {
         for (int i = 0; i < numResult; ++i) {
           fp->write(sites[i]);
 
-          formatValue(linear.GetU(i), &ustat);
-          formatValue(linear.GetV(i), &vstat);
-          formatValue(linear.GetPvalue(i), &pvalue);
+          formatValue(linear.GetU(), i, &ustat);
+          formatValue(linear.GetV(), i, &vstat);
+          formatValue(linear.GetPvalue(), i, &pvalue);
 
           result.updateValue("U_STAT", ustat);
           result.updateValue("V_STAT", vstat);
@@ -4890,14 +4900,14 @@ class MultipleTraitScoreTest : public ModelFitter {
     linear.flush();
     numResult = 0;
   }
-  void formatValue(const Vector& v, std::string* out) {
-    const int n = v.Length();
+  void formatValue(const Matrix& m, int rowIdx, std::string* out) {
+    const int n = m.cols;
     (*out).clear();
     for (int i = 0; i < n; ++i) {
       if (i) {
         (*out) += ",";
       }
-      (*out) += toString(v[i]);
+      (*out) += toString(m(rowIdx, i));
     }
   }
 
@@ -4934,9 +4944,9 @@ class FastMultipleTraitScoreTest : public ModelFitter {
   ~FastMultipleTraitScoreTest() { flushOutput(); }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
     const FormulaVector& tests = *dc->getFormula();
 
     if (genotype.cols != 1) {
@@ -5020,29 +5030,29 @@ class FastMultipleTraitScoreTest : public ModelFitter {
         if (numResult == blockSize) {
           flushOutput();
         }
-        // const double u = linear.GetU()[0][0];
-        // const double v = linear.GetV()[0][0];
+        // const double u = linear.GetU()(0,0);
+        // const double v = linear.GetV()(0,0);
         // result.updateValue("U", u);
         // result.updateValue("V", v);
         // result.updateValue("STAT", linear.GetStat());
         // if (u != 0) {
-        //   result.updateValue("DIRECTION", linear.GetU()[0][0] > 0 ? "+" :
+        //   result.updateValue("DIRECTION", linear.GetU()(0,0) > 0 ? "+" :
         //   "-");
         // }
         // if (v > 0) {
-        //   result.updateValue("EFFECT", linear.GetBeta()[0][0]);
+        //   result.updateValue("EFFECT", linear.GetBeta()(0,0));
         //   result.updateValue("SE", 1.0 / sqrt(v));
         // }
         // result.updateValue("PVALUE", linear.GetPvalue());
       } else {
-        // const double u = logistic.GetU()[0][0];
-        // const double v = logistic.GetV()[0][0];
+        // const double u = logistic.GetU()(0,0);
+        // const double v = logistic.GetV()(0,0);
         // result.updateValue("U", u);
         // result.updateValue("V", v);
         // result.updateValue("STAT", logistic.GetStat());
         // if (u != 0) {
         //   result.updateValue("DIRECTION",
-        //                      logistic.GetU()[0][0] > 0 ? "+" : "-");
+        //                      logistic.GetU()(0,0) > 0 ? "+" : "-");
         // }
         // if (v > 0 && b > 0) {
         //   result.updateValue("EFFECT", u / v / b);
@@ -5060,9 +5070,9 @@ class FastMultipleTraitScoreTest : public ModelFitter {
         for (int i = 0; i < numResult; ++i) {
           fp->write(sites[i]);
 
-          formatValue(linear.GetU(i), &ustat);
-          formatValue(linear.GetV(i), &vstat);
-          formatValue(linear.GetPvalue(i), &pvalue);
+          formatValue(linear.GetU(), i, &ustat);
+          formatValue(linear.GetV(), i, &vstat);
+          formatValue(linear.GetPvalue(), i, &pvalue);
 
           result.updateValue("U_STAT", ustat);
           result.updateValue("V_STAT", vstat);
@@ -5075,14 +5085,14 @@ class FastMultipleTraitScoreTest : public ModelFitter {
     linear.flush();
     numResult = 0;
   }
-  void formatValue(const Vector& v, std::string* out) {
-    const int n = v.Length();
+  void formatValue(const Matrix& m, int rowIdx, std::string* out) {
+    const int n = m.cols;
     (*out).clear();
     for (int i = 0; i < n; ++i) {
       if (i) {
         (*out) += ",";
       }
-      (*out) += toString(v[i]);
+      (*out) += toString(m(rowIdx, i));
     }
   }
 
@@ -5120,9 +5130,9 @@ class DumpModel : public ModelFitter {
   }
   // fitting model
   int fit(DataConsolidator* dc) {
-    Matrix& phenotype = dc->getPhenotype();
-    Matrix& genotype = dc->getGenotype();
-    Matrix& covariate = dc->getCovariate();
+    const Matrix& phenotype = dc->getPhenotype();
+    const Matrix& genotype = dc->getGenotype();
+    const Matrix& covariate = dc->getCovariate();
 
     this->phenotype = phenotype;
     this->genotype = genotype;
@@ -5164,17 +5174,17 @@ class DumpModel : public ModelFitter {
       }
     }
     for (int i = 0; i < genotype.cols; i++) {
-      if (strlen(genotype.GetColumnLabel(i)) == 0) {
+      if ((genotype.GetColumnLabel(i)).empty()) {
         fprintf(fDump, "\tX%d", i);
       } else {
-        fprintf(fDump, "\t%s", genotype.GetColumnLabel(i));
+        fprintf(fDump, "\t%s", genotype.GetColumnLabel(i).c_str());
       }
     }
     for (int i = 0; i < covariate.cols; i++) {
-      if (strlen(covariate.GetColumnLabel(i)) == 0) {
+      if (covariate.GetColumnLabel(i).empty()) {
         fprintf(fDump, "\tC%d", i);
       } else {
-        fprintf(fDump, "\t%s", covariate.GetColumnLabel(i));
+        fprintf(fDump, "\t%s", covariate.GetColumnLabel(i).c_str());
       }
     }
     fprintf(fDump, "\n");
@@ -5185,13 +5195,13 @@ class DumpModel : public ModelFitter {
       // fputs(prependString, fDump);
       siteInfo.writeValue(fDump);
       for (int j = 0; j < phenotype.cols; ++j) {
-        fprintf(fDump, "\t%f", phenotype[i][j]);
+        fprintf(fDump, "\t%f", phenotype(i, j));
       }
       for (int j = 0; j < genotype.cols; ++j) {
-        fprintf(fDump, "\t%f", genotype[i][j]);
+        fprintf(fDump, "\t%f", genotype(i, j));
       }
       for (int j = 0; j < covariate.cols; ++j) {
-        fprintf(fDump, "\t%f", covariate[i][j]);
+        fprintf(fDump, "\t%f", covariate(i, j));
       }
       fprintf(fDump, "\n");
     }

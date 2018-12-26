@@ -5,6 +5,10 @@
 // copy from:
 // https://mischasan.wordpress.com/2011/06/22/what-the-is-sse2-good-for-char-search-in-long-strings/
 
+#ifdef __MINGW32__
+#define ffs __builtin_ffs
+#endif
+
 #include <emmintrin.h>
 char const* ssechr(char const* s, char ch) {
   __m128i zero = _mm_setzero_si128();  // set zero 16 times
@@ -37,5 +41,5 @@ char const* ssechr(char const* s, char ch) {
 
 #else
 #pragma message "Disabled SSE2 => no optimized ssechr"
-#define ssechr strchr
+char const* ssechr(char const* s, char ch) { return strchr(s, ch); }
 #endif

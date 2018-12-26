@@ -2,7 +2,7 @@
 
 #include "FastLMM.h"
 
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 #include "third/eigen/Eigen/Dense"
 #include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
@@ -25,7 +25,7 @@ class FastLMM::Impl {
       : test(test), model(model), needToCenterGentype(true) {
     FastLMM::Impl::showDebug = false;
   }
-  int FitNullModel(Matrix& mat_Xnull, Matrix& mat_y,
+  int FitNullModel(const Matrix& mat_Xnull, const Matrix& mat_y,
                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
     //
     if (std::getenv("FASTLMM_DEBUG")) {
@@ -140,7 +140,7 @@ class FastLMM::Impl {
     CalculateFactors(U);
     return 0;
   }
-  int TestCovariate(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
+  int TestCovariate(const Matrix& Xnull, const Matrix& Y, const Matrix& Xcol,
                     const EigenMatrix& kinshipU, const EigenMatrix& kinshipS) {
     // obtain U
     const Eigen::MatrixXf& U = kinshipU.mat;
@@ -256,7 +256,7 @@ class FastLMM::Impl {
    * vMat = {Xcol' * (K^{-1} - K^{-1} * Xnull' (Xnull' * K^{-1} * Xnull)^{-1} *
    * Xnull * K^{-1}) * Xcol} * sigma2
    */
-  int CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
+  int CalculateUandV(const Matrix& Xnull, const Matrix& Y, const Matrix& Xcol,
                      const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
                      Matrix* uMat, Matrix* vMat) {
     const Eigen::MatrixXf& U = kinshipU.mat;
@@ -360,7 +360,7 @@ class FastLMM::Impl {
   }
   // NOTE: need to fit null model before calling this function
   double GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
-               Matrix& Xcol) const {
+               const Matrix& Xcol) const {
     Eigen::MatrixXf g;
     G_to_Eigen(Xcol, &g);
 
@@ -400,7 +400,7 @@ class FastLMM::Impl {
   // NOTE: need to fit null model before calling this function
   // NOTE2: assume kinship matrices are unchanged
   double FastGetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
-                   Matrix& Xcol, int col) const {
+                   const Matrix& Xcol, int col) const {
     if (col >= Xcol.rows) return -1.;
 
     static bool initialized = false;
@@ -706,17 +706,18 @@ FastLMM::FastLMM(Test test, Model model) { this->impl = new Impl(test, model); }
 FastLMM::~FastLMM() { delete this->impl; }
 
 // @return 0 when success
-int FastLMM::FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
+int FastLMM::FitNullModel(const Matrix& Xnull, const Matrix& y,
+                          const EigenMatrix& kinshipU,
                           const EigenMatrix& kinshipS) {
   return this->impl->FitNullModel(Xnull, y, kinshipU, kinshipS);
 }
-int FastLMM::TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol,
-                           const EigenMatrix& kinshipU,
+int FastLMM::TestCovariate(const Matrix& Xnull, const Matrix& y,
+                           const Matrix& Xcol, const EigenMatrix& kinshipU,
                            const EigenMatrix& kinshipS) {
   return this->impl->TestCovariate(Xnull, y, Xcol, kinshipU, kinshipS);
 }
-int FastLMM::CalculateUandV(Matrix& Xnull, Matrix& Y, Matrix& Xcol,
-                            const EigenMatrix& kinshipU,
+int FastLMM::CalculateUandV(const Matrix& Xnull, const Matrix& Y,
+                            const Matrix& Xcol, const EigenMatrix& kinshipU,
                             const EigenMatrix& kinshipS, Matrix* uMat,
                             Matrix* vMat) {
   return this->impl->CalculateUandV(Xnull, Y, Xcol, kinshipU, kinshipS, uMat,
@@ -727,15 +728,16 @@ double FastLMM::GetAF(const EigenMatrix& kinshipU,
   return this->impl->GetAF(kinshipU, kinshipS);
 }
 double FastLMM::GetAF(const EigenMatrix& kinshipU, const EigenMatrix& kinshipS,
-                      Matrix& Xcol) {
+                      const Matrix& Xcol) {
   return this->impl->GetAF(kinshipU, kinshipS, Xcol);
 }
 double FastLMM::FastGetAF(const EigenMatrix& kinshipU,
-                          const EigenMatrix& kinshipS, Matrix& Xcol) {
+                          const EigenMatrix& kinshipS, const Matrix& Xcol) {
   return this->impl->FastGetAF(kinshipU, kinshipS, Xcol, 0);
 }
 double FastLMM::FastGetAF(const EigenMatrix& kinshipU,
-                          const EigenMatrix& kinshipS, Matrix& Xcol, int col) {
+                          const EigenMatrix& kinshipS, const Matrix& Xcol,
+                          int col) {
   return this->impl->FastGetAF(kinshipU, kinshipS, Xcol, col);
 }
 double FastLMM::GetPvalue() { return this->impl->GetPvalue(); }

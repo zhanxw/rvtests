@@ -6,7 +6,7 @@
 
 #include "Result.h"
 #include "Summary.h"
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 
 class DataConsolidator;
 class ModelParser;

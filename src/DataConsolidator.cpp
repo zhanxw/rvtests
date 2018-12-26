@@ -1,5 +1,7 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "DataConsolidator.h"
 
+#include <cmath>  // std::isfinite
 #include <string>
 #include <vector>
 
@@ -14,6 +16,33 @@
 
 DECLARE_BOOL_PARAMETER(boltPlinkNoCheck);
 
+class WarningOnce {
+ public:
+  WarningOnce(const std::string& msg) : warningGiven(false), msg(msg){};
+  void warningIf(bool cond) {
+    if (cond && !warningGiven) {
+      warningGiven = true;
+      fprintf(stderr, "%s", msg.c_str());
+    }
+  }
+
+ private:
+  bool warningGiven;
+  std::string msg;
+};
+
+inline bool hasMissingMarker(Matrix& genotype, int col) {
+  if (col >= genotype.cols || col < 0) {
+    logger->error("Invalid check of missing marker.");
+    return false;
+  }
+
+  for (int r = 0; r < genotype.rows; ++r) {
+    if (genotype(r, col) < 0) return true;
+  }
+  return false;
+}
+
 void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
   Matrix& m = *g;
   m.Dimension(in.rows, in.cols);
@@ -21,19 +50,19 @@ void convertToMinorAlleleCount(Matrix& in, Matrix* g) {
   for (int j = 0; j < m.cols; ++j) {
     s = 0;
     for (int i = 0; i < m.rows; ++i) {
-      s += in[i][j];
+      s += in(i, j);
     }
     // maf = s / m.rows / 2
     // if maf > 0.5, s > m.row
     // otherwise, s <= m.row
     if (s <= m.rows) {
       for (int i = 0; i < m.rows; ++i) {
-        m[i][j] = in[i][j];
+        m(i, j) = in(i, j);
       }
     } else {
       // flip to minor
       for (int i = 0; i < m.rows; ++i) {
-        m[i][j] = 2 - in[i][j];
+        m(i, j) = 2 - in(i, j);
       }
     }
   }
@@ -55,14 +84,15 @@ void removeMissingMarker(Matrix* genotype) {
     }
 
     for (int r = 0; r < g.rows; ++r) {
-      g[r][missingCol] = g[r][col];
+      g(r, missingCol) = g(r, col);
     }
     missingCol++;
   }
   g.Dimension(g.rows, missingCol);
 }
 
-bool isMonomorphicMarker(Matrix& genotype, int col) {
+bool isMonomorphicMarker(const Matrix& genotype, int col) {
+  // todo: may optimized for column-based storage
   if (col >= genotype.cols || col < 0) {
     logger->error("Invalid check of monomorhpic marker.");
     return false;
@@ -71,16 +101,16 @@ bool isMonomorphicMarker(Matrix& genotype, int col) {
   // find first non-missing genotype
   int nonMissingRow = genotype.rows;
   for (int i = 0; i < genotype.rows; ++i) {
-    if (genotype[i][col] >= 0) {
+    if (genotype(i, col) >= 0) {
       nonMissingRow = i;
       break;
     }
   }
 
   for (int r = nonMissingRow + 1; r < genotype.rows; ++r) {
-    if (genotype[r][col] < 0)  // missing
+    if (genotype(r, col) < 0)  // missing
       continue;
-    if (genotype[r][col] != genotype[nonMissingRow][col]) return false;
+    if (genotype(r, col) != genotype(nonMissingRow, col)) return false;
   }
   return true;
 }
@@ -104,7 +134,7 @@ void removeMonomorphicMarker(Matrix* genotype) {
 
     // move g[, col] to g[, monoCol]
     for (int r = 0; r < g.rows; ++r) {
-      g[r][monoCol] = g[r][col];
+      g(r, monoCol) = g(r, col);
     }
     monoCol++;
   }
@@ -113,14 +143,36 @@ void removeMonomorphicMarker(Matrix* genotype) {
 
 DataConsolidator::DataConsolidator()
     : strategy(DataConsolidator::UNINITIALIZED),
+      genotype(NULL),
+      flippedToMinorGenotype(NULL),
+      phenotype(NULL),
+      covariate(NULL),
+      weight(NULL),
       phenotypeUpdated(true),
       covariateUpdated(true),
       sex(NULL),
       formula(NULL),
       counter(NULL),
-      parRegion(NULL) {}
+      parRegion(NULL) {
+  this->originalGenotype = new Matrix;
+  this->flippedToMinorGenotype = new Matrix;
+  this->weight = new Vector;
+}
 
-DataConsolidator::~DataConsolidator() {}
+DataConsolidator::~DataConsolidator() {
+  if (this->originalGenotype) {
+    delete this->originalGenotype;
+    this->originalGenotype = NULL;
+  }
+  if (this->flippedToMinorGenotype) {
+    delete this->flippedToMinorGenotype;
+    this->flippedToMinorGenotype = NULL;
+  }
+  if (this->weight) {
+    delete this->weight;
+    this->weight = NULL;
+  }
+}
 
 /**
  * Impute missing genotype (<0) according to population frequency (p^2, 2pq,
@@ -135,8 +187,8 @@ void DataConsolidator::imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] >= 0) {
-        ac += m[j][i];
+      if (m(j, i) >= 0) {
+        ac += m(j, i);
         an += 2;
       }
     }
@@ -144,14 +196,14 @@ void DataConsolidator::imputeGenotypeByFrequency(Matrix* genotype, Random* r) {
     double pRef = p * p;
     double pHet = pRef + 2.0 * p * (1.0 - p);
     for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] < 0) {
+      if (m(j, i) < 0) {
         double v = r->Next();
         if (v < pRef) {
-          m[j][i] = 0;
+          m(j, i) = 0;
         } else if (v < pHet) {
-          m[j][i] = 1;
+          m(j, i) = 1;
         } else {
-          m[j][i] = 2;
+          m(j, i) = 2;
         }
       }
     }
@@ -171,8 +223,8 @@ void DataConsolidator::imputeGenotypeToMean(Matrix* genotype) {
     int ac = 0;
     int an = 0;
     for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] >= 0) {
-        ac += m[j][i];
+      if (m(j, i) >= 0) {
+        ac += m(j, i);
         an += 2;
       }
     }
@@ -184,11 +236,238 @@ void DataConsolidator::imputeGenotypeToMean(Matrix* genotype) {
     }
     double g = 2.0 * p;
     for (int j = 0; j < m.rows; j++) {
-      if (m[j][i] < 0) {
-        m[j][i] = g;
+      if (m(j, i) < 0) {
+        m(j, i) = g;
       }
     }
     // fprintf(stderr, "impute to mean = %g, ac = %d, an = %d\n", g, ac, an);
+  }
+}
+
+void DataConsolidator::consolidate(Matrix& pheno, Matrix& cov, Matrix& geno) {
+  if (&geno != this->originalGenotype) {
+    this->originalGenotype = &geno;
+    copyColName(geno, this->originalGenotype);
+    // fprintf(stderr, "== Copy occured\n");
+  }
+  // todo: need to avoid copying genotyeps
+  this->genotype = &geno;
+  copyColName(geno, this->genotype);
+
+  if (isPhenotypeUpdated()) {
+    this->phenotype = &pheno;
+    copyColName(pheno, this->phenotype);
+  }
+  if (isCovariateUpdated()) {
+    this->covariate = &cov;
+    copyColName(cov, this->covariate);
+  }
+
+  // impute missing genotypes
+  if (this->strategy == IMPUTE_MEAN) {
+    // impute missing genotypes
+    imputeGenotypeToMean(this->genotype);
+
+    // handle phenotype
+    if (isPhenotypeUpdated()) {
+      this->phenotypeUpdated =
+          !isEqual(*this->phenotype, pheno);  // TODO: may speed up isEqual
+      // todo: check if this phenotype is copied more than once
+      this->phenotype = &pheno;
+    } else {
+      // no need to update phenotype
+    }
+
+    // handle covariate
+    if (isCovariateUpdated()) {
+      this->covariateUpdated = !isEqual(*this->covariate, cov);
+      // todo: check if this phenotype is copied more than once
+      this->covariate = &cov;
+    } else {
+      // no need to update covariate
+    }
+  } else if (this->strategy == IMPUTE_HWE) {
+    // impute missing genotypes
+    imputeGenotypeByFrequency(genotype, &this->random);
+    // handle phenotype
+    if (isPhenotypeUpdated()) {
+      this->phenotypeUpdated = !isEqual(*this->phenotype, pheno);
+      *this->phenotype = pheno;
+    } else {
+      // no need to update phenotype
+    }
+
+    // handle covariate
+    if (isCovariateUpdated()) {
+      this->covariateUpdated = !isEqual(*this->covariate, cov);
+      *this->covariate = cov;
+    } else {
+      // no need to update covariate
+    }
+  } else if (this->strategy == DROP) {
+    // (TODO) should also consider how kinship matrix changes.
+
+    // we process genotype matrix (people by marker)
+    // if for the same people, any marker is empty, we will remove this people
+    int idxToCopy = 0;
+    for (int i = 0; i < genotype->rows; ++i) {
+      if (isNoMissingGenotypeInRow(*genotype, i)) {
+        copyRow(*genotype, i, this->genotype, idxToCopy);
+        copyRow(cov, i, this->covariate, idxToCopy);
+        copyRow(pheno, i, this->phenotype, idxToCopy);
+        rowLabel[idxToCopy] = originalRowLabel[i];
+        idxToCopy++;
+      }
+    }
+    this->genotype->Dimension(idxToCopy, genotype->cols);
+    this->covariate->Dimension(idxToCopy, cov.cols);
+    this->phenotype->Dimension(idxToCopy, pheno.cols);
+    this->phenotypeUpdated = true;
+    this->covariateUpdated = true;
+  } else {
+    logger->error(
+        "Uninitialized consolidation methods to handle missing data!");
+  }
+}  // end consolidate
+
+bool DataConsolidator::isEqual(Matrix& a, Matrix& b) {
+  if (a.rows != b.rows) return false;
+  if (a.cols != b.cols) return false;
+  const int nr = a.rows;
+  const int nc = a.cols;
+  for (int i = 0; i < nr; ++i) {
+    for (int j = 0; j < nc; ++j) {
+      if (std::isfinite(a(i, j)) && std::isfinite(b(i, j)) &&
+          a(i, j) != b(i, j))
+        return false;
+    }
+  }
+  return true;
+}
+
+void DataConsolidator::copyRow(Matrix& src, const int srcRow, Matrix* dest,
+                               const int destRow) {
+  Matrix& m = *dest;
+  if (m.cols < src.cols) {
+    m.Dimension(m.rows, src.cols);
+  }
+  if (m.rows <= destRow) {
+    m.Dimension(destRow + 1, m.cols);
+  }
+  const int n = m.cols;
+  for (int i = 0; i < n; ++i) {
+    m(destRow, i) = src(srcRow, i);
+  }
+}
+
+int DataConsolidator::countRawGenotype(int columnIndex, const PLINK_SEX sex,
+                                       const PLINK_PHENOTYPE phenotype,
+                                       GenotypeCounter* counter) const {
+  if (columnIndex < 0 || columnIndex >= originalGenotype->cols) {
+    return -1;
+  }
+  if (sex > 0 && sex != MALE && sex != FEMALE) return -2;
+  if (sex > 0 && (int)this->sex->size() != originalGenotype->rows) return -3;
+  if (phenotype > 0 && phenotype != CTRL && phenotype != CASE) return -2;
+
+  for (int i = 0; i < originalGenotype->rows; ++i) {
+    if (sex > 0 && (*this->sex)[i] != sex) {
+      continue;
+    }
+    // + 1: PLINK use 1 and 2 as ctrl and case, but
+    // internally, we use 0 and 1.
+    if (phenotype > 0 && (int)((*this->phenotype)(i, 0) + 1) != phenotype) {
+      continue;
+    }
+
+    const double& g = (*originalGenotype)(i, columnIndex);
+    counter->add(g);
+  }
+
+  return 0;  // success
+}
+
+void DataConsolidator::codeGenotypeForDominantModel(Matrix* geno) {
+  int n = genotype->cols;
+  static WarningOnce warning("Encoding only use the first variant!\n");
+  warning.warningIf(n != 1);
+
+  int m = genotype->rows;
+  if (n != 1) {
+    fprintf(stderr, "n = %d, m = %d \n", n, m);
+  }
+
+  geno->Dimension(m, 1);
+  double s = 0;  // sum of genotypes
+  int numGeno = 0;
+  if (this->strategy == IMPUTE_MEAN || this->strategy == IMPUTE_HWE) {
+    for (int i = 0; i < m; ++i) {
+      if ((*this->originalGenotype)(i, 0) < 0) continue;
+
+      if ((*this->originalGenotype)(i, 0) > 0.5) {
+        (*geno)(i, 0) = 1.0;
+        s += 1.;
+        numGeno++;
+      } else {
+        (*geno)(i, 0) = 0.0;
+        numGeno++;
+      }
+    }
+    double avg = 0.0;
+    if (numGeno > 0) {
+      avg = s / numGeno;
+    }
+    for (int i = 0; i < m; ++i) {
+      if ((*this->originalGenotype)(i, 0) < 0) (*geno)(i, 0) = avg;
+    }
+  } else if (this->strategy == DROP) {
+    for (int i = 0; i < m; ++i) {
+      if ((*this->genotype)(i, 0) > 0.5) {
+        (*geno)(0, i) = 1.;
+      } else {
+        (*geno)(0, i) = 0.;
+      }
+    }
+  }
+}
+
+void DataConsolidator::codeGenotypeForRecessiveModel(Matrix* geno) {
+  int n = genotype->cols;
+  static WarningOnce warning("Encoding only use the first variant!\n");
+  warning.warningIf(n != 1);
+
+  int m = genotype->rows;
+  geno->Dimension(m, 1);
+  double s = 0;  // sum of genotypes
+  int numGeno = 0;
+  if (this->strategy == IMPUTE_MEAN || this->strategy == IMPUTE_HWE) {
+    for (int i = 0; i < m; ++i) {
+      if ((*this->originalGenotype)(i, 0) < 0) continue;
+
+      if ((*this->originalGenotype)(i, 0) > 1.5) {
+        (*geno)(i, 0) = 1.0;
+        s += 1.;
+        numGeno++;
+      } else {
+        (*geno)(i, 0) = 0.0;
+        numGeno++;
+      }
+    }
+    double avg = 0.0;
+    if (numGeno > 0) {
+      avg = s / numGeno;
+    }
+    for (int i = 0; i < m; ++i) {
+      if ((*this->originalGenotype)(i, 0) < 0) (*geno)(i, 0) = avg;
+    }
+  } else if (this->strategy == DROP) {
+    for (int i = 0; i < m; ++i) {
+      if ((*this->genotype)(i, 0) > 1.5) {
+        (*geno)(0, i) = 1.;
+      } else {
+        (*geno)(0, i) = 0.;
+      }
+    }
   }
 }
 
@@ -231,14 +510,14 @@ int DataConsolidator::checkPredictor(Matrix& pheno, Matrix& cov) {
       logger->warn(
           "Failed to calculate correlation between covariate [ %s ] and "
           "phenotype",
-          cov.GetColumnLabel(i));
+          cov.GetColumnLabel(i).c_str());
       return -1;
     }
     if (fabs(r) > 0.999) {
       logger->warn(
           "Covariate [ %s ] has strong correlation [ r^2 = %g ] with the "
           "response!",
-          cov.GetColumnLabel(i), r * r);
+          cov.GetColumnLabel(i).c_str(), r * r);
       return -1;
     }
   }
@@ -329,20 +608,30 @@ int DataConsolidator::prepareBoltModel(
     logger->error("%s:%d Unexpected duplicated samples!", __FILE__, __LINE__);
     exit(1);
   }
+  int warnings = 0;
   for (size_t i = 0; i != sampleName.size(); ++i) {
     if (pin.getSampleIdx(sampleName[i]) < 0) {
-      logger->warn(
-          "%s:%d PLINK file [ %s ] does not include sample [ %s "
-          "]!",
-          __FILE__, __LINE__, (prefix + ".fam").c_str(), sampleName[i].c_str());
+      ++warnings;
+      if (warnings < 5) {
+        logger->warn(
+            "%s:%d PLINK file [ %s ] does not include sample [ %s "
+            "]!",
+            __FILE__, __LINE__, (prefix + ".fam").c_str(),
+            sampleName[i].c_str());
+      }
     }
+  }
+  if (warnings >= 5) {
+    logger->warn("%s:%d PLINK file [ %s ] does not include [ %d ] samples!",
+                 __FILE__, __LINE__, (prefix + ".fam").c_str(), warnings);
   }
 
   const int M = pin.getNumMarker();
   const int N = pin.getNumIndv();
   bool needNewPlink = false;
-  std::vector<int> sampleIdx;  // keep these samples
-  std::vector<int> snpIdx;     // keep these SNPs
+  std::vector<int>
+      sampleIdx;  // keep these samples, the index for the input plink file
+  std::vector<int> snpIdx;  // keep these SNPs
   if (FLAG_boltPlinkNoCheck) {
     // do nothing
     logger->info(
@@ -360,23 +649,27 @@ int DataConsolidator::prepareBoltModel(
     std::set<int> badSampleIdx;
     for (int i = 0; i != N; ++i) {
       if (imiss[i] > 0.05) {
-        logger->warn("Sample [ %s ] has high rate of missing genotype [ %g ]!",
-                     pin.getIID()[i].c_str(), imiss[i]);
+        logger->warn(
+            "Sample [ %s ] has high rate missing rate [ %g ] genotype [ %g ]!",
+            pin.getIID()[i].c_str(), 0.05, imiss[i]);
         badSampleIdx.insert(i);
         needNewPlink = true;
       }
     }
     if (badSampleIdx.size()) {
       logger->warn(
-          "[ %d ] sample(s) have high missing rate, need to create new binary "
+          "[ %d ] sample(s) have high missing rate [ %g ], need to create new "
+          "binary "
           "PLINK files",
-          (int)badSampleIdx.size());
+          (int)badSampleIdx.size(), 0.05);
     }
 
     // choose SNPs to keep
     for (size_t i = 0; i != maf.size(); ++i) {
       if (maf[i] < 0.05 || lmiss[i] > 0.05) {
         needNewPlink = true;
+        // fprintf(stderr, "%s:%d marker %d fails MAF filter\n", __FILE__,
+        //         __LINE__, i);
         continue;
       } else {
         snpIdx.push_back(i);
@@ -384,10 +677,11 @@ int DataConsolidator::prepareBoltModel(
     }
     if ((int)snpIdx.size() != M) {
       logger->warn(
-          "[ %d ] markers have high missing rate or low MAF, need to create "
+          "[ %d ] markers have high missing rate or low MAF [ %g ], need to "
+          "create "
           "new "
           "binary PLINK files",
-          M - (int)snpIdx.size());
+          M - (int)snpIdx.size(), 0.05);
     }
 
     // build a sample index, such that plink.fam[index] is in the same order as
@@ -396,9 +690,15 @@ int DataConsolidator::prepareBoltModel(
       if (badSampleIdx.count(i)) {
         continue;
       }
-      sampleIdx.push_back(pin.getSampleIdx(sampleName[i]));
+      const int idx = pin.getSampleIdx(sampleName[i]);
+      if (idx < 0) {
+        logger->error("PLINK input file does not have the sample [ %s ]",
+                      sampleName[i].c_str());
+        return -1;
+      }
+      sampleIdx.push_back(idx);
     }
-    // check order
+    // check sample order
     for (size_t i = 0; i != sampleName.size(); ++i) {
       if (pin.getSampleIdx(sampleName[i]) != (int)i) {
         needNewPlink = true;
@@ -431,19 +731,19 @@ int DataConsolidator::prepareBoltModel(
   }
 
   // write covariate file if there are covariates
-  if (covariate.cols > 0) {
+  if (this->covariate) {
     std::string covarFn = this->boltPrefix + ".covar";
     logger->info("Create covariate file [ %s ]", covarFn.c_str());
     FILE* fpCov = fopen((covarFn).c_str(), "wt");
     fprintf(fpCov, "FID\tIID");
-    for (int j = 0; j < covariate.cols; ++j) {
-      fprintf(fpCov, "\t%s", (char*)covariate.GetColumnLabel(j));
+    for (int j = 0; j < covariate->cols; ++j) {
+      fprintf(fpCov, "\t%s", covariate->GetColumnLabel(j).c_str());
     }
     fprintf(fpCov, "\n");
-    for (int i = 0; i < covariate.rows; ++i) {
+    for (int i = 0; i < covariate->rows; ++i) {
       fprintf(fpCov, "%s\t%s", sampleName[i].c_str(), sampleName[i].c_str());
-      for (int j = 0; j < covariate.cols; ++j) {
-        fprintf(fpCov, "\t%g", covariate[i][j]);
+      for (int j = 0; j < covariate->cols; ++j) {
+        fprintf(fpCov, "\t%g", (*covariate)(i, j));
       }
       fputs("\n", fpCov);
     }

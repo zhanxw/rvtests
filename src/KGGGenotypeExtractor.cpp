@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "KGGGenotypeExtractor.h"
 
 #include "GenotypeCounter.h"
@@ -5,10 +6,10 @@
 
 #include "base/Argument.h"
 #include "base/Logger.h"
+#include "base/MathMatrix.h"
+#include "base/MathVector.h"
 #include "libVcf/KGGInputFile.h"
 #include "libVcf/VCFConstant.h"
-#include "libsrc/MathMatrix.h"
-#include "libsrc/MathVector.h"
 
 DECLARE_BOOL_PARAMETER(outputID);
 
@@ -243,7 +244,7 @@ int loadMarkerFromKGG(const std::string& fileName, const std::string& marker,
       if (GTidx >= 0) {
         // printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first
         // field of each individual
-        m[i][col] = indv->justGet(GTidx).getGenotype();
+        m(i,col) = indv->justGet(GTidx).getGenotype();
       } else {
         logger->error("Cannot find GT field!");
         return -1;

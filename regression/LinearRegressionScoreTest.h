@@ -2,7 +2,7 @@
 #define _LINEARREGRESSIONSCORETEST_H_
 
 #include <cmath>
-#include "libsrc/MathMatrix.h"
+#include "base/MathMatrix.h"
 #include "regression/LinearRegression.h"
 
 class LinearRegressionScoreTest {
@@ -19,7 +19,7 @@ class LinearRegressionScoreTest {
    * Test H0: \beta = 0  (\beta is multiple dimension).
    * y ~ \beta * Xcol + \gamma * Xnull
    */
-  bool TestCovariate(Matrix& Xnull, Vector& y, Matrix& Xcol);
+  bool TestCovariate(const Matrix& Xnull, const Vector& y, const Matrix& Xcol);
 
   // fit y ~ 1 + beta*x  (no covariate)
   bool TestCovariate(Vector& x, Vector& y);
@@ -40,7 +40,7 @@ class LinearRegressionScoreTest {
   const Matrix& GetV() const { return this->Vmatrix; };
   const Matrix& GetBeta() const { return this->betaMatrix; }
   double GetSigma2() const { return this->lr.GetSigma2(); };
-  const double GetSEBeta(int idx) const;
+  double GetSEBeta(int idx) const;
 
   // get estimates from null models
   Vector& GetNullCovEst() { return this->lr.GetCovEst(); };  // (X'X)^{-1} X'Y

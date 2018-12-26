@@ -4,12 +4,13 @@
 
 #include <algorithm>
 #include <cassert>
+#include <ctime>
 #include <map>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-#include "StringHash.h"
 #include "Utils.h"
 #include "VCFUtil.h"
 
@@ -151,7 +152,8 @@ int main(int argc, char** argv) {
   std::vector<int> geno;
   int lineNo = 0;
 
-  StringIntHash includeSiteHash;
+  // StringIntHash includeSiteHash;
+  std::unordered_map<std::string, int> includeSiteHash;
   if (!FLAG_siteFile.empty()) {
     // create a hash to store all the sites to be included
     printf("siteFile = %s\n", FLAG_siteFile.c_str());
@@ -159,23 +161,29 @@ int main(int argc, char** argv) {
     std::vector<std::string> fd;
 
     while (lr.readLineBySep(&fd, "\t ")) {
-      includeSiteHash.Add((fd[0] + ":" + fd[1]).c_str(), 0);
+      // includeSiteHash.Add((fd[0] + ":" + fd[1]).c_str(), 0);
+      includeSiteHash[(fd[0] + ":" + fd[1])] = 0;
     }
   }
   if (!FLAG_siteID.empty()) {
     std::vector<std::string> fd;
     stringTokenize(FLAG_siteID, ",", &fd);
     for (size_t i = 0; i < fd.size(); ++i) {
-      includeSiteHash.Add(fd[i].c_str(), 0);
+      // includeSiteHash.Add(fd[i].c_str(), 0);
+      includeSiteHash[fd[i]] = 0;
     }
   }
-  printf("The size of includeSiteHash is %d \n", includeSiteHash.Entries());
+  // printf("The size of includeSiteHash is %d \n", includeSiteHash.Entries());
+  printf("The size of includeSiteHash is %d \n", (int)includeSiteHash.size());
 
-  String siteID;
+  // String siteID;
+  std::string siteID;
   bool inList = true;
   // bool move2Next = false;
   while (vin.readRecord()) {  // every line is a record object
-    siteID.Clear();
+    // siteID.Clear();
+    siteID.clear();
+
     // add a line to skip the variants not included
     VCFRecord& r = vin.getVCFRecord();
     VCFPeople& people = r.getPeople();
@@ -201,7 +209,7 @@ int main(int argc, char** argv) {
     siteID += pos;
 
     // printf("position is %s\n",siteID.c_str());
-    if (includeSiteHash.Find(siteID) == -1) {
+    if (includeSiteHash.count(siteID) == 0) {
       inList = false;
       continue;
     } else {

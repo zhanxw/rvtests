@@ -1,5 +1,9 @@
 #include "IO.h"
 
+#ifdef _WIN32
+// this is to avoid using _chsize
+#define FTRUNCATE_DEFINED
+#endif
 // cannot forward declare an typdef anonymous struct
 // http://stackoverflow.com/questions/804894/forward-declaration-of-a-typedef-in-c
 // so include the header file

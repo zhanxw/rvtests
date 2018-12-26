@@ -1,8 +1,8 @@
 #define UseDouble 0 /* all floating point double */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 
 #if !defined(__APPLE__)
 #include <malloc.h>

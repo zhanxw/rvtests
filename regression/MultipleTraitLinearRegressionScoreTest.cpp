@@ -1,15 +1,15 @@
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "MultipleTraitLinearRegressionScoreTest.h"
 
 #include <map>
 #include <string>
 #include <vector>
 
-#include "gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
+#include "third/eigen/Eigen/Cholesky"  // ldlt
+#include "third/eigen/Eigen/Dense"
+#include "third/gsl/include/gsl/gsl_cdf.h"  // use gsl_cdf_chisq_Q
 
-#include "Eigen/Cholesky"  // ldlt
-#include "Eigen/Dense"
-
-#include "Formula.h"
+#include "regression/Formula.h"
 
 typedef Eigen::MatrixXf EMat;
 typedef std::vector<EMat> EMatVec;
@@ -47,7 +47,7 @@ class MultipleTraitLinearRegressionScoreTestInternal {
 };
 
 /// Column names of @param m are stored in @param dict
-void makeColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
+void makeColNameToDict(const Matrix& m, std::map<std::string, int>* dict) {
   std::map<std::string, int>& d = *dict;
   for (int i = 0; i < m.cols; ++i) {
     d[m.GetColumnLabel(i)] = i;
@@ -55,12 +55,12 @@ void makeColNameToDict(Matrix& m, std::map<std::string, int>* dict) {
 }
 
 /// Extract columns, specified by @param index, from @param m, to @param out
-void makeMatrix(Matrix& m, const std::vector<int>& index, EMat* out) {
+void makeMatrix(const Matrix& m, const std::vector<int>& index, EMat* out) {
   (*out).resize(m.rows, index.size());
   for (int i = 0; i < m.rows; ++i) {
     for (size_t j = 0; j < index.size(); ++j) {
       const int idx = index[j];
-      (*out)(i, j) = m[i][idx];
+      (*out)(i, j) = m(i, idx);
     }
   }
 }
@@ -134,7 +134,7 @@ MultipleTraitLinearRegressionScoreTest::
 }
 
 bool MultipleTraitLinearRegressionScoreTest::FitNullModel(
-    Matrix& cov, Matrix& pheno, const FormulaVector& tests) {
+    const Matrix& cov, const Matrix& pheno, const FormulaVector& tests) {
   MultipleTraitLinearRegressionScoreTestInternal& w = *this->work;
   // set some values
   w.N = pheno.rows;
@@ -316,7 +316,7 @@ bool MultipleTraitLinearRegressionScoreTest::AddGenotype(const Matrix& g) {
     int idx = 0;
     for (int j = 0; j < n; ++j) {
       if (!missingIndex[j]) {
-        G(idx, resultLength) = g[j][0];
+        G(idx, resultLength) = g(j, 0);
         ++idx;
       }
     }
@@ -373,14 +373,14 @@ bool MultipleTraitLinearRegressionScoreTest::TestCovariateBlock() {
         const int idx = group[i][k];
         const double u = w.ustat[i](j, k);
         const double v = w.vstat[i](j, 0) * w.sigma2[idx];
-        this->ustat[j][idx] = u;
-        this->vstat[j][idx] = v;
+        this->ustat(j, idx) = u;
+        this->vstat(j, idx) = v;
 
         if (v == 0.) {
-          this->pvalue[j][idx] = NAN;
+          this->pvalue(j, idx) = NAN;
         } else {
           double stat = u * u / v;
-          this->pvalue[j][idx] = gsl_cdf_chisq_Q(stat, 1.0);
+          this->pvalue(j, idx) = gsl_cdf_chisq_Q(stat, 1.0);
         }
       }
     }

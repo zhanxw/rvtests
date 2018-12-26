@@ -35,6 +35,8 @@ struct BGenVariant {
   void makeTable(int ploidy, int allele) const;
   void findGenotype(int idx, int ploidy, int allele,
                     std::vector<int>* geno) const;
+
+  /// Handle GT //////////////////////////////////////////////////
   void printGT(int i, FileWriter* fp) const;
   void printGTMissingFromHaplotype(FileWriter* fp) const;
   void printGTMissingFromGenotype(FileWriter* fp) const;
@@ -51,6 +53,7 @@ struct BGenVariant {
   void printGPAllele2(int i, FileWriter* fp) const;
   void printGPAlleleGeneral(int idx, FileWriter* fp) const;
   /// Handle HP  //////////////////////////////////////////////////
+  // NOTE: this is meaningful only when the variant is phased
   // handle haplotype probability
   void printHP(int i, FileWriter* fp) const;
   void printHPMissing(int idx, FileWriter* fp) const;

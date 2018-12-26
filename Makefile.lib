@@ -1,29 +1,41 @@
 ## this file describe how we build libs
 ROOT?=.
 
+##################################################
+## Win32
+ifneq ($(WIN32),)
+MAKEFILE=-f Makefile.win CROSS=${CROSS} WIN32=1
+endif
+## MUSL
+ifneq ($(MUSL),)
+MAKEFILE=-f Makefile.win CROSS=${CROSS}
+endif
+
 ## third-party lib
 $(TABIX_INC) $(TABIX_LIB):
-	$(MAKE) -C $(ROOT)/third tabix
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third tabix
 $(EIGEN_INC) $(EIGEN_LIB):
-	$(MAKE) -C $(ROOT)/third eigen
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third eigen
 $(PCRE_INC) $(PCRE_LIB):
-	$(MAKE) -C $(ROOT)/third pcre
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third pcre
 $(GSL_INC) $(GSL_LIB):
-	$(MAKE) -C $(ROOT)/third gsl
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third gsl
 $(NLOPT_INC) $(NLOPT_LIB):
-	$(MAKE) -C $(ROOT)/third nlopt
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third nlopt
 $(ZLIB_INC) $(ZLIB_LIB):
-	$(MAKE) -C $(ROOT)/third zlib 
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third zlib 
 $(BZIP2_INC) $(BZIP2_LIB):
-	$(MAKE) -C $(ROOT)/third bzip2
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third bzip2
 $(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
-	$(MAKE) -C $(ROOT)/third samtools
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third samtools
 $(RAPIDJSON_INC):
-	$(MAKE) -C $(ROOT)/third rapidjson
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third rapidjson
 $(SQLITE_INC) $(SQLITE_LIB):
-	$(MAKE) -C $(ROOT)/third sqlite
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third sqlite
 $(ZSTD_INC) $(ZSTD_LIB):
-	$(MAKE) -C $(ROOT)/third zstd
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third zstd
+$(CNPY_INC) $(CNPY_LIB):
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third cnpy
 
 ## our libs
 $(BASE_LIB):
@@ -42,7 +54,7 @@ $(REGRESSION_LIB): $(EIGEN_INC)
 	$(MAKE) -C $(ROOT)/regression $(MAKECMDGOALS)
 $(REGRESSION_LIB_DBG):
 	$(MAKE) -C $(ROOT)/regression $(MAKECMDGOALS)
-$(GONCALO_LIB):
+$(GONCALO_LIB): $(EIGEN_INC) 
 	$(MAKE) -C $(ROOT)/libsrc $(MAKECMDGOALS)
 $(GONCALO_LIB_DBG):
 	$(MAKE) -C $(ROOT)/libsrc $(MAKECMDGOALS)

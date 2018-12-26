@@ -38,8 +38,11 @@ SQLITE_LIB = $(ROOT)/third/sqlite/lib/libsqlite3.a
 ZSTD_INC = $(ROOT)/third/zstd/lib
 ZSTD_LIB = $(ROOT)/third/zstd/lib/libzstd.a
 
-THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC) $(RAPIDJSON_INC) $(SQLITE_INC) $(ZSTD_INC)
-THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(ZLIB_LIB) $(BZIP2_LIB) $(NLOPT_LIB) $(SQLITE_LIB) $(ZSTD_LIB)
+CNPY_INC = $(ROOT)/third/cnpy
+CNPY_LIB = $(ROOT)/third/cnpy/libcnpy.a
+
+THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC) $(RAPIDJSON_INC) $(SQLITE_INC) $(ZSTD_INC) $(CNPY_INC)
+THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(ZLIB_LIB) $(BZIP2_LIB) $(NLOPT_LIB) $(SQLITE_LIB) $(ZSTD_LIB) $(CNPY_LIB)
 ##################################################
 ## Our libs.
 BASE_INC = $(ROOT)/base
@@ -73,6 +76,13 @@ LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BGEN_LIB_DBG) $(BASE_LIB_DBG) $
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I. -I$(ROOT)
 CXX_LIB = $(LIB) -lm -lpthread
 CXX_LIB_DBG = $(LIB_DBG) -lm -lpthread
+
+##################################################
+## Win32
+ifneq ($(WIN32),)
+CXX_LIB += -lws2_32
+CXX_LIB_DBG += -lws2_32
+endif
 
 ##################################################
 ## MKL library

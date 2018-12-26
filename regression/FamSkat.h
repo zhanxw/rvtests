@@ -24,10 +24,11 @@ class FamSkat {
    * w weight for G
    * @return 0 when success
    */
-  int FitNullModel(Matrix& Xnull, Matrix& y, const EigenMatrix& kinshipU,
-                   const EigenMatrix& kinshipS);
-  int TestCovariate(Matrix& Xnull, Matrix& y, Matrix& Xcol, Vector& weight,
-                    const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  int FitNullModel(const Matrix& Xnull, const Matrix& y,
+                   const EigenMatrix& kinshipU, const EigenMatrix& kinshipS);
+  int TestCovariate(const Matrix& Xnull, const Matrix& y, const Matrix& Xcol,
+                    const Vector& weight, const EigenMatrix& kinshipU,
+                    const EigenMatrix& kinshipS);
 
   // not implemented yet,
   // but doable using parametric bootstrap method

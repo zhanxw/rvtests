@@ -1,11 +1,11 @@
 #ifndef _LINEARREGRESSION_H_
 #define _LINEARREGRESSION_H_
 
-#include "MathMatrix.h"
-#include "MathCholesky.h"
+// #include "MathCholesky.h"
 #include <cmath>
-#include "MathStats.h"
-#include "MathSVD.h"
+// #include "MathStats.h"
+// #include "MathSVD.h"
+#include "base/MathMatrix.h"
 
 // use Wald statistics
 class LinearRegression {
@@ -13,12 +13,16 @@ class LinearRegression {
   LinearRegression() : sigma2(0.){};
   ~LinearRegression(){};
 
-  bool FitLinearModel(Matrix& X, Matrix& y);  // return false if not converging
-  bool FitLinearModel(Matrix& X, Vector& y);  // return false if not converging
+  bool FitLinearModel(const Matrix& X,
+                      const Matrix& y);  // return false if not converging
+  bool FitLinearModel(const Matrix& X,
+                      const Vector& y);  // return false if not converging
 
   // alias function
   bool Fit(Matrix& X, Matrix& y) { return this->FitLinearModel(X, y); }
-  bool Fit(Matrix& X, Vector& y) { return this->FitLinearModel(X, y); }
+  bool Fit(const Matrix& X, const Vector& y) {
+    return this->FitLinearModel(X, y);
+  }
 
   /**
    * @param X typically a covariate matrix
@@ -45,7 +49,7 @@ class LinearRegression {
   Vector predict;    // Y - X'
                      // \hat(beta)rvtest.1110.tgzrvtest.1110.tgzrvtest.1110.tgz
   Matrix XtXinv;     // (X'X)^ {-1}
-  Cholesky chol;
+  // Cholesky chol;
   double sigma2;  // \hat{\sigma^2} MLE
 };
 

@@ -7,7 +7,7 @@
 //
 // March 15, 2008
 //
-
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include "LogisticRegression.h"
 
 #include <cmath>  // std::isfinite
@@ -38,7 +38,7 @@ void printToFile(Matrix& m, String fn, int index) {
   FILE* fp = fopen(n.c_str(), "wt");
   for (int i = 0; i < m.rows; i++) {
     for (int j = 0; j < m.cols; j++) {
-      fprintf(fp, "%lf\t", m[i][j]);
+      fprintf(fp, "%lf\t", m(i, j));
     }
     fprintf(fp, "\n");
   }
@@ -74,7 +74,7 @@ LogisticRegression::~LogisticRegression() {
 
 double LogisticRegression::GetDeviance() {
   // int i1x, i1y, i2x, i2y;
-  // fprintf(stderr, "min[%d][%d] = %g, max[%d][%d] = %g\n",
+  // fprintf(stderr, "min(%d,%d) = %g, max(%d,%d) = %g\n",
   //         i1x, i1y, w->p.minCoeff(&i1x, &i1y),
   //         i2x, i2y, w->p.maxCoeff(&i2x, &i2y));
 
@@ -98,7 +98,7 @@ double LogisticRegression::GetDeviance(Matrix& X, Vector& y) {
 
   for (int i = 0; i < X.rows; i++) {
     double t = 0.0;
-    for (int j = 0; j < X.cols; j++) t += B[j] * X[i][j];
+    for (int j = 0; j < X.cols; j++) t += B[j] * X(i, j);
     double yhat = 1 / (1 + exp(-t));
     if (y[i] == 1.) {
       if (yhat > 0.) {
@@ -119,7 +119,7 @@ double LogisticRegression::GetDeviance(Matrix& X, Vector& succ, Vector& total) {
   double ll = 0.0;
   for (int i = 0; i < X.rows; i++) {
     double t = 0.0;
-    for (int j = 0; j < X.cols; j++) t += B[j] * X[i][j];
+    for (int j = 0; j < X.cols; j++) t += B[j] * X(i, j);
     double yhat = 1 / (1 + exp(-t));
 
     if (yhat > 0.) {
@@ -138,7 +138,7 @@ Vector& LogisticRegression::GetAsyPvalue() {
   int numCov = B.Length();
   pValue.Dimension(B.Length());
   for (int i = 0; i < numCov; i++) {
-    double Zstat = B[i] * B[i] / (covB[i][i]);
+    double Zstat = B[i] * B[i] / (covB(i, i));
     // pValue[i] = ndist(Zstat);
     // if (pValue[i] >= 0.5){
     // 	pValue[i] = 2*(1-pValue[i]);
@@ -148,7 +148,7 @@ Vector& LogisticRegression::GetAsyPvalue() {
   return (pValue);
 }
 
-void LogisticRegression::Reset(Matrix& X) {
+void LogisticRegression::Reset(const Matrix& X) {
   int nr = X.rows;
   int nc = X.cols;
 
@@ -194,19 +194,20 @@ void LogisticRegression::Reset(Matrix& X) {
   // XtV.Dimension(nc, nr);
 }
 
-bool LogisticRegression::FitLogisticModel(Matrix& X, Matrix& y, int rnrounds) {
+bool LogisticRegression::FitLogisticModel(const Matrix& X, const Matrix& y,
+                                          int rnrounds) {
   if (y.cols != 1) {
     fprintf(stderr, "%s:%d Use first column of y\n", __FILE__, __LINE__);
   }
   Vector v(X.rows);
   for (int i = 0; i < X.rows; ++i) {
-    v[i] = y[i][0];
+    v[i] = y(i, 0);
   }
   return this->FitLogisticModel(X, v, rnrounds);
 };
 
-bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& succ,
-                                          Vector& total, int nrrounds) {
+bool LogisticRegression::FitLogisticModel(const Matrix& X, const Vector& succ,
+                                          const Vector& total, int nrrounds) {
   // make sure nrrounds >= 1
   if (nrrounds <= 0) {
     return false;
@@ -275,7 +276,8 @@ bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& succ,
   return true;
 }
 
-bool LogisticRegression::FitLogisticModel(Matrix& X, Vector& y, int nrrounds) {
+bool LogisticRegression::FitLogisticModel(const Matrix& X, const Vector& y,
+                                          int nrrounds) {
   this->Reset(X);
 
   G_to_Eigen(X, &this->w->X);

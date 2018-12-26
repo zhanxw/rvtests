@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <map>
+#include <numeric>  // std::accumulate
 #include <set>
 #include <string>
 #include <vector>
@@ -118,8 +119,8 @@ int main(int argc, char** argv) {
     logger->error("Failed to load sample ids from %s", inputs[0].c_str());
     exit(1);
   }
-  
-  logger->info("Process kinship file [ %s ]", inputs[0].c_str());  
+
+  logger->info("Process kinship file [ %s ]", inputs[0].c_str());
   KinshipHolder kin1;
   kin1.setSample(ids1);
   kin1.setFile(inputs[0]);

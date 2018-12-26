@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "snp_hwe.c"
+
+#include "libsrc/snp_hwe.h"
 
 double GenotypeCounter::getHWE() const {
   double hweP = 0.0;

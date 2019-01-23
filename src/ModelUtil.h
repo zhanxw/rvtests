@@ -118,6 +118,7 @@ inline void copyCovariateAndIntercept(int n, const Matrix& cov, Matrix* o) {
   //   }
   // }
   // (*o).SetColumnLabel(0, "Intercept");
+  (*o).Dimension(n, 1);
   std::fill(o->data.begin(), o->data.begin() + cov.rows, 1.0);
   o->SetColumnLabel(0, "Intercept");
 

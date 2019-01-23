@@ -10,7 +10,7 @@ LIB_DBG = lib-dbg-base.a
 BASE = Argument Exception IO OrderedMap Regex TypeConversion Utils Logger \
        RangeList SimpleMatrix Pedigree Kinship Profiler VersionChecker \
        Socket Http TextMatrix Indexer KinshipHolder RingMemoryPool \
-       MathVector MathMatrix
+       MathVector MathMatrix MmapFile
 OBJ = $(BASE:%=%.o)
 OBJ_DBG = $(BASE:%=%_dbg.o)
 

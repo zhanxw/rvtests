@@ -810,6 +810,12 @@ AbstractFileReader* AbstractFileReader::open(const char* fileName) {
   } else if (l > 4 && !strcmp(fileName + l - 4, ".bz2")) {
     fr = new Bzip2FileReader(fileName);
     return fr;
+  } else if (l > 4 && !strcmp(fileName + l - 4, ".tbi")) {  // tabix is bgzipped
+    fr = new KnetFileReader(fileName);
+    return fr;
+  } else if (l > 4 && !strcmp(fileName + l - 4, ".csi")) {  // csi is bgzipped
+    fr = new KnetFileReader(fileName);
+    return fr;
   }
 
   switch (AbstractFileReader::checkFileType(fileName)) {

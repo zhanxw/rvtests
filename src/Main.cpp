@@ -34,7 +34,7 @@
 
 Logger* logger = NULL;
 
-const char* VERSION = "20181226";
+const char* VERSION = "20190123";
 
 void banner(FILE* fp) {
   const char* string =
@@ -45,7 +45,7 @@ void banner(FILE* fp) {
       "|      Bingshan Li, Dajiang Liu          | \n"
       "|      Goncalo Abecasis                  | \n"
       "|      zhanxw@umich.edu                  | \n"
-      "|      December 2018                     | \n"
+      "|      January 2019                      | \n"
       "|      zhanxw.github.io/rvtests          | \n"
       "|----------------------------------------+ \n"
       "                                           \n";
@@ -235,7 +235,7 @@ void welcome() {
   fprintf(stdout,
           "  For documentations, refer to http://zhanxw.github.io/rvtests/\n");
   fprintf(stdout,
-          "  For questions and comments, send to Xiaowei Zhan "
+          "  For questions and comments, plase send to Xiaowei Zhan "
           "<zhanxw@umich.edu>\n");
   fprintf(stdout,
           "  For bugs and feature requests, please submit at: "

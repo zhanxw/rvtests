@@ -17,7 +17,13 @@ UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             vcfPeek \
             vcf2ld_neighbor \
             kinshipDecompose \
-            combineKinship
+            combineKinship \
+            explainTabix \
+            explainCSI1 \
+            explainCSI2 \
+            createVCFIndex \
+            queryVCFIndex \
+            extractVCFIndex
             # vcf2merlin 
 
 DIR_EXEC = ../executable

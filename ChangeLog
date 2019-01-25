@@ -1,6 +1,7 @@
 2019-01-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix crash (#77)
+	* Fix hide-covar option for firth test (#75)
 
 2017-10-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 

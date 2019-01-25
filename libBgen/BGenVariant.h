@@ -11,7 +11,8 @@ class FileWriter;
 static std::vector<std::vector<int> >
     table;  // for quickly lookup genotypes in colex order
 
-struct BGenVariant {
+class BGenVariant {
+ public:
   BGenVariant(const uint32_t& n) : N(n){};
   const uint32_t& N;
   // variant id data

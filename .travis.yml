@@ -17,7 +17,12 @@ matrix:
     compiler: gcc
   - env: PLATFORM='macos'
     os: osx
-    osx_image: xcode8
+    osx_image: xcode10.1
+    addons:
+      homebrew:
+        update: true
+        packages:
+          - gcc
     compiler: clang
   - env: PLATFORM='musl64'
     os: linux

@@ -234,6 +234,9 @@ class SingleVariantFirthTest : public ModelFitter {
   void writeOutput(FileWriter* fp, const Result& siteInfo) {
     // skip interecept (column 0)
     for (int i = 1; i < this->X.cols; ++i) {
+      if (FLAG_hideCovar && i > 1) {
+        continue;
+      }
       siteInfo.writeValueTab(fp);
       result.clearValue();
       result.updateValue("Test", this->X.GetColumnLabel(i));

@@ -2,6 +2,6 @@
 
 set -xue
 
-brew update && brew install gcc
+brew update && brew install gcc && brew link gcc
 
 set +xue

@@ -1,4 +1,8 @@
 language: cpp
+addons:
+  homebrew:
+    packages:
+      - gfortran
 matrix:
   include:
   - env: PLATFORM='linux64'

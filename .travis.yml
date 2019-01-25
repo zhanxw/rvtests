@@ -15,7 +15,9 @@ matrix:
     dist: xenial 
     sudo: required
     compiler: gcc
-  - env: PLATFORM='macos'
+  - env:
+      - PLATFORM='macos'
+      - FC='/usr/local/bin/gfortran'
     os: osx
     osx_image: xcode10.1
     addons:

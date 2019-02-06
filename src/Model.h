@@ -5161,6 +5161,12 @@ class DumpModel : public ModelFitter {
       if (fn[i] == '\t') fn[i] = '.';
     }
 
+    // Linux caps the maximum file name length, so do we.
+    // see: https://github.com/zhanxw/rvtests/issues/59
+    if (fn.length() > 30) {
+      fn = fn.substr(0, 30) + ".data";
+    }
+
     siteInfo.writeValueTab(fp);
     fp->printf("%s\n", fn.c_str());
 

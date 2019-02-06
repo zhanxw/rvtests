@@ -1,3 +1,7 @@
+2019-02-05  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
+
+	* Fix crash (#59)
+
 2019-01-23  Xiaowei Zhan  <zhanxw@fantasia.csgstat.sph.umich.edu>
 
 	* Fix crash (#77)

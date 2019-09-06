@@ -23,7 +23,8 @@ UTIL_EXEC = vcf2plink vcfSummary vcfConcordance \
             explainCSI2 \
             createVCFIndex \
             queryVCFIndex \
-            extractVCFIndex
+            extractVCFIndex \
+            createBCF2Index \
             # vcf2merlin 
 
 DIR_EXEC = ../executable

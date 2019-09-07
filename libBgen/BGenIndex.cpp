@@ -56,7 +56,7 @@ void BGenIndex::resetRangeIterator() {
 /**
  *
  */
-bool BGenIndex::next(int* file_start_position, int* size_in_bytes) {
+bool BGenIndex::next(long* file_start_position, long* size_in_bytes) {
   int rc = sqlite3_step(stmt_);
 
   while (rc != SQLITE_ROW) {
@@ -83,8 +83,8 @@ bool BGenIndex::next(int* file_start_position, int* size_in_bytes) {
   }
 
   assert(rc == SQLITE_ROW);  // has data to process
-  *file_start_position = sqlite3_column_int(stmt_, 0);
-  *size_in_bytes = sqlite3_column_int(stmt_, 1);
+  *file_start_position = sqlite3_column_int64(stmt_, 0);
+  *size_in_bytes = sqlite3_column_int64(stmt_, 1);
   return true;
 }
 

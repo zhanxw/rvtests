@@ -37,7 +37,7 @@ CREATE TABLE Variant (
   /**
    * @return true if there is a genotype probability data block
    */
-  bool next(int* file_start_position, int* size_in_bytes);
+  bool next(long* file_start_position, long* size_in_bytes);
   ~BGenIndex();
 
  private:

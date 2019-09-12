@@ -52,7 +52,7 @@ libdeflate: libdeflate-1.3.tar.gz
 
 htslib: htslib-1.9.tar.gz libdeflate
 	tar zxf $<
-	(DIR=`pwd`; cd htslib-1.9; ./configure --prefix="$${DIR}}"/htslib --with-libdeflate CPPFLAGS=-I"$${DIR}"/libdeflate/include LDFLAGS=-L"$${DIR}"/libdeflate/lib --disable-libcurl; make install)
+	(DIR=`pwd`; cd htslib-1.9; ./configure --prefix="$${DIR}"/htslib --with-libdeflate CPPFLAGS=-I"$${DIR}"/libdeflate/include LDFLAGS=-L"$${DIR}"/libdeflate/lib --disable-libcurl; make install)
 
 ######################################################################
 # download sources

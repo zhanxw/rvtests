@@ -2,8 +2,12 @@
 ##ROOT?=.
 ##################################################
 ## Third-party libs.
-TABIX_INC = $(ROOT)/third/tabix
-TABIX_LIB = $(ROOT)/third/tabix/libtabix.a
+
+DEFLAE_INC = $(ROOT)/third/libdeflate/include
+DEFLAE_LIB = $(ROOT)/third/libdeflate/lib/libdeflate.a
+
+LIBHTS_INC = $(ROOT)/third/htslib/include
+LIBHTS_LIB = $(ROOT)/third/htslib/lib/libhts.a
 
 EIGEN_INC = $(ROOT)/third/eigen
 EIGEN_LIB =  # Eigen are header files only
@@ -23,12 +27,6 @@ BZIP2_LIB = $(ROOT)/third/bzip2/libbz2.a
 NLOPT_INC = $(ROOT)/third/nlopt/include
 NLOPT_LIB = $(ROOT)/third/nlopt/lib/libnlopt.a
 
-BCF_INC = $(ROOT)/third/samtools/bcftools
-BCF_LIB = $(ROOT)/third/samtools/bcftools/libbcf.a
-
-SAMTOOLS_INC = $(ROOT)/third/samtools
-SAMTOOLS_LIB = $(ROOT)/third/samtools/libbam.a
-
 RAPIDJSON_INC = $(ROOT)/third/rapidjson/include
 RAPIDJSON_LIB = # We only use its headers
 
@@ -41,8 +39,8 @@ ZSTD_LIB = $(ROOT)/third/zstd/lib/libzstd.a
 CNPY_INC = $(ROOT)/third/cnpy
 CNPY_LIB = $(ROOT)/third/cnpy/libcnpy.a
 
-THIRD_INC = $(BCF_INC) $(SAMTOOLS_INC) $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC) $(RAPIDJSON_INC) $(SQLITE_INC) $(ZSTD_INC) $(CNPY_INC)
-THIRD_LIB = $(BCF_LIB) $(SAMTOOLS_LIB) $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(ZLIB_LIB) $(BZIP2_LIB) $(NLOPT_LIB) $(SQLITE_LIB) $(ZSTD_LIB) $(CNPY_LIB)
+THIRD_INC = $(LIBHTS_INC) $(DEFLAE_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(ZLIB_INC) $(BZIP2_INC) $(NLOPT_INC) $(RAPIDJSON_INC) $(SQLITE_INC) $(ZSTD_INC) $(CNPY_INC)
+THIRD_LIB = $(LIBHTS_LIB) $(DEFLAE_LIB) $(PCRE_LIB) $(GSL_LIB) $(ZLIB_LIB) $(BZIP2_LIB) $(NLOPT_LIB) $(SQLITE_LIB) $(ZSTD_LIB) $(CNPY_LIB)
 ##################################################
 ## Our libs.
 BASE_INC = $(ROOT)/base
@@ -74,7 +72,7 @@ INCLUDE = $(THIRD_INC) $(REGRESSION_INC) $(VCF_INC) $(BGEN_INC) $(BASE_INC) $(GO
 LIB = $(REGRESSION_LIB) $(VCF_LIB) $(BGEN_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
 LIB_DBG = $(REGRESSION_LIB_DBG) $(VCF_LIB_DBG) $(BGEN_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I. -I$(ROOT)
-CXX_LIB = $(LIB) -lm -lpthread
+CXX_LIB = $(LIB) -lm -lpthread  -lbz2 -llzma
 CXX_LIB_DBG = $(LIB_DBG) -lm -lpthread
 
 ##################################################

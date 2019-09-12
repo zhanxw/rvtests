@@ -35,7 +35,6 @@
 
 #include "Argument.h"
 #include "IO.h"
-#include "tabix.h"
 
 #include <algorithm>
 #include <cassert>

@@ -3,7 +3,7 @@
 
 #include "base/MmapFile.h"
 #include "base/RangeList.h"
-#include "third/tabix/bgzf.h"
+#include "third/htslib/include/htslib/bgzf.h"
 
 struct Record {
   int64_t pos;

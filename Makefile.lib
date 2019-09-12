@@ -12,8 +12,6 @@ MAKEFILE=-f Makefile.win CROSS=${CROSS}
 endif
 
 ## third-party lib
-$(TABIX_INC) $(TABIX_LIB):
-	$(MAKE) $(MAKEFILE) -C $(ROOT)/third tabix
 $(EIGEN_INC) $(EIGEN_LIB):
 	$(MAKE) $(MAKEFILE) -C $(ROOT)/third eigen
 $(PCRE_INC) $(PCRE_LIB):
@@ -26,8 +24,6 @@ $(ZLIB_INC) $(ZLIB_LIB):
 	$(MAKE) $(MAKEFILE) -C $(ROOT)/third zlib 
 $(BZIP2_INC) $(BZIP2_LIB):
 	$(MAKE) $(MAKEFILE) -C $(ROOT)/third bzip2
-$(BCF_INC) $(BCF_LIB) $(SAMTOOLS_INC) $(SAMTOOLS_LIB):
-	$(MAKE) $(MAKEFILE) -C $(ROOT)/third samtools
 $(RAPIDJSON_INC):
 	$(MAKE) $(MAKEFILE) -C $(ROOT)/third rapidjson
 $(SQLITE_INC) $(SQLITE_LIB):

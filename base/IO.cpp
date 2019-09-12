@@ -7,7 +7,7 @@
 // cannot forward declare an typdef anonymous struct
 // http://stackoverflow.com/questions/804894/forward-declaration-of-a-typedef-in-c
 // so include the header file
-#include "third/samtools/bgzf.h"
+#include "third/htslib/include/htslib/bgzf.h"
 
 #include <algorithm>
 #include "base/Utils.h"
@@ -179,7 +179,7 @@ class Bzip2FileReader : public AbstractFileReader {
 };
 
 #ifdef _USE_KNETFILE
-#include "knetfile.h"
+#include "third/htslib/include/htslib/knetfile.h"
 
 class KnetFileReader : public AbstractFileReader {
  public:

@@ -7,7 +7,6 @@
 
 #include "third/eigen/Eigen/Core"
 #include "third/eigen/Eigen/Eigenvalues"
-#include "third/tabix/tabix.h"
 
 #include "base/Argument.h"
 #include "base/IO.h"

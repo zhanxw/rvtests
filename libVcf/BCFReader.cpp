@@ -1,55 +1,60 @@
 #include "BCFReader.h"
 
-#include <zlib.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-
-#include <zlib.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include "third/samtools/bcftools/bcf.h"
-#include "third/samtools/kstring.h"
-#include "third/samtools/kseq.h"
+#include <zlib.h>
 
-KSTREAM_INIT(gzFile, gzread, 4096)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <zlib.h>
+#include "third/htslib/include/htslib/bgzf.h"
+#include "third/htslib/include/htslib/kseq.h"
+#include "third/htslib/include/htslib/kstring.h"
+#include "third/htslib/include/htslib/vcf.h"
 
-typedef struct {
-  gzFile fp;
-  FILE *fpout;
-  kstream_t *ks;
-  void *refhash;
-  kstring_t line;
-  int max_ref;
-} vcf_t;
+// KSTREAM_INIT(gzFile, gzread, 4096)
+
+// typedef struct {
+//   gzFile fp;
+//   FILE *fpout;
+//   kstream_t *ks;
+//   void *refhash;
+//   kstring_t line;
+//   int max_ref;
+// } vcf_t;
 
 /**
  * Adopt some functions from vcf.c
  */
-extern "C" {
-void *bcf_str2id_init();
-extern void bcf_fmt_core(const bcf_hdr_t *h, bcf1_t *b, kstring_t *s);
-}
-static void my_write_header(bcf_hdr_t *h);
+// extern "C" {
+// void *bcf_str2id_init();
+// extern void bcf_fmt_core(const bcf_hdr_t *h, bcf1_t *b, kstring_t *s);
+// }
+// static void my_write_header(bcf_hdr_t *h);
 
-bcf_t *my_vcf_open(const char *fn, const char *mode) {
-  bcf_t *bp;
-  vcf_t *v;
-  if (strchr(mode, 'b')) return bcf_open(fn, mode);
-  bp = (bcf_t *)calloc(1, sizeof(bcf_t));
-  v = (vcf_t *)calloc(1, sizeof(vcf_t));
-  bp->is_vcf = 1;
-  bp->v = v;
-  v->refhash = bcf_str2id_init();
-  if (strchr(mode, 'r')) {
-    v->fp = strcmp(fn, "-") ? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
-    v->ks = ks_init(v->fp);
-  } else if (strchr(mode, 'w')) {
-    // disable open stdout/external file
-    // v->fpout = strcmp(fn, "-")? fopen(fn, "w") : stdout;
-    v->fpout = NULL;
-  }
+htsFile *my_vcf_open(const char *fn, const char *mode) {
+  if (strchr(mode, 'b')) return hts_open(fn, mode);
+
+  htsFile *bp;  // bcf file handle
+  htsFile *v;   // vcdf file handle
+
+  // write uncompress vcf as outputs
+  // bp = (htsFile *)calloc(1, sizeof(htsFile));
+  // v = (htsFile *)calloc(1, sizeof(htsFile));
+  // bp->is_vcf = 1;
+  // bp->v = v;
+  // v->refhash = bcf_str2id_init();
+  // if (strchr(mode, 'r')) {
+  //   v->fp = strcmp(fn, "-") ? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
+  //   v->ks = ks_init(v->fp);
+  // } else if (strchr(mode, 'w')) {
+  //   // disable open stdout/external file
+  //   // v->fpout = strcmp(fn, "-")? fopen(fn, "w") : stdout;
+  //   v->fpout = NULL;
+  // }
+  return hts_open(fn, mode);
   return bp;
 }
 
@@ -58,58 +63,78 @@ bcf_t *my_vcf_open(const char *fn, const char *mode) {
 // vcf_hdr_read
 // vcf_hdr_write(bout, hout, &header);
 
-int my_vcf_hdr_write(bcf_t *bp, const bcf_hdr_t *h, std::string *hdr) {
+int my_vcf_hdr_write(htsFile *bp, const bcf_hdr_t *h, std::string *hdr) {
   // vcf_t *v = (vcf_t*)bp->v;
   int i, has_ver = 0;
-  if (!bp->is_vcf) {
+  // if (!bp->is_vcf) {
+  //   fprintf(stderr, "Something is wrong when reading BCF header at %s:%d\n",
+  //           __FILE__, __LINE__);
+  //   return bcf_hdr_write(bp, h);
+  // }
+  if (hts_get_format(bp)->format != bcf) {
     fprintf(stderr, "Something is wrong when reading BCF header at %s:%d\n",
             __FILE__, __LINE__);
-    return bcf_hdr_write(bp, h);
   }
   std::string &s = *hdr;
-  if (h->l_txt > 0) {
-    if (strstr(h->txt, "##fileformat=")) has_ver = 1;
-    if (has_ver == 0) {
-      // fprintf(v->fpout, "##fileformat=VCFv4.1\n");
-      s = "##fileformat=VCFv4.1\n";
-    }
-    // fwrite(h->txt, 1, h->l_txt - 1, v->fpout);
-    s += h->txt;
-  }
-  if (h->l_txt == 0) {
-    // fprintf(v->fpout, "##fileformat=VCFv4.1\n");
-    s = "##fileformat=VCFv4.1\n";
-  }
-  // fprintf(v->fpout, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
-  s += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-  for (i = 0; i < h->n_smpl; ++i) {
-    // fprintf(v->fpout, "\t%s", h->sns[i]);
-    s += "\t";
-    s += h->sns[i];
-  }
-  // fputc('\n', v->fpout);
-  s += "\n";
+  // copied from htslib vcf.c
+  kstring_t htxt = {0, 0, 0};
+  bcf_hdr_format(h, 0, &htxt);
+  while (htxt.l && htxt.s[htxt.l - 1] == '\0') --htxt.l;  // kill trailing zeros
+  int ret;
+  s.append(htxt.s, htxt.l);
+  free(htxt.s);
+  return ret < 0 ? -1 : 0;
+
+  // if (h->l_txt > 0) {
+  //   if (strstr(h->txt, "##fileformat=")) has_ver = 1;
+  //   if (has_ver == 0) {
+  //     // fprintf(v->fpout, "##fileformat=VCFv4.1\n");
+  //     s = "##fileformat=VCFv4.1\n";
+  //   }
+  //   // fwrite(h->txt, 1, h->l_txt - 1, v->fpout);
+  //   s += h->txt;
+  // }
+  // if (h->l_txt == 0) {
+  //   // fprintf(v->fpout, "##fileformat=VCFv4.1\n");
+  //   s = "##fileformat=VCFv4.1\n";
+  // }
+  // // fprintf(v->fpout,
+  // "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+  // s += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+  // for (i = 0; i < h->n_smpl; ++i) {
+  //   // fprintf(v->fpout, "\t%s", h->sns[i]);
+  //   s += "\t";
+  //   s += h->sns[i];
+  // }
+  // // fputc('\n', v->fpout);
+  // s += "\n";
   return 0;
 }
 
 // adopted from vcf_write() in vcf.c
-int my_vcf_write(bcf_t *bp, bcf_hdr_t *h, bcf1_t *b, std::string *line) {
+int my_vcf_write(htsFile *bp, bcf_hdr_t *h, bcf1_t *b, std::string *line) {
   // vcf_t *v = (vcf_t*)bp->v;
-
-  if (!bp->is_vcf) {
-    fprintf(stderr, "Something is wrong when reading BCF at %s:%d\n", __FILE__,
-            __LINE__);
-    return bcf_write(bp, h, b);
+  // if (!bp->is_vcf) {
+  //   fprintf(stderr, "Something is wrong when reading BCF at %s:%d\n",
+  //   __FILE__,
+  //           __LINE__);
+  //   return bcf_write(bp, h, b);
+  // }
+  if (hts_get_format(bp)->format != bcf) {
+    fprintf(stderr, "Something is wrong when reading BCF header at %s:%d\n",
+            __FILE__, __LINE__);
   }
 
-  kstring_t str;
-  memset(&str, 0, sizeof(kstring_t));
-  bcf_fmt_core(h, b, &str);
-  // bcf_fmt_core(h, b, &v->line);
-  // fwrite(v->line.s, 1, v->line.l, v->fpout);
-  // fputc('\n', v->fpout);
-  line->assign(str.s, str.l);
-  return str.l + 1;
+  // kstring_t str;
+  // memset(&str, 0, sizeof(kstring_t));
+  // bcf_fmt_core(h, b, &str);
+  // // bcf_fmt_core(h, b, &v->line);
+  // // fwrite(v->line.s, 1, v->line.l, v->fpout);
+  // // fputc('\n', v->fpout);
+  kstring_t ks = {0, 0, 0};
+  vcf_format(h, b, &ks);
+  line->assign(ks.s, ks.l);
+  return ks.l + 1;
   // return v->line.l + 1;
 }
 
@@ -129,8 +154,8 @@ int BCFReader::open(const std::string &fn) {
 
   bout = my_vcf_open("-", "wu");
 
-  my_write_header(
-      hout);  // always print the header, put certain fields in header.
+  // my_write_header(
+  //     hout);  // always print the header, put certain fields in header.
 
   // write results out
   // vcf_hdr_write(bout, hout);
@@ -170,20 +195,21 @@ bool BCFReader::readLine(std::string *line) {
     return false;
   }
 
-  if (off != 0) {
+  if (iter) {
     // read a record
     while (my_vcf_read(bp, hin, b) > 0) {
-      if (tid >= 0) {
-        int l = strlen(b->ref);
-        l = b->pos + (l > 0 ? l : 1);
-        if (b->tid != tid || b->pos >= end)
-          break;  // current record has passed prespecified region
-        if (!(l > begin && end > b->pos))
-          continue;  // not sure when this will happen
-
-        my_vcf_write(bout, hout, b, line);
-        return true;
-      }
+      // if (tid >= 0) {
+      //   int l = strlen(b->ref);
+      //   l = b->pos + (l > 0 ? l : 1);
+      //   if (b->tid != tid || b->pos >= end)
+      //     break;  // current record has passed prespecified region
+      //   if (!(l > begin && end > b->pos))
+      //     continue;  // not sure when this will happen
+      vcf_format(hin, b, &ks);
+      // my_vcf_write(bout, hout, b, line);
+      line->append(ks.s, ks.l);
+      return true;
+      // }
     }
   }
 
@@ -194,38 +220,51 @@ bool BCFReader::readLine(std::string *line) {
              this->rangeIterator.getChrom().c_str(),
              this->rangeIterator.getBegin(), this->rangeIterator.getEnd());
     rangeBuffer[127] = '\0';
-    // int tid, beg, end, len;
-    if (!str2id) {
-      str2id = bcf_build_refhash(hout);
+    // // // int tid, beg, end, len;
+    // // if (!str2id) {
+    // //   str2id = bcf_build_refhash(hout);
+    // // }
+    // if (bcf_parse_region(str2id, rangeBuffer, &tid, &begin, &end) >= 0) {
+    //   off = bcf_idx_query(idx, tid, begin);
+    //   if (off == 0) {
+    //     // fprintf(stderr, "[%s] no records in the query region.\n",
+    //     __func__);
+    //     // return 1; // FIXME: a lot of memory leaks...
+    //     continue;
+    //   }
+    //   bgzf_seek(bp->fp, off, SEEK_SET);
+
+    //   while (my_vcf_read(bp, hin, b) > 0) {
+    //     if (tid >= 0) {
+    //       int l = strlen(b->ref);
+    //       l = b->pos + (l > 0 ? l : 1);
+    //       if (b->tid != tid || b->pos >= end)
+    //         break;  // current record has passed prespecified region
+    //       if (!(l > begin && end > b->pos))
+    //         continue;  // not sure when this will happen
+
+    //       ++rangeIterator;
+    //       my_vcf_write(bout, hout, b, line);
+    //       return true;
+    //     }
+    //   }
+    // }
+
+    iter = bcf_itr_querys(idx, hin, rangeBuffer);
+    if (!iter) {
+      continue;
     }
-    if (bcf_parse_region(str2id, rangeBuffer, &tid, &begin, &end) >= 0) {
-      off = bcf_idx_query(idx, tid, begin);
-      if (off == 0) {
-        // fprintf(stderr, "[%s] no records in the query region.\n", __func__);
-        // return 1; // FIXME: a lot of memory leaks...
-        continue;
-      }
-      bgzf_seek(bp->fp, off, SEEK_SET);
-
-      while (my_vcf_read(bp, hin, b) > 0) {
-        if (tid >= 0) {
-          int l = strlen(b->ref);
-          l = b->pos + (l > 0 ? l : 1);
-          if (b->tid != tid || b->pos >= end)
-            break;  // current record has passed prespecified region
-          if (!(l > begin && end > b->pos))
-            continue;  // not sure when this will happen
-
-          ++rangeIterator;
-          my_vcf_write(bout, hout, b, line);
-          return true;
-        }
-      }
+    while (bcf_itr_next(bp, iter, b) >= 0) {
+      ++rangeIterator;
+      vcf_format(hin, b, &ks);
+      line->append(ks.s, ks.l);
+      return true;
     }
   }
   return false;
 };
 
+#if 0
 static void my_write_header(bcf_hdr_t *h) {
   kstring_t str;
   memset(&str, 0, sizeof(kstring_t));
@@ -399,3 +438,4 @@ static void my_write_header(bcf_hdr_t *h) {
   h->l_txt = str.l + 1;
   h->txt = str.s;
 }
+#endif

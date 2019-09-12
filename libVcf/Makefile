@@ -13,11 +13,6 @@ ifndef ROOT
 ROOT?=..
 endif
 
-TABIX_INC = ../third/tabix
-TABIX_LIB = ../third/tabix/libtabix.a
-$(TABIX_INC) $(TABIX_LIB):
-	(cd ../third; $(MAKE) tabix)
-
 PCRE_INC = ../third/pcre/include
 $(PCRE_INC):
 	(cd ../third; $(MAKE) pcre)
@@ -26,10 +21,9 @@ GSL_INC = ../third/gsl/include
 $(GSL_INC):
 	(cd ../third; $(MAKE) gsl)
 
-SAMTOOLS_INC = ../third/samtools
-BCF_INC = ../third/samtools/bcftools 
-$(SAMTOOLS_INC) $(BCF_INC):
-	(cd ../third; $(MAKE) samtools)
+HTSLIB_INC = ../third/htslib
+$(HTSLIB_INC):
+	(cd ../third; $(MAKE) htslib)
 
 ZLIB_INC = ../third/zlib
 $(ZLIB_INC):
@@ -39,7 +33,7 @@ BZIP2_INC = ../third/bzip2
 $(BZIP2_INC):
 	(cd ../third; $(MAKE) bzip2)
 
-THIRD_INC = $(BCF_INC) $(TABIX_INC) $(PCRE_INC) $(BZIP2_INC) $(ZLIB_INC) $(GSL_INC)
+THIRD_INC = $(HTSLIB_INC) $(PCRE_INC) $(BZIP2_INC) $(ZLIB_INC) $(GSL_INC)
 THIRD_INC_FLAGS = $(addprefix -I,$(THIRD_INC))
 
 DEFAULT_CXXFLAGS ?= -std=c++0x -I. -I$(ROOT) $(addprefix -I, $(THIRD_INC))

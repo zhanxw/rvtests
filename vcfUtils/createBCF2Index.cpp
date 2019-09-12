@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "base/Utils.h"
-#include "third/samtools/bgzf.h"
+#include "third/htslib/include/htslib/bgzf.h"
 
 // 1-st level keys: contig, FILTER, INFO, FORMAT
 // 2-st level keys:

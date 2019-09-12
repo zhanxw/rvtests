@@ -2,7 +2,7 @@
 #define _BCFREADER_H_
 
 #include "base/RangeList.h"
-#include "third/samtools/bcftools/bcf.h"
+#include "third/htslib/include/htslib/vcf.h"
 
 // static void write_header(bcf_hdr_t *h);
 
@@ -13,9 +13,10 @@ class BCFReader {
         hasIndex(false),
         readyToRead(false),
         b(0),
-        bout(0),
-        off(0),
-        str2id(0) {
+        bout(0)  // ,
+                 // off(0) // ,
+                 // str2id(0)
+  {
     open(fn);
   };
 
@@ -69,7 +70,7 @@ class BCFReader {
 
  private:
   bool openIndex(const std::string& fn) {
-    idx = bcf_idx_load(fn.c_str());
+    idx = hts_idx_load(fn.c_str(), HTS_FMT_CSI);
     if (idx) {
       this->hasIndex = true;
     } else {
@@ -78,7 +79,7 @@ class BCFReader {
     return this->hasIndex;
   };
 
-  void closeIndex() { bcf_idx_destroy(idx); };
+  void closeIndex() { hts_idx_destroy(idx); };
 
   int open(const std::string& fn);
 
@@ -87,15 +88,15 @@ class BCFReader {
     // close index
     bcf_hdr_destroy(hin);
     bcf_destroy(b);   // bcf_destroy(blast);
-    vcf_close(bp);    // close bcf handle for input
-    vcf_close(bout);  // close bcf handle for output
+    hts_close(bp);    // close bcf handle for input
+    hts_close(bout);  // close bcf handle for output
     /* // resume stdout */
     /* stdout = fdopen(this->origStdout, "w"); */
     /* assert(stdout); */
 
-    if (str2id) {
-      bcf_str2id_destroy(str2id);
-    }
+    // if (str2id) {
+    //   hts_str2id_destroy(str2id);
+    // }
     closeIndex();
   };
   void resetRangeIterator() {
@@ -116,20 +117,22 @@ class BCFReader {
   RangeList::iterator rangeIterator;
 
   // bcftools part
-  bcf_t* bp;
+  htsFile* bp;
   bcf1_t* b;
-  bcf_t* bout;
+  htsFile* bout;
   bcf_hdr_t* hin;
   bcf_hdr_t* hout;
-  bcf_idx_t* idx;
-  int tid, begin, end;
-  uint64_t off;
-  void* str2id;
+  hts_idx_t* idx;
+  hts_itr_t* iter;
+  // int tid, begin, end;
+  // uint64_t off;
+  kstring_t ks;
+  // void* str2id;
 
   /* BCF_t* BCFHandle; */
   /* ti_iter_t iter; */
-  const char* line;
-  int line_len;
+  // const char* line;
+  // int line_len;
   // int origStdout;
   std::string header;
 };

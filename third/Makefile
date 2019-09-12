@@ -1,14 +1,7 @@
 # download all third party library and compile them
 
-LIB = tabix pcre eigen gsl bzip2 samtools zlib rapidjson sqlite zstd nlopt
+LIB = pcre eigen gsl bzip2 zlib rapidjson sqlite zstd nlopt libdeflate htslib
 all: $(LIB)
-
-tabix: tabix-0.2.6.tar.bz2 zlib
-	-mv tabix-0.2.6.tar.bz2* tabix-0.2.6.tar.bz2
-	tar jxf tabix-0.2.6.tar.bz2
-	ln -s -f tabix-0.2.6 tabix
-	sed -i.bak 's:^CFLAGS=:CFLAGS=-I../zlib-1.2.8:;s:^LIBPATH=:LIBPATH=-L../zlib-1.2.8:'  tabix/Makefile
-	(cd tabix-0.2.6; make)
 
 pcre: pcre-8.36.tar.gz
 	-mv pcre-8.36.tar.gz* pcre-8.36.tar.gz
@@ -35,12 +28,6 @@ bzip2: bzip2-1.0.6.tar.gz
 	ln -s -f bzip2-1.0.6 bzip2
 	(cd bzip2-1.0.6; make)
 
-samtools: samtools-0.1.19.tar.bz2 zlib
-	tar jxf $<
-	ln -s -f samtools-0.1.19 samtools
-	sed -i.bak 's:^CFLAGS=:CFLAGS=-I../zlib-1.2.8 -I../../zlib-1.2.8:;s:^LIBPATH=:LIBPATH=-L../zlib-1.2.8 -L../../zlib-1.2.8:' samtools/Makefile samtools/bcftools/Makefile
-	(cd samtools; make lib-recur)
-
 nlopt: nlopt-2.4.2.tar.gz
 	tar zxf $<
 	-(DIR=`pwd`; cd nlopt-2.4.2; ./configure --prefix="$${DIR}"/nlopt; make -j; make install)
@@ -59,10 +46,13 @@ zstd: zstd-1.3.1.tar.gz
 	ln -s -f zstd-1.3.1 zstd
 	(cd zstd; make)
 
-cnpy: cnpy.zip
-	unzip -o $<    ## -o: overwrite existing file
-	ln -s -f cnpy-master cnpy
-	(cd cnpy; $(CXX) -std=c++11 -c cnpy.cpp; $(AR) rcs libcnpy.a cnpy.o)
+libdeflate: libdeflate-1.3.tar.gz
+	tar zxf $<
+	(DIR=`pwd`; cd libdeflate-1.3; make install PREFIX="$${DIR}"/libdeflate)
+
+htslib: htslib-1.9.tar.gz libdeflate
+	tar zxf $<
+	(DIR=`pwd`; cd htslib-1.9; ./configure --prefix="$${DIR}}"/htslib --with-libdeflate CPPFLAGS=-I"$${DIR}"/libdeflate/include LDFLAGS=-L"$${DIR}"/libdeflate/lib --disable-libcurl; make install)
 
 ######################################################################
 # download sources
@@ -115,19 +105,44 @@ cnpy.zip:
 	echo "obtain cnpy"
 	$(call DOWNLOAD_RENAME,https://github.com/rogersce/cnpy/archive/master.zip,$@)
 
+libdeflate-1.3.tar.gz:
+	echo "obtain cnpy"
+	$(call DOWNLOAD_RENAME,https://github.com/ebiggers/libdeflate/archive/v1.3.tar.gz,$@)
+
+htslib-1.9.tar.gz:
+	echo "obtain htslib"
+	$(call DOWNLOAD_RENAME,https://github.com/samtools/htslib/archive/1.9.tar.gz,$@)
+
+
 clean:
 	-rm -rf $(LIB)
 deepclean:
 	-rm -rf $(LIB)
-	-rm -rf tabix-0.2.6
 	-rm -rf pcre-8.36
 	-rm -rf gsl-1.16
 	-rm -rf eigen-3.3.7
 	-rm -rf bzip2-1.0.6
-	-rm -rf samtools-0.1.19
 	-rm -rf rapidjson-1.0.2
 	-rm -rf nlopt-2.4.2
 	-rm -rf zlib-1.2.8
 	-rm -rf sqlite-autoconf-3200100
 	-rm -rf zstd-1.3.1
 	-rm -rf cnpy
+
+
+##################################################
+# Retired library
+##################################################
+tabix: tabix-0.2.6.tar.bz2 zlib
+	-mv tabix-0.2.6.tar.bz2* tabix-0.2.6.tar.bz2
+	tar jxf tabix-0.2.6.tar.bz2
+	ln -s -f tabix-0.2.6 tabix
+	sed -i.bak 's:^CFLAGS=:CFLAGS=-I../zlib-1.2.8:;s:^LIBPATH=:LIBPATH=-L../zlib-1.2.8:'  tabix/Makefile
+	(cd tabix-0.2.6; make)
+
+samtools: samtools-0.1.19.tar.bz2 zlib
+	tar jxf $<
+	ln -s -f samtools-0.1.19 samtools
+	sed -i.bak 's:^CFLAGS=:CFLAGS=-I../zlib-1.2.8 -I../../zlib-1.2.8:;s:^LIBPATH=:LIBPATH=-L../zlib-1.2.8 -L../../zlib-1.2.8:' samtools/Makefile samtools/bcftools/Makefile
+	(cd samtools; make lib-recur)
+

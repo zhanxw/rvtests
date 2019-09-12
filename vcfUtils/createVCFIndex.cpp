@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "third/tabix/bgzf.h"
+#include "third/htslib/include/htslib/bgzf.h"
 
 int main(int argc, char** argv) {
   const char* fn = argv[1];

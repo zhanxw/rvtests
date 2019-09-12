@@ -46,6 +46,11 @@ zstd: zstd-1.3.1.tar.gz
 	ln -s -f zstd-1.3.1 zstd
 	(cd zstd; make)
 
+cnpy: cnpy.zip
+	unzip -o $<    ## -o: overwrite existing file
+	ln -s -f cnpy-master cnpy
+	(cd cnpy; $(CXX) -std=c++11 -c cnpy.cpp; $(AR) rcs libcnpy.a cnpy.o)
+
 libdeflate: libdeflate-1.3.tar.gz
 	tar zxf $<
 	(DIR=`pwd`; cd libdeflate-1.3; make install PREFIX="$${DIR}"/libdeflate)
@@ -128,6 +133,8 @@ deepclean:
 	-rm -rf sqlite-autoconf-3200100
 	-rm -rf zstd-1.3.1
 	-rm -rf cnpy
+	-rm -rf libdeflate-1.3
+	-rm -rf htslib-1.9
 
 
 ##################################################

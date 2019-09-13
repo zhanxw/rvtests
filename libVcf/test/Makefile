@@ -18,13 +18,12 @@ CXX_FLAGS = -O0 -ggdb -fopenmp \
   -I../../third/samtools/bcftools \
   ../../libVcf/lib-dbg-vcf.a \
   ../../base/lib-dbg-base.a ../../libsrc/lib-dbg-goncalo.a \
-  ../../third/tabix/libtabix.a \
+  ../../third/htslib/lib/libhts.a \
+  ../../third/libdeflate/lib/libdeflate.a \
   ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
-  -L ../../third/samtools/bcftools -lbcf\
-  ../../third/samtools/libbam.a \
   -L ../../third/zlib \
   -L ../../third/bzip2 \
-  -lz -lbz2 -lpthread
+  -lz -lbz2 -lpthread -llzma
 
 LIBS=../lib-dbg-vcf.a
 lib:

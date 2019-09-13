@@ -4,19 +4,18 @@
 #include "base/RangeList.h"
 #include "third/htslib/include/htslib/vcf.h"
 
-// static void write_header(bcf_hdr_t *h);
-
 class BCFReader {
  public:
   BCFReader(const std::string& fn)
       : cannotOpen(false),
         hasIndex(false),
         readyToRead(false),
+        bp(0),
         b(0),
-        bout(0)  // ,
-                 // off(0) // ,
-                 // str2id(0)
-  {
+        hin(0),
+        idx(0),
+        iter(0) {
+    ks = {0, 0, 0};
     open(fn);
   };
 
@@ -87,16 +86,8 @@ class BCFReader {
     // destroy range iterator
     // close index
     bcf_hdr_destroy(hin);
-    bcf_destroy(b);   // bcf_destroy(blast);
-    hts_close(bp);    // close bcf handle for input
-    hts_close(bout);  // close bcf handle for output
-    /* // resume stdout */
-    /* stdout = fdopen(this->origStdout, "w"); */
-    /* assert(stdout); */
-
-    // if (str2id) {
-    //   hts_str2id_destroy(str2id);
-    // }
+    bcf_destroy(b);  // bcf_destroy(blast);
+    hts_close(bp);   // close bcf handle for input
     closeIndex();
   };
   void resetRangeIterator() {
@@ -119,21 +110,10 @@ class BCFReader {
   // bcftools part
   htsFile* bp;
   bcf1_t* b;
-  htsFile* bout;
   bcf_hdr_t* hin;
-  bcf_hdr_t* hout;
   hts_idx_t* idx;
   hts_itr_t* iter;
-  // int tid, begin, end;
-  // uint64_t off;
   kstring_t ks;
-  // void* str2id;
-
-  /* BCF_t* BCFHandle; */
-  /* ti_iter_t iter; */
-  // const char* line;
-  // int line_len;
-  // int origStdout;
   std::string header;
 };
 

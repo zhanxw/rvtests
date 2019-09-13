@@ -5,7 +5,7 @@
 
 int main(int argc, char* argv[]) {
   {
-    std::string fn = "all.anno.filtered.extract.bcf.gz";
+    std::string fn = "all.anno.filtered.extract.v2.bcf";
     std::string r = "1:196621007-196716634";
     VCFExtractor vin(fn);
     vin.setRangeList(r);
@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     return 0;
 #endif
 
-  const char* fn = "test.bcf.gz";
+  const char* fn = "test.v2.bcf";
   {
     BCFReader tr(fn);
     int n = 0;
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
       if (h[i] == '\n') count++;
     }
     fprintf(stdout, "header has %d lines.\n", count);
-    assert(count == 60);
+    assert(count == 84);
   }
   return 0;
 }

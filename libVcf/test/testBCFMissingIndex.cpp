@@ -1,11 +1,11 @@
 #include "VCFUtil.h"
 
 int main() {
-  VCFInputFile vin("noindex.bcf.gz");
+  VCFInputFile vin("noindex.v2.bcf");
   vin.setRangeList("1:0");
   int lineNo = 0;
-  while (vin.readRecord()){
-    lineNo ++;
+  while (vin.readRecord()) {
+    lineNo++;
     VCFRecord& r = vin.getVCFRecord();
     VCFPeople& people = r.getPeople();
     VCFIndividual* indv;
@@ -18,15 +18,17 @@ int main() {
     // e.g.: Loop each (selected) people in the same order as in the VCF
     for (int i = 0; i < people.size(); i++) {
       indv = people[i];
-      // get GT index. if you are sure the index will not change, call this function only once!
+      // get GT index. if you are sure the index will not change, call this
+      // function only once!
       int GTidx = r.getFormatIndex("GT");
       if (GTidx >= 0)
-        printf("%s ", indv->justGet(0).toStr());  // [0] meaning the first field of each individual
+        printf("%s ",
+               indv->justGet(0)
+                   .toStr());  // [0] meaning the first field of each individual
       else
         fprintf(stderr, "Cannot find GT field!\n");
     }
     printf("\n");
   };
   fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
-
 };

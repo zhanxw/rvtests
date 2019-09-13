@@ -3,6 +3,7 @@
 
 #include "base/RangeList.h"
 #include "third/htslib/include/htslib/hts.h"
+#include "third/htslib/include/htslib/kseq.h"  // defined KS_SEP_LINE
 #include "third/htslib/include/htslib/tbx.h"
 #include "third/htslib/include/htslib/vcf.h"
 
@@ -32,25 +33,41 @@ class TabixReader {
     // check read mode
     if (range.empty()) {
       // read line by line
-      if (!iter) {
-        // iter = ti_query(this->tabixHandle, 0, 0, 0);
-        iter = tbx_itr_querys(tabixIndex, ".");
-        if (!iter) return false;
-      }
+      // if (!iter) {
+      //   // iter = ti_query(this->tabixHandle, 0, 0, 0);
+      //   iter = tbx_itr_querys(tabixIndex, ".");
+      //   if (!iter) return false;
+      // }
+      // if (!this->firstLine.empty()) {
+      //   (*line) = this->firstLine;
+      //   this->firstLine.clear();
+      //   return true;
+      // }
+
+      // // while ((ti_line = ti_read(this->tabixHandle, iter, &ti_line_len)) !=
+      // 0)
+      // // {
+      // while (tbx_itr_next(tabixHandle, tabixIndex, iter, &tabixLine) >= 0) {
+      //   // need to skip header here
+      //   if (tabixLine.l > 0 &&
+      //       (int)(tabixLine.s[0]) == this->tabixIndex->conf.meta_char)
+      //     continue;
+      //   // (*line) = (ti_line);
+      //   return true;
+      // }
+      // return false;
       if (!this->firstLine.empty()) {
         (*line) = this->firstLine;
         this->firstLine.clear();
         return true;
       }
-
-      // while ((ti_line = ti_read(this->tabixHandle, iter, &ti_line_len)) != 0)
-      // {
-      while (tbx_itr_next(tabixHandle, tabixIndex, iter, &tabixLine) >= 0) {
-        // need to skip header here
+      while (hts_getline(this->tabixHandle, KS_SEP_LINE, &tabixLine) >= 0) {
+        // skip header lines
         if (tabixLine.l > 0 &&
             (int)(tabixLine.s[0]) == this->tabixIndex->conf.meta_char)
           continue;
         // (*line) = (ti_line);
+        (*line) = tabixLine.s;
         return true;
       }
       return false;
@@ -69,7 +86,7 @@ class TabixReader {
 
       // if (this->ti_line) {
       if (tbx_itr_next(tabixHandle, tabixIndex, iter, &tabixLine) > 0) {
-        // (*line) = ti_line;
+        (*line) = tabixLine.s;
         return true;
       }
     }
@@ -87,7 +104,7 @@ class TabixReader {
       //   continue;
       // }
       // ti_iter_destroy(iter);
-      tbx_destroy(this->tabixIndex);
+      // do not destroy index: tbx_destroy(this->tabixIndex);
       // iter = 0;
       // this->iter = ti_queryi(this->tabixHandle, tid, beg, end);
       this->iter = tbx_itr_querys(this->tabixIndex, rangeBuffer);
@@ -167,7 +184,7 @@ class TabixReader {
 
     this->hasIndex = true;
     return true;
-  };
+  }
 
   void closeIndex() {
     // fpritnf(stderr, "close index...");
@@ -215,31 +232,40 @@ class TabixReader {
     if (!this->hasIndex) {
       return -1;
     }
+    // do not attempt to read
+    // // this->iter = ti_query(this->tabixHandle, 0, 0, 0);
+    // this->iter = tbx_itr_querys(this->tabixIndex, ".");
+    // if (!this->iter) {
+    //   return -1;
+    // }
 
-    // this->iter = ti_query(this->tabixHandle, 0, 0, 0);
-    this->iter = tbx_itr_querys(this->tabixIndex, ".");
-    if (!this->iter) {
-      return -1;
-    }
-
-    // while ((ti_line = ti_read(this->tabixHandle, this->iter,
-    //                           &this->ti_line_len)) != 0) {
-    //   if ((int)(*ti_line) != idxconf->meta_char) {
-    //     this->firstLine = ti_line;
+    // // while ((ti_line = ti_read(this->tabixHandle, this->iter,
+    // //                           &this->ti_line_len)) != 0) {
+    // //   if ((int)(*ti_line) != idxconf->meta_char) {
+    // //     this->firstLine = ti_line;
+    // //     break;
+    // //   }
+    // //   // fputs(ti_line, stdout); fputc('\n', stdout);
+    // //   this->header += ti_line;
+    // //   this->header += "\n";
+    // // }
+    // while (tbx_itr_next(this->tabixHandle, this->tabixHandle, this->iter,
+    //                     &this->tabixLine) >= 0) {
+    //   if (tabixLine.s[0] == this->tabixIndex->conf.meta_char) {
+    //     this->firstLine = tabixLine.s;
     //     break;
     //   }
-    //   // fputs(ti_line, stdout); fputc('\n', stdout);
-    //   this->header += ti_line;
-    //   this->header += "\n";
+    //   this->header += tabixLine.s;
+    //   this->header += '\n';
     // }
-    while (tbx_itr_next(this->tabixHandle, this->tabixHandle, this->iter,
-                        &this->tabixLine) >= 0) {
-      if (tabixLine.s[0] == this->tabixIndex->conf.meta_char) {
+    while (hts_getline(this->tabixHandle, KS_SEP_LINE, &tabixLine) >= 0) {
+      if (tabixLine.l > 0 &&
+          (int)(tabixLine.s[0]) != this->tabixIndex->conf.meta_char) {
         this->firstLine = tabixLine.s;
         break;
       }
       this->header += tabixLine.s;
-      this->header += '\n';
+      this->header += "\n";
     }
 
     cannotOpen = false;

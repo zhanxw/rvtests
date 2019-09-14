@@ -55,9 +55,9 @@ libdeflate: libdeflate-1.3.tar.gz
 	tar zxf $<
 	(DIR=`pwd`; cd libdeflate-1.3; make install PREFIX="$${DIR}"/libdeflate)
 
-htslib: htslib-1.9.tar.gz libdeflate
-	tar zxf $<
-	(DIR=`pwd`; cd htslib-1.9; autoconf ; ./configure --prefix="$${DIR}"/htslib --with-libdeflate CPPFLAGS=-I"$${DIR}"/libdeflate/include LDFLAGS=-L"$${DIR}"/libdeflate/lib --disable-libcurl; make install)
+htslib: htslib-1.9.tar.bz2 libdeflate
+	tar jxf $<
+	(DIR=`pwd`; cd htslib-1.9; ./configure --prefix="$${DIR}"/htslib --with-libdeflate CPPFLAGS=-I"$${DIR}"/libdeflate/include LDFLAGS=-L"$${DIR}"/libdeflate/lib --disable-libcurl --disable-bz2 --disable-lzma; make install)
 
 ######################################################################
 # download sources
@@ -114,9 +114,9 @@ libdeflate-1.3.tar.gz:
 	echo "obtain cnpy"
 	$(call DOWNLOAD_RENAME,https://github.com/ebiggers/libdeflate/archive/v1.3.tar.gz,$@)
 
-htslib-1.9.tar.gz:
+htslib-1.9.tar.bz2:
 	echo "obtain htslib"
-	$(call DOWNLOAD_RENAME,https://github.com/samtools/htslib/archive/1.9.tar.gz,$@)
+	$(call DOWNLOAD_RENAME,https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2,$@)
 
 
 clean:

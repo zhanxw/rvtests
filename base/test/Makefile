@@ -1,5 +1,5 @@
 EXE = testLogger testIO testIONet testRangeList testUtils testRegex testSimpleMatrix \
-      testPedigree testKinship testTabixReader testParRegion testKinshipToKinInbcoef \
+      testPedigree testKinship testParRegion testKinshipToKinInbcoef \
       testCommonFunction testTypeConversion testSimpleTimer testProfiler testVersionChecker \
       testSocket testHttp testIndexer testSimpleString testRingMemoryPool\
       Argument_Example_1 Argument_Example_2
@@ -8,13 +8,13 @@ debug: all
 
 LIBS = ../../base/lib-dbg-base.a \
        ../../third/pcre/lib/libpcreposix.a ../../third/pcre/lib/libpcre.a \
-       ../../third/tabix/libtabix.a
+       ../../third/htslib/lib/libhts.a ../../third/libdeflate/lib/libdeflate.a
 CXX_FLAGS = -O0 -ggdb -I.. -I../../ -I../../base -I../../third/gsl/include -I../../third/tabix/ \
             -I../../third/pcre/include \
             -DUSE_ACCURATE_TIMER \
             -std=c++0x \
             -Wall 
-LIB_FLAGS = $(LIBS) -L../../third/bzip2 -L../../third/zlib -lz -lbz2
+LIB_FLAGS = $(LIBS) -L../../third/bzip2 -L../../third/zlib -lz -lbz2 -lpthread
 
 define BUILD_each
   TAR := $(1)

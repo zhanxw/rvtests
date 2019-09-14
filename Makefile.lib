@@ -32,6 +32,10 @@ $(ZSTD_INC) $(ZSTD_LIB):
 	$(MAKE) $(MAKEFILE) -C $(ROOT)/third zstd
 $(CNPY_INC) $(CNPY_LIB):
 	$(MAKE) $(MAKEFILE) -C $(ROOT)/third cnpy
+$(DEFLATE_INC) $(DEFLATE_LIB):
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third libdeflate
+$(HTSLIB_INC) $(HTSLIB_LIB):
+	$(MAKE) $(MAKEFILE) -C $(ROOT)/third htslib
 
 ## our libs
 $(BASE_LIB):

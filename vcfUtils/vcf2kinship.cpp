@@ -149,7 +149,7 @@ class IBSKinship : public EmpiricalKinship {
     ++n;
     for (size_t i = 0; i < g.size(); ++i) {
       for (size_t j = 0; j <= i; ++j) {
-        if (g[i] >= 0 || g[j] >= 0) {
+        if (g[i] >= 0 && g[j] >= 0) {
           k[i][j] += 2.0 - abs((int)g[i] - (int)g[j]);
           ++count[i][j];
         }

@@ -149,7 +149,7 @@ class IBSKinship : public EmpiricalKinship {
     ++n;
     for (size_t i = 0; i < g.size(); ++i) {
       for (size_t j = 0; j <= i; ++j) {
-        if (g[i] >= 0 || g[j] >= 0) {
+        if (g[i] >= 0 && g[j] >= 0) {
           k[i][j] += 2.0 - abs((int)g[i] - (int)g[j]);
           ++count[i][j];
         }
@@ -439,7 +439,7 @@ int output(const std::vector<std::string>& famName,
            bool performPCA, const std::string& outPrefix);
 
 #define PROGRAM "vcf2kinship"
-#define VERSION "20170307"
+#define VERSION "20191018"
 void welcome() {
 #ifdef NDEBUG
   fprintf(stdout, "Thank you for using %s (version %s, git tag %s)\n", PROGRAM,

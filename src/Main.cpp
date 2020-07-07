@@ -544,7 +544,7 @@ int main(int argc, char** argv) {
   }
   if (FLAG_siteMACMin > 0) {
     ge->setSiteMACMin(FLAG_siteMACMin);
-    logger->info("Set site minimum MAC to %d", FLAG_siteDepthMin);
+    logger->info("Set site minimum MAC to %d", FLAG_siteMACMin);
   }
   if (FLAG_annoType != "") {
     ge->setAnnoType(FLAG_annoType.c_str());

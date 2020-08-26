@@ -81,7 +81,7 @@ pcre-8.36.tar.gz:
 
 eigen-3.3.7.tar.bz2:
 	echo "obtain Eigen..."
-	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2,$@)
+	$(call DOWNLOAD_RENAME,https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.bz2,$@)
 
 gsl-1.16.tar.gz:
 	echo "obtain GSL"

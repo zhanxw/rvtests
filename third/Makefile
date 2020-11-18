@@ -20,9 +20,7 @@ gsl: gsl-1.16.tar.gz
 	-(DIR=`pwd`; cd gsl-1.16; ./configure --prefix="$${DIR}"/gsl; make -j; make install)
 
 eigen: eigen-3.3.7.tar.bz2
-	-rm -rf eigen-eigen*
 	tar jxf eigen-3.3.7.tar.bz2
-	-mv eigen-eigen-* eigen-3.3.7
 	ln -s -f eigen-3.3.7 eigen
 
 zlib: zlib-1.2.8.tar.gz
@@ -81,7 +79,7 @@ pcre-8.36.tar.gz:
 
 eigen-3.3.7.tar.bz2:
 	echo "obtain Eigen..."
-	$(call DOWNLOAD_RENAME,http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2,$@)
+	$(call DOWNLOAD_RENAME,https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.bz2,$@)
 
 gsl-1.16.tar.gz:
 	echo "obtain GSL"

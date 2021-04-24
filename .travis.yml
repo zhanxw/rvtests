@@ -28,7 +28,7 @@ matrix:
     compiler: clang
   - env: PLATFORM='musl64'
     os: linux
-    dist: trusty
+    dist: xenial
     sudo: required
     compiler: gcc
 before_install:

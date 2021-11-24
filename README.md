@@ -67,7 +67,7 @@ Source codes can be downloaded from [github](https://github.com/zhanxw/rvtests/a
 ```
 git clone https://github.com/zhanxw/rvtests
 ``` 
-to retrieve the latest distribution for rvtests. To install, go to the rvtests folder and type `make`. When compilation succeed, the executable is under the `executable` folder. Simply type `executable/rvtests` can get you started.
+to retrieve the latest distribution for rvtests. To install, go to the rvtests folder and type `make`. When compilation succeed, the executable is under the `executable` folder. Simply type `executable/rvtest` can get you started.
 
 Alternatively, binary executable files (for Linux 64-bit platform) can be downloaded from [here](https://github.com/zhanxw/rvtests/releases).
 

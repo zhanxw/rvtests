@@ -312,7 +312,8 @@ class SkatO::SkatOImpl {
       }
     }
     double temp;
-    if (kappa > lambda.sum() * 10000) {
+    /** VarQ <= 0.0 : fixes: https://github.com/zhanxw/rvtests/issues/133 */
+    if (kappa > lambda.sum() * 10000 || VarQ <= 0.0) {
       temp = 0.0;
     } else {
       double Q = (kappa - MuQ) * sqrt(VarQ - VarZeta) / sqrt(VarQ) + MuQ;
